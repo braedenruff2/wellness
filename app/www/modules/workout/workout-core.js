@@ -1,0 +1,283 @@
+/* Workout logic (no DOM). Ported from Braeden's Google Sheets "Dumbbell workout tracker" script and improved:
+   - Full-body A / B / C days that rotate (the next one is whatever comes after the last one you did), so a skipped
+     day never leaves a muscle untrained for two weeks. Each muscle gets worked 2-3 times a week instead of once.
+   - Supersets with a short transition and one real rest per round (as in the sheet); target ranges per exercise.
+   - Progression: with the 10 lb pair, hitting the top of the range on every set means "make it harder" (tempo,
+     pauses, a harder variation); with adjustable dumbbells it means "add weight" (double progression).
+   Storage key 'wl.workout.v1': { equipment, weights:{name:lb}, sessions:[{id, date, day, start, end, sets:[{ex, n, val, w, at}]}],
+                                  history:[...imported rows], next: {name: variation note he switched to} }. */
+(function (root) {
+  'use strict';
+
+  /* track: reps | sec | min.  range = target per set.  hard = what to do once every set reaches the top with fixed weight.
+     load: how much to add when the dumbbells can change (lb per dumbbell).  side: true = each side counts separately. */
+  var EX = {
+    'Bulgarian Split Squats': { track: 'reps', range: [8, 15], side: true, hard: '3-sec lowering + 1-sec pause at the bottom', load: 5, cue: 'Back foot on a chair. Most weight on the front leg; knee tracks over toes.' },
+    'Pushups': { track: 'reps', range: [8, 20], hard: '3-sec lowering on every rep, then feet on a chair', cue: 'Body in one line, elbows about 45° from your sides, chest to a fist’s height from the floor.' },
+    'One-Arm Rows': { track: 'reps', range: [10, 20], side: true, hard: '2-sec squeeze at the top + 3-sec lowering', load: 5, cue: 'Hand and knee on a chair, flat back, pull the dumbbell to your hip.' },
+    'Overhead Press': { track: 'reps', range: [10, 20], hard: '1.5 reps (extra half rep at the bottom)', load: 5, cue: 'Standing, ribs down, squeeze your glutes; press straight up.' },
+    'Plank': { track: 'sec', range: [30, 90], hard: 'RKC plank: squeeze glutes, pull elbows toward toes', cue: 'Elbows under shoulders, straight line from head to heels.' },
+    'Single Leg RDL': { track: 'reps', range: [8, 15], side: true, hard: '3-sec lowering + pause at the bottom', load: 5, cue: 'Hinge at the hip with a soft knee; back flat; hold a chair for balance if needed.' },
+    'Pike Pushups': { track: 'reps', range: [6, 15], hard: 'feet on a chair', cue: 'Hips high, head goes forward of your hands, elbows back.' },
+    'Rear Delt Flys': { track: 'reps', range: [12, 25], hard: '2-sec hold at the top', load: 2.5, cue: 'Bent over, slight bend in the elbows, lead with the elbows.' },
+    'Reverse Lunges': { track: 'reps', range: [10, 20], side: true, hard: '1-sec pause with the back knee just off the floor', load: 5, cue: 'Step back, drop straight down, push through the front heel.' },
+    'Dead Bug': { track: 'reps', range: [8, 16], side: true, hard: 'hold a dumbbell in your hands overhead', cue: 'Low back pressed to the floor the whole time; move slowly.' },
+    'Split Squats': { track: 'reps', range: [10, 20], side: true, hard: 'front foot on a step or book', load: 5, cue: 'Both feet on the floor, long stance, straight down and up.' },
+    'Dumbbell Pullovers': { track: 'reps', range: [12, 25], hard: 'hold both dumbbells together', load: 5, cue: 'Lying on the floor, arms nearly straight, lower behind your head only as far as is comfortable.' },
+    'Hammer Curls': { track: 'reps', range: [10, 20], hard: '3-sec lowering', load: 2.5, cue: 'Elbows still at your sides, palms facing each other.' },
+    'Single Leg Glute Bridge': { track: 'reps', range: [10, 20], side: true, hard: 'dumbbell on the hip + 2-sec squeeze', cue: 'Drive through the heel, squeeze at the top, don’t arch your back.' },
+    'Calf Raises': { track: 'reps', range: [15, 30], hard: 'single-leg, holding both dumbbells', load: 5, cue: 'Full stretch at the bottom, pause at the top. Hold a wall for balance.' },
+    'Russian Twists': { track: 'reps', range: [16, 40], hard: 'feet off the floor, both dumbbells together', cue: 'Turn your chest, not just your arms.' },
+    'Walk': { track: 'min', range: [10, 40], cue: 'Treadmill or a stroller walk with Inara. Brisk enough to breathe a little harder.' }
+  };
+
+  /* Three full-body days, about 25-30 minutes each. Letters = supersets (do one set of each, then rest). */
+  var PROGRAM = {
+    A: { title: 'Full body A', items: [
+      { ex: 'Bulgarian Split Squats', group: 'A', sets: 3, rest: 75 },
+      { ex: 'Pushups', group: 'A', sets: 3, rest: 75 },
+      { ex: 'One-Arm Rows', group: 'B', sets: 3, rest: 60 },
+      { ex: 'Overhead Press', group: 'B', sets: 3, rest: 60 },
+      { ex: 'Plank', group: 'C', sets: 2, rest: 45 },
+      { ex: 'Walk', group: 'Z', sets: 1, rest: 0, optional: true }
+    ] },
+    B: { title: 'Full body B', items: [
+      { ex: 'Single Leg RDL', group: 'A', sets: 3, rest: 75 },
+      { ex: 'Pike Pushups', group: 'A', sets: 3, rest: 75 },
+      { ex: 'Reverse Lunges', group: 'B', sets: 2, rest: 60 },
+      { ex: 'Rear Delt Flys', group: 'B', sets: 3, rest: 60 },
+      { ex: 'Dead Bug', group: 'C', sets: 2, rest: 45 },
+      { ex: 'Walk', group: 'Z', sets: 1, rest: 0, optional: true }
+    ] },
+    C: { title: 'Full body C', items: [
+      { ex: 'Split Squats', group: 'A', sets: 3, rest: 75 },
+      { ex: 'Pushups', group: 'A', sets: 3, rest: 75 },
+      { ex: 'Dumbbell Pullovers', group: 'B', sets: 3, rest: 60 },
+      { ex: 'Hammer Curls', group: 'B', sets: 2, rest: 60 },
+      { ex: 'Single Leg Glute Bridge', group: 'C', sets: 2, rest: 45 },
+      { ex: 'Calf Raises', group: 'C', sets: 2, rest: 45 },
+      { ex: 'Walk', group: 'Z', sets: 1, rest: 0, optional: true }
+    ] }
+  };
+  var ORDER = ['A', 'B', 'C'];
+  var TRANSITION = 20, WEEK_TARGET = 3, SESSION_GAP_MIN = 45;
+
+  function defaults() { return { equipment: 'fixed10', weights: {}, sessions: [], history: [], next: {} }; }
+  function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
+  var idn = 0;
+  function newId(now) { return (now || new Date()).getTime().toString(36) + '-' + (++idn); }
+
+  function sessionsWithSets(state) { return state.sessions.filter(function (s) { return s.sets && s.sets.length; }); }
+
+  /* The next day in the rotation: the one after the most recent session you actually logged sets in. */
+  function nextDay(state, now) {
+    var open = openSession(state, now);
+    if (open) return open.day;
+    var done = sessionsWithSets(state);
+    if (!done.length) return 'A';
+    var last = done[done.length - 1].day;
+    return ORDER[(ORDER.indexOf(last) + 1) % ORDER.length] || 'A';
+  }
+
+  /* A session still in progress (sets logged in the last 45 min), so closing the app mid-workout is fine. */
+  function openSession(state, now) {
+    var s = state.sessions[state.sessions.length - 1];
+    if (!s || s.end) return null;
+    var lastAt = s.sets.length ? new Date(s.sets[s.sets.length - 1].at).getTime() : new Date(s.start).getTime();
+    if ((now || new Date()).getTime() - lastAt > SESSION_GAP_MIN * 60000) return null;
+    return s;
+  }
+
+  function startSession(state, day, now) {
+    now = now || new Date();
+    var open = openSession(state, now);
+    if (open) return open;
+    var s = { id: newId(now), date: iso(now), day: day, start: now.toISOString(), end: null, sets: [] };
+    // an empty session left behind is replaced
+    var last = state.sessions[state.sessions.length - 1];
+    if (last && !last.sets.length) state.sessions.pop();
+    state.sessions.push(s);
+    return s;
+  }
+
+  function endSession(state, now) {
+    var s = state.sessions[state.sessions.length - 1];
+    if (s && !s.end) { if (!s.sets.length) state.sessions.pop(); else s.end = (now || new Date()).toISOString(); }
+  }
+
+  /* After set n of item idx: a superset partner still due this round -> 20 s transition; another round -> rest;
+     last round -> rest, then the next group. Same rules as the sheet's getRestInfo. */
+  function restInfo(day, idx, n) {
+    var plan = PROGRAM[day].items, cur = plan[idx];
+    if (!cur || !cur.rest) return { secs: 0, label: '' };
+    var group = plan.filter(function (e) { return e.group === cur.group; });
+    var pos = group.indexOf(cur);
+    var partner = group.slice(pos + 1).filter(function (e) { return e.sets >= n; })[0];
+    if (partner) return { secs: TRANSITION, label: 'Next: ' + partner.ex + ' (set ' + n + ')', next: plan.indexOf(partner), set: n };
+    var round = group.filter(function (e) { return e.sets > n; })[0];
+    if (round) return { secs: cur.rest, label: 'Rest, then ' + round.ex + ' set ' + (n + 1), next: plan.indexOf(round), set: n + 1 };
+    var after = plan.filter(function (e, i) { return i > idx && e.group !== cur.group; })[0];
+    if (after) return { secs: cur.rest, label: 'Rest, then ' + after.ex + (after.optional ? ' (optional)' : ''), next: plan.indexOf(after), set: 1 };
+    return { secs: 0, label: '' };
+  }
+
+  function logSet(state, day, idx, val, weight, now) {
+    now = now || new Date();
+    var s = startSession(state, day, now), item = PROGRAM[day].items[idx];
+    var n = s.sets.filter(function (x) { return x.i === idx; }).length + 1;
+    var set = { i: idx, ex: item.ex, n: n, val: +val, w: weight == null || weight === '' ? null : +weight, at: now.toISOString() };
+    s.sets.push(set);
+    if (set.w != null) state.weights[item.ex] = set.w;
+    return { set: set, rest: n <= item.sets ? restInfo(day, idx, n) : { secs: 0, label: '' } };
+  }
+
+  function undoSet(state) {
+    var s = state.sessions[state.sessions.length - 1];
+    if (s && !s.end && s.sets.length) return s.sets.pop();
+    return null;
+  }
+
+  /* Every performance of an exercise, newest last: [{date, sets:[vals], w}] from the app's sessions and the imported sheet. */
+  function performances(state, name) {
+    var out = [];
+    state.history.forEach(function (h) { if (h.ex === name && h.sets.length) out.push({ date: h.date, sets: h.sets.slice(), w: h.w }); });
+    state.sessions.forEach(function (s) {
+      var sets = s.sets.filter(function (x) { return x.ex === name; });
+      if (sets.length) out.push({ date: s.date, sets: sets.map(function (x) { return x.val; }), w: sets[sets.length - 1].w, session: s.id });
+    });
+    out.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    return out;
+  }
+  function last(state, name, exceptSession) {
+    var p = performances(state, name).filter(function (x) { return !exceptSession || x.session !== exceptSession; });
+    return p.length ? p[p.length - 1] : null;
+  }
+
+  function ready(item, lastPerf) {
+    var e = EX[item.ex];
+    if (!e || !e.range || !lastPerf) return false;
+    var vals = lastPerf.sets.slice(0, item.sets);
+    return vals.length >= item.sets && vals.every(function (v) { return +v >= e.range[1]; });
+  }
+
+  /* What to do this time, in plain words. */
+  function advice(state, item, lastPerf) {
+    var e = EX[item.ex]; if (!e) return '';
+    var unit = e.track === 'sec' ? 'sec' : e.track === 'min' ? 'min' : 'reps';
+    if (e.track === 'min') return 'Optional: ' + e.range[0] + '–' + e.range[1] + ' min.';
+    var target = item.sets + ' × ' + e.range[0] + '–' + e.range[1] + ' ' + unit + (e.side ? ' each side' : '');
+    if (!lastPerf) return target + '. Start comfortably; stop with 1–2 good reps left in the tank.';
+    var lastTxt = 'Last: ' + lastPerf.sets.join('/') + (lastPerf.w ? ' @ ' + lastPerf.w + ' lb' : '');
+    if (ready(item, lastPerf)) {
+      if (state.equipment === 'adjustable' && e.load) {
+        var w = (+lastPerf.w || 10) + e.load;
+        return target + '. ' + lastTxt + '. ⬆ You hit the top on every set: go up to ' + w + ' lb and aim for the bottom of the range again.';
+      }
+      if (e.hard && state.next[item.ex] !== e.hard) return target + '. ' + lastTxt + '. ⬆ Ready for harder: ' + e.hard + '.';
+      return target + '. ' + lastTxt + '. ⬆ Top of the range: add a set or slow the lowering to 3–4 seconds.';
+    }
+    var lowest = Math.min.apply(null, lastPerf.sets.map(Number));
+    if (lowest < e.range[0] && lastPerf.sets.length) return target + '. ' + lastTxt + '. Below the range last time: same again, or use the easier version.';
+    return target + '. ' + lastTxt + '. Try to beat it by one rep on at least one set.';
+  }
+
+  /* Weekly view: sessions (with sets) this week (Mon-Sun), streak of weeks hitting the target, totals. */
+  function weekStart(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+  function weekStats(state, now) {
+    now = now || new Date();
+    var ws = iso(weekStart(now));
+    var days = {};
+    sessionsWithSets(state).forEach(function (s) { days[s.date] = 1; });
+    state.history.forEach(function (h) { days[h.date] = 1; });
+    var thisWeek = Object.keys(days).filter(function (d) { return d >= ws; }).length;
+    // weeks in a row (before this one) with at least 2 workouts
+    var streak = 0, w = weekStart(now);
+    for (;;) {
+      w.setDate(w.getDate() - 7);
+      var a = iso(w), b = iso(new Date(w.getFullYear(), w.getMonth(), w.getDate() + 7));
+      var n = Object.keys(days).filter(function (d) { return d >= a && d < b; }).length;
+      if (n >= 2) streak++; else break;
+      if (streak > 520) break;
+    }
+    return { thisWeek: thisWeek, target: WEEK_TARGET, streak: streak, total: Object.keys(days).length };
+  }
+
+  /* One sentence of coaching for the Home card. */
+  function coach(state, now) {
+    now = now || new Date();
+    var st = weekStats(state, now), dow = (now.getDay() + 6) % 7; // 0 = Monday
+    var done = sessionsWithSets(state), lastDate = done.length ? done[done.length - 1].date : (state.history.length ? state.history[state.history.length - 1].date : null);
+    var gap = lastDate ? Math.round((new Date(iso(now)) - new Date(lastDate)) / 864e5) : null;
+    var open = openSession(state, now);
+    if (open) return 'In progress: ' + open.sets.length + ' set' + (open.sets.length === 1 ? '' : 's') + ' so far. Keep going.';
+    if (lastDate === iso(now)) return 'Done for today. Rest is when the muscle actually grows.';
+    if (gap != null && gap > 10) return 'It’s been ' + gap + ' days. Start easy today: do two sets of each, not three.';
+    if (st.thisWeek >= st.target) return 'Three this week. Anything more is a bonus: a walk with Inara counts.';
+    var left = st.target - st.thisWeek, daysLeft = 7 - dow;
+    if (left > daysLeft) return 'A busy week. One good workout still counts; don’t try to catch up all at once.';
+    return st.thisWeek + ' of ' + st.target + ' this week. ' + (st.streak >= 2 ? st.streak + ' good weeks in a row.' : 'About 30 minutes, any time today.');
+  }
+
+  /* Import the Google Sheet "Log" tab saved as CSV (File > Download > CSV): Date, Day, Exercise, Set 1-4, Weight, ... */
+  function parseCsv(text) {
+    var rows = [], row = [], cell = '', q = false;
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { row.push(cell); cell = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cell); rows.push(row); row = []; cell = ''; }
+      else cell += c;
+    }
+    if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+  var RENAME = { 'Treadmill Walk': 'Walk' };
+  function importSheetCsv(state, text) {
+    var rows = parseCsv(String(text || ''));
+    if (!rows.length || !/date/i.test(rows[0][0] || '') || !/exercise/i.test(rows[0][2] || '')) throw new Error('That doesn’t look like the workout sheet’s Log (Date, Day, Exercise, Set 1...).');
+    var seen = {}, added = 0;
+    state.history.forEach(function (h) { seen[h.date + '|' + h.ex] = 1; });
+    rows.slice(1).forEach(function (r) {
+      var date = (r[0] || '').trim(), ex = (r[2] || '').trim();
+      if (!/^\d{4}-\d\d-\d\d$/.test(date) || !ex || ex === 'Rest') return;
+      var sets = r.slice(3, 7).map(function (v) { return String(v).trim(); }).filter(function (v) { return v !== '' && !isNaN(+v); }).map(Number);
+      if (!sets.length) return;
+      var name = RENAME[ex] || ex;
+      var w = parseFloat(String(r[7] || '').replace(/[^\d.]/g, ''));
+      if (name === 'Walk') { w = null; sets = [sets.reduce(function (a, b) { return a + b; }, 0)]; } // minutes; the sheet kept speed in Weight
+      var key = date + '|' + name; if (seen[key]) return; seen[key] = 1;
+      state.history.push({ date: date, ex: name, sets: sets, w: isNaN(w) ? null : w, from: 'sheet' });
+      added++;
+    });
+    state.history.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+    return added;
+  }
+
+  function validate(s) {
+    if (!s || typeof s !== 'object' || !Array.isArray(s.sessions)) return null;
+    var d = defaults(), dateRe = /^\d{4}-\d\d-\d\d$/;
+    d.equipment = s.equipment === 'adjustable' ? 'adjustable' : 'fixed10';
+    Object.keys(s.weights || {}).forEach(function (k) { if (EX[k] && typeof s.weights[k] === 'number') d.weights[k] = s.weights[k]; });
+    Object.keys(s.next || {}).forEach(function (k) { if (EX[k] && typeof s.next[k] === 'string') d.next[k] = s.next[k]; });
+    s.sessions.forEach(function (x) {
+      if (!x || !dateRe.test(x.date) || !PROGRAM[x.day] || !Array.isArray(x.sets)) return;
+      d.sessions.push({ id: String(x.id || newId()), date: x.date, day: x.day, start: String(x.start || ''), end: x.end ? String(x.end) : null,
+        sets: x.sets.filter(function (t) { return t && EX[t.ex] && typeof t.val === 'number'; }).map(function (t) {
+          return { i: +t.i || 0, ex: t.ex, n: +t.n || 1, val: t.val, w: typeof t.w === 'number' ? t.w : null, at: String(t.at || '') };
+        }) });
+    });
+    (Array.isArray(s.history) ? s.history : []).forEach(function (h) {
+      if (h && dateRe.test(h.date) && typeof h.ex === 'string' && Array.isArray(h.sets))
+        d.history.push({ date: h.date, ex: h.ex.slice(0, 60), sets: h.sets.filter(function (v) { return typeof v === 'number'; }), w: typeof h.w === 'number' ? h.w : null, from: 'sheet' });
+    });
+    return d;
+  }
+
+  var api = { EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession,
+    startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
+    last: last, ready: ready, advice: advice, weekStats: weekStats, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
+    validate: validate, iso: iso };
+  root.WorkoutCore = api;
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : this);

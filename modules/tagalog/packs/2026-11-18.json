@@ -1,0 +1,975 @@
+{
+ "id": "2026-11-18",
+ "week": 1,
+ "title": "Family first",
+ "level": "Understands some, speaks little",
+ "made": "2026-11-18, written by Claude for Braeden's first week",
+ "focus": "Polite Tagalog for his wife's family, talking about Inara (turning one on 22 Nov), and the core sentence patterns he half-recognises from listening.",
+ "lessons": [
+  {
+   "day": 1,
+   "title": "Po, opo and greeting elders",
+   "intro": "You already hear 'po' everywhere. It shows respect to anyone older: parents-in-law, Lola, aunties. Put it after the first word or phrase of what you say, and use 'kayo' (you, respectful) instead of 'ikaw'.",
+   "words": [
+    {
+     "tl": "po",
+     "en": "polite particle for elders (like sir / ma'am)"
+    },
+    {
+     "tl": "opo",
+     "en": "yes (polite)"
+    },
+    {
+     "tl": "hindi po",
+     "en": "no (polite)"
+    },
+    {
+     "tl": "Magandang umaga po",
+     "en": "Good morning"
+    },
+    {
+     "tl": "Magandang hapon po",
+     "en": "Good afternoon"
+    },
+    {
+     "tl": "Magandang gabi po",
+     "en": "Good evening"
+    },
+    {
+     "tl": "Kumusta po kayo?",
+     "en": "How are you? (respectful)"
+    },
+    {
+     "tl": "Mabuti naman po",
+     "en": "I'm fine / doing well"
+    },
+    {
+     "tl": "Mano po",
+     "en": "said while taking an elder's hand to your forehead (asking for a blessing)"
+    },
+    {
+     "tl": "Salamat po",
+     "en": "Thank you"
+    },
+    {
+     "tl": "Ingat po kayo",
+     "en": "Take care"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "You",
+     "tl": "Magandang hapon po, Lola. Mano po.",
+     "en": "Good afternoon, Grandma. (taking her hand for a blessing)"
+    },
+    {
+     "who": "Lola",
+     "tl": "Kaawaan ka ng Diyos. Kumusta ka na?",
+     "en": "God bless you. How are you now?"
+    },
+    {
+     "who": "You",
+     "tl": "Mabuti naman po. Kayo po?",
+     "en": "I'm fine. And you?"
+    },
+    {
+     "who": "Lola",
+     "tl": "Mabuti rin. Nasaan si Inara?",
+     "en": "Fine too. Where's Inara?"
+    },
+    {
+     "who": "You",
+     "tl": "Natutulog po siya.",
+     "en": "She's sleeping."
+    }
+   ],
+   "grammar": {
+    "title": "Where 'po' goes",
+    "explain": "'Po' usually comes right after the first word or chunk: 'Salamat po', 'Kumusta po kayo?', 'Mabuti naman po'. 'Opo' is a polite 'oo' (yes). Use 'kayo' instead of 'ikaw' and 'nila' or 'ninyo' instead of 'mo' when you speak to elders. 'Ho' is a slightly more casual version you may hear.",
+    "examples": [
+     {
+      "tl": "Salamat po sa pagkain.",
+      "en": "Thank you for the food."
+     },
+     {
+      "tl": "Opo, gising na po siya.",
+      "en": "Yes, she's awake now."
+     }
+    ]
+   },
+   "culture": "Mano: when you arrive, take an elder's right hand and touch the back of it to your forehead while saying 'Mano po'. Families love seeing this, especially from a son-in-law.",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "What does 'opo' mean?",
+     "options": [
+      "yes (polite)",
+      "no",
+      "hello",
+      "thank you"
+     ],
+     "answer": "yes (polite)"
+    },
+    {
+     "type": "listen",
+     "say": "Magandang gabi po",
+     "options": [
+      "Good evening",
+      "Good morning",
+      "Good afternoon",
+      "Take care"
+     ],
+     "answer": "Good evening"
+    },
+    {
+     "type": "mc",
+     "prompt": "Lola asks 'Kumusta ka na?'. A polite answer:",
+     "options": [
+      "Mabuti naman po.",
+      "Mabuti naman.",
+      "Ingat ka.",
+      "Salamat."
+     ],
+     "answer": "Mabuti naman po."
+    },
+    {
+     "type": "build",
+     "prompt": "How are you? (to your mother-in-law)",
+     "words": [
+      "kayo?",
+      "Kumusta",
+      "po"
+     ],
+     "answer": "Kumusta po kayo?"
+    },
+    {
+     "type": "type",
+     "prompt": "Say 'Thank you' to an elder.",
+     "answer": "Salamat po",
+     "accept": [
+      "salamat po",
+      "salamat ho",
+      "maraming salamat po"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 2,
+   "title": "Talking about the baby",
+   "intro": "Everyone will ask about Inara, especially with her first birthday on 22 November. These phrases cover most of it.",
+   "words": [
+    {
+     "tl": "anak",
+     "en": "child (son or daughter)"
+    },
+    {
+     "tl": "sanggol",
+     "en": "baby (people often just say 'baby')"
+    },
+    {
+     "tl": "natutulog",
+     "en": "is sleeping"
+    },
+    {
+     "tl": "gising",
+     "en": "awake"
+    },
+    {
+     "tl": "umiiyak",
+     "en": "is crying"
+    },
+    {
+     "tl": "gutom",
+     "en": "hungry"
+    },
+    {
+     "tl": "Ang cute!",
+     "en": "How cute!"
+    },
+    {
+     "tl": "kamukha",
+     "en": "looks like (someone)"
+    },
+    {
+     "tl": "buwan",
+     "en": "month"
+    },
+    {
+     "tl": "kaarawan",
+     "en": "birthday (also 'birthday' in Taglish)"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Tita",
+     "tl": "Ang cute ng anak mo! Ilang buwan na siya?",
+     "en": "Your child is so cute! How many months is she?"
+    },
+    {
+     "who": "You",
+     "tl": "Mag-iisang taon na po siya.",
+     "en": "She's about to turn one."
+    },
+    {
+     "who": "Tita",
+     "tl": "Kamukha mo siya!",
+     "en": "She looks like you!"
+    },
+    {
+     "who": "You",
+     "tl": "Sabi nila, kamukha raw siya ng nanay niya.",
+     "en": "They say she looks like her mom."
+    },
+    {
+     "who": "Tita",
+     "tl": "Gutom na ba siya?",
+     "en": "Is she hungry already?"
+    },
+    {
+     "who": "You",
+     "tl": "Opo, kakain na po kami.",
+     "en": "Yes, we're about to eat."
+    }
+   ],
+   "grammar": {
+    "title": "'Ang ...!' and 'na'",
+    "explain": "'Ang' + a describing word makes an exclamation: 'Ang cute!', 'Ang init!' (So hot!), 'Ang bigat niya!' (She's so heavy!). 'Na' after a word means 'already / now': 'Gising na siya' (She's awake now), 'Gutom na ba siya?' (Is she hungry yet?).",
+    "examples": [
+     {
+      "tl": "Ang laki na niya!",
+      "en": "She's so big now!"
+     },
+     {
+      "tl": "Tulog na si Inara.",
+      "en": "Inara is asleep now."
+     }
+    ]
+   },
+   "culture": "A baby's first birthday is a big celebration in Filipino families, often with lots of food and relatives. Expect the questions above many times.",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "'Umiiyak si Inara' means:",
+     "options": [
+      "Inara is crying",
+      "Inara is sleeping",
+      "Inara is eating",
+      "Inara is awake"
+     ],
+     "answer": "Inara is crying"
+    },
+    {
+     "type": "listen",
+     "say": "Ang cute ng anak mo!",
+     "options": [
+      "Your child is so cute!",
+      "Your child is hungry!",
+      "Your child is big!",
+      "Your child is sleeping!"
+     ],
+     "answer": "Your child is so cute!"
+    },
+    {
+     "type": "build",
+     "prompt": "She's awake now.",
+     "words": [
+      "siya.",
+      "na",
+      "Gising"
+     ],
+     "answer": "Gising na siya."
+    },
+    {
+     "type": "type",
+     "prompt": "How cute!",
+     "answer": "Ang cute!",
+     "accept": [
+      "ang cute",
+      "ang cute!"
+     ]
+    },
+    {
+     "type": "mc",
+     "prompt": "Someone says 'Kamukha mo siya!'. They mean:",
+     "options": [
+      "She looks like you",
+      "She is like a month old",
+      "She is hungry",
+      "She is heavy"
+     ],
+     "answer": "She looks like you"
+    }
+   ]
+  },
+  {
+   "day": 3,
+   "title": "Who does what: ang, ng, sa",
+   "intro": "Three little words carry a lot of meaning. Once you notice them, sentences you half understand will click into place.",
+   "words": [
+    {
+     "tl": "si / ang",
+     "en": "marks the main person or thing in the sentence (si for names)"
+    },
+    {
+     "tl": "ni / ng",
+     "en": "of, or marks the thing being done-to (ni for names)"
+    },
+    {
+     "tl": "kay / sa",
+     "en": "to, at, for (kay for names)"
+    },
+    {
+     "tl": "saging",
+     "en": "banana"
+    },
+    {
+     "tl": "gatas",
+     "en": "milk"
+    },
+    {
+     "tl": "laruan",
+     "en": "toy"
+    },
+    {
+     "tl": "bahay",
+     "en": "house"
+    },
+    {
+     "tl": "pupunta",
+     "en": "will go"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Wife",
+     "tl": "Kumakain si Inara ng saging.",
+     "en": "Inara is eating a banana."
+    },
+    {
+     "who": "You",
+     "tl": "Nasaan ang laruan niya?",
+     "en": "Where's her toy?"
+    },
+    {
+     "who": "Wife",
+     "tl": "Nasa sofa. Ibigay mo kay Inara.",
+     "en": "On the sofa. Give it to Inara."
+    },
+    {
+     "who": "You",
+     "tl": "Pupunta tayo sa bahay ni Lola bukas?",
+     "en": "Are we going to Lola's house tomorrow?"
+    },
+    {
+     "who": "Wife",
+     "tl": "Oo, sa hapon.",
+     "en": "Yes, in the afternoon."
+    }
+   ],
+   "grammar": {
+    "title": "The three markers",
+    "explain": "In 'Kumakain si Inara ng saging': 'si' marks Inara (the one the sentence is about), 'ng' marks the banana (what she eats). 'Sa' marks places and directions: 'sa bahay' (at/to the house). For names use si / ni / kay: 'bahay ni Lola' (Lola's house), 'kay Inara' (to Inara). 'Ng' is pronounced 'nang'.",
+    "examples": [
+     {
+      "tl": "Umiinom ng gatas ang baby.",
+      "en": "The baby is drinking milk."
+     },
+     {
+      "tl": "Nasa kusina si Tatay.",
+      "en": "Dad is in the kitchen."
+     }
+    ]
+   },
+   "culture": "Taglish (mixing English in) is completely normal in the Philippines. 'Nasa sofa', 'ibigay mo sa baby': mixing is fine while you learn.",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "Kumakain ___ Inara ng saging.",
+     "options": [
+      "si",
+      "ng",
+      "sa",
+      "kay"
+     ],
+     "answer": "si"
+    },
+    {
+     "type": "mc",
+     "prompt": "Pupunta kami ___ bahay ni Lola.",
+     "options": [
+      "sa",
+      "si",
+      "ng",
+      "ang"
+     ],
+     "answer": "sa"
+    },
+    {
+     "type": "mc",
+     "prompt": "'bahay ni Lola' means:",
+     "options": [
+      "Lola's house",
+      "to Lola's house",
+      "Lola is at home",
+      "a house for Lola"
+     ],
+     "answer": "Lola's house"
+    },
+    {
+     "type": "build",
+     "prompt": "The baby is drinking milk.",
+     "words": [
+      "ang",
+      "baby.",
+      "Umiinom",
+      "ng",
+      "gatas"
+     ],
+     "answer": "Umiinom ng gatas ang baby."
+    },
+    {
+     "type": "listen",
+     "say": "Ibigay mo kay Inara.",
+     "options": [
+      "Give it to Inara.",
+      "Inara gave it.",
+      "Give Inara a bath.",
+      "Where is Inara?"
+     ],
+     "answer": "Give it to Inara."
+    }
+   ]
+  },
+  {
+   "day": 4,
+   "title": "Did, doing, will do",
+   "intro": "Tagalog verbs show whether something happened, is happening, or will happen, by changing the front of the word. The '-um-' verbs are the easiest place to start.",
+   "words": [
+    {
+     "tl": "kumain / kumakain / kakain",
+     "en": "ate / is eating / will eat"
+    },
+    {
+     "tl": "uminom / umiinom / iinom",
+     "en": "drank / is drinking / will drink"
+    },
+    {
+     "tl": "umalis / umaalis / aalis",
+     "en": "left / is leaving / will leave"
+    },
+    {
+     "tl": "kumanta / kumakanta / kakanta",
+     "en": "sang / is singing / will sing"
+    },
+    {
+     "tl": "bukas",
+     "en": "tomorrow"
+    },
+    {
+     "tl": "kanina",
+     "en": "earlier today"
+    },
+    {
+     "tl": "ngayon",
+     "en": "now, today"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Wife",
+     "tl": "Kumain ka na ba?",
+     "en": "Have you eaten yet?"
+    },
+    {
+     "who": "You",
+     "tl": "Hindi pa. Kakain ako mamaya.",
+     "en": "Not yet. I'll eat later."
+    },
+    {
+     "who": "Wife",
+     "tl": "Uminom na ng gatas si Inara kanina.",
+     "en": "Inara already drank milk earlier."
+    },
+    {
+     "who": "You",
+     "tl": "Aalis tayo bukas ng umaga?",
+     "en": "Are we leaving tomorrow morning?"
+    },
+    {
+     "who": "Wife",
+     "tl": "Oo. Kumakanta pa si Nanay, hintayin natin.",
+     "en": "Yes. Mom is still singing, let's wait for her."
+    }
+   ],
+   "grammar": {
+    "title": "The -um- pattern",
+    "explain": "Take the root (kain, inom, alis). Done: put -um- after the first consonant: k-um-ain = kumain; a root starting with a vowel takes um- in front: uminom. Ongoing: the done form, but repeat the first syllable of the root: kumakain, umiinom. Future: just repeat the first syllable: kakain, iinom, aalis.",
+    "examples": [
+     {
+      "tl": "Kumakain ako.",
+      "en": "I'm eating."
+     },
+     {
+      "tl": "Iinom siya ng tubig.",
+      "en": "He/she will drink water."
+     }
+    ]
+   },
+   "culture": "'Kumain ka na?' (Have you eaten?) is also an everyday greeting and a way of showing care, a bit like 'How are you?'.",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "'kakain' means:",
+     "options": [
+      "will eat",
+      "ate",
+      "is eating",
+      "food"
+     ],
+     "answer": "will eat"
+    },
+    {
+     "type": "mc",
+     "prompt": "Inara is drinking milk: ___ ng gatas si Inara.",
+     "options": [
+      "Umiinom",
+      "Uminom",
+      "Iinom",
+      "Inom"
+     ],
+     "answer": "Umiinom"
+    },
+    {
+     "type": "type",
+     "prompt": "Make 'kanta' (sing) future: will sing",
+     "answer": "kakanta",
+     "accept": [
+      "kakanta"
+     ]
+    },
+    {
+     "type": "listen",
+     "say": "Kumain ka na ba?",
+     "options": [
+      "Have you eaten yet?",
+      "Are you eating now?",
+      "Will you eat?",
+      "Do you want food?"
+     ],
+     "answer": "Have you eaten yet?"
+    },
+    {
+     "type": "build",
+     "prompt": "Not yet. I'll eat later.",
+     "words": [
+      "mamaya.",
+      "pa.",
+      "Kakain",
+      "Hindi",
+      "ako"
+     ],
+     "answer": "Hindi pa. Kakain ako mamaya."
+    }
+   ]
+  },
+  {
+   "day": 5,
+   "title": "At the family table",
+   "intro": "Filipino gatherings centre on food, and the polite way to accept, praise and refuse it matters.",
+   "words": [
+    {
+     "tl": "Kain tayo!",
+     "en": "Let's eat! (an invitation)"
+    },
+    {
+     "tl": "Masarap!",
+     "en": "Delicious!"
+    },
+    {
+     "tl": "Busog na ako",
+     "en": "I'm full"
+    },
+    {
+     "tl": "Gusto ko pa",
+     "en": "I'd like more"
+    },
+    {
+     "tl": "Tama na po",
+     "en": "That's enough, thank you"
+    },
+    {
+     "tl": "Pakiabot po ng kanin",
+     "en": "Please pass the rice"
+    },
+    {
+     "tl": "kanin",
+     "en": "cooked rice"
+    },
+    {
+     "tl": "ulam",
+     "en": "the dish eaten with rice"
+    },
+    {
+     "tl": "Sino ang nagluto?",
+     "en": "Who cooked?"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Tita",
+     "tl": "Kain tayo! Kumuha ka pa.",
+     "en": "Let's eat! Take some more."
+    },
+    {
+     "who": "You",
+     "tl": "Salamat po. Ang sarap ng adobo! Sino po ang nagluto?",
+     "en": "Thank you. The adobo is so good! Who cooked?"
+    },
+    {
+     "who": "Tita",
+     "tl": "Ako! Gusto mo pa?",
+     "en": "Me! Do you want more?"
+    },
+    {
+     "who": "You",
+     "tl": "Busog na po ako, pero ang sarap talaga.",
+     "en": "I'm full, but it's really delicious."
+    }
+   ],
+   "grammar": {
+    "title": "pa and na",
+    "explain": "'Pa' means 'still / more / yet': 'Gusto ko pa' (I want more), 'Hindi pa' (not yet). 'Na' means 'already / now / anymore': 'Busog na ako' (I'm full now), 'Ayoko na' (I don't want any more). 'Paki-' at the start of a verb means 'please': 'Pakiabot' (please pass), 'Pakihawak' (please hold).",
+    "examples": [
+     {
+      "tl": "Pakihawak po si Inara.",
+      "en": "Please hold Inara."
+     },
+     {
+      "tl": "Kain pa!",
+      "en": "Eat more!"
+     }
+    ]
+   },
+   "culture": "Hosts will insist you eat more. Praising the food and the cook ('Ang sarap po!') is the best compliment; 'Busog na po ako' with a smile is a polite way to stop.",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "Tita offers more food and you're full. Best answer:",
+     "options": [
+      "Busog na po ako, salamat.",
+      "Ayoko.",
+      "Hindi masarap.",
+      "Gusto ko pa."
+     ],
+     "answer": "Busog na po ako, salamat."
+    },
+    {
+     "type": "listen",
+     "say": "Pakiabot po ng kanin.",
+     "options": [
+      "Please pass the rice.",
+      "The rice is delicious.",
+      "Who cooked the rice?",
+      "I want more rice."
+     ],
+     "answer": "Please pass the rice."
+    },
+    {
+     "type": "type",
+     "prompt": "Delicious!",
+     "answer": "Masarap!",
+     "accept": [
+      "masarap",
+      "ang sarap",
+      "masarap!"
+     ]
+    },
+    {
+     "type": "mc",
+     "prompt": "'Hindi pa' means:",
+     "options": [
+      "not yet",
+      "not anymore",
+      "no thanks",
+      "not here"
+     ],
+     "answer": "not yet"
+    },
+    {
+     "type": "build",
+     "prompt": "Please hold Inara.",
+     "words": [
+      "si",
+      "po",
+      "Inara.",
+      "Pakihawak"
+     ],
+     "answer": "Pakihawak po si Inara."
+    }
+   ]
+  },
+  {
+   "day": 6,
+   "title": "Asking questions",
+   "intro": "With a handful of question words you can keep a conversation going, and show interest in the family.",
+   "words": [
+    {
+     "tl": "Ano?",
+     "en": "What?"
+    },
+    {
+     "tl": "Sino?",
+     "en": "Who?"
+    },
+    {
+     "tl": "Nasaan?",
+     "en": "Where is ...?"
+    },
+    {
+     "tl": "Saan?",
+     "en": "Where (to / at, with an action)?"
+    },
+    {
+     "tl": "Kailan?",
+     "en": "When?"
+    },
+    {
+     "tl": "Bakit?",
+     "en": "Why?"
+    },
+    {
+     "tl": "Paano?",
+     "en": "How?"
+    },
+    {
+     "tl": "Ilan?",
+     "en": "How many?"
+    },
+    {
+     "tl": "Magkano?",
+     "en": "How much (price)?"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "You",
+     "tl": "Nasaan po si Lolo?",
+     "en": "Where's Grandpa?"
+    },
+    {
+     "who": "Tita",
+     "tl": "Nasa labas, nagdidilig.",
+     "en": "Outside, watering the plants."
+    },
+    {
+     "who": "You",
+     "tl": "Kailan po kayo uuwi sa Pilipinas?",
+     "en": "When are you going home to the Philippines?"
+    },
+    {
+     "who": "Tita",
+     "tl": "Sa Disyembre. Bakit, gusto mong sumama?",
+     "en": "In December. Why, do you want to come along?"
+    },
+    {
+     "who": "You",
+     "tl": "Gusto ko po! Paano po ba?",
+     "en": "I'd love to! How does it work?"
+    }
+   ],
+   "grammar": {
+    "title": "Nasaan vs saan",
+    "explain": "'Nasaan' asks where something or someone IS: 'Nasaan ang bote?' (Where's the bottle?). 'Saan' goes with an action: 'Saan tayo kakain?' (Where will we eat?). Answer 'nasaan' with 'nasa': 'Nasa kusina' (In the kitchen).",
+    "examples": [
+     {
+      "tl": "Bakit siya umiiyak?",
+      "en": "Why is she crying?"
+     },
+     {
+      "tl": "Ilan ang anak ninyo?",
+      "en": "How many children do you have?"
+     }
+    ]
+   },
+   "culture": "Asking elders about their hometown in the Philippines ('Taga-saan po kayo?', Where are you from?) is a warm way to start a long conversation.",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "Where's the bottle?",
+     "options": [
+      "Nasaan ang bote?",
+      "Saan ang bote?",
+      "Ano ang bote?",
+      "Kailan ang bote?"
+     ],
+     "answer": "Nasaan ang bote?"
+    },
+    {
+     "type": "listen",
+     "say": "Bakit siya umiiyak?",
+     "options": [
+      "Why is she crying?",
+      "Who is crying?",
+      "When did she cry?",
+      "Is she crying?"
+     ],
+     "answer": "Why is she crying?"
+    },
+    {
+     "type": "mc",
+     "prompt": "'Taga-saan po kayo?' asks:",
+     "options": [
+      "Where are you from?",
+      "Where are you going?",
+      "When did you arrive?",
+      "Who are you?"
+     ],
+     "answer": "Where are you from?"
+    },
+    {
+     "type": "type",
+     "prompt": "When?",
+     "answer": "Kailan?",
+     "accept": [
+      "kailan"
+     ]
+    },
+    {
+     "type": "build",
+     "prompt": "Where will we eat?",
+     "words": [
+      "kakain?",
+      "tayo",
+      "Saan"
+     ],
+     "answer": "Saan tayo kakain?"
+    }
+   ]
+  },
+  {
+   "day": 7,
+   "title": "Linking words, and the week together",
+   "intro": "One last pattern explains a sound you hear constantly: the -ng or 'na' that joins describing words to things. Then a review of the week.",
+   "words": [
+    {
+     "tl": "magandang umaga",
+     "en": "good morning (maganda + ng)"
+    },
+    {
+     "tl": "mabait na bata",
+     "en": "a well-behaved / kind child"
+    },
+    {
+     "tl": "masayang pamilya",
+     "en": "a happy family"
+    },
+    {
+     "tl": "malaking bahay",
+     "en": "a big house"
+    },
+    {
+     "tl": "maliit na kamay",
+     "en": "a small hand"
+    },
+    {
+     "tl": "mabait",
+     "en": "kind, good-natured"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Lola",
+     "tl": "Ang bait ng baby mo. Hindi umiiyak!",
+     "en": "Your baby is so good. She doesn't cry!"
+    },
+    {
+     "who": "You",
+     "tl": "Mabait na bata po si Inara. Pero umiiyak din po siya sa gabi!",
+     "en": "Inara is a good kid. But she cries at night too!"
+    },
+    {
+     "who": "Lola",
+     "tl": "Ganyan talaga. Masayang pamilya kayo.",
+     "en": "That's how it is. You're a happy family."
+    },
+    {
+     "who": "You",
+     "tl": "Salamat po, Lola.",
+     "en": "Thank you, Lola."
+    }
+   ],
+   "grammar": {
+    "title": "-ng and na",
+    "explain": "When a describing word sits next to a noun, a linker joins them. If the first word ends in a vowel, add -ng: maganda + umaga = magandang umaga, masaya + pamilya = masayang pamilya. If it ends in n, the n becomes -ng. Otherwise put 'na' between the two words: mabait na bata, maliit na kamay.",
+    "examples": [
+     {
+      "tl": "Masarap na pagkain",
+      "en": "delicious food"
+     },
+     {
+      "tl": "Malaking pasasalamat po",
+      "en": "Big thanks"
+     }
+    ]
+   },
+   "culture": "Over this week you've practised the words that matter most at a family gathering: respect (po, mano), the baby, and food. Try one phrase at the next visit; your effort will be noticed and loved.",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "a kind child:",
+     "options": [
+      "mabait na bata",
+      "mabaitng bata",
+      "bata mabait",
+      "mabait ang bata ng"
+     ],
+     "answer": "mabait na bata"
+    },
+    {
+     "type": "type",
+     "prompt": "Good morning (to an elder)",
+     "answer": "Magandang umaga po",
+     "accept": [
+      "magandang umaga po",
+      "magandang umaga ho"
+     ]
+    },
+    {
+     "type": "listen",
+     "say": "Masayang pamilya kayo.",
+     "options": [
+      "You're a happy family.",
+      "Your family is big.",
+      "Where is your family?",
+      "Your family is eating."
+     ],
+     "answer": "You're a happy family."
+    },
+    {
+     "type": "mc",
+     "prompt": "She will eat later:",
+     "options": [
+      "Kakain siya mamaya.",
+      "Kumain siya mamaya.",
+      "Kumakain siya kanina.",
+      "Kain siya mamaya."
+     ],
+     "answer": "Kakain siya mamaya."
+    },
+    {
+     "type": "build",
+     "prompt": "Inara is a good kid.",
+     "words": [
+      "si",
+      "bata",
+      "Mabait",
+      "na",
+      "Inara."
+     ],
+     "answer": "Mabait na bata si Inara."
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Wellness</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="view" tabindex="-1"></main>
+<nav id="tabs" aria-label="Main"></nav>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="shell.js"></script>
+<script src="lib/guided.js"></script>
+<!-- each module is separate: its own folder, storage key and tests -->
+<script src="modules/faith/core.js"></script>
+<script src="modules/faith/content.js"></script>
+<script src="modules/faith/faith.js"></script>
+<script src="modules/calm/calm-core.js"></script>
+<script src="modules/calm/calm.js"></script>
+<script src="modules/workout/workout-core.js"></script>
+<script src="modules/workout/workout.js"></script>
+<script src="modules/tagalog/tagalog-core.js"></script>
+<script src="modules/tagalog/tl-packs.js"></script>
+<script src="modules/tagalog/tagalog.js"></script>
+<script src="modules/todo/todo-core.js"></script>
+<script src="modules/todo/todo.js"></script>
+<script>WL.start();</script>
+</body>
+</html>

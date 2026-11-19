@@ -1,0 +1,6 @@
+build/
+node_modules/
+_to_delete/
+*.idsig
+android/*.keystore
+tools/last-publish.txt
