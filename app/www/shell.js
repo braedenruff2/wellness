@@ -146,6 +146,39 @@
     return 'Good night';
   }
 
+  /* Logging for an earlier day (forgot to log yesterday's workout, prayer, calm session or to-do): every part records
+     with WL.logNow(): that day at the current time of day. Kept in memory only, and back to today after 2 hours. */
+  var logDay = null, logDaySet = 0;
+  function addDaysIso(n) { var d = new Date(); return isoDate(new Date(d.getFullYear(), d.getMonth(), d.getDate() - n)); }
+  function getLogDay() {
+    if (logDay && (Date.now() - logDaySet > 2 * 3600e3 || logDay >= isoDate())) logDay = null;
+    return logDay;
+  }
+  function setLogDay(iso) { logDay = iso && iso < isoDate() ? iso : null; logDaySet = Date.now(); drawLogDay(); }
+  function logNow() {
+    var d = getLogDay(), now = new Date();
+    if (!d) return now;
+    var p = d.split('-');
+    return new Date(+p[0], +p[1] - 1, +p[2], now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+  }
+  function dayLabel(iso) {
+    var p = iso.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]);
+    return (iso === addDaysIso(1) ? 'yesterday, ' : '') + d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+  }
+  function drawLogDay() {
+    var el = document.getElementById('logday'); if (!el) return;
+    var d = getLogDay();
+    el.hidden = !d;
+    el.innerHTML = d ? '<span class="grow">Logging for <b>' + esc(dayLabel(d)) + '</b></span><button id="logday-back" class="chip">Back to today</button>' : '';
+    var b = document.getElementById('logday-back'); if (b) b.onclick = function () { setLogDay(null); route(); toast('Logging for today'); };
+  }
+  function logDayHtml() {
+    var cur = getLogDay(), o = '<option value="">Today</option>';
+    for (var i = 1; i <= 7; i++) { var v = addDaysIso(i); o += '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>' + esc(dayLabel(v)) + '</option>'; }
+    return '<div class="card ui"><div class="row"><label for="wl-logday" class="grow">Log for an earlier day<br><span class="meta">Forgot to log something? Pick the day, then use any part as usual.</span></label>' +
+      '<select id="wl-logday" aria-label="Log for which day">' + o + '</select></div></div>';
+  }
+
   function home() {
     var h = '<div class="meta ui">' + esc(greeting()) + ' · ' + esc(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>' +
       '<h1>Today</h1>';
@@ -155,6 +188,7 @@
       var c = ''; try { c = m.card(); } catch (e) { c = ''; }
       if (c) h += '<div class="card home-card" data-module="' + id + '">' + c + '</div>';
     });
+    h += logDayHtml();
     h += '<p class="ui" style="text-align:center"><a href="#settings">Settings and backup</a></p>';
     return h;
   }
@@ -288,6 +322,7 @@
       b.onclick = function () { var v = b.dataset.val; setLook(b.dataset.look, isNaN(+v) ? v : +v); route(); };
     });
     wireUpdate(); wireVoice();
+    var ld = $('#wl-logday'); if (ld) ld.onchange = function () { setLogDay(ld.value || null); toast(ld.value ? 'Logging for ' + dayLabel(ld.value) : 'Logging for today'); };
     var ex = $('#wl-export'); if (ex) ex.onclick = function () { saveFile('wellness-backup-' + isoDate() + '.json', backupText()); };
     var im = $('#wl-import');
     if (im) im.onchange = function () {
@@ -322,6 +357,7 @@
     $$('nav#tabs a').forEach(function (a) {
       if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
+    drawLogDay();
     if (!m || !m.keepScroll) window.scrollTo(0, 0);
   }
 
@@ -344,7 +380,7 @@
   window.FCPauseSession = function () { if (current && current.pause) current.pause(); };
 
   window.WL = {
-    register: register, start: start, route: route, store: store, $: $, $$: $$, esc: esc, toast: toast, isoDate: isoDate,
+    register: register, start: start, route: route, logNow: logNow, logDay: getLogDay, setLogDay: setLogDay, store: store, $: $, $$: $$, esc: esc, toast: toast, isoDate: isoDate,
     speech: speech, bell: bell, keepAwake: keepAwake, wordsSeconds: wordsSeconds, applyLook: applyLook, themeNow: themeNow,
     saveFile: saveFile, native: native, modules: modules, backupText: backupText, restoreText: restoreText
   };

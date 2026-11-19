@@ -57,6 +57,9 @@ reads anything they can't (before the downloads, or if something fails).
 - **Parenting** (`modules/coach`): scenarios for your daughter's exact age, you answer, Claude grades against current
   guidance (what went well, what to change, what an expert would do and why, sources), progress per skill. Needs the PC link.
 - **PC link** (`modules/link`, Settings): pairing, what's logged, send now, advice from Claude.
+- **Log for an earlier day** (Home, bottom): pick one of the last 7 days and use any part as usual: workout sets,
+  faith days/journal, calm sessions and ticked to-dos are recorded on that day (WL.logNow()). A banner shows it on every
+  screen; "Back to today" or 2 hours ends it.
 - **To do** (`modules/todo`, on Home): quick add with plain words ("call Mom tomorrow", "stretch every day"),
   repeating tasks, overdue nudges. Reminders: end a task with a time ("bins fri at 7pm", "meds 8:30 pm") or set
   one in its ⋯ sheet; the phone notifies at that time even when the app is closed (TodoAlarm.java, exact alarm,

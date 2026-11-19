@@ -1,6 +1,7 @@
 /* To-do module: #todo (list), quick add with plain words ("bins fri", "stretch every day"), Home card with today's tasks. */
 (function () {
   'use strict';
+  function logNow() { return WL.logNow ? WL.logNow() : new Date(); } // the day picked on Home, or now
   var T = window.TodoCore, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   var store = WL.store('wl.todo.v1', T.defaults);
   var S = store.load(), view = null, showDone = false;
@@ -107,7 +108,7 @@
     $$('[data-tick]').forEach(function (b) {
       b.onclick = function () {
         var t = T.find(S, b.dataset.tick); if (!t) return;
-        if (t.done) T.uncomplete(S, t.id); else { T.complete(S, t.id); if (t.repeat) WL.toast('Done. Next: ' + fmtDue(t.due)); }
+        if (t.done) T.uncomplete(S, t.id); else { T.complete(S, t.id, logNow()); if (t.repeat) WL.toast('Done. Next: ' + fmtDue(t.due)); }
         save(); render();
       };
     });
@@ -126,7 +127,7 @@
     return h + '<div class="row ui"><a class="btn" href="#todo">Open the list</a></div>';
   }
   function wireCard(el) {
-    $$('[data-tick]', el).forEach(function (b) { b.onclick = function () { T.complete(S, b.dataset.tick); save(); WL.route(); }; });
+    $$('[data-tick]', el).forEach(function (b) { b.onclick = function () { T.complete(S, b.dataset.tick, logNow()); save(); WL.route(); }; });
     $$('[data-more]', el).forEach(function (b) { b.style.display = 'none'; });
   }
 

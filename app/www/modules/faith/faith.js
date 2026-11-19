@@ -3,6 +3,7 @@
    Storage: localStorage 'fc.v1' (unchanged). Shared things (look, speech, bell, backup) come from shell.js (WL). */
 (function () {
   'use strict';
+  function logNow() { return WL.logNow ? WL.logNow() : new Date(); } // the day picked on Home, or now
   var C = window.FCCore, P = window.WLPersonal;
   /* {child} in the content becomes her name from Parenting setup (on the phone only; see lib/personal.js). */
   var CONTENT = P ? P.personalize(window.FC_CONTENT, P.childName()) : window.FC_CONTENT;
@@ -199,7 +200,7 @@
       onEnd: function () {
         clearInterval(quietTimer); prog.style.width = '100%'; quiet.textContent = '';
         S.resume = null;
-        C.logSession(S, session.kind, session.id, session.title, session.started ? (Date.now() - session.started) / 60000 : 0);
+        C.logSession(S, session.kind, session.id, session.title, session.started ? (Date.now() - session.started) / 60000 : 0, logNow());
         save(); bell(); keepAwake(false);
         pp.textContent = 'Done'; pp.dataset.state = 'done';
         if (session.kind === 'day' && !S.done[session.id]) {
@@ -207,7 +208,7 @@
           var b = document.createElement('div'); b.className = 'row'; b.style.justifyContent = 'center';
           b.innerHTML = '<button class="primary" id="end-finish">Yes, mark it done</button><a class="btn" href="#faith/day/' + session.id + '">Back to the day</a>';
           line.parentNode.insertBefore(b, line.nextSibling.nextSibling);
-          $('#end-finish').onclick = function () { C.finishDay(S, session.id); save(); toast('Day ' + session.id + ' done. Go gently.'); location.hash = '#faith/today'; };
+          $('#end-finish').onclick = function () { C.finishDay(S, session.id, logNow()); save(); toast('Day ' + session.id + ' done. Go gently.'); location.hash = '#faith/today'; };
         } else line.textContent = 'Amen.';
       }
     };
@@ -342,7 +343,7 @@
     var tmr = null, out = $('#dj-saved'), gentle = $('#dj-gentle');
     function commit() {
       clearTimeout(tmr);
-      C.setDayJournal(S, +ta.dataset.day, ta.value); save();
+      C.setDayJournal(S, +ta.dataset.day, ta.value, logNow()); save();
       out.textContent = ta.value.trim() ? 'Saved' : '';
       gentle.innerHTML = C.soundsHeavy(ta.value) ? heavyNote() : '';
     }
@@ -363,7 +364,7 @@
     on('#forget-resume', function (el) { el.onclick = function () { S.resume = null; save(); $('#resume').remove(); }; });
     on('#dj', function (el) { journalSaver(el); });
     on('#finish', function (el) { el.onclick = function () {
-      var n = +el.dataset.day; C.finishDay(S, n); save();
+      var n = +el.dataset.day; C.finishDay(S, n, logNow()); save();
       toast('Day ' + n + ' done. Go gently.'); route();
     }; });
     on('#undone', function (el) { el.onclick = function () { C.unfinishDay(S, +el.dataset.day); save(); route(); }; });
@@ -403,7 +404,7 @@
     on('#voice-toggle', function (el) { el.onclick = function () { S.settings.voice = !S.settings.voice; save(); route(); }; });
     [].forEach.call(document.querySelectorAll('[data-jtab]'), function (b) { b.onclick = function () { location.hash = '#faith/journal/' + b.dataset.jtab; }; });
     on('#add-entry', function (el) { el.onclick = function () {
-      var ta = $('#new-entry'), e = C.addEntry(S, el.dataset.kind, ta.value);
+      var ta = $('#new-entry'), e = C.addEntry(S, el.dataset.kind, ta.value, null, logNow());
       if (!e) { ta.focus(); return; }
       save(); var heavy = C.soundsHeavy(e.text); route(); toast('Saved');
       if (heavy && $('#entry-gentle')) $('#entry-gentle').innerHTML = heavyNote();
@@ -466,7 +467,7 @@
     on('#rem-off', function (el) { el.onclick = function () { try { native.setReminder(-1, -1); } catch (e) {} S.settings.reminder = ''; save(); route(); }; });
   }
 
-  function saveNow() { var ta = view && view.querySelector('#dj'); if (ta) { C.setDayJournal(S, +ta.dataset.day, ta.value); } save(); }
+  function saveNow() { var ta = view && view.querySelector('#dj'); if (ta) { C.setDayJournal(S, +ta.dataset.day, ta.value, logNow()); } save(); }
   window.FCReminderPermission = function (granted) {
     toast(granted ? 'Reminder set for ' + S.settings.reminder : 'Notifications are off, so the reminder can\u2019t show');
     if (location.hash === '#faith/settings') route(['settings']);

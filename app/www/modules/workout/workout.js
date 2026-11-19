@@ -32,6 +32,9 @@
     }).join('') + '</div>';
   }
 
+  /* Logged for the day picked on Home ("Log for an earlier day"), or now. */
+  function now() { return WL.logNow ? WL.logNow() : new Date(); }
+
   function weekDots() {
     var st = W.weekStats(S), h = '<span class="dots" aria-label="' + st.thisWeek + ' of ' + st.target + ' workouts this week">';
     for (var i = 0; i < Math.max(st.target, st.thisWeek); i++) h += '<span class="dot' + (i < st.thisWeek ? ' on' : '') + '"></span>';
@@ -39,9 +42,9 @@
   }
 
   function today() {
-    var open = W.openSession(S), day = open ? open.day : (dayChoice || W.nextDay(S)), plan = W.PROGRAM[day];
+    var open = W.openSession(S, now()), day = open ? open.day : (dayChoice || W.nextDay(S, now())), plan = W.PROGRAM[day];
     var h = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">' + esc(plan.title) + '</h1>' + weekDots() + '</div>';
-    h += '<p class="meta ui">' + esc(W.coach(S)) + '</p>';
+    h += '<p class="meta ui">' + esc(W.coach(S, now())) + '</p>';
     if (!open) h += '<div class="chips ui" style="margin-bottom:10px">' + W.ORDER.map(function (d) {
       return '<button class="chip" data-day="' + d + '" aria-pressed="' + (d === day) + '">' + W.PROGRAM[d].title.replace('Full body ', 'Day ') + '</button>';
     }).join('') + '</div>';
@@ -64,9 +67,11 @@
           (e.track === 'reps' && (e.load || w !== '') ? '<input type="number" inputmode="decimal" class="wt" value="' + esc(w) + '" aria-label="Weight in lb"><span class="meta">lb</span>' : '') +
           '<button class="primary logbtn">Log set ' + (done.length + 1) + '</button></div>') + '</div>';
     });
+    var fin = !open && W.finishedToday(S, now());
+    if (fin) h = h.replace('</p>', '</p><div class="card ui"><div class="row"><span class="grow">Finished ' + esc(W.PROGRAM[fin.day].title) + ' (' + fin.sets.length + ' sets) by mistake?</span><button id="wo-reopen" data-id="' + esc(fin.id) + '">Carry on with it</button></div></div>');
     h += '<div class="row ui" style="margin:8px 0 90px">' + (open ? '<button id="wo-undo">Undo last set</button><span class="grow"></span><button class="primary" id="wo-finish">Finish workout</button>' : '') + '</div>';
     h += '<div id="restbar" class="restbar ui" hidden><div class="grow"><div id="rest-label" class="meta"></div><div id="rest-time" class="rest-time">0:00</div></div><button id="rest-plus">+15 s</button><button id="rest-skip">Skip</button></div>';
-    h += open ? '<div class="sessclock ui meta" id="sessclock"></div>' : '';
+    h += open && !(WL.logDay && WL.logDay()) ? '<div class="sessclock ui meta" id="sessclock"></div>' : '';
     return h;
   }
 
@@ -95,7 +100,7 @@
 
   function clock() {
     clearInterval(clockTimer);
-    var open = W.openSession(S), el = $('#sessclock'); if (!open || !el) return;
+    var open = W.openSession(S, now()), el = $('#sessclock'); if (!open || !el) return;
     var t = function () { var e = $('#sessclock'); if (e) e.textContent = 'Session ' + fmt((Date.now() - new Date(open.start).getTime()) / 1000); };
     t(); clockTimer = setInterval(t, 1000);
   }
@@ -110,9 +115,9 @@
       var lb = card.querySelector('.logbtn');
       if (lb) lb.onclick = function () {
         var v = +val.value; if (!(v > 0)) { val.focus(); return; }
-        var day = W.openSession(S) ? W.openSession(S).day : (dayChoice || W.nextDay(S));
+        var day = W.openSession(S, now()) ? W.openSession(S, now()).day : (dayChoice || W.nextDay(S, now()));
         var wt = card.querySelector('.wt');
-        var r = W.logSet(S, day, idx, v, wt ? wt.value : null);
+        var r = W.logSet(S, day, idx, v, wt ? wt.value : null, now());
         save();
         rest = r.rest.secs ? { end: Date.now() + r.rest.secs * 1000, label: r.rest.label, next: r.rest.next } : null;
         alarm();
@@ -122,10 +127,11 @@
         if (!rest) { var nxt = $('.ex:not(.ex-done)'); if (nxt) nxt.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
       };
     });
-    var u = $('#wo-undo'); if (u) u.onclick = function () { var s = W.undoSet(S); save(); rest = null; alarm(); renderToday(); if (s) WL.toast('Removed ' + s.ex + ' set ' + s.n); };
+    var ro = $('#wo-reopen'); if (ro) ro.onclick = function () { W.reopen(S, ro.dataset.id); save(); dayChoice = null; renderToday(); WL.toast('Carrying on: log the next set'); };
+    var u = $('#wo-undo'); if (u) u.onclick = function () { var s = W.undoSet(S, now()); save(); rest = null; alarm(); renderToday(); if (s) WL.toast('Removed ' + s.ex + ' set ' + s.n); };
     var f = $('#wo-finish'); if (f) f.onclick = function () {
-      var open = W.openSession(S), n = open ? open.sets.length : 0;
-      W.endSession(S); save(); rest = null; alarm(); dayChoice = null;
+      var open = W.openSession(S, now()), n = open ? open.sets.length : 0;
+      W.endSession(S, now()); save(); rest = null; alarm(); dayChoice = null;
       WL.toast(n ? 'Workout saved: ' + n + ' sets. Well done.' : 'Nothing logged');
       renderToday(); window.scrollTo(0, 0);
     };
@@ -211,9 +217,9 @@
   function leave() { clearInterval(restTimer); clearInterval(clockTimer); }
 
   function card() {
-    var open = W.openSession(S), day = open ? open.day : W.nextDay(S), plan = W.PROGRAM[day];
+    var open = W.openSession(S, now()), day = open ? open.day : W.nextDay(S, now()), plan = W.PROGRAM[day];
     return '<div class="meta ui">Workout</div><div class="row"><h3 class="grow">' + (open ? 'In progress: ' : 'Next: ') + esc(plan.title) + '</h3>' + weekDots() + '</div>' +
-      '<p class="meta ui">' + esc(W.coach(S)) + '</p><div class="row ui"><a class="btn primary" href="#workout">' + (open ? 'Carry on' : 'Start') + '</a></div>';
+      '<p class="meta ui">' + esc(W.coach(S, now())) + '</p><div class="row ui"><a class="btn primary" href="#workout">' + (open ? 'Carry on' : 'Start') + '</a></div>';
   }
 
   WL.register({

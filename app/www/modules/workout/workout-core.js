@@ -60,7 +60,7 @@
     ] }
   };
   var ORDER = ['A', 'B', 'C'];
-  var TRANSITION = 20, WEEK_TARGET = 3, SESSION_GAP_MIN = 45;
+  var TRANSITION = 20, WEEK_TARGET = 3, LATE_HOURS = 6;
 
   function defaults() { return { equipment: 'fixed10', weights: {}, sessions: [], history: [], next: {} }; }
   function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
@@ -69,40 +69,77 @@
 
   function sessionsWithSets(state) { return state.sessions.filter(function (s) { return s.sets && s.sets.length; }); }
 
-  /* The next day in the rotation: the one after the most recent session you actually logged sets in. */
+  /* The next day in the rotation: the one after the most recent session (on or before now's day) with sets. */
   function nextDay(state, now) {
     var open = openSession(state, now);
     if (open) return open.day;
-    var done = sessionsWithSets(state);
+    var day = iso(now || new Date());
+    var done = sessionsWithSets(state).filter(function (s) { return s.date <= day; });
     if (!done.length) return 'A';
     var last = done[done.length - 1].day;
     return ORDER[(ORDER.indexOf(last) + 1) % ORDER.length] || 'A';
   }
 
-  /* A session still in progress (sets logged in the last 45 min), so closing the app mid-workout is fine. */
+  /* The workout in progress for now's day: not finished, and started that day (or, past midnight, sets within the
+     last 6 hours). It stays open however long the gaps are (a set, the baby, another set hours later) until
+     "Finish workout". (It used to close after 45 min without a set, cutting a workout in two.) */
   function openSession(state, now) {
-    var s = state.sessions[state.sessions.length - 1];
-    if (!s || s.end) return null;
-    var lastAt = s.sets.length ? new Date(s.sets[s.sets.length - 1].at).getTime() : new Date(s.start).getTime();
-    if ((now || new Date()).getTime() - lastAt > SESSION_GAP_MIN * 60000) return null;
-    return s;
+    now = now || new Date();
+    var day = iso(now), t = now.getTime();
+    for (var i = state.sessions.length - 1; i >= 0; i--) {
+      var s = state.sessions[i];
+      if (s.end) continue;
+      if (s.date === day) return s;
+      var lastAt = s.sets.length ? new Date(s.sets[s.sets.length - 1].at).getTime() : new Date(s.start).getTime();
+      if (s.date < day && t >= lastAt && t - lastAt < LATE_HOURS * 3600e3) return s;
+    }
+    return null;
+  }
+
+  /* An unfinished session from an earlier day is closed at its last set (so it never swallows a later workout). */
+  function closeStale(state, now) {
+    var day = iso(now || new Date()), open = openSession(state, now);
+    state.sessions.forEach(function (s) {
+      if (s.end || s === open || s.date >= day) return;
+      s.end = s.sets.length ? s.sets[s.sets.length - 1].at : s.start;
+    });
+  }
+
+  /* The last session with sets that was finished on now's day: "Carry on" reopens it (finished by mistake). */
+  function finishedToday(state, now) {
+    var day = iso(now || new Date());
+    for (var i = state.sessions.length - 1; i >= 0; i--) { var s = state.sessions[i]; if (s.date === day && s.end && s.sets.length) return s; }
+    return null;
+  }
+  function reopen(state, id) {
+    var s = state.sessions.filter(function (x) { return x.id === id; })[0];
+    if (s) s.end = null;
+    return s || null;
   }
 
   function startSession(state, day, now) {
     now = now || new Date();
     var open = openSession(state, now);
     if (open) return open;
+    closeStale(state, now);
     var s = { id: newId(now), date: iso(now), day: day, start: now.toISOString(), end: null, sets: [] };
     // an empty session left behind is replaced
-    var last = state.sessions[state.sessions.length - 1];
-    if (last && !last.sets.length) state.sessions.pop();
-    state.sessions.push(s);
+    state.sessions = state.sessions.filter(function (x) { return x.sets.length || x.end; });
+    // kept in date order (a session logged for an earlier day goes before later ones)
+    var k = state.sessions.length;
+    while (k > 0 && state.sessions[k - 1].start > s.start) k--;
+    state.sessions.splice(k, 0, s);
     return s;
   }
 
+  /* With no time given: the most recent unfinished one (the old behaviour). */
+  function lastUnfinished(state) { for (var i = state.sessions.length - 1; i >= 0; i--) if (!state.sessions[i].end) return state.sessions[i]; return null; }
+
   function endSession(state, now) {
-    var s = state.sessions[state.sessions.length - 1];
-    if (s && !s.end) { if (!s.sets.length) state.sessions.pop(); else s.end = (now || new Date()).toISOString(); }
+    var s = now ? openSession(state, now) : lastUnfinished(state);
+    if (!s) return;
+    if (!s.sets.length) state.sessions.splice(state.sessions.indexOf(s), 1);
+    else s.end = (now || new Date()).toISOString();
   }
 
   /* After set n of item idx: a superset partner still due this round -> 20 s transition; another round -> rest;
@@ -131,9 +168,9 @@
     return { set: set, rest: n <= item.sets ? restInfo(day, idx, n) : { secs: 0, label: '' } };
   }
 
-  function undoSet(state) {
-    var s = state.sessions[state.sessions.length - 1];
-    if (s && !s.end && s.sets.length) return s.sets.pop();
+  function undoSet(state, now) {
+    var s = now ? openSession(state, now) : lastUnfinished(state);
+    if (s && s.sets.length) return s.sets.pop();
     return null;
   }
 
@@ -306,7 +343,7 @@
     return d;
   }
 
-  var api = { EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession,
+  var api = { EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
     last: last, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     validate: validate, iso: iso };

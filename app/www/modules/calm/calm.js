@@ -59,7 +59,7 @@
     if (!run) return;
     var p = run.p, m = elapsed() / 60, before = run.before;
     stopRun(); WL.bell();
-    var rec = K.record(S, p.id, m, before, null); save(); // saved straight away; "Done" only adds the after rating
+    var rec = K.record(S, p.id, m, before, null, WL.logNow ? WL.logNow() : null); save(); // saved straight away; "Done" only adds the after rating
     run = { p: p, done: true, mins: m, before: before, rec: rec };
     $('#c-pp').hidden = true; $('#c-before').hidden = true; $('#c-after').hidden = false;
     var l = $('#c-label') || $('#c-line'); if (l) l.textContent = 'Well done.';
@@ -129,7 +129,7 @@
     };
     $('#c-end').onclick = function () {
       // ending early still counts the minutes you did (if at least half a minute)
-      if (run && !run.done && run.start && elapsed() >= 30) { K.record(S, p.id, elapsed() / 60, run.before, null); save(); WL.toast('Saved ' + Math.max(1, Math.round(elapsed() / 60)) + ' min'); }
+      if (run && !run.done && run.start && elapsed() >= 30) { K.record(S, p.id, elapsed() / 60, run.before, null, WL.logNow ? WL.logNow() : null); save(); WL.toast('Saved ' + Math.max(1, Math.round(elapsed() / 60)) + ' min'); }
       stopRun(); location.hash = '#calm';
     };
   }

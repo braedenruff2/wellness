@@ -36,7 +36,21 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#wo-undo');
     assert.strictEqual(await page.locator('.sc.on').count(), 1);
   });
-  await t.step('finish: saved, and next time it is Full body B', async () => {
+  await t.step('a long break (50 min, then 3 hours) does not cut the workout off', async () => {
+    await page.clock.runFor(50 * 60000);
+    await page.reload();
+    assert.strictEqual(await page.textContent('h1'), 'Full body A', 'still Day A (it used to jump to B after 45 min)');
+    assert.ok((await page.textContent('main')).includes('Finish workout'));
+    await page.clock.runFor(3 * 3600e3);
+    await page.reload();
+    assert.strictEqual(await page.locator('.sc.on').count(), 1, 'the sets are still there');
+  });
+  await t.step('finish: saved, and next time it is Full body B; finished by mistake: carry on', async () => {
+    await page.click('#wo-finish');
+    assert.strictEqual(await page.textContent('h1'), 'Full body B');
+    await page.click('#wo-reopen');
+    assert.strictEqual(await page.textContent('h1'), 'Full body A');
+    assert.strictEqual(await page.locator('.sc.on').count(), 1);
     await page.click('#wo-finish');
     assert.strictEqual(await page.textContent('h1'), 'Full body B');
     await page.goto(base + '#home');

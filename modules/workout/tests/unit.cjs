@@ -38,24 +38,58 @@ t('rotation: next day follows the last day logged; skipped days do not matter', 
   assert.strictEqual(W.nextDay(s, at(27, 9)), 'A');
 });
 
-t('a session stays open for 45 min between sets, then a new one starts', () => {
+t('a workout stays open all day until Finish (it used to close after 45 min: his 19 Nov workout was cut in two)', () => {
   const s = W.defaults();
-  W.logSet(s, 'A', 0, 12, 10, at(18, 9));
-  assert.ok(W.openSession(s, at(18, 9, 40)));
-  assert.strictEqual(W.nextDay(s, at(18, 9, 40)), 'A', 'mid-session it stays on the same day');
-  assert.strictEqual(W.openSession(s, at(18, 10, 0)), null);
-  W.logSet(s, 'A', 0, 13, 10, at(18, 10, 0));
+  W.logSet(s, 'A', 0, 17, 10, at(19, 11, 29)); W.logSet(s, 'A', 1, 19, null, at(19, 13, 0));
+  assert.ok(W.openSession(s, at(19, 13, 50)), '50 min after the last set: still open');
+  assert.strictEqual(W.nextDay(s, at(19, 13, 50)), 'A', 'and still Day A');
+  W.logSet(s, 'A', 2, 10, 10, at(19, 17, 0));
+  assert.strictEqual(s.sessions.length, 1, 'hours later: the same workout');
+  assert.strictEqual(s.sessions[0].sets.length, 3);
+  // past midnight, late sets still count (within 6 h of the last one)
+  const n = W.defaults();
+  W.logSet(n, 'B', 0, 10, 10, at(19, 23, 30));
+  assert.ok(W.openSession(n, at(20, 0, 30)), 'just past midnight');
+  assert.strictEqual(W.openSession(n, at(20, 9, 0)), null, 'next morning: a new day');
+  W.logSet(n, 'C', 0, 10, 10, at(20, 9, 0));
+  assert.strictEqual(n.sessions.length, 2); assert.ok(n.sessions[0].end, "yesterday's unfinished one is closed at its last set");
+  assert.strictEqual(n.sessions[0].end, at(19, 23, 30).toISOString());
+});
+
+t('finished by mistake: carry on with it', () => {
+  const s = W.defaults();
+  W.logSet(s, 'A', 0, 17, 10, at(19, 11)); W.endSession(s, at(19, 11, 5));
+  assert.strictEqual(W.openSession(s, at(19, 12)), null);
+  const f = W.finishedToday(s, at(19, 12));
+  assert.ok(f && f.day === 'A');
+  assert.strictEqual(W.finishedToday(s, at(20, 12)), null, 'only the same day');
+  W.reopen(s, f.id);
+  W.logSet(s, 'A', 0, 16, 10, at(19, 12));
+  assert.strictEqual(s.sessions.length, 1); assert.strictEqual(s.sessions[0].sets[1].n, 2);
+});
+
+t('logging for an earlier day: its own session, in date order, and today\'s open workout is left alone', () => {
+  const s = W.defaults();
+  W.logSet(s, 'A', 0, 17, 10, at(19, 11));                 // today's workout, still open
+  W.logSet(s, 'C', 0, 12, 10, at(18, 11, 5));              // logging yesterday's
   assert.strictEqual(s.sessions.length, 2);
-  assert.strictEqual(s.sessions[1].sets[0].n, 1);
+  assert.deepStrictEqual(s.sessions.map((x) => x.date), ['2026-11-18', '2026-11-19'], 'kept in date order');
+  assert.strictEqual(W.openSession(s, at(19, 11, 10)).day, 'A', "today's is still the open one");
+  assert.strictEqual(W.openSession(s, at(18, 11, 10)).day, 'C');
+  W.endSession(s, at(18, 11, 20));
+  assert.ok(s.sessions[0].end && !s.sessions[1].end, 'finishing yesterday leaves today open');
+  assert.strictEqual(W.nextDay(s, at(18, 12)), 'A', 'for yesterday the rotation looks only at that day and before');
+  W.logSet(s, 'A', 1, 19, null, at(19, 11, 30));
+  assert.strictEqual(s.sessions[1].sets.length, 2);
 });
 
 t('set numbers, weights remembered, undo', () => {
   const s = W.defaults();
   W.logSet(s, 'A', 0, 12, 10, at(18, 9)); const r = W.logSet(s, 'A', 0, 11, '15', at(18, 9, 3));
   assert.strictEqual(r.set.n, 2); assert.strictEqual(s.weights['Bulgarian Split Squats'], 15);
-  assert.strictEqual(W.undoSet(s).val, 11); assert.strictEqual(s.sessions[0].sets.length, 1);
-  W.endSession(s); assert.strictEqual(W.undoSet(s), null, 'no undo after finishing');
-  const e = W.defaults(); W.startSession(e, 'A', at(18, 9)); W.endSession(e); assert.strictEqual(e.sessions.length, 0, 'empty sessions are not kept');
+  assert.strictEqual(W.undoSet(s, at(18, 9, 5)).val, 11); assert.strictEqual(s.sessions[0].sets.length, 1);
+  W.endSession(s, at(18, 9, 6)); assert.strictEqual(W.undoSet(s, at(18, 9, 7)), null, 'no undo after finishing');
+  const e = W.defaults(); W.startSession(e, 'A', at(18, 9)); W.endSession(e, at(18, 9, 1)); assert.strictEqual(e.sessions.length, 0, 'empty sessions are not kept');
 });
 
 t('advice: progression with the 10 lb pair vs adjustable dumbbells', () => {
