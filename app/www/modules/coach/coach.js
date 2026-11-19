@@ -29,6 +29,19 @@
       '<p class="meta ui">General guidance, not medical advice. For health worries, call your doctor or 811.</p></div>';
   }
 
+  function adviceHtml(h) {
+    var a = h.advice || {}, li = function (v) { return '<ul>' + v.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; };
+    return '<div class="card"><div class="meta ui">Your situation · ' + esc(h.skill) + (h.age ? ' · ' + esc(h.age) : '') + '</div><h2>' + esc(h.title) + '</h2>' +
+      '<blockquote>' + esc(h.scenario) + '</blockquote>' +
+      (a.summary ? '<p>' + esc(a.summary) + '</p>' : '') +
+      (a.steps.length ? '<h3>What to do</h3><ol>' + a.steps.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>' : '') +
+      (a.say.length ? '<h3>What you could say</h3>' + li(a.say) : '') + (a.avoid.length ? '<h3>Try to avoid</h3>' + li(a.avoid) : '') +
+      (a.why ? '<h3>Why</h3><p>' + esc(a.why) + '</p>' : '') + (a.watch ? '<h3>When to get help</h3><p>' + esc(a.watch) + '</p>' : '') + (a.text ? '<p>' + esc(a.text) + '</p>' : '') +
+      (a.sources.length ? '<p class="meta ui">Sources: ' + a.sources.map(function (x) { return '<a href="' + esc(x.url) + '">' + esc(x.title) + '</a>'; }).join(' · ') + '</p>' : '') +
+      '<div class="row ui"><button class="primary" id="co-practise" data-id="' + esc(h.id) + '">Practise this as a scenario</button></div>' +
+      '<p class="meta ui">General guidance, not medical advice. For health worries, call your doctor or 811; in an emergency, 911.</p></div>';
+  }
+
   function progressHtml() {
     var st = K.skillStats(S).filter(function (s) { return s.n; });
     if (!st.length) return '';
@@ -41,7 +54,7 @@
     var h = '<h1>Parenting practice</h1><p class="ui meta">' + esc(S.child.name || 'Your daughter') + ' is ' + esc(K.ageText(S.child.birth)) + '. <a href="#coach/setup">Change</a></p>';
     if (!pc.ready()) h += '<div class="card ui"><p>Scenarios and feedback come from Claude on your PC. <a href="#link">Pair the PC link</a> first (home Wi-Fi).</p></div>';
     if (err) h += '<p class="no ui">' + esc(err) + '</p>';
-    if (waiting) h += '<div class="card ui"><p>' + (waiting.kind === 'grade' ? 'Claude is checking current guidance and grading your answer…' : 'Claude is writing a scenario for her age…') +
+    if (waiting) h += '<div class="card ui"><p>' + (waiting.kind === 'grade' ? 'Claude is checking current guidance and grading your answer…' : waiting.kind === 'real' ? 'Claude is checking current guidance for your situation…' : 'Claude is writing a scenario for her age…') +
       ' <span id="co-secs">' + (waiting.secs || 0) + ' s</span></p><p class="meta">This can take a minute or two. You can leave this screen; it carries on.</p></div>';
     var c = S.current;
     if (c && !waiting) {
@@ -54,10 +67,13 @@
         [''].concat(K.SKILLS).map(function (s) { return '<button class="chip" data-skill="' + esc(s) + '" aria-pressed="' + (pickSkill === s) + '">' + esc(s || 'Suggested') + '</button>'; }).join('') +
         '</div><div class="row" style="margin-top:10px"><button class="primary" id="co-new"' + (pc.ready() ? '' : ' disabled') + '>New scenario</button></div></div>';
     }
+    if (!waiting) h += '<div class="card ui"><h3>Something happening with ' + esc(S.child.name || 'her') + '?</h3><p class="meta">Describe a real situation you’re dealing with: what she does, when, what you’ve tried. Claude checks current guidance for her age and gives you steps, words to say, and why.</p>' +
+      '<label class="sr" for="co-real">Your situation</label><textarea id="co-real" rows="5" placeholder="e.g. She screams when I put her in the car seat, every time, since last week. I’ve tried…">' + esc(S.realDraft || '') + '</textarea>' +
+      '<div class="row" style="margin-top:8px"><button class="primary" id="co-real-go"' + (pc.ready() ? '' : ' disabled') + '>Get advice</button></div></div>';
     var last = S.history.slice().reverse();
     if (last.length) {
       h += '<div class="card ui"><h3>Past practice</h3><ul class="list">' + last.slice(0, 20).map(function (x) {
-        return '<li><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.title) + '</a><span class="meta">' + (x.result && x.result.score != null ? x.result.score + '/10' : '') + '</span></li>';
+        return '<li><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.title) + '</a><span class="meta">' + (x.kind === 'real' ? 'your situation' : x.result && x.result.score != null ? x.result.score + '/10' : '') + '</span></li>';
       }).join('') + '</ul></div>';
     }
     return h + progressHtml();
@@ -68,7 +84,8 @@
     if (!S.child.birth || parts[0] === 'setup') { view.innerHTML = '<h1>Parenting practice</h1>' + setupHtml(); wireSetup(); return; }
     if (parts[0] === 'h') {
       var h = S.history.filter(function (x) { return x.id === parts[1]; })[0];
-      view.innerHTML = h ? resultHtml(h) + '<p class="ui"><a href="#coach">Back</a></p>' : '<p>Not found. <a href="#coach">Back</a></p>';
+      view.innerHTML = h ? (h.kind === 'real' ? adviceHtml(h) : resultHtml(h)) + '<p class="ui"><a href="#coach">Back</a></p>' : '<p>Not found. <a href="#coach">Back</a></p>';
+      var pr = $('#co-practise'); if (pr) pr.onclick = function () { K.practiseReal(S, pr.dataset.id); save(); location.hash = '#coach'; };
       return;
     }
     view.innerHTML = mainHtml();
@@ -89,6 +106,8 @@
     var n = $('#co-new'); if (n) n.onclick = newScenario;
     var g = $('#co-grade'); if (g) g.onclick = function () { gradeIt($('#co-answer').value); };
     var a = $('#co-answer'); if (a) a.oninput = function () { S.current.answer = a.value.slice(0, 4000); save(); };
+    var rl = $('#co-real'); if (rl) rl.oninput = function () { S.realDraft = rl.value.slice(0, 3000); save(); };
+    var rg = $('#co-real-go'); if (rg) rg.onclick = function () { askReal($('#co-real').value); };
     var sk = $('#co-skip'); if (sk) sk.onclick = function () { S.current = null; save(); newScenario(); };
   }
 
@@ -111,10 +130,20 @@
       pc.sync().catch(function () {});
     });
   }
+  function askReal(text) {
+    text = String(text || '').trim();
+    if (text.length < 20) { WL.toast('Tell Claude a bit more: what happens, when, what you’ve tried'); return; }
+    err = null; waiting = { kind: 'real', secs: 0 }; render([]);
+    start('coach-advice', { child: S.child.name, age: K.ageText(S.child.birth), situation: text.slice(0, 3000) }, function (a) {
+      var h = K.addReal(S, text, a); S.realDraft = ''; save();
+      if (here()) location.hash = '#coach/h/' + h.id;
+      pc.sync().catch(function () {});
+    });
+  }
   /* Starts a Claude request; its job id is saved so leaving the app and coming back carries on waiting for it. */
   function start(task, input, onAnswer) {
     pc.post('/v1/ask', { task: task, input: input }).then(function (r) {
-      S.pending = { job: r.job, task: task, at: Date.now(), answer: input.answer || '' }; save();
+      S.pending = { job: r.job, task: task, at: Date.now(), answer: input.answer || input.situation || '' }; save();
       return pc.poll(r.job, Date.now(), tick);
     }).then(function (a) { S.pending = null; onAnswer(a); save(); finish(); },
       function (e) { S.pending = null; save(); err = e.message || String(e); finish(); });
@@ -123,10 +152,11 @@
     var p = S.pending;
     if (!p || waiting || !pc.ready()) return;
     if (Date.now() - p.at > 15 * 60000) { S.pending = null; save(); return; }
-    waiting = { kind: p.task === 'coach-grade' ? 'grade' : 'scenario', secs: Math.round((Date.now() - p.at) / 1000) };
+    waiting = { kind: p.task === 'coach-grade' ? 'grade' : p.task === 'coach-advice' ? 'real' : 'scenario', secs: Math.round((Date.now() - p.at) / 1000) };
     pc.poll(p.job, p.at, tick).then(function (a) {
       S.pending = null;
       if (p.task === 'coach-grade') { var h = K.grade(S, p.answer, a); save(); if (here()) location.hash = '#coach/h/' + h.id; }
+      else if (p.task === 'coach-advice') { var r = K.addReal(S, p.answer, a); S.realDraft = ''; save(); if (here()) location.hash = '#coach/h/' + r.id; }
       else { K.setScenario(S, a); save(); }
       finish();
     }, function (e) { S.pending = null; save(); err = e.message; finish(); });

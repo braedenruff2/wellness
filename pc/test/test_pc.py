@@ -70,7 +70,10 @@ check("pair codes: 12 letters from the alphabet", all(c in W.ALPHABET for c in W
 for t in W.TASKS:
     pr, tools = W.prompt_for(t, {"child": "Kid", "age": "11 months", "answer": "a", "summary": "S"})
     check("prompt " + t + " asks for JSON", "JSON" in pr and "ONE JSON object" in pr)
-check("only grading may search the web", W.prompt_for("coach-grade", {})[1] == "WebSearch,WebFetch" and W.prompt_for("advice", {})[1] == "")
+check("only grading and real-situation advice may search the web", W.prompt_for("coach-grade", {})[1] == "WebSearch,WebFetch"
+      and W.prompt_for("coach-advice", {})[1] == "WebSearch,WebFetch" and W.prompt_for("advice", {})[1] == "" and W.prompt_for("coach-scenario", {})[1] == "")
+check("real-situation prompt carries his words and the age", "car seat" in W.prompt_for("coach-advice", {"situation": "car seat", "age": "11 months old"})[0]
+      and "11 months old" in W.prompt_for("coach-advice", {"situation": "car seat", "age": "11 months old"})[0])
 
 # ---------------------------------------------------------------- the server
 threading.Thread(target=W.serve, daemon=True).start()

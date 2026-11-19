@@ -451,6 +451,20 @@ def prompt_for(task, inp):
             '"improve": [specific changes, 1-3 items], "better": "what an expert would do and say here, step by step, '
             'in 3-6 sentences", "why": "the child-development reason in 1-3 sentences", "practice": "one tiny thing to try '
             'with her this week", "sources": [{"title": ..., "url": ...}] (only pages you actually opened)}', "WebSearch,WebFetch")
+    if task == "coach-advice":
+        return (
+            "You are an expert, evidence-based parenting coach (AAP/HealthyChildren.org, CDC, Caring for Kids (Canadian "
+            "Paediatric Society), Zero to Three, responsive-parenting research). A dad on parental leave, caring mostly "
+            f"alone for his daughter {inp.get('child') or ''}, aged {inp.get('age') or 'about one'}, describes something "
+            "REAL that is happening with her and asks for advice. First check current guidance with web search for what "
+            "works at exactly this age, then answer warmly and concretely. If anything he describes could be a health or "
+            "safety concern, say clearly what signs mean calling 811 (PEI health line), a doctor or 911, and don't diagnose.\n"
+            f"What's happening, in his words: {j(inp.get('situation') or '')}\n" + RULES +
+            ' JSON: {"title": short title for this situation, "skill": one of ' + j(SKILLS) + ', "summary": "what is '
+            'probably going on at her age, 1-3 sentences", "steps": [what to do, in order, 3-6 short items], "say": [1-3 '
+            'things he could say to her, word for word], "avoid": [0-3 common mistakes], "why": "the child-development '
+            'reason in 1-3 sentences", "watch": "when to get medical help, or empty if not relevant", "sources": '
+            '[{"title": ..., "url": ...}] (only pages you actually opened)}', "WebSearch,WebFetch")
     if task == "tagalog-check":
         return (
             "You are a careful Tagalog (Filipino) teacher for an English speaker whose wife's family is Filipino. Check "
@@ -542,7 +556,7 @@ def parse_answer(text):
     return {"text": text.strip()[:MAX_TEXT]}
 
 
-TASKS = ("coach-scenario", "coach-grade", "tagalog-check", "advice")
+TASKS = ("coach-scenario", "coach-grade", "coach-advice", "tagalog-check", "advice")
 
 
 class Jobs:

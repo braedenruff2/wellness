@@ -11,6 +11,7 @@ const FAKE_PC = `
     var ANSWERS = {
       'coach-scenario': { title: 'Teething at 3am', skill: 'Crying and comfort', scenario: 'It is 3am and Kid wakes up screaming, chewing her fist.', question: 'What do you do and say?' },
       'coach-grade': { score: 7, verdict: 'Kind and calm.', good: ['You stayed calm'], improve: ['Offer a cold teether'], better: 'Pick her up, name it, offer a cold teether.', why: 'Co-regulation.', practice: 'Name her feelings.', sources: [{ title: 'HealthyChildren', url: 'https://www.healthychildren.org/teething' }] },
+      'coach-advice': { title: 'Car seat screaming', skill: 'Crying and comfort', summary: 'Common at 11 months: she wants to move.', steps: ['Warn her before', 'Give a car-only toy', 'Sing the same song'], say: ['Seat time, then we go see the ducks.'], avoid: ['Rushing her in'], why: 'Predictability helps.', watch: '', sources: [{ title: 'Caring for Kids', url: 'https://caringforkids.cps.ca/' }] },
       'tagalog-check': { ok: false, corrected: 'Salamat po', meaning: 'Thank you (polite)', explain: 'Add po for elders.', tip: 'po = respect' },
       'advice': { headline: 'A steady week.', points: ['Keep the morning prayer', 'One more calm session'], next: 'Stroller walk after lunch.' }
     };
@@ -151,6 +152,32 @@ const FAKE_PC = `
     await page.clock.runFor(3500);
     await page.goto(base + '#coach');
     await page.waitForSelector('#co-answer');
+  });
+  await t.step('parenting: his own real situation gets advice, then can be practised as a scenario', async () => {
+    await page.goto(base + '#coach');
+    await page.fill('#co-real', 'too short'); await page.click('#co-real-go');
+    const n = (await fake()).asks.length;
+    assert.ok((await page.textContent('#toast')).includes('a bit more'));
+    await page.fill('#co-real', 'She screams every time I put her in the car seat since last week. I tried a toy.');
+    await page.reload(); await page.waitForSelector('#co-real');
+    assert.ok((await page.inputValue('#co-real')).includes('car seat'), 'draft kept');
+    await page.click('#co-real-go');
+    await page.waitForSelector('text=checking current guidance for your situation');
+    const ask = (await fake()).asks.slice(-1)[0];
+    assert.strictEqual((await fake()).asks.length, n + 1);
+    assert.deepStrictEqual([ask.task, ask.input.child, ask.input.age], ['coach-advice', 'Kid', '11 months old']);
+    assert.ok(ask.input.situation.includes('car seat'));
+    await page.clock.runFor(3500);
+    await page.waitForSelector('text=What to do');
+    const txt = await page.textContent('main');
+    assert.ok(txt.includes('Car seat screaming') && txt.includes('Give a car-only toy') && txt.includes('ducks') && txt.includes('Caring for Kids'), txt.slice(0, 300));
+    await page.click('#co-practise');
+    await page.waitForSelector('#co-answer');
+    const main = await page.textContent('main');
+    assert.ok(main.includes('Next time this happens') && main.includes('screams every time'), 'his situation is now the scenario');
+    assert.ok(main.includes('your situation'), 'listed in past practice');
+    assert.strictEqual(await page.inputValue('#co-real'), '', 'draft cleared');
+    await page.waitForFunction(() => window.__fakepc().posts.some((p) => p.events.some((e) => e.kind === 'advice')));
   });
   await t.step('Tagalog: a wrong typed answer can be checked by Claude', async () => {
     const id = await page.evaluate(() => (window.TL_PACKS || [])[0] && window.TL_PACKS[0].id);

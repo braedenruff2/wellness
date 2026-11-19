@@ -100,6 +100,7 @@
      journal text is on (the PC keeps the full exchange anyway, since it does the grading). */
   X['wl.coach.v1'] = function (s, o, out) {
     (s.history || []).forEach(function (h) {
+      if (h && okDate(h.at) && h.kind === 'real') out.push({ id: 'coach/' + h.id, at: h.at, part: 'coach', kind: 'advice', text: cut(h.title, 120), data: { skill: h.skill } });
       if (!h || !okDate(h.at) || !h.result) return;
       out.push({ id: 'coach/' + h.id, at: h.at, part: 'coach', kind: 'graded', text: cut(h.title, 120), data: { skill: h.skill, score: h.result.score } });
     });
@@ -152,6 +153,7 @@
       case 'tagalog/review': return 'Tagalog review' + (d.dir === 'say' ? ' (said it)' : '') + ': ' + (d.right ? '✓ ' : '✗ ') + d.tl;
       case 'todo/added': return 'To do: added “' + cut(e.text, 60) + '”';
       case 'todo/done': return 'To do: done “' + cut(e.text, 60) + '”';
+      case 'coach/advice': return 'Parenting: asked about ' + cut(e.text, 60);
       case 'coach/graded': return 'Parenting: ' + cut(e.text, 60) + ' — ' + (d.score != null ? d.score + '/10' : '');
     }
     if (e.part === 'faith') return 'Faith: wrote in the journal (' + e.kind + ')' + (e.text ? ': ' + cut(e.text, 60) : '');

@@ -47,6 +47,19 @@ t('scenario, grade, skills and what to practise next', () => {
   assert.strictEqual(bad.score, null);
 });
 
+t('a real situation: advice kept (no score), practised as a scenario, kept through backup', () => {
+  const s = K.defaults(); s.child.birth = '2025-11-24';
+  assert.throws(() => K.addReal(s, 'x', {}), /advice/);
+  const h = K.addReal(s, 'She screams in the car seat', { title: 'Car seat', skill: 'Nope', steps: ['a', 5, 'b'], say: ['hi'], summary: 'S', sources: [{ title: 'x', url: 'javascript:alert(1)' }] }, new Date(2026, 10, 19));
+  assert.strictEqual(h.kind, 'real'); assert.strictEqual(h.skill, 'Connection'); assert.deepStrictEqual(h.advice.steps, ['a', 'b']);
+  assert.deepStrictEqual(h.advice.sources, [], 'only https links');
+  assert.deepStrictEqual(K.skillStats(s).filter((x) => x.n), [], 'not a score');
+  const c = K.practiseReal(s, h.id, new Date(2026, 10, 19));
+  assert.strictEqual(c.scenario, 'She screams in the car seat'); assert.ok(/Next time/.test(c.question));
+  assert.strictEqual(K.practiseReal(s, 'nope'), null);
+  const v = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.history[0].kind, 'real'); assert.deepStrictEqual(v.history[0].advice.steps, ['a', 'b']);
+});
 t('validate: a damaged backup can not break it', () => {
   assert.strictEqual(K.validate(null), null);
   const v = K.validate({ child: { name: 'K'.repeat(100), birth: 'yesterday' }, history: [null, { at: 'x', scenario: 's' }, { at: '2026-11-19T10:00:00Z', scenario: 's', skill: 'Sleep', result: { score: 5 } }] });

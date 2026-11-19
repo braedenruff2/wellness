@@ -56,7 +56,9 @@ reads anything they can't (before the downloads, or if something fails).
   English first so you practise saying it; a miss sends it back to meaning first), mixed practice (8 exercises from
   finished lessons, most-missed first: something to do while waiting for Wednesday), progress, "Send my week".
 - **Parenting** (`modules/coach`): scenarios for your daughter's exact age, you answer, Claude grades against current
-  guidance (what went well, what to change, what an expert would do and why, sources), progress per skill. Needs the PC link.
+  guidance (what went well, what to change, what an expert would do and why, sources), progress per skill. "Something
+  happening with her?": describe a real situation, Claude (web search on) gives steps, words to say, what to avoid, why,
+  when to get help; then "Practise this as a scenario". Needs the PC link.
 - **PC link** (`modules/link`, Settings): pairing, what's logged, send now, advice from Claude.
 - **Log for an earlier day** (Home, bottom): pick one of the last 7 days and use any part as usual: workout sets,
   faith days/journal, calm sessions and ticked to-dos are recorded on that day (WL.logNow()). A banner shows it on every

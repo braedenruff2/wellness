@@ -77,6 +77,32 @@
         .map(function (x) { return { title: s(x.title, 200) || x.url, url: x.url.slice(0, 500) }; }) : [] };
   }
 
+  /* His own real situation and Claude's advice (no score): kept in the history as kind "real". */
+  function cleanAdvice(a) {
+    var s = function (v, n) { return typeof v === 'string' ? v.slice(0, n) : ''; };
+    var list = function (v, k) { return Array.isArray(v) ? v.filter(function (x) { return typeof x === 'string'; }).slice(0, k || 6).map(function (x) { return x.slice(0, 600); }) : []; };
+    return { summary: s(a.summary, 1500), steps: list(a.steps), say: list(a.say, 3), avoid: list(a.avoid, 3), why: s(a.why, 1500), watch: s(a.watch, 1000),
+      text: s(a.text, 3000), sources: cleanResult(a).sources };
+  }
+  function addReal(state, situation, a, now) {
+    a = a || {};
+    if (!a.steps && !a.summary && !a.text) throw new Error('Claude didn’t send advice. Try again.');
+    var h = { id: newId(now), at: (now || new Date()).toISOString(), kind: 'real', title: (typeof a.title === 'string' && a.title.slice(0, 120)) || 'Your situation',
+      skill: SKILLS.indexOf(a.skill) >= 0 ? a.skill : 'Connection', scenario: String(situation).slice(0, 3000), question: '', age: ageText(state.child.birth, now),
+      answer: '', result: null, advice: cleanAdvice(a) };
+    state.history.push(h);
+    if (state.history.length > 300) state.history.splice(0, state.history.length - 300);
+    state.pending = null;
+    return h;
+  }
+  /* "Practise this": his real situation becomes the scenario to answer and get graded on. */
+  function practiseReal(state, id, now) {
+    var h = state.history.filter(function (x) { return x.id === id && x.kind === 'real'; })[0]; if (!h) return null;
+    state.current = { id: newId(now), at: (now || new Date()).toISOString(), title: h.title, skill: h.skill, scenario: h.scenario,
+      question: 'Next time this happens, what do you do and say, step by step?', age: ageText(state.child.birth, now), answer: '', from: h.id };
+    return state.current;
+  }
+
   /* The graded current scenario goes into the history. */
   function grade(state, answer, a, now) {
     var c = state.current; if (!c) return null;
@@ -98,12 +124,13 @@
       d.history.push({ id: String(h.id || newId()).slice(0, 40), at: new Date(h.at).toISOString(), title: String(h.title || '').slice(0, 120),
         skill: SKILLS.indexOf(h.skill) >= 0 ? h.skill : 'Connection', scenario: h.scenario.slice(0, 3000), question: String(h.question || '').slice(0, 400),
         age: String(h.age || '').slice(0, 60), answer: String(h.answer || '').slice(0, 4000), result: h.result ? cleanResult(h.result) : null });
+      if (h.kind === 'real' && h.advice) { var x = d.history[d.history.length - 1]; x.kind = 'real'; x.advice = cleanAdvice(h.advice); }
     });
     return d;
   }
 
   var api = { SKILLS: SKILLS, defaults: defaults, ageMonths: ageMonths, ageText: ageText, skillStats: skillStats, suggestSkill: suggestSkill,
-    scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, cleanResult: cleanResult, validate: validate };
+    scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, practiseReal: practiseReal, cleanResult: cleanResult, validate: validate };
   root.CoachCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);
