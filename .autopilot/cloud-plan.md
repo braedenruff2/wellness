@@ -19,7 +19,7 @@ Can't do here: APK build/signing (key not in repo), anything using data outside 
 ## Tasks (pick in order; update this list on the PC)
 1. Bug hunting: read modules and shell code, add tests for untested paths, fix what they find.
 2. Calm: more short practices (content + tests).
-3. Workout: weekly volume summary + plain advice on the Move screen (tests).
-4. To-do: (snooze done 19 Nov: notification "Snooze 1 hour" + sheet "In 1 hour") a "Done" button on the notification
-   (needs the page to pick up ticks made in Android: design it, with tests).
-5. Code health: dead code, duplicated helpers, slow tests (calm e2e was cut from 104 s to 11 s with clock.fastForward).
+3. Workout: plain advice on the Move screen when a week is light (the weekly sets per area exist; tests).
+4. Tagalog: review/practice UX polish (two-way review and mixed practice exist since 19 Nov); tests for edge cases
+   (no packs, pack replaced, very long answers).
+5. Code health: dead code, duplicated helpers, slow tests.
