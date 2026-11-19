@@ -4,3 +4,6 @@ _to_delete/
 *.idsig
 android/*.keystore
 tools/last-publish.txt
+__pycache__/
+voices/*/model.onnx
+voices/*/*.wav

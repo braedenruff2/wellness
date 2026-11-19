@@ -38,14 +38,18 @@ import java.util.Locale;
 
 /** A WebView around the app in assets/www, plus the few things a web page can't do well on Android:
  *  the phone's text-to-speech voice, keeping the screen on during a prayer, saving a backup file,
- *  and a daily reminder. Nothing is sent over the network. */
+ *  a daily reminder, and the PC link (PcLink: his own PC on home Wi-Fi, HTTPS pinned at pairing). Nothing else
+ *  goes over the network except the public Tagalog lesson packs the page downloads. */
 public class MainActivity extends Activity {
     private static final int PICK_FILE = 7;
     private WebView web;
+    private android.widget.FrameLayout root;
     private TextToSpeech tts;
     private boolean ttsReady;
     private final List<String[]> pending = new ArrayList<>();
     private ValueCallback<Uri[]> fileCallback;
+    /** Loudbook's voices (Kokoro, the PC's natural voice) and the Tagalog voice; the phone's own voice when they can't. */
+    private Voices voices;
     /** Headphones unplugged or Bluetooth dropped: pause, so the voice doesn't carry on out of the speaker. */
     private final BroadcastReceiver noisy = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
@@ -58,7 +62,17 @@ public class MainActivity extends Activity {
         super.onCreate(saved);
         web = new WebView(this);
         web.setBackgroundColor(Color.parseColor("#F7F3EC"));
-        setContentView(web);
+        // Android 15 draws apps edge to edge, under the clock/notifications and the gesture bar: keep the page inside the
+        // safe area (and above the keyboard), with the same colour behind the bars
+        root = new android.widget.FrameLayout(this);
+        root.setBackgroundColor(Color.parseColor("#F7F3EC"));
+        root.addView(web, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        root.setOnApplyWindowInsetsListener((v, in) -> {
+            int[] p = Insets.of(in);
+            v.setPadding(p[0], p[1], p[2], p[3]);
+            return in;
+        });
+        setContentView(root);
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -108,6 +122,13 @@ public class MainActivity extends Activity {
                 pending.clear();
             });
         });
+        voices = new Voices(this,
+            (text, id, rate, lang) -> runOnUiThread(() -> {
+                if (ttsReady) speakNow(text, id, rate, lang == null ? "" : lang);
+                else pending.add(new String[]{text, id, String.valueOf(rate), lang == null ? "" : lang});
+            }),
+            this::done, this::pcLink);
+        voices.loadAsync();
         registerReceiver(noisy, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
         // after Android recreates the activity (e.g. split screen), come back to the same screen
         if (saved == null || web.restoreState(saved) == null)
@@ -161,6 +182,24 @@ public class MainActivity extends Activity {
     @SuppressWarnings("deprecation")
     @Override public void onBackPressed() { goBack(); }
 
+    /** True while a guided session is on screen (the page says so): an update never cuts one off. */
+    private volatile boolean sessionBusy;
+    private final Updater.Listener updateListener = () -> runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCUpdateState&&FCUpdateState()", null); });
+
+    @Override protected void onResume() {
+        super.onResume();
+        Updater.check(getApplicationContext(), pcLink(), false, updateListener);
+    }
+
+    @Override protected void onStop() {
+        super.onStop();
+        // install a downloaded update while he's away from the app (it restarts the app)
+        if (!sessionBusy && !isChangingConfigurations() && Updater.readyCode(this) > 0 && Updater.mayInstall(this)) {
+            final Context app = getApplicationContext();
+            new Thread(() -> Updater.install(app), "wl-update-install").start();
+        }
+    }
+
     @Override protected void onPause() {
         if (web != null) web.evaluateJavascript("window.FCSaveNow&&FCSaveNow()", null);
         super.onPause();
@@ -180,6 +219,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         try { unregisterReceiver(noisy); } catch (Exception ignored) { }
+        if (voices != null) voices.stop();
         if (tts != null) tts.shutdown();
         if (web != null) web.destroy();
         super.onDestroy();
@@ -200,6 +240,34 @@ public class MainActivity extends Activity {
         return nm == null || nm.areNotificationsEnabled();
     }
 
+    // ---------------------------------------------------------------- PC link (kept in private app storage)
+    private PcLink pcLink() {
+        android.content.SharedPreferences p = getSharedPreferences("pc", MODE_PRIVATE);
+        String h = p.getString("host", null), fp = p.getString("fp", null), t = p.getString("token", null);
+        if (h == null || fp == null || t == null) return null;
+        return new PcLink(h, p.getInt("port", PcLink.PORT), fp, t, p.getString("name", h));
+    }
+
+    String pcDo(String op, String a, String b) throws java.io.IOException {
+        if ("find".equals(op)) return PcLink.discover(1500, PcLink.PORT);
+        if ("pair".equals(op)) {
+            String host = a.trim(); int port = PcLink.PORT;
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("^([^:\\[\\]]+):(\\d+)$").matcher(host);
+            if (m.matches()) { host = m.group(1); port = Integer.parseInt(m.group(2)); }
+            PcLink l = PcLink.pair(host, port, b, Build.MODEL == null ? "phone" : Build.MODEL);
+            getSharedPreferences("pc", MODE_PRIVATE).edit().putString("host", l.host).putInt("port", l.port).putString("fp", l.fp)
+                .putString("token", l.token).putString("name", l.name).apply();
+            return "{\"paired\":true}";
+        }
+        if ("forget".equals(op)) { getSharedPreferences("pc", MODE_PRIVATE).edit().clear().apply(); return "{}"; }
+        PcLink l = pcLink();
+        if (l == null) throw new java.io.IOException("not paired with the PC");
+        if (a == null || !a.startsWith("/v1/")) throw new java.io.IOException("bad path");
+        if ("get".equals(op)) return l.get(a, 15000);
+        if ("post".equals(op)) return l.post(a, b, 30000);
+        throw new java.io.IOException("unknown request");
+    }
+
     static String jsString(String s) {
         StringBuilder b = new StringBuilder("\"");
         for (char c : s.toCharArray()) {
@@ -213,6 +281,7 @@ public class MainActivity extends Activity {
     /** Called from the page as window.FCAndroid.* (on a background thread). */
     class Bridge {
         @JavascriptInterface public void speak(String text, String id, double rate) {
+            if (voices != null && voices.takes("")) { runOnUiThread(() -> { if (ttsReady) tts.stop(); }); voices.say(text, id, (float) rate, ""); return; }
             runOnUiThread(() -> {
                 if (ttsReady) speakNow(text, id, (float) rate);
                 else pending.add(new String[]{text, id, String.valueOf(rate), ""});
@@ -220,6 +289,8 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void speakIn(String text, String id, double rate, String lang) {
+            if (voices != null && voices.takes(lang)) { runOnUiThread(() -> { if (ttsReady) tts.stop(); }); voices.say(text, id, (float) rate, lang); return; }
+            if (voices != null) voices.stop();
             runOnUiThread(() -> {
                 if (ttsReady) speakNow(text, id, (float) rate, lang);
                 else pending.add(new String[]{text, id, String.valueOf(rate), lang});
@@ -227,8 +298,18 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface public void stopSpeaking() {
+            if (voices != null) voices.stop();
             runOnUiThread(() -> { pending.clear(); if (ttsReady) tts.stop(); });
         }
+
+        // ---- voices (Settings > Voice)
+        @JavascriptInterface public String voiceStatus() { return voices == null ? "{}" : voices.status(); }
+        @JavascriptInterface public void voiceSet(String key, String value) { if (voices != null) voices.set(key, value); }
+        @JavascriptInterface public void voiceDownload(String pack) {
+            if (voices != null) voices.download(pack, () -> runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCVoiceState&&FCVoiceState()", null); }));
+        }
+        /** "nice" when Loudbook's voices read English now (it can take a moment longer to start than the phone's). */
+        @JavascriptInterface public String voiceKind() { return voices != null && voices.takes("") ? "nice" : "phone"; }
 
         @JavascriptInterface public void keepAwake(boolean on) {
             runOnUiThread(() -> {
@@ -245,6 +326,7 @@ public class MainActivity extends Activity {
                 w.setStatusBarColor(c);
                 w.setNavigationBarColor(c);
                 web.setBackgroundColor(c);
+                if (root != null) root.setBackgroundColor(c);
                 View d = w.getDecorView();
                 int f = d.getSystemUiVisibility();
                 if (dark) f &= ~(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
@@ -284,6 +366,40 @@ public class MainActivity extends Activity {
             android.app.NotificationManager nm = (android.app.NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
             return nm == null || nm.areNotificationsEnabled();
         }
+
+        /** The PC link as the page sees it: {"paired":bool,"host","name"} (never the key). */
+        @JavascriptInterface public String pcStatus() {
+            PcLink l = pcLink();
+            return l == null ? "{\"paired\":false}" : "{\"paired\":true,\"host\":" + PcLink.quote(l.host) + ",\"name\":" + PcLink.quote(l.name) + "}";
+        }
+
+        /** PC link requests, answered later with window.FCPcDone(id, ok, text). op: find | pair (host, code) | get (path) |
+         *  post (path, json) | forget. Paths are the server's /v1/... only. */
+        @JavascriptInterface public void pcRequest(String id, String op, String a, String b) {
+            new Thread(() -> {
+                boolean ok = true; String out;
+                try { out = pcDo(op, a, b); }
+                catch (Exception e) { ok = false; out = e.getMessage() == null ? e.toString() : e.getMessage(); }
+                final boolean fOk = ok; final String fOut = out;
+                runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCPcDone&&FCPcDone(" + jsString(id) + "," + fOk + "," + jsString(fOut) + ")", null); });
+            }, "pc-link").start();
+        }
+
+        // ---- app updates (Updater): Settings shows these
+        @JavascriptInterface public String updateStatus() { return Updater.status(getApplicationContext()); }
+        @JavascriptInterface public void updateCheck() { Updater.check(getApplicationContext(), pcLink(), true, updateListener); }
+        @JavascriptInterface public void updateInstall() {
+            final Context app = getApplicationContext();
+            new Thread(() -> { Updater.install(app); updateListener.onUpdateState(); }, "wl-update-install").start();
+        }
+        /** Opens Android's "Install unknown apps" switch for this app (once, so updates install by themselves). */
+        @JavascriptInterface public void updateAllow() {
+            runOnUiThread(() -> {
+                try { startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName()))); }
+                catch (Exception ignored) { }
+            });
+        }
+        @JavascriptInterface public void setBusy(boolean busy) { sessionBusy = busy; }
 
         /** hour/minute of the daily reminder; -1 turns it off. */
         @JavascriptInterface public void setReminder(int hour, int minute) {

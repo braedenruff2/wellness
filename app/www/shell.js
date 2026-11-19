@@ -91,7 +91,9 @@
             if (opts.lang && native.speakIn) native.speakIn(text, id, rate, opts.lang);
             else native.speak(text, id, rate);
           } catch (e) { delete cbs[id]; return later(); }
-          watchdog = setTimeout(fin, wordsSeconds(text, rate) * 2500 + 6000); // if the voice never answers, carry on
+          // if the voice never answers, carry on (Loudbook's voices make speech first, so they get longer)
+          var nice = false; try { nice = native.voiceKind && native.voiceKind() === 'nice'; } catch (e) {}
+          watchdog = setTimeout(fin, wordsSeconds(text, rate) * (nice ? 4000 : 2500) + (nice ? 30000 : 6000));
           return;
         }
         var s = synth();
@@ -166,9 +168,84 @@
       '<p class="meta">Auto turns on Night (very dim, warm) from 9pm to 6am.</p><h3>Text size</h3>' +
       chips('textSize', [0.9, 1, 1.15, 1.3], L.textSize, ['Small', 'Normal', 'Large', 'Larger']) + '</div>';
     order.forEach(function (id) { var m = modules[id]; if (m.settingsLink) h += '<p class="ui"><a href="' + m.settingsLink + '">' + esc(m.title) + ' settings</a></p>'; });
+    h += voiceHtml();
+    h += updateHtml();
     h += '<div class="card ui"><h3>Backup</h3><p class="meta">Everything lives only on this phone. Save a backup file now and then (all parts of the app in one file).</p>' +
       '<div class="row"><button id="wl-export">Save a backup</button><label class="btn" for="wl-import">Restore a backup</label><input type="file" id="wl-import" accept=".json,application/json" class="sr"></div></div>';
     return h;
+  }
+
+  /* Voices (Android: Voices.java): Loudbook's voices for English (Kokoro on the phone, the natural voice from the PC at
+     home) and a Filipino voice (MMS Tagalog) for Tagalog, each downloaded once. */
+  function voiceState() { try { return native && native.voiceStatus ? JSON.parse(native.voiceStatus()) : null; } catch (e) { return null; } }
+  var VSTATE = { ready: 'ready ✓', loading: 'getting ready…', downloaded: 'getting ready…', missing: 'not downloaded yet' };
+  function voiceHtml() {
+    var v = voiceState(); if (!v || !v.speakers) return '';
+    function chip(key, val, cur, label) { return '<button class="chip" data-voice="' + key + '" data-val="' + val + '" aria-pressed="' + (String(cur) === String(val)) + '">' + label + '</button>'; }
+    var dl = v.downloading;
+    var h = '<div class="card ui" id="wl-voice"><h3>Voice</h3><p class="meta">English: the voices from Loudbook (Kokoro on this phone; ' +
+      'the natural voice from your PC when you\'re home). Tagalog: a Filipino voice (Meta\'s MMS Tagalog). The phone\'s own voice reads until they\'re downloaded.</p>' +
+      '<h3>English</h3><div class="chips">' + chip('english', 'nice', v.english, 'Loudbook\'s voice') + chip('english', 'phone', v.english, 'Phone\'s voice') + '</div>' +
+      '<p class="meta">Kokoro: ' + esc(dl === 'kokoro' ? 'downloading ' + (v.progress || '') : VSTATE[v.kokoro] || v.kokoro) + '</p>' +
+      (v.kokoro === 'missing' && dl !== 'kokoro' ? '<div class="row"><button class="primary" id="wl-dl-kokoro">Download Kokoro (354 MB, Wi-Fi)</button></div>' : '') +
+      '<label for="wl-sid">Kokoro voice</label><select id="wl-sid">' + v.speakers.map(function (s) { return '<option value="' + s.sid + '"' + (s.sid === v.sid ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select>' +
+      '<label class="row"><input type="checkbox" id="wl-pcv"' + (v.pcVoice ? ' checked' : '') + '> <span>At home, use the natural voice from my PC (Loudbook\'s PC voice; needs the PC link)</span></label>' +
+      '<h3>Tagalog</h3><div class="chips">' + chip('tagalog', 'nice', v.tagalog, 'Filipino voice') + chip('tagalog', 'phone', v.tagalog, 'Phone\'s voice') + '</div>' +
+      '<p class="meta">Filipino voice: ' + esc(dl === 'tagalog' ? 'downloading ' + (v.progress || '') : VSTATE[v.tagalogVoice] || v.tagalogVoice) + '</p>' +
+      (v.tagalogVoice === 'missing' && dl !== 'tagalog' ? '<div class="row"><button class="primary" id="wl-dl-tagalog">Download the Filipino voice (114 MB, from your PC)</button></div>' : '') +
+      (v.error ? '<p class="no">' + esc(v.error) + '</p>' : '') +
+      '<div class="row"><button id="wl-hear-en">▶ Hear English</button><button id="wl-hear-tl">▶ Hear Tagalog</button></div>' +
+      (v.last ? '<p class="meta">Last read by: ' + esc(v.last) + '</p>' : '') + '</div>';
+    return h;
+  }
+  function wireVoice() {
+    $$('[data-voice]').forEach(function (b) { b.onclick = function () { native.voiceSet(b.dataset.voice, b.dataset.val); redrawVoice(); }; });
+    var s = $('#wl-sid'); if (s) s.onchange = function () { native.voiceSet('sid', s.value); speech.speak('Be still, and know that I am God.', null, { rate: 0.9 }); };
+    var p = $('#wl-pcv'); if (p) p.onchange = function () { native.voiceSet('pcVoice', String(p.checked)); };
+    ['kokoro', 'tagalog'].forEach(function (k) { var b = $('#wl-dl-' + k); if (b) b.onclick = function () { b.disabled = true; native.voiceDownload(k); setTimeout(redrawVoice, 300); }; });
+    var e = $('#wl-hear-en'); if (e) e.onclick = function () { speech.speak('Breathe in slowly. Be still, and know that I am God.', function () { redrawVoice(); }, { rate: 0.9 }); };
+    var t = $('#wl-hear-tl'); if (t) t.onclick = function () { speech.speak('Magandang umaga po. Kumain ka na ba?', function () { redrawVoice(); }, { rate: 0.9, lang: 'fil-PH' }); };
+    watchVoice();
+  }
+  function redrawVoice() { var el = $('#wl-voice'); if (el) { el.outerHTML = voiceHtml(); wireVoice(); } }
+  window.FCVoiceState = redrawVoice;
+  // while a download or loading is under way and the card is on screen, refresh it every few seconds (no timer otherwise)
+  var voiceTimer = null;
+  function watchVoice() {
+    clearTimeout(voiceTimer);
+    var st = voiceState();
+    if (!$('#wl-voice') || !st || !(st.downloading || st.kokoro === 'loading' || st.tagalogVoice === 'loading' || st.kokoro === 'downloaded' || st.tagalogVoice === 'downloaded')) return;
+    voiceTimer = setTimeout(function () { var el = $('#wl-voice'); if (el) { el.outerHTML = voiceHtml(); wireVoice(); } }, 3000);
+  }
+
+  /* App updates (Android: Updater.java). The app finds new versions by itself (on the PC at home, or GitHub),
+     downloads them, and installs them when you leave the app. */
+  function updateState() { try { return native && native.updateStatus ? JSON.parse(native.updateStatus()) : null; } catch (e) { return null; } }
+  function updateHtml() {
+    var u = updateState(); if (!u) return '';
+    var when = u.checked ? new Date(u.checked).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'not yet';
+    var h = '<div class="card ui" id="wl-update"><h3>App updates</h3><p class="meta">Version ' + esc(u.version) + '. New versions download by themselves ' +
+      '(from your PC at home, or from GitHub) and install when you leave the app.</p>';
+    if (!u.allowed) h += '<p><b>One-time step:</b> let Wellness install its own updates.</p><div class="row"><button class="primary" id="wl-allow">Allow updates</button></div>';
+    if (u.ready) h += '<p class="ok">Version ' + esc(u.readyName) + ' is downloaded.' + (u.allowed ? ' It installs when you leave the app, or now:' : '') + '</p>' +
+      (u.allowed ? '<div class="row"><button class="primary" id="wl-install">Update now (the app restarts)</button></div>' : '');
+    else h += '<p class="meta">' + (u.busy ? 'Checking…' : 'Up to date as of ' + esc(when) + '.') + '</p>';
+    if (u.error) h += '<p class="meta">Last check: ' + esc(u.error) + '</p>';
+    return h + '<div class="row"><button id="wl-check"' + (u.busy ? ' disabled' : '') + '>Check now</button></div></div>';
+  }
+  function wireUpdate() {
+    var c = $('#wl-check'); if (c) c.onclick = function () { native.updateCheck(); c.disabled = true; c.textContent = 'Checking…'; };
+    var a = $('#wl-allow'); if (a) a.onclick = function () { native.updateAllow(); };
+    var i = $('#wl-install'); if (i) i.onclick = function () { i.disabled = true; native.updateInstall(); };
+  }
+  function redrawUpdate() { var el = $('#wl-update'); if (el) { el.outerHTML = updateHtml(); wireUpdate(); } }
+  window.FCUpdateState = redrawUpdate;
+  // coming back from Android's "Install unknown apps" screen: show the new state
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) redrawUpdate(); });
+  // an update never installs during a guided prayer or calm session (Android asks the page)
+  if (window.MutationObserver && native && native.setBusy) {
+    new MutationObserver(function () { try { native.setBusy(document.body.classList.contains('in-session')); } catch (e) {} })
+      .observe(document.body || document.documentElement, { attributes: true, attributeFilter: ['class'] });
   }
 
   /* One backup file for the whole app: {app:'wellness', stores:{key: json}}. Old Faith Companion backups still restore. */
@@ -210,6 +287,7 @@
     $$('[data-look]').forEach(function (b) {
       b.onclick = function () { var v = b.dataset.val; setLook(b.dataset.look, isNaN(+v) ? v : +v); route(); };
     });
+    wireUpdate(); wireVoice();
     var ex = $('#wl-export'); if (ex) ex.onclick = function () { saveFile('wellness-backup-' + isoDate() + '.json', backupText()); };
     var im = $('#wl-import');
     if (im) im.onchange = function () {

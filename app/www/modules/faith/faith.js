@@ -196,7 +196,9 @@
       },
       onEnd: function () {
         clearInterval(quietTimer); prog.style.width = '100%'; quiet.textContent = '';
-        S.resume = null; save(); bell(); keepAwake(false);
+        S.resume = null;
+        C.logSession(S, session.kind, session.id, session.title, session.started ? (Date.now() - session.started) / 60000 : 0);
+        save(); bell(); keepAwake(false);
         pp.textContent = 'Done'; pp.dataset.state = 'done';
         if (session.kind === 'day' && !S.done[session.id]) {
           line.innerHTML = 'Amen.<br><span class="meta">Would you like to mark day ' + session.id + ' as done?</span>';
@@ -208,6 +210,7 @@
       }
     };
     player = new C.Player(session.steps, env);
+    if (!from || !session.started) session.started = Date.now();
     keepAwake(true);
     bell();
     player.from = from || 0;

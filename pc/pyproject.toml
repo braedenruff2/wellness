@@ -1,0 +1,8 @@
+[project]
+name = "wellness-pc-link"
+version = "1"
+description = "The Wellness phone app's helper on this PC: activity log and Claude (through Claude Code) for a paired phone"
+requires-python = ">=3.10,<3.14"
+dependencies = [
+  "cryptography>=43",   # only to make the PC's own HTTPS certificate once
+]

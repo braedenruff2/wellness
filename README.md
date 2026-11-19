@@ -4,16 +4,39 @@ One phone app with separate parts for what he cares about, built and improved by
 Started 18 Nov 2026 as "Faith Companion"; became this app the same day at his request.
 
 ## Install on your Pixel
-- `dist\Wellness.apk`: copy it to the phone (Google Drive, USB) and tap it; allow installing from that app.
-  Once lesson updates are on (below) the newest APK is also at github.com/braedenruff2/wellness/raw/main/dist/Wellness.apk.
-- Updates install over the top and keep everything. On the PC: open `app\www\index.html` in Chrome to try it.
+- `dist\Wellness.apk`: copy it to the phone (Google Drive, USB) and tap it; allow installing from that app. You only do
+  this once (for a version from 19 Nov 2026 or later).
+- **After that it updates itself**: Settings > App updates > "Allow updates" once (Android's "Install unknown apps" switch
+  for Wellness). The app then looks for a newer build on your PC (through the PC link, at home) or on GitHub (once
+  lesson updates are on), downloads it, and installs it when you leave the app, never during a prayer or calm session.
+  Settings > App updates also has "Check now" and "Update now". Everything you've entered is kept.
+- On the PC: open `app\www\index.html` in Chrome to try it.
 
 ## Weekly Tagalog lessons (one-time setup)
 Double-click **Turn on lesson updates.bat** once. It makes a public GitHub repo `wellness` and pushes this folder every
 15 minutes. Every Wednesday at noon (when your Claude usage resets) a scheduled Claude run writes next week's 7 lessons
 into `modules\tagalog\packs\`; the app downloads them when you open Tagalog. To tailor them, save Tagalog > Lessons &
 sharing > "Send my week" on the phone and put the file in `Desktop\wellness-progress\` before Wednesday noon.
-Nothing personal goes to GitHub: journal, workouts, to-dos and progress stay on the phone.
+Nothing personal goes to GitHub: journal, workouts, to-dos and progress stay on the phone (and, with the PC link, in Desktop\wellness-progress).
+
+## PC link (activity log + Claude on your PC)
+Double-click **Set up PC link.bat** once (it shows a code; later, to pair again, **Pair a phone.bat**). On the phone:
+Settings > PC link > Find my PC, type the code, Pair. Same home Wi-Fi only.
+- The phone then sends what you do in every part (faith days, guided prayers, calm sessions with stress ratings, every
+  workout set, Tagalog lessons/answers/reviews, to-dos, parenting practice) to `Desktop\wellness-progress\activity\<date>.jsonl`.
+  Journal and prayer text only if you switch that on. The PC link screen lists exactly what is logged.
+- **Parenting practice** (the 🧸 tab), **advice** (Home) and **Ask Claude about my answer** (Tagalog) run through
+  Claude Code on the PC (`claude -p`, signed in as you, your own plan). Nothing is stored anywhere else.
+- Claude's autopilot reads the log every run (`python pc\wellness_pc.py summary 7`) to choose what to build next.
+- It starts with Windows (log: `%LOCALAPPDATA%\Wellness\pc.log`). Stop: delete `%LOCALAPPDATA%\Wellness\run.on`.
+
+## Voices (Loudbook's, and a Filipino voice for Tagalog)
+Settings > Voice. English is read by the voices you built for Loudbook (not Gemini): **Kokoro on the phone** (download
+once, 354 MB, from your PC or Loudbook's GitHub release) and, at home, **Loudbook's PC voice** (the natural voice on your
+graphics card; the PC link asks Loudbook's PC voice on the same PC, so that has to be set up and running). Default voice:
+Nicole (soft, calm), at your speed. **Tagalog** is read by a Filipino voice, Meta's MMS Tagalog model (download once,
+114 MB, from your PC: `voices\mms-tgl\`, credit and licence there; personal, non-commercial use). The phone's own voice
+reads anything they can't (before the downloads, or if something fails).
 
 ## What's in it
 - **Home**: today across everything (faith day, workout, calm practice, Tagalog lesson, to-dos due), with advice.
@@ -27,6 +50,9 @@ Nothing personal goes to GitHub: journal, workouts, to-dos and progress stay on 
   adjustable dumbbells), session clock, progress per exercise, week dots, coaching line, import of the sheet's Log CSV.
 - **Tagalog** (`modules/tagalog`): weekly packs of 7 lessons (words with Filipino voice, conversation, grammar,
   family tip, 4 exercise types), spaced review of every word, progress, "Send my week".
+- **Parenting** (`modules/coach`): scenarios for your daughter's exact age, you answer, Claude grades against current
+  guidance (what went well, what to change, what an expert would do and why, sources), progress per skill. Needs the PC link.
+- **PC link** (`modules/link`, Settings): pairing, what's logged, send now, advice from Claude.
 - **To do** (`modules/todo`, on Home): quick add with plain words ("call Mom tomorrow", "stretch every day"),
   repeating tasks, overdue nudges.
 
@@ -35,7 +61,14 @@ Nothing personal goes to GitHub: journal, workouts, to-dos and progress stay on 
   session engine), modules/<id>/ (each part's code; own storage key `fc.v1` / `wl.<id>.v1`).
 - `modules/<id>/`: each part's sources, tools and tests, kept separate. Faith content: `modules/faith/tools/build-content.cjs`.
   Tagalog packs: `modules/tagalog/packs/*.json` -> `node modules/tagalog/tools/build-packs.cjs` (checks the format).
-- `android/` WebView shell (TTS with language switch, keep-awake, backup to Downloads, file picker, reminder);
-  `tools/build-apk.sh` builds dist/Wellness.apk (key android/faith.keystore: keep it, it's not in git).
+- `lib/activity.js`: the activity log, read from each part's saved data; `lib/pc.js` (WL.pc): sync and Claude requests.
+- `android/.../Voices.java` + `Speech.java`: Kokoro / MMS Tagalog through sherpa-onnx (Loudbook's engine, `com/k2fsa/...`),
+  Loudbook's PC voice through the PC link; the build needs `tools/get-voice-parts.sh` (sherpa-onnx libs, Kokoro small files).
+- `pc/wellness_pc.py`: the PC side (pairing, HTTPS pinned at pairing, activity files, `claude -p` jobs, `summary`, voice
+  files for the phone, /v1/speak through Loudbook's PC voice);
+  tests `pc/test/test_pc.py`; the phone side is `android/.../PcLink.java` (tested against the real server).
+- `android/` WebView shell (TTS with language switch, keep-awake, backup to Downloads, file picker, reminder, PC link);
+  `tools/build-apk.sh` builds dist/Wellness.apk + dist/version.json (key android/faith.keystore: keep it, it's not in git;
+  updates only install over the app with the same key). Updater.java: the app's self-update (PC link /v1/app/*, then GitHub raw).
 - Tests: `node tests/run-all.cjs` runs every module's tests (unit in three time zones, browser tests with Playwright)
   plus the shell's. Browser tests never touch the internet.

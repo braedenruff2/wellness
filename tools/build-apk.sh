@@ -11,6 +11,14 @@ OUT=$ROOT/build
 CODE=${FC_CODE:-$(( 30000000 + ($(date -u +%s) - 1767225600) / 60 ))}  # minutes since 2026-01-01, always above the first build (26111815)
 NAME=${FC_NAME:-0.1.$(date -u +%Y%m%d.%H%M)}
 KS=$ROOT/android/faith.keystore
+# Loudbook's voice engine (sherpa-onnx) and Kokoro's small files: PARTS from tools/get-voice-parts.sh
+PARTS=${PARTS:-/home/claude/parts}
+ABI=${ABI:-arm64-v8a}
+JNI=$PARTS/jniLibs/$ABI
+KOKORO=$PARTS/kokoro-multi-lang-v1_0
+for need in "$JNI/libsherpa-onnx-jni.so" "$JNI/libonnxruntime.so" "$KOKORO/tokens.txt" "$KOKORO/lexicon-us-en.txt" "$KOKORO/espeak-ng-data" voices/mms-tgl/tokens.txt; do
+  [ -e "$need" ] || { echo "missing: $need (run tools/get-voice-parts.sh)"; exit 1; }
+done
 PASS=faithcompanion   # a personal sideload key, not a secret
 
 node modules/faith/tools/build-content.cjs --check
@@ -31,8 +39,15 @@ echo "- package"
 cp "$OUT/base.apk" "$OUT/unsigned.apk"
 cp "$OUT/dex/classes.dex" "$OUT/stage/"
 cp -r app/www "$OUT/stage/assets/www"
-( cd "$OUT/stage" && zip -q "$OUT/unsigned.apk" classes.dex && zip -q -r "$OUT/unsigned.apk" assets )
-"$BT/zipalign" -f -p 4 "$OUT/unsigned.apk" "$OUT/aligned.apk"
+mkdir -p "$OUT/stage/assets/kokoro" "$OUT/stage/assets/mms-tgl" "$OUT/stage/lib/$ABI"
+cp "$KOKORO/tokens.txt" "$KOKORO/lexicon-us-en.txt" "$OUT/stage/assets/kokoro/"
+cp -r "$KOKORO/espeak-ng-data" "$OUT/stage/assets/kokoro/"
+cp voices/mms-tgl/tokens.txt "$OUT/stage/assets/mms-tgl/"
+cp "$JNI/libsherpa-onnx-jni.so" "$JNI/libonnxruntime.so" "$OUT/stage/lib/$ABI/"
+( cd "$OUT/stage" && zip -q "$OUT/unsigned.apk" classes.dex && zip -q -r "$OUT/unsigned.apk" assets
+  # native code stored uncompressed so Android can load it in place
+  zip -q -0 "$OUT/unsigned.apk" lib/$ABI/*.so )
+"$BT/zipalign" -P 16 -f 4 "$OUT/unsigned.apk" "$OUT/aligned.apk" 2>/dev/null || "$BT/zipalign" -f -p 4 "$OUT/unsigned.apk" "$OUT/aligned.apk"
 if [ ! -e "$KS" ]; then
   keytool -genkeypair -keystore "$KS" -storepass "$PASS" -keypass "$PASS" -alias faith -keyalg RSA -keysize 2048 \
     -validity 20000 -dname "CN=Faith Companion" >/dev/null
@@ -41,4 +56,6 @@ mkdir -p dist
 java -jar "$BT/lib/apksigner.jar" sign --ks "$KS" --ks-pass pass:$PASS --key-pass pass:$PASS --out dist/Wellness.apk "$OUT/aligned.apk"
 java -jar "$BT/lib/apksigner.jar" verify dist/Wellness.apk
 echo "$NAME" > dist/version.txt
+# what the app's updater reads (on the PC through the PC link, or from GitHub)
+printf '{"code": %s, "name": "%s", "size": %s}\n' "$CODE" "$NAME" "$(stat -c %s dist/Wellness.apk)" > dist/version.json
 ls -la dist/Wellness.apk

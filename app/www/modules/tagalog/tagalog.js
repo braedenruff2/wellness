@@ -77,8 +77,20 @@
         if (answered) return; answered = true;
         var ok = T.check(ex, given);
         if (ok) right++;
-        T.recordAnswer(S, pk, l, ex, ok); save();
-        $('#tl-fb').innerHTML = '<p class="' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ Right!' : '✗ Answer: <b>' + esc(ex.answer) + '</b>') + '</p><button class="primary" id="tl-next">Next</button>';
+        T.recordAnswer(S, pk, l, ex, ok, null, given); save();
+        var askable = !ok && ex.type === 'type' && String(given || '').trim() && WL.pc && WL.pc.ready();
+        $('#tl-fb').innerHTML = '<p class="' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ Right!' : '✗ Answer: <b>' + esc(ex.answer) + '</b>') + '</p>' +
+          '<div class="row"><button class="primary" id="tl-next">Next</button>' + (askable ? '<button id="tl-ask">Ask Claude about my answer</button>' : '') + '</div><div id="tl-claude" aria-live="polite"></div>';
+        if (askable) $('#tl-ask').onclick = function () {
+          var b = this; b.disabled = true;
+          var out = $('#tl-claude'); out.innerHTML = '<p class="meta">Asking Claude on your PC…</p>';
+          WL.pc.ask('tagalog-check', { task: ex.prompt, expected: ex.answer, answer: String(given) }).then(function (a) {
+            if (!out.isConnected) return;
+            out.innerHTML = '<div class="card">' + (a.ok ? '<p class="ok">Claude: that works too ✓</p>' : '') +
+              (a.corrected ? '<p><b lang="tl">' + esc(a.corrected) + '</b>' + (a.meaning ? ' <span class="meta">(' + esc(a.meaning) + ')</span>' : '') + '</p>' : '') +
+              (a.explain ? '<p>' + esc(a.explain) + '</p>' : '') + (a.tip ? '<p class="meta">Tip: ' + esc(a.tip) + '</p>' : '') + (a.text ? '<p>' + esc(a.text) + '</p>' : '') + '</div>';
+          }, function (e) { if (out.isConnected) out.innerHTML = '<p class="no">' + esc(e.message || e) + '</p>'; b.disabled = false; });
+        };
         if (ex.type !== 'mc' || /[a-z]/.test(ex.answer) && ex.type !== 'listen') { /* hear the Tagalog answer when there is one */ }
         if (ex.type === 'type' || ex.type === 'build') say(ex.answer);
         $$('.opt', box).forEach(function (b) { b.disabled = true; if (b.dataset.o === ex.answer) b.classList.add('right'); });
@@ -203,6 +215,7 @@
     id: 'tagalog', title: 'Tagalog', short: 'Tagalog', icon: '💬', nav: true, storageKeys: [store.key], settingsLink: '#tagalog/settings',
     route: route, card: card,
     validate: function (k, raw) { try { var s = T.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
-    reload: function () { S = store.load(); }
+    reload: function () { S = store.load(); },
+    weekSummary: function () { return T.weeklySummary(S, packs()); } // the PC link sends it with the activity log
   });
 })();

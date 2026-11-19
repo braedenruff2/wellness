@@ -11,7 +11,7 @@ const W = require('./lib/web.cjs');
     const mods = await page.$$eval('.home-card', (els) => els.map((e) => e.dataset.module));
     for (const m of ['faith', 'calm', 'workout', 'tagalog', 'todo']) assert.ok(mods.includes(m), 'card ' + m + ' in ' + mods);
     const tabs = await page.$$eval('nav#tabs a', (els) => els.map((e) => e.dataset.tab));
-    assert.deepStrictEqual(tabs, ['home', 'faith', 'calm', 'workout', 'tagalog']);
+    assert.deepStrictEqual(tabs, ['home', 'faith', 'calm', 'workout', 'tagalog', 'coach']);
   });
   await t.step('nav goes to a module and back; current tab is marked', async () => {
     await page.click('nav#tabs a[data-tab="faith"]');

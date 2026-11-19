@@ -23,6 +23,7 @@
       resume: null,           // {screen, day, practice, step, at}
       round: 1,               // 2, 3, ... after "Walk it again"
       pastRounds: [],         // [{done, ended}] for earlier walks of the path
+      sessions: [],           // guided prayers and practices played to the end: {at, kind:'day'|'practice', id, title, mins}
       lastOpen: null
     };
   }
@@ -161,6 +162,16 @@
     state.journal = state.journal.filter(function (e) { return e.id !== id; });
   }
 
+  /* A guided prayer or practice played to the end (for progress and the activity log); the last 500 are kept. */
+  function logSession(state, kind, id, title, mins, when) {
+    if (!Array.isArray(state.sessions)) state.sessions = [];
+    var x = { at: (when || new Date()).toISOString(), kind: kind === 'day' ? 'day' : 'practice', id: id, title: String(title || '').slice(0, 120),
+      mins: Math.max(0, Math.round((+mins || 0) * 10) / 10) };
+    state.sessions.push(x);
+    if (state.sessions.length > 500) state.sessions.splice(0, state.sessions.length - 500);
+    return x;
+  }
+
   function addPrayer(state, text, when) {
     text = String(text == null ? '' : text).trim();
     if (!text) return null;
@@ -244,6 +255,11 @@
       d.prayers.push({ id: str(p.id) || newId(), at: new Date(p.at).toISOString(), text: p.text,
         answered: p.answered && !isNaN(new Date(p.answered).getTime()) ? new Date(p.answered).toISOString() : null, note: str(p.note) });
     });
+    (Array.isArray(s.sessions) ? s.sessions : []).slice(-500).forEach(function (x) {
+      if (!x || isNaN(new Date(x.at).getTime())) return;
+      d.sessions.push({ at: new Date(x.at).toISOString(), kind: x.kind === 'day' ? 'day' : 'practice', id: typeof x.id === 'number' || typeof x.id === 'string' ? x.id : null,
+        title: str(x.title).slice(0, 120), mins: typeof x.mins === 'number' && x.mins >= 0 && x.mins < 1000 ? x.mins : 0 });
+    });
     var st = s.settings || {}, ds = d.settings;
     if (['auto', 'light', 'dark', 'night'].indexOf(st.theme) >= 0) ds.theme = st.theme;
     if (typeof st.textSize === 'number' && st.textSize >= 0.8 && st.textSize <= 1.6) ds.textSize = st.textSize;
@@ -265,7 +281,7 @@
   var api = {
     defaults: defaults, makeStore: makeStore, isoDate: isoDate, currentDay: currentDay, finishDay: finishDay,
     unfinishDay: unfinishDay, walkAgain: walkAgain, earlierDayJournal: earlierDayJournal, daysShowedUp: daysShowedUp, finishedToday: finishedToday, doneInLast: doneInLast, addEntry: addEntry,
-    setDayJournal: setDayJournal, dayJournal: dayJournal, removeEntry: removeEntry, addPrayer: addPrayer,
+    setDayJournal: setDayJournal, dayJournal: dayJournal, removeEntry: removeEntry, addPrayer: addPrayer, logSession: logSession,
     lookBack: lookBack, soundsHeavy: soundsHeavy, scaleScript: scaleScript, scriptLength: scriptLength,
     wordsSeconds: wordsSeconds, dayScript: dayScript, Player: Player, exportData: exportData, importData: importData,
     themeFor: themeFor, nightHours: nightHours

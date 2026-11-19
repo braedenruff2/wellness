@@ -8,7 +8,7 @@
   var INTERVALS = [0, 1, 2, 4, 8, 16, 32]; // days until the next review, by box
   // where new weeks come from (the PC pushes the wellness folder to this GitHub repo; changeable in the app)
   var DEFAULT_SOURCE = 'https://raw.githubusercontent.com/braedenruff2/wellness/main/modules/tagalog/packs/';
-  function defaults() { return { packs: {}, done: {}, cards: {}, answers: [], source: DEFAULT_SOURCE, lastCheck: null, settings: { slow: true } }; }
+  function defaults() { return { packs: {}, done: {}, cards: {}, answers: [], reviews: [], source: DEFAULT_SOURCE, lastCheck: null, settings: { slow: true } }; }
   function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
   function addDays(s, n) { var p = s.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2] + n); return iso(d); }
 
@@ -74,8 +74,11 @@
     });
   }
 
-  function recordAnswer(state, pack, lesson, ex, ok, now) {
-    state.answers.push({ at: (now || new Date()).toISOString(), pack: pack.id, day: lesson.day, ok: !!ok, prompt: String(ex.prompt || ex.say || '').slice(0, 120), type: ex.type });
+  /* given: what he typed or picked (kept short), so a wrong answer can be looked at later. */
+  function recordAnswer(state, pack, lesson, ex, ok, now, given) {
+    var a = { at: (now || new Date()).toISOString(), pack: pack.id, day: lesson.day, ok: !!ok, prompt: String(ex.prompt || ex.say || '').slice(0, 120), type: ex.type };
+    if (given != null && String(given).trim()) a.given = String(given).slice(0, 200);
+    state.answers.push(a);
     if (state.answers.length > 2000) state.answers.splice(0, state.answers.length - 2000);
   }
 
@@ -94,6 +97,9 @@
     else { c.wrong++; c.box = 1; }
     c.due = addDays(t, INTERVALS[c.box]);
     c.last = t;
+    if (!Array.isArray(state.reviews)) state.reviews = [];
+    state.reviews.push({ at: (now || new Date()).toISOString(), tl: tl, right: !!right });
+    if (state.reviews.length > 2000) state.reviews.splice(0, state.reviews.length - 2000);
     return c;
   }
 
@@ -147,6 +153,10 @@
     });
     (Array.isArray(s.answers) ? s.answers : []).slice(-2000).forEach(function (a) {
       if (a && !isNaN(new Date(a.at).getTime())) d.answers.push({ at: new Date(a.at).toISOString(), pack: String(a.pack || ''), day: +a.day || 0, ok: !!a.ok, prompt: String(a.prompt || '').slice(0, 120), type: String(a.type || '') });
+      if (a && typeof a.given === 'string' && d.answers.length && d.answers[d.answers.length - 1].at === new Date(a.at).toISOString()) d.answers[d.answers.length - 1].given = a.given.slice(0, 200);
+    });
+    (Array.isArray(s.reviews) ? s.reviews : []).slice(-2000).forEach(function (r) {
+      if (r && typeof r.tl === 'string' && r.tl.length < 120 && !isNaN(new Date(r.at).getTime())) d.reviews.push({ at: new Date(r.at).toISOString(), tl: r.tl, right: !!r.right });
     });
     Object.keys(s.packs || {}).forEach(function (k) { if (!checkPack(s.packs[k]).length) d.packs[k] = s.packs[k]; });
     if (typeof s.source === 'string' && /^https:\/\/raw\.githubusercontent\.com\//.test(s.source)) d.source = s.source;
