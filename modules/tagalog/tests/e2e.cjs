@@ -65,6 +65,26 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     const r = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).reviews.slice(-1)[0]);
     assert.strictEqual(r.dir, 'say'); assert.strictEqual(r.tl, tl);
   });
+  await t.step('mixed practice: the missed exercise comes first; finishing offers another 8', async () => {
+    await page.goto(base + '#tagalog');
+    assert.ok((await page.textContent('main')).includes('Mixed practice'));
+    await page.click('a[href="#tagalog/practice"]');
+    const first = pack.lessons[0].exercises[0];
+    assert.ok((await page.textContent('#tl-ex')).includes(first.prompt), 'the one answered wrong earlier');
+    const n = Math.min(8, pack.lessons[0].exercises.length);
+    for (let i = 0; i < n; i++) {
+      const b = await page.$('#tl-ex .opt:not(.word)');
+      if (b) await b.click(); else { const inp = await page.$('#tl-in'); if (inp) await inp.fill('x'); await page.click('#tl-check'); }
+      await page.click('#tl-next');
+    }
+    assert.ok(new RegExp('of ' + n + ' right').test(await page.textContent('#tl-ex')));
+    const before = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).answers.length);
+    await page.click('#tl-more');
+    assert.ok((await page.textContent('#tl-ex')).includes('1 of ' + n));
+    assert.ok(before >= n + 1, 'practice answers are recorded');
+    const done = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('wl.tagalog.v1')).done));
+    assert.deepStrictEqual(done, ['2026-11-18/1'], 'practice never marks a lesson done');
+  });
   await t.step('next week downloads from GitHub (bad ids ignored); Send my week saves a summary', async () => {
     await page.goto(base + '#tagalog/settings');
     await page.fill('#tl-src', 'http://evil.example/'); await page.click('#tl-save-src');
@@ -80,7 +100,7 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.strictEqual(sum.app, 'wellness-tagalog-summary'); assert.ok(sum.missed.length >= 1);
   });
   await t.step('no overflow, no errors', async () => {
-    await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/settings', '#home']);
+    await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#home']);
     assert.deepStrictEqual(t.errors, []);
   });
   await t.close('tagalog browser');

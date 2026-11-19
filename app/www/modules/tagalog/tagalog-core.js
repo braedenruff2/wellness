@@ -107,6 +107,29 @@
     return c;
   }
 
+  /* Mixed practice from finished lessons (any time, e.g. while waiting for Wednesday's new week): the exercises he
+     got wrong most often first, then the ones he hasn't answered for longest. [{pack, lesson, ex}], at most n. */
+  function practiceSet(state, packs, n) {
+    var last = {}, wrong = {};
+    state.answers.forEach(function (a) {
+      var k = a.pack + '/' + a.day + '/' + a.prompt;
+      if (!last[k] || a.at > last[k]) last[k] = a.at;
+      if (!a.ok) wrong[k] = (wrong[k] || 0) + 1;
+    });
+    var pool = [];
+    packs.forEach(function (p) {
+      p.lessons.forEach(function (l) {
+        if (!state.done[p.id + '/' + l.day]) return;
+        l.exercises.forEach(function (ex, j) {
+          var k = p.id + '/' + l.day + '/' + String(ex.prompt || ex.say || '').slice(0, 120);
+          pool.push({ pack: p, lesson: l, ex: ex, wrong: wrong[k] || 0, last: last[k] || '', order: pool.length });
+        });
+      });
+    });
+    pool.sort(function (a, b) { return b.wrong - a.wrong || (a.last < b.last ? -1 : a.last > b.last ? 1 : a.order - b.order); });
+    return pool.slice(0, n || 8).map(function (x) { return { pack: x.pack, lesson: x.lesson, ex: x.ex }; });
+  }
+
   function stats(state, now) {
     now = now || new Date();
     var from = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
@@ -131,7 +154,7 @@
     if (st.due >= 15) return st.due + ' words are waiting for review. Do those before a new lesson: reviewing is how they stick.';
     if (!st.lessonsDone) return 'Ten minutes a day is plenty. Start with lesson 1, and say every phrase out loud.';
     if (st.weekAccuracy != null && st.weekAccuracy < 0.6) return 'This week was hard (' + Math.round(st.weekAccuracy * 100) + '% right). Redo yesterday’s lesson before moving on.';
-    if (!nx) return 'All lessons done. New ones arrive on Wednesday; until then, review and try a phrase on the family.';
+    if (!nx) return 'All lessons done. New ones arrive on Wednesday; until then, mixed practice, review, and try a phrase on the family.';
     return st.known + ' words you know well, ' + st.words + ' met so far. Try one new phrase on the family this week.';
   }
 
@@ -168,7 +191,7 @@
   }
 
   var api = { INTERVALS: INTERVALS, defaults: defaults, checkPack: checkPack, norm: norm, check: check, allPacks: allPacks, nextLesson: nextLesson,
-    finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, review: review, stats: stats, weakWords: weakWords,
+    finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

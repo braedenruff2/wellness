@@ -57,6 +57,21 @@ t('two-way review: a word recognised once is asked English first; a miss goes ba
   assert.deepStrictEqual(v.reviews.map((r) => r.dir), ['meaning', 'say'], 'kept through backup/restore');
   assert.strictEqual(T.validate({ cards: {}, reviews: [{ at: d.toISOString(), tl: 'x', right: true, dir: '<b>' }] }).reviews[0].dir, 'meaning');
 });
+t('practiceSet: exercises from finished lessons only, most-missed first, then least recently answered', () => {
+  const s = T.defaults(), d = new Date(2026, 10, 18, 9), p = packs[0], l1 = p.lessons[0], l2 = p.lessons[1];
+  assert.deepStrictEqual(T.practiceSet(s, packs, 8), [], 'nothing done: nothing to practise');
+  T.finishLesson(s, p, l1, d); T.finishLesson(s, p, l2, d);
+  l1.exercises.forEach((ex, i) => T.recordAnswer(s, p, l1, ex, i !== 2, new Date(2026, 10, 18, 9, i)));
+  T.recordAnswer(s, p, l1, l1.exercises[2], false, new Date(2026, 10, 18, 10));
+  T.recordAnswer(s, p, l2, l2.exercises[1], false, new Date(2026, 10, 18, 10));
+  const set = T.practiceSet(s, packs, 8);
+  assert.strictEqual(set.length, Math.min(8, l1.exercises.length + l2.exercises.length));
+  assert.strictEqual(set[0].ex, l1.exercises[2], 'missed twice first');
+  assert.strictEqual(set[1].ex, l2.exercises[1], 'missed once next');
+  assert.ok(set.every((x) => x.lesson === l1 || x.lesson === l2), 'only finished lessons');
+  assert.strictEqual(set[2].lesson, l2, 'never-answered before answered: ' + set[2].ex.prompt);
+  assert.strictEqual(T.practiceSet(s, packs, 3).length, 3);
+});
 t('stats, advice and the weekly summary for the Wednesday run', () => {
   const s = T.defaults(), d = new Date(2026, 10, 18, 9);
   assert.ok(/lesson 1/.test(T.advice(s, packs, d)));

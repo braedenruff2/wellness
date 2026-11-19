@@ -33,6 +33,7 @@
     if (nx) h += '<div class="card"><div class="meta ui">Week ' + esc(nx.pack.week || '') + ' · ' + esc(nx.pack.title) + ' · lesson ' + nx.lesson.day + ' of ' + nx.pack.lessons.length + '</div>' +
       '<h3 style="margin:.2em 0">' + esc(nx.lesson.title) + '</h3><p class="meta ui">' + esc(nx.lesson.intro) + '</p>' +
       '<a class="btn primary ui" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Start lesson · about 10 min</a></div>';
+    if (Object.keys(S.done).length) h += '<div class="card ui"><div class="row"><div class="grow"><b>Mixed practice</b><div class="meta">8 exercises from lessons you’ve done, the ones you missed first</div></div><a class="btn' + (nx ? '' : ' primary') + '" href="#tagalog/practice">Practise</a></div></div>';
     h += '<div class="card ui"><div class="row"><span class="grow">Words met <b>' + st.words + '</b> · known well <b>' + st.known + '</b></span></div>' +
       '<div class="meta">This week: ' + st.weekLessons + ' lesson' + (st.weekLessons === 1 ? '' : 's') + ', practised on ' + st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') +
       (st.weekAccuracy != null ? ', ' + Math.round(st.weekAccuracy * 100) + '% of answers right' : '') + '</div></div>';
@@ -64,16 +65,24 @@
   function shuffle(a, seed) { a = a.slice(); var s = seed || 1; for (var i = a.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; var j = Math.floor(s / 233280 * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
   function runExercises(pk, l) {
+    runSet(l.exercises.map(function (ex) { return { pack: pk, lesson: l, ex: ex }; }), function (right, n) {
+      T.finishLesson(S, pk, l); save();
+      return '<p class="ui"><b>' + right + ' of ' + n + ' right.</b> ' + (right === n ? 'Excellent.' : right >= n * 0.6 ? 'Good work.' : 'Worth another go tomorrow.') +
+        ' The words are now in your review.</p><div class="row ui"><a class="btn primary" href="#tagalog">Done</a><button id="tl-again">Practice again</button></div>';
+    });
+  }
+
+  /* Exercises one after another ([{pack, lesson, ex}]); finish(right, n) gives the closing HTML (#tl-again restarts). */
+  function runSet(items, finish, wire) {
     var i = 0, right = 0, box = $('#tl-ex');
     function show() {
-      if (i >= l.exercises.length) {
-        T.finishLesson(S, pk, l); save();
-        box.innerHTML = '<p class="ui"><b>' + right + ' of ' + l.exercises.length + ' right.</b> ' + (right === l.exercises.length ? 'Excellent.' : right >= l.exercises.length * 0.6 ? 'Good work.' : 'Worth another go tomorrow.') +
-          ' The words are now in your review.</p><div class="row ui"><a class="btn primary" href="#tagalog">Done</a><button id="tl-again">Practice again</button></div>';
-        $('#tl-again').onclick = function () { i = 0; right = 0; show(); };
+      if (i >= items.length) {
+        box.innerHTML = finish(right, items.length);
+        var again = $('#tl-again'); if (again) again.onclick = function () { i = 0; right = 0; show(); };
+        if (wire) wire(box);
         return;
       }
-      var ex = l.exercises[i], h = '<div class="meta ui">' + (i + 1) + ' of ' + l.exercises.length + '</div>';
+      var pk = items[i].pack, l = items[i].lesson, ex = items[i].ex, h = '<div class="meta ui">' + (i + 1) + ' of ' + items.length + '</div>';
       if (ex.type === 'listen') h += '<p class="ui">Listen and choose the meaning. <button class="chip" id="tl-replay">🔊 Play</button></p>';
       else h += '<p><b>' + esc(ex.prompt) + '</b></p>';
       if (ex.type === 'mc' || ex.type === 'listen') h += '<div class="opts ui">' + shuffle(ex.options, i + l.day * 7).map(function (o) { return '<button class="opt" data-o="' + esc(o) + '">' + esc(o) + '</button>'; }).join('') + '</div>';
@@ -198,6 +207,16 @@
         runExercises(f.pack, f.lesson);
         return;
       }
+    }
+    if (parts[0] === 'practice') {
+      var set = T.practiceSet(S, packs(), 8);
+      if (!set.length) { view.innerHTML = subnav('') + '<h1>Mixed practice</h1><p class="ui">Finish a lesson first: practice mixes the exercises from lessons you’ve done.</p>'; return; }
+      view.innerHTML = subnav('') + '<h1>Mixed practice</h1><p class="meta ui">From lessons you’ve done. Say each answer out loud too.</p><div class="card" id="tl-practice"><div id="tl-ex"></div></div>';
+      runSet(set, function (right, n) {
+        return '<p class="ui"><b>' + right + ' of ' + n + ' right.</b> ' + (right === n ? 'Excellent.' : 'The ones you missed come back first next time.') +
+          '</p><div class="row ui"><a class="btn primary" href="#tagalog">Done</a><button id="tl-more">Another 8</button></div>';
+      }, function () { $('#tl-more').onclick = function () { route(['practice']); }; });
+      return;
     }
     if (parts[0] === 'review') { view.innerHTML = reviewHtml(); runReview(); return; }
     if (parts[0] === 'settings') {

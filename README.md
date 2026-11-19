@@ -52,7 +52,8 @@ reads anything they can't (before the downloads, or if something fails).
   adjustable dumbbells), session clock, progress per exercise, week dots, coaching line, import of the sheet's Log CSV.
 - **Tagalog** (`modules/tagalog`): weekly packs of 7 lessons (words with Filipino voice, conversation, grammar,
   family tip, 4 exercise types), spaced review of every word (two-way: once a word is recognised, it comes back
-  English first so you practise saying it; a miss sends it back to meaning first), progress, "Send my week".
+  English first so you practise saying it; a miss sends it back to meaning first), mixed practice (8 exercises from
+  finished lessons, most-missed first: something to do while waiting for Wednesday), progress, "Send my week".
 - **Parenting** (`modules/coach`): scenarios for your daughter's exact age, you answer, Claude grades against current
   guidance (what went well, what to change, what an expert would do and why, sources), progress per skill. Needs the PC link.
 - **PC link** (`modules/link`, Settings): pairing, what's logged, send now, advice from Claude.
