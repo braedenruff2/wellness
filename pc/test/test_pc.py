@@ -3,6 +3,9 @@
 Runs a real server on a free port with temporary folders.   python pc/test/test_pc.py"""
 import datetime, hashlib, http.client, json, os, secrets, socket, ssl, stat, sys, tempfile, threading, time
 
+# his PC's time zone (the phone sends UTC times; the PC files them by its local date)
+os.environ["TZ"] = "America/Halifax"
+if hasattr(time, "tzset"): time.tzset()
 HERE = os.path.dirname(os.path.abspath(__file__))
 TMP = tempfile.mkdtemp(prefix="wpc-")
 os.environ["WELLNESS_STATE"] = os.path.join(TMP, "state")
@@ -263,6 +266,28 @@ req("POST", "/v1/activity", {"events": [
     {"id": b2 + "/x", "at": today + "T08:05:00-04:00", "part": "workout", "kind": "set-removed"}]}, token=token)
 wo = [e for e in W.recent_events(7) if e["part"] == "workout" and e["id"].startswith("workout/s1/")]
 check("fixed set: only the newest value; removed set: gone", [(e["data"] or {}).get("val") for e in wo] == [17], wo)
+# a workout finished, "Carry on", finished again: both ends arrive; only the newest counts (and the old-style id too)
+req("POST", "/v1/activity", {"events": [
+    {"id": "workout/end/s9", "at": today + "T09:30:00-04:00", "part": "workout", "kind": "workout-done", "data": {"sets": 8, "mins": 30}},
+    {"id": "workout/end/s9/e100", "at": today + "T09:30:00-04:00", "part": "workout", "kind": "workout-done", "data": {"sets": 8, "mins": 30}},
+    {"id": "workout/end/s9/e200", "at": today + "T10:10:00-04:00", "part": "workout", "kind": "workout-done", "data": {"sets": 12, "mins": 70}},
+    {"id": "todo/done/t1/e100", "at": today + "T10:00:00-04:00", "part": "todo", "kind": "done", "text": "x"},
+    {"id": "todo/done/t1/e300", "at": today + "T10:20:00-04:00", "part": "todo", "kind": "done", "text": "x"}]}, token=token)
+ends = [e for e in W.recent_events(7) if e["id"].startswith("workout/end/s9")]
+check("finished again: only the newest end counts", [e["data"]["sets"] for e in ends] == [12], ends)
+check("a to-do ticked again: counted once", len([e for e in W.recent_events(7) if e["id"].startswith("todo/done/t1")]) == 1)
+# the phone sends UTC ("Z"): 22:30 in Halifax is already tomorrow in UTC, but it's today's activity
+late = (datetime.datetime.combine(datetime.date.today(), datetime.time(22, 30)).astimezone().astimezone(datetime.timezone.utc)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+check("(test set-up: the UTC date is tomorrow's)", late[:10] != today, late)
+req("POST", "/v1/activity", {"events": [{"id": "calm/late", "at": late, "part": "calm", "kind": "session", "data": {"mins": 7}}]}, token=token)
+check("an evening event (UTC time) is filed under the local day", any(e["id"] == "calm/late" for e in W.read_day(today)), late)
+check("... and counted in today's summary", any(e["id"] == "calm/late" for e in W.recent_events(1)))
+# a file written by an older version (filed under the UTC date): counted once, for its local day; not saved again
+W.append_lines(W.day_file(late[:10]), [{"id": "calm/old", "at": late, "part": "calm", "kind": "session", "data": {"mins": 2}}])
+st, o, _ = req("POST", "/v1/activity", {"events": [{"id": "calm/old", "at": late, "part": "calm", "kind": "session", "data": {"mins": 2}}]}, token=token)
+check("an event already in the older (UTC-day) file is not saved twice", o.get("saved") == 0, o)
+check("... and counts for its local day once", [e["id"] for e in W.recent_events(1)].count("calm/old") == 1)
+check("... not for tomorrow", not any(e["id"] == "calm/old" for e in W.recent_events(1, datetime.date.today() + datetime.timedelta(days=1))))
 st, o, _ = req("POST", "/v1/summary", {"days": 3}, token=token)
 check("summary over the link", st == 200 and "Activity" in o.get("summary", ""), o)
 # (the server answers 400 without reading the body, so the sender may see the connection close first: both are a refusal)

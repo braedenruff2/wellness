@@ -61,6 +61,7 @@
     opts = opts || {};
     var task = { id: id(now), text: q.text, due: opts.due !== undefined ? opts.due : q.due, done: null,
       created: (now || new Date()).toISOString(), repeat: opts.repeat || q.repeat || null, at: opts.at !== undefined ? opts.at : q.at };
+    task.due = firstDue(task);
     state.tasks.push(task);
     return task;
   }
@@ -71,6 +72,13 @@
     if (task.repeat === 'weekly') { d = addDays(task.due || today, 7); while (d <= today) d = addDays(d, 7); return d; }
     if (task.repeat === 'weekdays') { d = addDays(base, 1); while ([0, 6].indexOf(parse(d).getDay()) >= 0) d = addDays(d, 1); return d; }
     return null;
+  }
+
+  /* A "weekdays" task never falls on a weekend (added on a Saturday it starts Monday, not that Saturday). */
+  function firstDue(task) {
+    var d = task.due;
+    if (task.repeat === 'weekdays' && d) while ([0, 6].indexOf(parse(d).getDay()) >= 0) d = addDays(d, 1);
+    return d;
   }
 
   /* Ticking a repeating task logs it as done and moves the task to its next date. */
@@ -85,7 +93,7 @@
     t.done = now.toISOString();
     return t;
   }
-  /* "Done" tapped on a reminder notification (Android hands over "ms<TAB>taskId" lines). A one-off task is ticked (once);
+  /* "Done" tapped on a reminder notification (Android hands over "ms<TAB>taskId[<TAB>reminder day]" lines). A one-off task is ticked (once);
      a repeating one only if its current date is that day or earlier (if it already moved on, e.g. ticked in the app
      too, nothing happens). Returns the tasks ticked. */
   function applyTicked(state, lines) {
@@ -94,8 +102,10 @@
       var p = l.split('\t'); if (p.length < 2) return;
       var ms = +p[0], t = find(state, p[1].trim());
       if (!t || t.done || !(ms > 0)) return;
-      var at = new Date(ms);
-      if (t.repeat && t.due && t.due > iso(at)) return;
+      var at = new Date(ms), day = /^\d{4}-\d\d-\d\d$/.test((p[2] || '').trim()) ? p[2].trim() : iso(at);
+      // a repeating task: only the occurrence that notification was for (Done on yesterday's reminder, already ticked
+      // in the app, must not tick today's)
+      if (t.repeat && t.due && t.due > day) return;
       complete(state, t.id, at); out.push(t);
     });
     return out;
@@ -170,10 +180,17 @@
      the open tasks that have a time: a reminder snoozed from the notification is kept only while its task is one of them. */
   function alarmLines(list, openIds) {
     var out = list.map(function (r) { return r.when + '\t' + String(r.id).replace(/[\t\n\r]/g, ' ') + '\t' + String(r.text).replace(/[\t\n\r]+/g, ' ').slice(0, 200); });
-    if (openIds && openIds.length) out.push('#open\t' + openIds.map(function (x) { return String(x).replace(/[\t\n\r,]/g, ' '); }).join(','));
+    // always sent (also empty): with no "#open" line Android keeps every snooze (older pages), so ticking the last
+    // timed task left its snoozed reminder to ring anyway
+    if (Array.isArray(openIds)) out.push('#open\t' + openIds.map(function (x) { return String(x).replace(/[\t\n\r,]/g, ' '); }).join(','));
     return out.join('\n');
   }
-  function openTimed(state) { return state.tasks.filter(function (t) { return !t.done && t.at && t.due; }).map(function (t) { return t.id; }); }
+  /* Open tasks with a time whose reminder can be ringing now: a repeating one only while due today or earlier (ticked,
+     it moves to its next date, and a snooze from today's notification must stop). */
+  function openTimed(state, now) {
+    var today = iso(now || new Date());
+    return state.tasks.filter(function (t) { return !t.done && t.at && t.due && (!t.repeat || t.due <= today); }).map(function (t) { return t.id; });
+  }
   /* "Remind me in an hour": the reminder moves to now + 60 min (rounded up to 5 min), on that day (after 11 pm that is
      tomorrow). Not for repeating tasks (it would move every coming day): returns null for those. */
   function remindIn(state, taskId, minutes, now) {
@@ -204,7 +221,7 @@
 
   var api = { defaults: defaults, quickParse: quickParse, add: add, complete: complete, applyTicked: applyTicked, uncomplete: uncomplete, remove: remove,
     find: find, groups: groups, moveOverdueToToday: moveOverdueToToday, tidy: tidy, doneInLast: doneInLast, advice: advice,
-    nextDue: nextDue, validate: validate, iso: iso, addDays: addDays, reminders: reminders, alarmLines: alarmLines, openTimed: openTimed, remindIn: remindIn, fmtTime: fmtTime };
+    nextDue: nextDue, validate: validate, iso: iso, addDays: addDays, reminders: reminders, alarmLines: alarmLines, openTimed: openTimed, firstDue: firstDue, remindIn: remindIn, fmtTime: fmtTime };
   root.TodoCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

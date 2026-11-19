@@ -54,6 +54,25 @@ const W = require('./lib/web.cjs');
     await page.goto(base + '#todo');
     assert.ok(await page.isHidden('#logday'));
   });
+  await t.step('the 2 hours count from the last entry; when they run out the banner goes at once', async () => {
+    await page.goto(base + '#home');
+    await page.selectOption('#wl-logday', '2026-11-15');
+    await page.goto(base + '#workout');
+    await page.fill('#ex-0 .val', '11'); await page.click('#ex-0 .logbtn'); await page.click('#rest-skip');
+    await page.clock.runFor(90 * 60000);
+    await page.fill('#ex-0 .val', '12'); await page.click('#ex-0 .logbtn'); await page.click('#rest-skip');
+    await page.clock.runFor(90 * 60000);
+    await page.fill('#ex-0 .val', '13'); await page.click('#ex-0 .logbtn'); await page.click('#rest-skip');
+    let s = await st('wl.workout.v1');
+    const d15 = s.sessions.filter((x) => x.date === '2026-11-15')[0];
+    assert.deepStrictEqual(d15.sets.map((x) => x.val), [11, 12, 13], 'a workout with long breaks stays on that day');
+    assert.ok(await page.isVisible('#logday'));
+    await page.clock.runFor(2 * 3600e3 + 60000);
+    await page.fill('#ex-1 .val', '14'); await page.click('#ex-1 .logbtn');
+    await page.waitForFunction(() => document.getElementById('logday').hidden, null, { timeout: 2000 });
+    s = await st('wl.workout.v1');
+    assert.ok(!s.sessions.filter((x) => x.date === '2026-11-15')[0].sets.some((x) => x.val === 14), 'after it ran out: today');
+  });
   await t.step('no overflow, no errors', async () => {
     await page.goto(base + '#home'); await page.selectOption('#wl-logday', '2026-11-17');
     await t.noOverflow(['#home', '#workout', '#faith/today', '#todo']);

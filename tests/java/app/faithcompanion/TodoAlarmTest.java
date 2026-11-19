@@ -41,6 +41,11 @@ public class TodoAlarmTest {
         tk = TodoAlarm.addTicked(tk, "a", 300);
         ok(tk.equals("200\tb\n300\ta\n"), "ticked lines: " + tk);
         ok(TodoAlarm.addTicked(null, "x\ty", 5).equals("5\tx y\n"), "no tabs in the id");
+        // the reminder's day goes with it (Done on yesterday's notification of a daily task)
+        ok("2026-11-19".equals(TodoAlarm.day("t1@2026-11-19")) && TodoAlarm.day("t1@snooze") == null && TodoAlarm.day("t1") == null && TodoAlarm.day(null) == null, "day from id");
+        String td = TodoAlarm.addTicked(TodoAlarm.addTicked("", "a", 100, "2026-11-18"), "a", 200, "2026-11-19");
+        ok(td.equals("200\ta\t2026-11-19\n"), "ticked with day, latest wins: " + td);
+        ok(TodoAlarm.addTicked("", "a", 1, "junk").equals("1\ta\n"), "a bad day is left out");
         String many = "";
         for (int n = 0; n < 60; n++) many = TodoAlarm.addTicked(many, "t" + n, n);
         ok(many.split("\n").length == 50 && many.startsWith("10\tt10\n"), "at most 50, oldest dropped");

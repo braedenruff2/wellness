@@ -80,7 +80,7 @@
     $('#td-save').onclick = function () {
       var txt = $('#td-edit').value.trim(); if (!txt) return;
       var at = $('#td-time').value; at = /^\d\d:\d\d$/.test(at) ? at : null;
-      t.text = txt; t.due = due || (rep || at ? today : null); t.repeat = rep || null; t.at = at; save(); render();
+      t.text = txt; t.due = due || (rep || at ? today : null); t.repeat = rep || null; t.at = at; t.due = T.firstDue(t); save(); render();
       if (at) WL.toast('Reminder at ' + T.fmtTime(at) + ', ' + fmtDue(t.due));
     };
     $('#td-notime').onclick = function () { $('#td-time').value = ''; };
@@ -145,7 +145,9 @@
     var n = WL.native, lines = '';
     if (!n || !n.todoTicked) return;
     try { lines = n.todoTicked() || ''; } catch (e) { return; }
-    if (!lines) return;
+    // also on every return to the app: reminders reach 8 days ahead, so a repeating one must be topped up even when
+    // the to-do screen is never opened (only Home and notifications)
+    if (!lines) { syncAlarms(); return; }
     S = store.load();
     var got = T.applyTicked(S, lines);
     if (!got.length) return;

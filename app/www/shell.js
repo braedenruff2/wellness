@@ -151,13 +151,17 @@
   var logDay = null, logDaySet = 0;
   function addDaysIso(n) { var d = new Date(); return isoDate(new Date(d.getFullYear(), d.getMonth(), d.getDate() - n)); }
   function getLogDay() {
-    if (logDay && (Date.now() - logDaySet > 2 * 3600e3 || logDay >= isoDate())) logDay = null;
+    if (logDay && (Date.now() - logDaySet > 2 * 3600e3 || logDay >= isoDate())) {
+      // ran out: say so at once (the banner used to keep showing the old day while new entries went to today)
+      logDay = null; setTimeout(function () { drawLogDay(); toast('Logging for today again'); }, 0);
+    }
     return logDay;
   }
   function setLogDay(iso) { logDay = iso && iso < isoDate() ? iso : null; logDaySet = Date.now(); drawLogDay(); }
   function logNow() {
     var d = getLogDay(), now = new Date();
     if (!d) return now;
+    logDaySet = Date.now(); // the 2 hours count from the last entry for that day (a workout with long breaks stays on it)
     var p = d.split('-');
     return new Date(+p[0], +p[1] - 1, +p[2], now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
   }

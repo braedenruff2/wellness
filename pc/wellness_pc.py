@@ -274,6 +274,16 @@ def clean_event(e):
 def day_file(day): return progress("activity", day + ".jsonl")
 
 
+def local_day(at):
+    """The PC's local date of an event time. The phone sends UTC ("...Z"), so an evening in Halifax is already the
+    next day in UTC: filing by at[:10] put 20:00-midnight activity under tomorrow (and out of today's summary)."""
+    try:
+        t = datetime.datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+        return (t.astimezone() if t.tzinfo else t).date().isoformat()
+    except (ValueError, OverflowError, OSError):
+        return str(at)[:10]
+
+
 def read_day(day):
     out = []
     try:
@@ -302,11 +312,13 @@ def save_events(events):
     by_day = {}
     for e in events:
         c = clean_event(e)
-        if c: by_day.setdefault(c["at"][:10], []).append(c)
+        if c: by_day.setdefault(local_day(c["at"]), []).append(c)
     new = 0
     with activity_lock:
         for day, evs in sorted(by_day.items()):
-            seen = {x.get("id") for x in read_day(day)}
+            # older versions filed by the UTC date: an event already there (the next day's file) is not saved again
+            nxt = (datetime.date.fromisoformat(day) + datetime.timedelta(days=1)).isoformat()
+            seen = {x.get("id") for x in read_day(day) + read_day(nxt)}
             fresh = []
             for e in sorted(evs, key=lambda x: x["at"]):
                 if e["id"] in seen: continue
@@ -319,22 +331,27 @@ def save_events(events):
 
 def recent_events(days, today=None):
     today = today or datetime.date.today()
-    out = []
-    for i in range(days - 1, -1, -1):
-        out += read_day((today - datetime.timedelta(days=i)).isoformat())
+    out, first, ids0 = [], (today - datetime.timedelta(days=days - 1)).isoformat(), set()
+    # one file more: older versions filed evening events under the next (UTC) day
+    for i in range(days - 1, -2, -1):
+        for e in read_day((today - datetime.timedelta(days=i)).isoformat()):
+            d = local_day(e.get("at", ""))
+            if first <= d <= today.isoformat() and e.get("id") not in ids0:
+                ids0.add(e.get("id")); out.append(e)
     # Journal / prayer events sent again with their words get the old id + "/t": count each once (the one with words).
     ids = {e.get("id") for e in out}
     out = [e for e in out if not (isinstance(e.get("id"), str) and e["id"] + "/t" in ids)]
     # Workout sets fixed on the phone come again as <id>/e<ms> (newest wins); removed ones as <id>/x (all dropped).
+    # A finished workout and a ticked to-do carry their time the same way (finished again after "Carry on": newest wins).
     newest, gone = {}, set()
     for e in out:
-        m = re.match(r"^(workout/.+)/(e(\d+)|x)$", str(e.get("id", "")))
+        m = re.match(r"^((?:workout|todo)/.+)/(e(\d+)|x)$", str(e.get("id", "")))
         if not m: continue
         if m.group(2) == "x": gone.add(m.group(1))
         elif int(m.group(3)) > newest.get(m.group(1), -1): newest[m.group(1)] = int(m.group(3))
     def keep(e):
         i = str(e.get("id", ""))
-        m = re.match(r"^(workout/.+)/(e(\d+)|x)$", i)
+        m = re.match(r"^((?:workout|todo)/.+)/(e(\d+)|x)$", i)
         base = m.group(1) if m else i
         if base in gone: return False
         if base in newest: return bool(m) and m.group(2) != "x" and int(m.group(3)) == newest[base]
@@ -350,7 +367,7 @@ def summarize(days=7, today=None):
     if not ev:
         lines.append("Nothing logged yet (the phone sends its log when it is on home Wi-Fi with the PC link paired).")
         return "\n".join(lines)
-    active_days = sorted({e["at"][:10] for e in ev})
+    active_days = sorted({local_day(e["at"]) for e in ev})
     lines.append(f"Active on {len(active_days)} of {days} days.")
     per = {}
     for e in ev: per.setdefault(e["part"], []).append(e)
@@ -363,7 +380,7 @@ def summarize(days=7, today=None):
     for part in PARTS:
         es = per.get(part)
         if not es: lines.append(f"- {part}: nothing"); continue
-        d = len({e["at"][:10] for e in es})
+        d = len({local_day(e["at"]) for e in es})
         extra = ""
         if part == "calm":
             r = [e["data"] for e in es if e["kind"] == "session" and isinstance(e.get("data"), dict)

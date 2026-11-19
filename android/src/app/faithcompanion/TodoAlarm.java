@@ -58,6 +58,13 @@ public class TodoAlarm extends BroadcastReceiver {
     }
 
     static String task(String id) { return id == null ? "" : id.replaceAll("@.*$", ""); }
+    /** The reminder's date from its id ("task@2026-11-19"), or null (a snooze: "task@snooze"). */
+    static String day(String id) {
+        if (id == null) return null;
+        int at = id.lastIndexOf('@');
+        String d = at < 0 ? "" : id.substring(at + 1);
+        return d.matches("\\d{4}-\\d\\d-\\d\\d") ? d : null;
+    }
 
     /** The page's "#open<TAB>id,id" line: open tasks that have a reminder time (a snooze stays only for those).
      *  null when the page sent no such line (older page: keep snoozes). */
@@ -91,13 +98,17 @@ public class TodoAlarm extends BroadcastReceiver {
 
     /** "Done" from the notification: the page picks these up ("ms<TAB>task" lines) next time it runs and ticks the task.
      *  A task ticked twice is kept once (the latest); at most 50 kept. */
-    static String addTicked(String ticked, String task, long now) {
+    static String addTicked(String ticked, String task, long now) { return addTicked(ticked, task, now, null); }
+
+    /** day: the date of the reminder that was ticked ("yyyy-mm-dd", from its id "task@day"), so Done on yesterday's
+     *  notification of a daily task doesn't tick today's. Sent as a third field ("ms<TAB>task<TAB>day"). */
+    static String addTicked(String ticked, String task, long now, String day) {
         List<String> keep = new ArrayList<>();
         if (ticked != null) for (String l : ticked.split("\n")) {
-            String[] p = l.split("\t", 2);
-            if (p.length == 2 && !p[1].equals(task)) keep.add(l);
+            String[] p = l.split("\t", 3);
+            if (p.length >= 2 && !p[1].equals(task)) keep.add(l);
         }
-        keep.add(now + "\t" + task.replaceAll("[\t\n]", " "));
+        keep.add(now + "\t" + task.replaceAll("[\t\n]", " ") + (day != null && day.matches("\\d{4}-\\d\\d-\\d\\d") ? "\t" + day : ""));
         while (keep.size() > 50) keep.remove(0);
         StringBuilder b = new StringBuilder();
         for (String l : keep) b.append(l).append('\n');
@@ -182,7 +193,7 @@ public class TodoAlarm extends BroadcastReceiver {
             if (text == null || id.isEmpty()) return;
             synchronized (TodoAlarm.class) {
                 android.content.SharedPreferences p = c.getSharedPreferences(PREFS, 0);
-                p.edit().putString("ticked", addTicked(p.getString("ticked", ""), id, now))
+                p.edit().putString("ticked", addTicked(p.getString("ticked", ""), id, now, i.getStringExtra("day")))
                     .putString("snoozed", dropSnooze(p.getString("snoozed", ""), id)).commit();
             }
             arm(c, now);
@@ -201,7 +212,7 @@ public class TodoAlarm extends BroadcastReceiver {
         String task = task(id);
         Intent sn = new Intent(c, TodoAlarm.class).setAction(SNOOZE).putExtra("id", task).putExtra("text", text);
         PendingIntent spi = PendingIntent.getBroadcast(c, notifId(task), sn, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        Intent dn = new Intent(c, TodoAlarm.class).setAction(DONE).putExtra("id", task).putExtra("text", text);
+        Intent dn = new Intent(c, TodoAlarm.class).setAction(DONE).putExtra("id", task).putExtra("text", text).putExtra("day", day(id));
         PendingIntent dpi = PendingIntent.getBroadcast(c, notifId(task) + 0x10000, dn, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(c, CHANNEL).setSmallIcon(R.drawable.ic_note)
             .setContentTitle(text == null || text.isEmpty() ? "To do" : text).setContentText("To-do reminder")

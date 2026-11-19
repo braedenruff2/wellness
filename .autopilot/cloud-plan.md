@@ -17,9 +17,10 @@ Can't do here: APK build/signing (key not in repo), anything using data outside 
 - No paid services, API keys, accounts or required network for core use.
 
 ## Tasks (pick in order; update this list on the PC)
-1. Bug hunting: read modules and shell code, add tests for untested paths, fix what they find.
+1. Bug hunting: read modules and shell code, add tests for untested paths, fix what they find. (19 Nov evening: coach,
+   workout undo/log-day, to-do reminders, activity ids and PC day filing reviewed; next: faith, calm, tagalog, link.)
 2. Calm: more short practices (content + tests).
-3. Workout: plain advice on the Move screen when a week is light (the weekly sets per area exist; tests).
+3. Workout: volumeAdvice is shown on the Move screen; next: a plain note on Home when an area is behind late in the week.
 4. Tagalog: review/practice UX polish (two-way review and mixed practice exist since 19 Nov); tests for edge cases
    (no packs, pack replaced, very long answers).
 5. Code health: dead code, duplicated helpers, slow tests.

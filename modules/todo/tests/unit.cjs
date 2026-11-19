@@ -116,7 +116,8 @@ t('alarmLines: "#open" names open tasks with a time (Android keeps a snoozed rem
   const l = T.alarmLines(T.reminders(s, wed), T.openTimed(s)).split('\n');
   assert.ok(/^#open\t[^,\t]+,[^,\t]+$/.test(l[l.length - 1]), l[l.length - 1]);
   assert.ok(l.slice(0, -1).every((x) => /^\d+\t/.test(x)), 'every other line is a reminder');
-  assert.strictEqual(T.alarmLines([], []), '', 'nothing open: nothing sent');
+  assert.strictEqual(T.alarmLines([], []), '#open\t', 'nothing open: still said, so a snoozed reminder stops');
+  assert.strictEqual(T.alarmLines([]), '', 'no list given: no line (as before)');
   assert.strictEqual(T.alarmLines([], ['a,b']), '#open\ta b', 'commas in ids cannot split the list');
 });
 
@@ -159,4 +160,27 @@ t('validate keeps good tasks, drops junk and markup-y fields', () => {
   assert.strictEqual(T.validate({}), null);
 });
 
+t('a weekdays task never starts on a weekend', () => {
+  const s = T.defaults(), sat = new Date(2026, 10, 21, 6);
+  const x = T.add(s, 'stretch every weekday at 7am', null, sat);
+  assert.strictEqual(x.due, '2026-11-23', 'Saturday -> Monday');
+  assert.ok(T.reminders(s, sat).every((r) => !/@2026-11-2[12]$/.test(r.id)), 'no weekend reminder');
+  assert.strictEqual(T.add(s, 'plan every weekday', null, wed).due, '2026-11-18', 'a weekday stays');
+  assert.strictEqual(T.firstDue({ repeat: 'weekdays', due: '2026-11-22' }), '2026-11-23');
+  assert.strictEqual(T.firstDue({ repeat: 'daily', due: '2026-11-22' }), '2026-11-22');
+});
+t('openTimed: a repeating task ticked for today is no longer "open" (its snooze stops)', () => {
+  const s = T.defaults(), x = T.add(s, 'meds every day at 8am', null, wed);
+  assert.deepStrictEqual(T.openTimed(s, wed), [x.id]);
+  T.complete(s, x.id, new Date(2026, 10, 18, 8, 20));
+  assert.deepStrictEqual(T.openTimed(s, new Date(2026, 10, 18, 8, 21)), [], 'moved to tomorrow');
+  assert.deepStrictEqual(T.openTimed(s, new Date(2026, 10, 19, 7)), [x.id], 'tomorrow it is open again');
+});
+t('Done on yesterday\'s reminder of a daily task (already ticked in the app) does not tick today\'s', () => {
+  const s = T.defaults(), x = T.add(s, 'meds every day at 8am', null, new Date(2026, 10, 18, 7));
+  T.complete(s, x.id, new Date(2026, 10, 18, 8, 10)); // ticked in the app yesterday: now due the 19th
+  const tap = new Date(2026, 10, 19, 7, 30).getTime();
+  assert.strictEqual(T.applyTicked(s, tap + '\t' + x.id + '\t2026-11-18').length, 0, 'yesterday\'s notification');
+  assert.strictEqual(T.applyTicked(s, tap + '\t' + x.id + '\t2026-11-19').length, 1, 'today\'s notification ticks today');
+});
 console.log(n + ' to-do unit tests passed');

@@ -67,7 +67,8 @@
       });
       if (okDate(w.end) && (w.sets || []).length) {
         var mins = Math.round((new Date(w.end) - new Date(w.start)) / 60000);
-        out.push({ id: 'workout/end/' + w.id, at: w.end, part: 'workout', kind: 'workout-done', text: 'Day ' + w.day, data: { day: w.day, sets: w.sets.length, mins: isNaN(mins) ? null : mins } });
+        // the end time is in the id: "Carry on" then Finish again sends the new end, and the PC keeps the newest
+        out.push({ id: 'workout/end/' + w.id + '/e' + Date.parse(w.end), at: w.end, part: 'workout', kind: 'workout-done', text: 'Day ' + w.day, data: { day: w.day, sets: w.sets.length, mins: isNaN(mins) ? null : mins } });
       }
     });
   };
@@ -92,7 +93,7 @@
     (s.tasks || []).forEach(function (t) {
       if (!t) return;
       if (okDate(t.created) && !t.fromRepeat) out.push({ id: 'todo/add/' + t.id, at: t.created, part: 'todo', kind: 'added', text: cut(t.text, 200), data: { due: t.due || null, repeat: t.repeat || null } });
-      if (okDate(t.done)) out.push({ id: 'todo/done/' + t.id, at: t.done, part: 'todo', kind: 'done', text: cut(t.text, 200) });
+      if (okDate(t.done)) out.push({ id: 'todo/done/' + t.id + '/e' + Date.parse(t.done), at: t.done, part: 'todo', kind: 'done', text: cut(t.text, 200) });
     });
   };
 

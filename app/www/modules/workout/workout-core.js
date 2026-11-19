@@ -170,8 +170,10 @@
 
   function undoSet(state, now) {
     var s = now ? openSession(state, now) : lastUnfinished(state);
-    if (s && s.sets.length) return s.sets.pop();
-    return null;
+    if (!s || !s.sets.length) return null;
+    var x = s.sets.pop();
+    (s.removed = s.removed || []).push({ at: x.at, i: x.i }); // the PC may have it already: tell it it's gone
+    return x;
   }
 
   /* Fix a logged set (mistyped reps): set k (0-based) of plan item idx in the open session. val <= 0 or null removes

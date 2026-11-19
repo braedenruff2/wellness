@@ -181,4 +181,12 @@ t('validate a backup: drops unknown exercises, bad dates and junk', () => {
   assert.strictEqual(W.validate({}), null);
 });
 
+t('undo tells the PC the set is gone (it may have been sent already)', () => {
+  const s = W.defaults(), at = (h, m) => new Date(2026, 10, 19, h, m);
+  W.logSet(s, 'A', 1, 12, null, at(9, 0)); W.logSet(s, 'A', 1, 15, null, at(9, 2));
+  const x = W.undoSet(s, at(9, 3));
+  assert.strictEqual(x.val, 15);
+  assert.deepStrictEqual(s.sessions[0].removed, [{ at: x.at, i: 1 }]);
+  assert.deepStrictEqual(W.validate(JSON.parse(JSON.stringify(s))).sessions[0].removed, [{ at: x.at, i: 1 }], 'kept through a backup');
+});
 console.log(n + ' workout unit tests passed');
