@@ -59,7 +59,11 @@
       if (!w) return;
       (w.sets || []).forEach(function (x) {
         if (!x || !okDate(x.at)) return;
-        out.push({ id: 'workout/' + w.id + '/' + x.at + '/' + x.i, at: x.at, part: 'workout', kind: 'set', data: { day: w.day, ex: x.ex, n: x.n, val: x.val, w: x.w } });
+        // a fixed set gets a new id ending /e<ms>: the PC keeps the newest of them
+        out.push({ id: 'workout/' + w.id + '/' + x.at + '/' + x.i + (x.edited && okDate(x.edited) ? '/e' + Date.parse(x.edited) : ''), at: x.at, part: 'workout', kind: 'set', data: { day: w.day, ex: x.ex, n: x.n, val: x.val, w: x.w } });
+      });
+      (w.removed || []).forEach(function (r) {
+        if (r && okDate(r.at)) out.push({ id: 'workout/' + w.id + '/' + r.at + '/' + r.i + '/x', at: r.at, part: 'workout', kind: 'set-removed' });
       });
       if (okDate(w.end) && (w.sets || []).length) {
         var mins = Math.round((new Date(w.end) - new Date(w.start)) / 60000);

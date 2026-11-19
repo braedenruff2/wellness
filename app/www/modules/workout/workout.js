@@ -60,8 +60,10 @@
       groupSeen[it.group] = 1;
       h += head + '<div class="card ex' + (full ? ' ex-done' : '') + '" data-i="' + idx + '" id="ex-' + idx + '">' +
         '<div class="row"><h3 class="grow" style="margin:0">' + esc(it.ex) + (it.optional ? ' <span class="meta ui">optional</span>' : '') + '</h3>' +
-        '<span class="setchips ui">' + Array.apply(null, Array(it.sets)).map(function (_, k) { return '<span class="sc' + (done[k] ? ' on' : '') + '">' + (done[k] ? done[k].val : '') + '</span>'; }).join('') + '</span></div>' +
-        '<p class="meta ui adv">' + esc(W.advice(S, it, lp)) + '</p>' +
+        '<span class="setchips ui">' + Array.apply(null, Array(Math.max(it.sets, done.length))).map(function (_, k) {
+          return done[k] ? '<button class="sc on" data-edit="' + k + '" aria-label="Set ' + (k + 1) + ': ' + done[k].val + '. Tap to fix">' + done[k].val + '</button>' : '<span class="sc"></span>';
+        }).join('') + '</span></div><div class="editrow ui" hidden></div>' +
+        '<p class="meta ui adv">' + esc(W.advice(S, it, lp)) + (done.length ? ' <span class="meta">Tap a set’s number to fix it.</span>' : '') + '</p>' +
         '<details class="ui"><summary class="meta">How</summary><p class="meta">' + esc(e.cue || '') + (S.next[it.ex] ? ' Now doing: ' + esc(S.next[it.ex]) + '.' : '') + '</p></details>' +
         (full ? '' : '<div class="row ui logrow"><button class="step" data-d="-1" aria-label="One less">−</button><input type="number" inputmode="numeric" class="val" value="' + esc(suggest) + '" aria-label="' + esc(unit(e)) + '"><button class="step" data-d="1" aria-label="One more">+</button><span class="meta">' + unit(e) + '</span>' +
           (e.track === 'reps' && (e.load || w !== '') ? '<input type="number" inputmode="decimal" class="wt" value="' + esc(w) + '" aria-label="Weight in lb"><span class="meta">lb</span>' : '') +
@@ -125,6 +127,27 @@
         renderToday();
         window.scrollTo(0, y);
         if (!rest) { var nxt = $('.ex:not(.ex-done)'); if (nxt) nxt.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      };
+    });
+    // tap a logged set to fix a mistyped number (or remove it)
+    $$('[data-edit]').forEach(function (b) {
+      b.onclick = function () {
+        var card = b.closest('.ex'), idx = +card.dataset.i, k = +b.dataset.edit, row = card.querySelector('.editrow');
+        var open = W.openSession(S, now()); if (!open) return;
+        var set = open.sets.filter(function (x) { return x.i === idx; })[k]; if (!set) return;
+        row.hidden = false;
+        row.innerHTML = '<div class="row"><span class="meta">Set ' + (k + 1) + '</span><input type="number" inputmode="numeric" class="ed-val" value="' + esc(set.val) + '" aria-label="Fixed number">' +
+          (set.w != null ? '<input type="number" inputmode="decimal" class="ed-wt" value="' + esc(set.w) + '" aria-label="Weight in lb"><span class="meta">lb</span>' : '') +
+          '<button class="primary ed-save">Save</button><button class="ed-del">Remove</button><button class="link ed-cancel">Cancel</button></div>';
+        var v = row.querySelector('.ed-val'); v.focus(); v.select();
+        var wt = row.querySelector('.ed-wt');
+        var y = function () { var sy = window.scrollY; renderToday(); window.scrollTo(0, sy); };
+        row.querySelector('.ed-save').onclick = function () {
+          if (!(+v.value > 0)) { v.focus(); return; }
+          W.editSet(S, idx, k, v.value, wt ? wt.value : undefined, now()); save(); y(); WL.toast('Set ' + (k + 1) + ' fixed: ' + (+v.value));
+        };
+        row.querySelector('.ed-del').onclick = function () { W.editSet(S, idx, k, 0, undefined, now()); save(); y(); WL.toast('Set ' + (k + 1) + ' removed'); };
+        row.querySelector('.ed-cancel').onclick = function () { row.hidden = true; row.innerHTML = ''; };
       };
     });
     var ro = $('#wo-reopen'); if (ro) ro.onclick = function () { W.reopen(S, ro.dataset.id); save(); dayChoice = null; renderToday(); WL.toast('Carrying on: log the next set'); };

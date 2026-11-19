@@ -174,6 +174,24 @@
     return null;
   }
 
+  /* Fix a logged set (mistyped reps): set k (0-based) of plan item idx in the open session. val <= 0 or null removes
+     it; the later sets of that exercise are renumbered. Returns the set, or null. */
+  function editSet(state, idx, k, val, weight, now) {
+    var s = now ? openSession(state, now) : lastUnfinished(state); if (!s) return null;
+    var mine = s.sets.filter(function (x) { return x.i === idx; }), set = mine[k];
+    if (!set) return null;
+    if (!(+val > 0)) {
+      s.sets.splice(s.sets.indexOf(set), 1);
+      (s.removed = s.removed || []).push({ at: set.at, i: set.i }); // so the PC's log drops it too
+      s.sets.filter(function (x) { return x.i === idx; }).forEach(function (x, j) { x.n = j + 1; });
+      return set;
+    }
+    set.val = +val;
+    if (weight !== undefined) { set.w = weight == null || weight === '' ? null : +weight; if (set.w != null && k === mine.length - 1) state.weights[set.ex] = set.w; }
+    set.edited = (now || new Date()).toISOString();
+    return set;
+  }
+
   /* Every performance of an exercise, newest last: [{date, sets:[vals], w}] from the app's sessions and the imported sheet. */
   function performances(state, name) {
     var out = [];
@@ -333,8 +351,11 @@
       if (!x || !dateRe.test(x.date) || !PROGRAM[x.day] || !Array.isArray(x.sets)) return;
       d.sessions.push({ id: String(x.id || newId()), date: x.date, day: x.day, start: String(x.start || ''), end: x.end ? String(x.end) : null,
         sets: x.sets.filter(function (t) { return t && EX[t.ex] && typeof t.val === 'number'; }).map(function (t) {
-          return { i: +t.i || 0, ex: t.ex, n: +t.n || 1, val: t.val, w: typeof t.w === 'number' ? t.w : null, at: String(t.at || '') };
-        }) });
+          var o = { i: +t.i || 0, ex: t.ex, n: +t.n || 1, val: t.val, w: typeof t.w === 'number' ? t.w : null, at: String(t.at || '') };
+          if (typeof t.edited === 'string' && !isNaN(Date.parse(t.edited))) o.edited = t.edited;
+          return o;
+        }), removed: (Array.isArray(x.removed) ? x.removed : []).filter(function (r) { return r && typeof r.at === 'string' && !isNaN(Date.parse(r.at)); })
+          .slice(-50).map(function (r) { return { at: r.at, i: +r.i || 0 }; }) });
     });
     (Array.isArray(s.history) ? s.history : []).forEach(function (h) {
       if (h && dateRe.test(h.date) && typeof h.ex === 'string' && Array.isArray(h.sets))
@@ -343,7 +364,7 @@
     return d;
   }
 
-  var api = { EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen,
+  var api = { EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
     last: last, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     validate: validate, iso: iso };

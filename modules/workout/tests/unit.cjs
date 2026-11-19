@@ -83,6 +83,24 @@ t('logging for an earlier day: its own session, in date order, and today\'s open
   assert.strictEqual(s.sessions[1].sets.length, 2);
 });
 
+t('fixing a mistyped set: new number, or removed with the later sets renumbered', () => {
+  const s = W.defaults();
+  W.logSet(s, 'A', 0, 71, 10, at(19, 11)); W.logSet(s, 'A', 1, 19, null, at(19, 11, 2)); W.logSet(s, 'A', 0, 17, 10, at(19, 11, 5));
+  const f = W.editSet(s, 0, 0, 17, undefined, at(19, 11, 6));
+  assert.strictEqual(f.val, 17); assert.ok(f.edited); assert.strictEqual(f.w, 10, 'weight untouched');
+  W.editSet(s, 0, 1, 16, '12.5', at(19, 11, 7));
+  assert.strictEqual(s.sessions[0].sets[2].w, 12.5); assert.strictEqual(s.weights['Bulgarian Split Squats'], 12.5, 'the latest set\'s weight is remembered');
+  W.editSet(s, 0, 0, 0, undefined, at(19, 11, 8));
+  const sq = s.sessions[0].sets.filter((x) => x.i === 0);
+  assert.deepStrictEqual(sq.map((x) => [x.n, x.val]), [[1, 16]], 'removed, the other one is now set 1');
+  assert.strictEqual(s.sessions[0].removed.length, 1);
+  assert.strictEqual(W.editSet(s, 0, 5, 3, undefined, at(19, 11, 9)), null, 'no such set');
+  const v = W.validate(JSON.parse(JSON.stringify(s)));
+  assert.ok(v.sessions[0].sets.find((x) => x.i === 0).edited && v.sessions[0].removed.length === 1, 'kept through backup');
+  W.endSession(s, at(19, 12));
+  assert.strictEqual(W.editSet(s, 1, 0, 20, undefined, at(19, 12, 1)), null, 'a finished workout is not changed (Carry on first)');
+});
+
 t('set numbers, weights remembered, undo', () => {
   const s = W.defaults();
   W.logSet(s, 'A', 0, 12, 10, at(18, 9)); const r = W.logSet(s, 'A', 0, 11, '15', at(18, 9, 3));

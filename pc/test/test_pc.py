@@ -249,6 +249,17 @@ check("summary: nothing for a part with no events", "- coach: nothing" in summ, 
 req("POST", "/v1/activity", {"events": [{"id": "tl/3", "at": today + "T07:00:00-04:00", "part": "tagalog", "kind": "review", "data": {"tl": "opo", "right": True, "dir": "say"}}]}, token=token)
 summ = W.summarize(7)
 check("summary: Tagalog said (English first) counted apart", "2/3 right" in summ and "said in Tagalog 1/1" in summ, summ)
+# a workout set fixed on the phone (id + /e<ms>, newest wins) and one removed (id + /x)
+b1, b2 = "workout/s1/" + today + "T08:00:00Z/0", "workout/s1/" + today + "T08:05:00Z/1"
+req("POST", "/v1/activity", {"events": [
+    {"id": b1, "at": today + "T08:00:00-04:00", "part": "workout", "kind": "set", "data": {"ex": "Squat", "n": 1, "val": 71}},
+    {"id": b2, "at": today + "T08:05:00-04:00", "part": "workout", "kind": "set", "data": {"ex": "Row", "n": 1, "val": 9}}]}, token=token)
+req("POST", "/v1/activity", {"events": [
+    {"id": b1 + "/e100", "at": today + "T08:00:00-04:00", "part": "workout", "kind": "set", "data": {"ex": "Squat", "n": 1, "val": 18}},
+    {"id": b1 + "/e200", "at": today + "T08:00:00-04:00", "part": "workout", "kind": "set", "data": {"ex": "Squat", "n": 1, "val": 17}},
+    {"id": b2 + "/x", "at": today + "T08:05:00-04:00", "part": "workout", "kind": "set-removed"}]}, token=token)
+wo = [e for e in W.recent_events(7) if e["part"] == "workout" and e["id"].startswith("workout/s1/")]
+check("fixed set: only the newest value; removed set: gone", [(e["data"] or {}).get("val") for e in wo] == [17], wo)
 st, o, _ = req("POST", "/v1/summary", {"days": 3}, token=token)
 check("summary over the link", st == 200 and "Activity" in o.get("summary", ""), o)
 # (the server answers 400 without reading the body, so the sender may see the connection close first: both are a refusal)

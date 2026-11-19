@@ -49,7 +49,8 @@ reads anything they can't (before the downloads, or if something fails).
 - **Move** (`modules/workout`): his Google Sheet routine, ported and improved: 3 full-body days A/B/C that rotate
   (each muscle 2-3x a week; a skipped day never leaves a gap), supersets with transition and rest timer (beep +
   vibrate), "last time" numbers and progression ("ready for harder" with the 10 lb pair; "go up to N lb" once set to
-  adjustable dumbbells), session clock, progress per exercise, week dots, coaching line, import of the sheet's Log CSV.
+  adjustable dumbbells), tap a logged set's number to fix or remove it, "Carry on with it" after finishing by mistake,
+  session clock, progress per exercise, week dots, coaching line, import of the sheet's Log CSV.
 - **Tagalog** (`modules/tagalog`): weekly packs of 7 lessons (words with Filipino voice, conversation, grammar,
   family tip, 4 exercise types), spaced review of every word (two-way: once a word is recognised, it comes back
   English first so you practise saying it; a miss sends it back to meaning first), mixed practice (8 exercises from

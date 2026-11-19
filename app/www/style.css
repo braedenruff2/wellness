@@ -124,7 +124,8 @@ body.in-session { padding-bottom: 0; }
 .ex.ex-done { opacity: .7; }
 .setchips { display: inline-flex; gap: 4px; }
 .sc { min-width: 30px; height: 26px; border-radius: 13px; border: 1px solid var(--line); font-size: 13px; display: inline-flex; align-items: center; justify-content: center; padding: 0 6px; }
-.sc.on { background: var(--good); color: var(--bg); border-color: var(--good); }
+.sc.on { background: var(--good); color: var(--bg); border-color: var(--good); font: inherit; font-size: 13px; cursor: pointer; }
+.editrow { margin-top: 8px; } .editrow input { width: 4.5em; }
 .logrow { margin-top: 8px; gap: 6px; }
 .logrow .step { min-width: 44px; padding: 0; font-size: 1.3em; }
 .logrow .val { width: 64px; text-align: center; font-size: 1.15em; padding: 8px 4px; }

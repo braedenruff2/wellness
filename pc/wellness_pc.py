@@ -325,7 +325,21 @@ def recent_events(days, today=None):
     # Journal / prayer events sent again with their words get the old id + "/t": count each once (the one with words).
     ids = {e.get("id") for e in out}
     out = [e for e in out if not (isinstance(e.get("id"), str) and e["id"] + "/t" in ids)]
-    return out
+    # Workout sets fixed on the phone come again as <id>/e<ms> (newest wins); removed ones as <id>/x (all dropped).
+    newest, gone = {}, set()
+    for e in out:
+        m = re.match(r"^(workout/.+)/(e(\d+)|x)$", str(e.get("id", "")))
+        if not m: continue
+        if m.group(2) == "x": gone.add(m.group(1))
+        elif int(m.group(3)) > newest.get(m.group(1), -1): newest[m.group(1)] = int(m.group(3))
+    def keep(e):
+        i = str(e.get("id", ""))
+        m = re.match(r"^(workout/.+)/(e(\d+)|x)$", i)
+        base = m.group(1) if m else i
+        if base in gone: return False
+        if base in newest: return bool(m) and m.group(2) != "x" and int(m.group(3)) == newest[base]
+        return not (m and m.group(2) == "x")
+    return [e for e in out if keep(e)]
 
 
 def summarize(days=7, today=None):

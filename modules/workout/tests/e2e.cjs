@@ -36,6 +36,14 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#wo-undo');
     assert.strictEqual(await page.locator('.sc.on').count(), 1);
   });
+  await t.step('tap a logged set to fix a mistyped number', async () => {
+    await page.click('#ex-0 [data-edit="0"]');
+    await page.fill('#ex-0 .ed-val', '11'); await page.click('#ex-0 .ed-save');
+    assert.strictEqual(await page.textContent('#ex-0 .sc.on'), '11');
+    assert.ok((await page.textContent('#toast')).includes('fixed'));
+    await page.click('#ex-0 [data-edit="0"]'); await page.click('#ex-0 .ed-cancel');
+    assert.ok(await page.isHidden('#ex-0 .editrow'));
+  });
   await t.step('a long break (50 min, then 3 hours) does not cut the workout off', async () => {
     await page.clock.runFor(50 * 60000);
     await page.reload();
