@@ -43,6 +43,12 @@ import java.util.Locale;
 public class MainActivity extends Activity {
     private static final int PICK_FILE = 7;
     private WebView web;
+    /** The activity on screen (or null), so a "Done" tapped on a to-do notification reaches an open page at once. */
+    private static java.lang.ref.WeakReference<MainActivity> shown = new java.lang.ref.WeakReference<>(null);
+    static void todoTicked() {
+        MainActivity a = shown.get();
+        if (a != null) a.runOnUiThread(() -> { if (a.web != null) a.web.evaluateJavascript("window.FCTodoTicked&&FCTodoTicked()", null); });
+    }
     private android.widget.FrameLayout root;
     private TextToSpeech tts;
     private boolean ttsReady;
@@ -200,6 +206,8 @@ public class MainActivity extends Activity {
         super.onResume();
         RestAlarm.appVisible = true;
         RestAlarm.cancelShown(this);
+        shown = new java.lang.ref.WeakReference<>(this);
+        if (web != null) web.evaluateJavascript("window.FCTodoTicked&&FCTodoTicked()", null);
         Updater.check(getApplicationContext(), pcLink(), false, updateListener);
     }
 
@@ -214,6 +222,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onPause() {
         RestAlarm.appVisible = false;
+        if (shown.get() == this) shown = new java.lang.ref.WeakReference<>(null);
         if (web != null) web.evaluateJavascript("window.FCSaveNow&&FCSaveNow()", null);
         super.onPause();
     }
@@ -424,6 +433,9 @@ public class MainActivity extends Activity {
                 runOnUiThread(() -> requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 4));
             }
         }
+
+        /** Tasks ticked "Done" on a notification since the page last asked ("ms<TAB>task" lines), handed over once. */
+        @JavascriptInterface public String todoTicked() { return TodoAlarm.takeTicked(getApplicationContext()); }
 
         /** Every coming to-do reminder ("when<TAB>id<TAB>text" lines); "" clears them. */
         @JavascriptInterface public void todoAlarms(String lines) {

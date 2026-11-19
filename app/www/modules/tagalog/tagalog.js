@@ -132,12 +132,15 @@
     var due = T.dueCards(S), i = 0, el = $('#tl-card'); if (!el) return;
     function show() {
       if (i >= due.length) { el.innerHTML = '<p class="ui"><b>All done.</b> See you tomorrow.</p><a class="btn" href="#tagalog">Back</a>'; return; }
-      var k = due[i], c = S.cards[k];
-      el.innerHTML = '<div class="meta ui">' + (i + 1) + ' / ' + due.length + '</div><p class="big" lang="tl">' + esc(k) + ' ' + hear(k) + '</p><div id="tl-ans" hidden><p>' + esc(c.en) + '</p></div>' +
-        '<div class="row ui" id="tl-btns"><button class="primary" id="tl-show">Show meaning</button></div>';
+      var k = due[i], c = S.cards[k], sayIt = T.direction(c) === 'say';
+      el.innerHTML = '<div class="meta ui">' + (i + 1) + ' / ' + due.length + (sayIt ? ' · say it in Tagalog' : '') + '</div>' +
+        (sayIt ? '<p class="big">' + esc(c.en) + '</p><div id="tl-ans" hidden><p class="big" lang="tl">' + esc(k) + ' ' + hear(k) + '</p></div>'
+          : '<p class="big" lang="tl">' + esc(k) + ' ' + hear(k) + '</p><div id="tl-ans" hidden><p>' + esc(c.en) + '</p></div>') +
+        '<div class="row ui" id="tl-btns"><button class="primary" id="tl-show">' + (sayIt ? 'Show the Tagalog' : 'Show meaning') + '</button></div>';
       wireHear(el);
       $('#tl-show').onclick = function () {
         $('#tl-ans').hidden = false;
+        if (sayIt) say(k); // hear it right after saying it yourself
         $('#tl-btns').innerHTML = '<button id="tl-no">Not yet</button><button class="primary" id="tl-yes">Got it</button>';
         $('#tl-no').onclick = function () { T.review(S, k, false); save(); i++; show(); };
         $('#tl-yes').onclick = function () { T.review(S, k, true); save(); i++; show(); };

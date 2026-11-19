@@ -44,6 +44,19 @@ t('spaced review: words due tomorrow, right moves up, wrong resets', () => {
   for (let i = 0; i < 10; i++) T.review(s, 'po', true, tomorrow);
   assert.strictEqual(s.cards.po.box, T.INTERVALS.length - 1, 'box is capped');
 });
+t('two-way review: a word recognised once is asked English first; a miss goes back to meaning first', () => {
+  const s = T.defaults(), d = new Date(2026, 10, 18, 9), d2 = new Date(2026, 10, 19, 9), d4 = new Date(2026, 10, 21, 9);
+  T.finishLesson(s, packs[0], packs[0].lessons[0], d);
+  assert.strictEqual(T.direction(s.cards.opo), 'meaning');
+  T.review(s, 'opo', true, d2);
+  assert.strictEqual(T.direction(s.cards.opo), 'say');
+  T.review(s, 'opo', false, d4);
+  assert.strictEqual(T.direction(s.cards.opo), 'meaning');
+  assert.deepStrictEqual(s.reviews.map((r) => r.dir), ['meaning', 'say'], 'each review records the way it was asked');
+  const v = T.validate(JSON.parse(JSON.stringify(s)));
+  assert.deepStrictEqual(v.reviews.map((r) => r.dir), ['meaning', 'say'], 'kept through backup/restore');
+  assert.strictEqual(T.validate({ cards: {}, reviews: [{ at: d.toISOString(), tl: 'x', right: true, dir: '<b>' }] }).reviews[0].dir, 'meaning');
+});
 t('stats, advice and the weekly summary for the Wednesday run', () => {
   const s = T.defaults(), d = new Date(2026, 10, 18, 9);
   assert.ok(/lesson 1/.test(T.advice(s, packs, d)));

@@ -51,14 +51,16 @@ reads anything they can't (before the downloads, or if something fails).
   vibrate), "last time" numbers and progression ("ready for harder" with the 10 lb pair; "go up to N lb" once set to
   adjustable dumbbells), session clock, progress per exercise, week dots, coaching line, import of the sheet's Log CSV.
 - **Tagalog** (`modules/tagalog`): weekly packs of 7 lessons (words with Filipino voice, conversation, grammar,
-  family tip, 4 exercise types), spaced review of every word, progress, "Send my week".
+  family tip, 4 exercise types), spaced review of every word (two-way: once a word is recognised, it comes back
+  English first so you practise saying it; a miss sends it back to meaning first), progress, "Send my week".
 - **Parenting** (`modules/coach`): scenarios for your daughter's exact age, you answer, Claude grades against current
   guidance (what went well, what to change, what an expert would do and why, sources), progress per skill. Needs the PC link.
 - **PC link** (`modules/link`, Settings): pairing, what's logged, send now, advice from Claude.
 - **To do** (`modules/todo`, on Home): quick add with plain words ("call Mom tomorrow", "stretch every day"),
   repeating tasks, overdue nudges. Reminders: end a task with a time ("bins fri at 7pm", "meds 8:30 pm") or set
   one in its ⋯ sheet; the phone notifies at that time even when the app is closed (TodoAlarm.java, exact alarm,
-  re-armed after a reboot/update; repeating tasks get each coming day's reminder).
+  re-armed after a reboot/update; repeating tasks get each coming day's reminder). The notification has "Done"
+  (ticks the task next time the app is open, or at once if it is) and "Snooze 1 hour".
 
 ## For Claude (how it's built)
 - `app/www/`: shell.js (router, Home, look, speech incl. `fil-PH`, backup of every part), lib/guided.js (voice-guided

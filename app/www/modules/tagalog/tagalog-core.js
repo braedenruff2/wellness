@@ -88,17 +88,21 @@
       .sort(function (a, b) { return state.cards[a].box - state.cards[b].box || (state.cards[a].due < state.cards[b].due ? -1 : 1); });
   }
 
+  /* Which way a review card is asked: a word recognised once (box 2+) is asked the other way round, English first,
+     so he practises SAYING it (he understands more Tagalog than he speaks). A miss sends it back to box 1: meaning first. */
+  function direction(card) { return card && card.box >= 2 ? 'say' : 'meaning'; }
+
   /* Review answer: right moves the card up a box (longer wait), wrong sends it back to box 1 (tomorrow). */
   function review(state, tl, right, now) {
     var c = state.cards[tl]; if (!c) return null;
-    var t = iso(now || new Date());
+    var t = iso(now || new Date()), dir = direction(c);
     c.seen++;
     if (right) { c.right++; c.box = Math.min(INTERVALS.length - 1, c.box + 1); }
     else { c.wrong++; c.box = 1; }
     c.due = addDays(t, INTERVALS[c.box]);
     c.last = t;
     if (!Array.isArray(state.reviews)) state.reviews = [];
-    state.reviews.push({ at: (now || new Date()).toISOString(), tl: tl, right: !!right });
+    state.reviews.push({ at: (now || new Date()).toISOString(), tl: tl, right: !!right, dir: dir });
     if (state.reviews.length > 2000) state.reviews.splice(0, state.reviews.length - 2000);
     return c;
   }
@@ -156,7 +160,7 @@
       if (a && typeof a.given === 'string' && d.answers.length && d.answers[d.answers.length - 1].at === new Date(a.at).toISOString()) d.answers[d.answers.length - 1].given = a.given.slice(0, 200);
     });
     (Array.isArray(s.reviews) ? s.reviews : []).slice(-2000).forEach(function (r) {
-      if (r && typeof r.tl === 'string' && r.tl.length < 120 && !isNaN(new Date(r.at).getTime())) d.reviews.push({ at: new Date(r.at).toISOString(), tl: r.tl, right: !!r.right });
+      if (r && typeof r.tl === 'string' && r.tl.length < 120 && !isNaN(new Date(r.at).getTime())) d.reviews.push({ at: new Date(r.at).toISOString(), tl: r.tl, right: !!r.right, dir: r.dir === 'say' ? 'say' : 'meaning' });
     });
     Object.keys(s.packs || {}).forEach(function (k) { if (!checkPack(s.packs[k]).length) d.packs[k] = s.packs[k]; });
     if (typeof s.source === 'string' && /^https:\/\/raw\.githubusercontent\.com\//.test(s.source)) d.source = s.source;
@@ -164,7 +168,7 @@
   }
 
   var api = { INTERVALS: INTERVALS, defaults: defaults, checkPack: checkPack, norm: norm, check: check, allPacks: allPacks, nextLesson: nextLesson,
-    finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, review: review, stats: stats, weakWords: weakWords,
+    finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, review: review, stats: stats, weakWords: weakWords,
     advice: advice, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

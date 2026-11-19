@@ -369,6 +369,8 @@ def summarize(days=7, today=None):
             ans = [e for e in es if e["kind"] in ("answer", "review")]
             ok = [e for e in ans if (e.get("data") or {}).get("ok") or (e.get("data") or {}).get("right")]
             if ans: extra = f"; {len(ok)}/{len(ans)} right"
+            said = [e for e in ans if (e.get("data") or {}).get("dir") == "say"]
+            if said: extra += f"; said in Tagalog {sum(1 for e in said if (e.get('data') or {}).get('right'))}/{len(said)}"
             wrong = [(e.get("data") or {}).get("tl") or (e.get("data") or {}).get("prompt") for e in ans
                      if not ((e.get("data") or {}).get("ok") or (e.get("data") or {}).get("right"))]
             wrong = [w for w in wrong if w]

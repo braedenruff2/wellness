@@ -136,6 +136,22 @@ t('remindIn: an hour from now, rounded up to 5 minutes; tomorrow late at night; 
   assert.strictEqual(T.remindIn(s, 'nope', 60, wed), null);
 });
 
+t('applyTicked: "Done" on a notification ticks a one-off once, a repeating task only for its current day', () => {
+  const s = T.defaults(), a = T.add(s, 'bins fri at 7pm', null, wed), r = T.add(s, 'stretch every day at 7am', null, wed);
+  const fri7 = new Date(2026, 10, 20, 19, 1).getTime();
+  let got = T.applyTicked(s, fri7 + '\t' + a.id + '\nnope\n\tx\n' + fri7 + '\tmissing-id');
+  assert.deepStrictEqual(got.map((t) => t.id), [a.id]);
+  assert.strictEqual(new Date(a.done).getTime(), fri7, 'done at the moment it was tapped');
+  assert.deepStrictEqual(T.applyTicked(s, (fri7 + 5) + '\t' + a.id), [], 'already done: once only');
+  const thu7 = new Date(2026, 10, 19, 7, 0).getTime(), due0 = r.due;
+  got = T.applyTicked(s, thu7 + '\t' + r.id);
+  assert.strictEqual(got.length, 1); assert.ok(r.due > due0, 'repeating task moved on: ' + due0 + ' -> ' + r.due);
+  const before = r.due;
+  assert.deepStrictEqual(T.applyTicked(s, thu7 + '\t' + r.id), [], 'the same tap again (or ticked in the app first) does nothing');
+  assert.strictEqual(r.due, before);
+  assert.deepStrictEqual(T.applyTicked(s, ''), []); assert.deepStrictEqual(T.applyTicked(s, null), []);
+});
+
 t('validate keeps good tasks, drops junk and markup-y fields', () => {
   const v = T.validate({ tasks: [{ id: 'a', text: 'ok', due: '2026-11-18', repeat: 'daily', at: '07:30' }, { text: '' }, null, { text: 'x', due: '<b>', repeat: 'hourly', done: 'nope', at: '7pm' }] });
   assert.strictEqual(v.tasks.length, 2); assert.strictEqual(v.tasks[1].due, null); assert.strictEqual(v.tasks[1].repeat, null); assert.strictEqual(v.tasks[1].done, null);

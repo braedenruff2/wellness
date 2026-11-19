@@ -85,6 +85,21 @@
     t.done = now.toISOString();
     return t;
   }
+  /* "Done" tapped on a reminder notification (Android hands over "ms<TAB>taskId" lines). A one-off task is ticked (once);
+     a repeating one only if its current date is that day or earlier (if it already moved on, e.g. ticked in the app
+     too, nothing happens). Returns the tasks ticked. */
+  function applyTicked(state, lines) {
+    var out = [];
+    String(lines || '').split('\n').forEach(function (l) {
+      var p = l.split('\t'); if (p.length < 2) return;
+      var ms = +p[0], t = find(state, p[1].trim());
+      if (!t || t.done || !(ms > 0)) return;
+      var at = new Date(ms);
+      if (t.repeat && t.due && t.due > iso(at)) return;
+      complete(state, t.id, at); out.push(t);
+    });
+    return out;
+  }
   function uncomplete(state, taskId) { var t = find(state, taskId); if (t) t.done = null; return t; }
   function remove(state, taskId) { state.tasks = state.tasks.filter(function (t) { return t.id !== taskId; }); }
   function find(state, taskId) { for (var i = 0; i < state.tasks.length; i++) if (state.tasks[i].id === taskId) return state.tasks[i]; return null; }
@@ -187,7 +202,7 @@
     }) };
   }
 
-  var api = { defaults: defaults, quickParse: quickParse, add: add, complete: complete, uncomplete: uncomplete, remove: remove,
+  var api = { defaults: defaults, quickParse: quickParse, add: add, complete: complete, applyTicked: applyTicked, uncomplete: uncomplete, remove: remove,
     find: find, groups: groups, moveOverdueToToday: moveOverdueToToday, tidy: tidy, doneInLast: doneInLast, advice: advice,
     nextDue: nextDue, validate: validate, iso: iso, addDays: addDays, reminders: reminders, alarmLines: alarmLines, openTimed: openTimed, remindIn: remindIn, fmtTime: fmtTime };
   root.TodoCore = api;

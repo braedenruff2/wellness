@@ -79,7 +79,7 @@
     });
     (s.reviews || []).forEach(function (r) {
       if (!r || !okDate(r.at)) return;
-      out.push({ id: 'tagalog/r/' + r.at + '/' + r.tl, at: r.at, part: 'tagalog', kind: 'review', data: { tl: r.tl, right: !!r.right } });
+      out.push({ id: 'tagalog/r/' + r.at + '/' + r.tl, at: r.at, part: 'tagalog', kind: 'review', data: r.dir === 'say' ? { tl: r.tl, right: !!r.right, dir: 'say' } : { tl: r.tl, right: !!r.right } });
     });
   };
 
@@ -145,7 +145,7 @@
       case 'workout/workout-done': return 'Move: finished workout ' + (d.day || '') + ' (' + d.sets + ' sets' + (d.mins != null ? ', ' + d.mins + ' min' : '') + ')';
       case 'tagalog/lesson': return 'Tagalog: finished lesson ' + e.text;
       case 'tagalog/answer': return 'Tagalog: ' + (d.ok ? '✓ ' : '✗ ') + cut(d.prompt, 60);
-      case 'tagalog/review': return 'Tagalog review: ' + (d.right ? '✓ ' : '✗ ') + d.tl;
+      case 'tagalog/review': return 'Tagalog review' + (d.dir === 'say' ? ' (said it)' : '') + ': ' + (d.right ? '✓ ' : '✗ ') + d.tl;
       case 'todo/added': return 'To do: added “' + cut(e.text, 60) + '”';
       case 'todo/done': return 'To do: done “' + cut(e.text, 60) + '”';
       case 'coach/graded': return 'Parenting: ' + cut(e.text, 60) + ' — ' + (d.score != null ? d.score + '/10' : '');

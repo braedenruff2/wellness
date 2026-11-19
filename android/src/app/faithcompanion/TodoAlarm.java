@@ -19,7 +19,8 @@ import java.util.Set;
  *  change; this keeps them and sets one exact alarm for the soonest. When it goes off: a notification (tap opens the
  *  list), then the alarm for the next one. Re-armed after a reboot and after an app update. */
 public class TodoAlarm extends BroadcastReceiver {
-    static final String FIRE = "app.faithcompanion.TODO", SNOOZE = "app.faithcompanion.TODO_SNOOZE", CHANNEL = "todo", PREFS = "todo";
+    static final String FIRE = "app.faithcompanion.TODO", SNOOZE = "app.faithcompanion.TODO_SNOOZE", DONE = "app.faithcompanion.TODO_DONE",
+        CHANNEL = "todo", PREFS = "todo";
     static final long SNOOZE_MS = 60 * 60 * 1000L;
 
     /** One reminder. */
@@ -88,6 +89,45 @@ public class TodoAlarm extends BroadcastReceiver {
         return b.append(line(new Entry(when, task(id) + "@snooze", text))).append('\n').toString();
     }
 
+    /** "Done" from the notification: the page picks these up ("ms<TAB>task" lines) next time it runs and ticks the task.
+     *  A task ticked twice is kept once (the latest); at most 50 kept. */
+    static String addTicked(String ticked, String task, long now) {
+        List<String> keep = new ArrayList<>();
+        if (ticked != null) for (String l : ticked.split("\n")) {
+            String[] p = l.split("\t", 2);
+            if (p.length == 2 && !p[1].equals(task)) keep.add(l);
+        }
+        keep.add(now + "\t" + task.replaceAll("[\t\n]", " "));
+        while (keep.size() > 50) keep.remove(0);
+        StringBuilder b = new StringBuilder();
+        for (String l : keep) b.append(l).append('\n');
+        return b.toString();
+    }
+
+    /** Snoozes without the ones for `task` (ticked done). */
+    static String dropSnooze(String snoozed, String task) {
+        StringBuilder b = new StringBuilder();
+        for (Entry e : parse(snoozed)) if (!task(e.id).equals(task)) b.append(line(e)).append('\n');
+        return b.toString();
+    }
+
+    /** Hands the page the tasks ticked from notifications, and forgets them (the page saves them at once). */
+    static synchronized String takeTicked(Context c) {
+        android.content.SharedPreferences p = c.getSharedPreferences(PREFS, 0);
+        String t = p.getString("ticked", "");
+        if (!t.isEmpty()) p.edit().putString("ticked", "").commit();
+        return t;
+    }
+
+    /** The text of task `id` if the page told us about it (this receiver is exported for boot: ignore made-up ids). */
+    static String known(Context c, String id, String fallback) {
+        String text = null;
+        for (Entry e : parse(all(c))) if (task(e.id).equals(id)) text = e.text;
+        Set<String> open = open(c.getSharedPreferences(PREFS, 0).getString("lines", ""));
+        if (text == null && open != null && open.contains(id)) text = fallback;
+        return text;
+    }
+
     static String line(Entry e) { return e.when + "\t" + e.id.replaceAll("[\t\n]", " ") + "\t" + e.text.replaceAll("[\t\n]", " "); }
 
     /** The page's reminders plus the snoozed ones. */
@@ -130,16 +170,23 @@ public class TodoAlarm extends BroadcastReceiver {
             for (Entry e : due) show(c, e.id, e.text);
             arm(c, Math.max(when, now - 1));
         } else if (SNOOZE.equals(i.getAction())) {
-            // only for a task the page knows (this receiver is exported for boot; ignore made-up ids and text)
-            String id = task(i.getStringExtra("id")), text = null;
-            for (Entry e : parse(all(c))) if (task(e.id).equals(id)) text = e.text;
-            Set<String> open = open(c.getSharedPreferences(PREFS, 0).getString("lines", ""));
-            if (text == null && open != null && open.contains(id)) text = i.getStringExtra("text");
+            String id = task(i.getStringExtra("id")), text = known(c, id, i.getStringExtra("text"));
             ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(notifId(id));
             if (text == null || id.isEmpty()) return;
             android.content.SharedPreferences p = c.getSharedPreferences(PREFS, 0);
             p.edit().putString("snoozed", addSnooze(p.getString("snoozed", ""), id, text, now + SNOOZE_MS, now)).commit();
             arm(c, now);
+        } else if (DONE.equals(i.getAction())) {
+            String id = task(i.getStringExtra("id")), text = known(c, id, i.getStringExtra("text"));
+            ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(notifId(id));
+            if (text == null || id.isEmpty()) return;
+            synchronized (TodoAlarm.class) {
+                android.content.SharedPreferences p = c.getSharedPreferences(PREFS, 0);
+                p.edit().putString("ticked", addTicked(p.getString("ticked", ""), id, now))
+                    .putString("snoozed", dropSnooze(p.getString("snoozed", ""), id)).commit();
+            }
+            arm(c, now);
+            MainActivity.todoTicked(); // if the app is open, it ticks the task now
         } else {
             arm(c, now); // boot or update: reminders whose time passed while the phone was off are skipped
         }
@@ -154,9 +201,12 @@ public class TodoAlarm extends BroadcastReceiver {
         String task = task(id);
         Intent sn = new Intent(c, TodoAlarm.class).setAction(SNOOZE).putExtra("id", task).putExtra("text", text);
         PendingIntent spi = PendingIntent.getBroadcast(c, notifId(task), sn, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        Intent dn = new Intent(c, TodoAlarm.class).setAction(DONE).putExtra("id", task).putExtra("text", text);
+        PendingIntent dpi = PendingIntent.getBroadcast(c, notifId(task) + 0x10000, dn, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(c, CHANNEL).setSmallIcon(R.drawable.ic_note)
             .setContentTitle(text == null || text.isEmpty() ? "To do" : text).setContentText("To-do reminder")
             .setContentIntent(pi).setAutoCancel(true).setCategory(Notification.CATEGORY_REMINDER)
+            .addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c, R.drawable.ic_note), "Done", dpi).build())
             .addAction(new Notification.Action.Builder(android.graphics.drawable.Icon.createWithResource(c, R.drawable.ic_note), "Snooze 1 hour", spi).build())
             .build();
         // one notification per task (a new reminder for the same task replaces its old one)

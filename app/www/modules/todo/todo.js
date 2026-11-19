@@ -139,4 +139,20 @@
     reload: function () { S = store.load(); syncAlarms(); }
   });
   syncAlarms();
+  /* Tasks ticked "Done" on a notification: Android hands them over when the app opens or is on screen. */
+  window.FCTodoTicked = function (starting) {
+    var n = WL.native, lines = '';
+    if (!n || !n.todoTicked) return;
+    try { lines = n.todoTicked() || ''; } catch (e) { return; }
+    if (!lines) return;
+    S = store.load();
+    var got = T.applyTicked(S, lines);
+    if (!got.length) return;
+    save();
+    if (starting) return; // the first screen draws after this
+    WL.toast('Done: ' + got.map(function (t) { return t.text; }).join(', '));
+    var h = location.hash.replace(/\/$/, '');
+    if (h === '#todo' || h === '' || h === '#home') WL.route();
+  };
+  window.FCTodoTicked(true);
 })();

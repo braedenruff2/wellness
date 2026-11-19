@@ -48,6 +48,23 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     const cards = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).cards);
     assert.strictEqual(Object.values(cards).filter((c) => c.box === 2).length, 1);
   });
+  await t.step('two days later the word he knew is asked English first, and he hears it after revealing', async () => {
+    await page.clock.runFor(2 * 86400e3);
+    const cards = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).cards);
+    const [tl, c] = Object.entries(cards).find(([, x]) => x.box === 2);
+    await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/review');
+    // box-1 cards come first; skip to the English-first one
+    for (let n = 0; n < 30 && !(await page.textContent('#tl-card')).includes('say it in Tagalog'); n++) { await page.click('#tl-show'); await page.click('#tl-yes'); }
+    const txt = await page.textContent('#tl-card');
+    assert.ok(txt.includes(c.en) && await page.isHidden('#tl-ans'), 'English shown, Tagalog hidden');
+    await page.click('#tl-show');
+    assert.ok(await page.isVisible('#tl-ans') && (await page.textContent('#tl-ans')).includes(tl));
+    const sp = await page.evaluate(() => window.__spoken[window.__spoken.length - 1]);
+    assert.deepStrictEqual(sp, { text: tl, lang: 'fil-PH' });
+    await page.click('#tl-yes');
+    const r = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).reviews.slice(-1)[0]);
+    assert.strictEqual(r.dir, 'say'); assert.strictEqual(r.tl, tl);
+  });
   await t.step('next week downloads from GitHub (bad ids ignored); Send my week saves a summary', async () => {
     await page.goto(base + '#tagalog/settings');
     await page.fill('#tl-src', 'http://evil.example/'); await page.click('#tl-save-src');

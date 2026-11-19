@@ -8,7 +8,8 @@ const W = require('../../../tests/lib/web.cjs');
   const { page, base } = t;
   await page.addInitScript(() => {
     window.__todo = [];
-    window.FCAndroid = { todoAlarms: (lines) => window.__todo.push(lines) };
+    window.__ticked = '';
+    window.FCAndroid = { todoAlarms: (lines) => window.__todo.push(lines), todoTicked: () => { const x = window.__ticked; window.__ticked = ''; return x; } };
   });
   const last = async () => { const a = await page.evaluate(() => window.__todo); return a.length ? a[a.length - 1].split('\n').filter((x) => x && x[0] !== '#') : []; };
   await page.goto(base + '#todo');
@@ -65,6 +66,21 @@ const W = require('../../../tests/lib/web.cjs');
     await page.click('li:has-text("stretch") [data-more]');
     assert.strictEqual(await page.$('#td-hour'), null);
     await page.click('#td-cancel');
+  });
+  await t.step('"Done" tapped on the notification ticks the task when the app comes back (and on start)', async () => {
+    const id = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.todo.v1')).tasks.find((x) => x.text === 'call the clinic back').id);
+    await page.evaluate((id) => { window.__ticked = Date.now() + '\t' + id + '\n'; window.FCTodoTicked(); }, id);
+    assert.ok((await page.textContent('#toast')).includes('Done: call the clinic back'));
+    const tk = await page.evaluate((id) => JSON.parse(localStorage.getItem('wl.todo.v1')).tasks.find((x) => x.id === id), id);
+    assert.ok(tk.done, 'ticked and saved');
+    assert.ok(!(await last()).some((x) => x.endsWith('\tcall the clinic back')), 'its reminder is taken away');
+    assert.ok(!/Today[\s\S]*call the clinic back[\s\S]*Coming up/.test(await page.textContent('main')), 'list redrawn');
+    // ticked while the app was closed: picked up on start, before the first screen
+    const bins = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.todo.v1')).tasks.find((x) => x.text === 'bins').id);
+    await page.addInitScript((id) => { window.__ticked = Date.now() + '\t' + id; }, bins);
+    await page.reload();
+    assert.ok(await page.evaluate((id) => !!JSON.parse(localStorage.getItem('wl.todo.v1')).tasks.find((x) => x.id === id).done, bins));
+    assert.ok(!(await page.textContent('main')).includes('bins') || (await page.textContent('main')).indexOf('bins') > (await page.textContent('main')).indexOf('done in the last'));
   });
   await t.step('no console errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('to-do reminders');

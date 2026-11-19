@@ -35,6 +35,17 @@ public class TodoAlarmTest {
         ok(TodoAlarm.parse(TodoAlarm.keepSnoozed(sn, null, 0)).size() == 2, "no #open: kept");
         ok(TodoAlarm.parse(TodoAlarm.keepSnoozed(sn, null, 8000)).size() == 1, "past ones dropped");
         ok(TodoAlarm.addSnooze("", "x", "a\tb\nc", 5, 0).split("\n").length == 1, "no tabs/newlines from the text");
+        // "Done" on the notification: queued for the page, one line per task (latest wins), capped; its snooze goes
+        String tk = TodoAlarm.addTicked("", "a", 100);
+        tk = TodoAlarm.addTicked(tk, "b", 200);
+        tk = TodoAlarm.addTicked(tk, "a", 300);
+        ok(tk.equals("200\tb\n300\ta\n"), "ticked lines: " + tk);
+        ok(TodoAlarm.addTicked(null, "x\ty", 5).equals("5\tx y\n"), "no tabs in the id");
+        String many = "";
+        for (int n = 0; n < 60; n++) many = TodoAlarm.addTicked(many, "t" + n, n);
+        ok(many.split("\n").length == 50 && many.startsWith("10\tt10\n"), "at most 50, oldest dropped");
+        String sn2 = TodoAlarm.addSnooze(TodoAlarm.addSnooze("", "a@d", "x", 900, 0), "b@d", "y", 900, 0);
+        ok(TodoAlarm.parse(TodoAlarm.dropSnooze(sn2, "a")).size() == 1 && TodoAlarm.next(TodoAlarm.dropSnooze(sn2, "a"), 0).id.equals("b@snooze"), "done drops that task's snooze only");
         System.out.println("TodoAlarmTest ok");
     }
 }
