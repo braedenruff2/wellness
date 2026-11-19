@@ -17,7 +17,7 @@ function states() {
   const f = FC.defaults();
   FC.finishDay(f, 1, at(7)); FC.finishDay(f, 2, at(7));
   FC.addEntry(f, 'awe', 'The sunrise over the bay', null, at(7, 5));
-  FC.setDayJournal(f, 2, 'Grateful for Inara laughing', at(7, 10));
+  FC.setDayJournal(f, 2, 'Grateful for the baby laughing', at(7, 10));
   const p = FC.addPrayer(f, 'For my wife', at(7, 12)); p.answered = at(19).toISOString();
   FC.logSession(f, 'day', 2, 'Day 2: Known', 5.2, at(7, 9));
   const c = CK.defaults(); CK.record(c, 'box', 4, 4, 2, at(8));
@@ -32,7 +32,7 @@ function states() {
   const d = TD.defaults();
   const task = TD.add(d, 'call Mom', null, at(10)); TD.complete(d, task.id, at(11));
   const rep = TD.add(d, 'stretch every day', null, at(10)); TD.complete(d, rep.id, at(11, 30));
-  const co = CO.defaults(); co.child = { name: 'Kid', birth: '2025-11-22' };
+  const co = CO.defaults(); co.child = { name: 'Kid', birth: '2025-11-24' };
   CO.setScenario(co, { title: 'Teething', skill: 'Crying and comfort', scenario: 'S', question: 'Q' }, at(14));
   CO.grade(co, 'I hold her', { score: 7 }, at(14, 5));
   return { 'fc.v1': f, 'wl.calm.v1': c, 'wl.workout.v1': w, 'wl.tagalog.v1': g, 'wl.todo.v1': d, 'wl.coach.v1': co };

@@ -287,6 +287,16 @@ def read_day(day):
     return out
 
 
+def append_lines(path, recs):
+    """Appends one JSON line per record. A line cut short by a crash has no newline: end it first, or the next
+    record would join it and be lost."""
+    with open(path, "a+b") as f:
+        if f.tell() > 0:
+            f.seek(-1, os.SEEK_END)
+            if f.read(1) != b"\n": f.write(b"\n")
+        for r in recs: f.write((json.dumps(r, ensure_ascii=False) + "\n").encode("utf-8"))
+
+
 def save_events(events):
     """Appends the events not already in their day's file. Returns how many were new."""
     by_day = {}
@@ -302,8 +312,7 @@ def save_events(events):
                 if e["id"] in seen: continue
                 seen.add(e["id"]); fresh.append(e)
             if not fresh: continue
-            with open(day_file(day), "a", encoding="utf-8") as f:
-                for e in fresh: f.write(json.dumps(e, ensure_ascii=False) + "\n")
+            append_lines(day_file(day), fresh)
             new += len(fresh)
     return new
 
@@ -313,6 +322,9 @@ def recent_events(days, today=None):
     out = []
     for i in range(days - 1, -1, -1):
         out += read_day((today - datetime.timedelta(days=i)).isoformat())
+    # Journal / prayer events sent again with their words get the old id + "/t": count each once (the one with words).
+    ids = {e.get("id") for e in out}
+    out = [e for e in out if not (isinstance(e.get("id"), str) and e["id"] + "/t" in ids)]
     return out
 
 
@@ -560,8 +572,7 @@ class Jobs:
         """Coach answers are kept on the PC too (progress over time, for him and for Claude's runs)."""
         if not task.startswith("coach"): return
         rec = {"at": now_iso(), "task": task, "input": {k: v for k, v in inp.items() if k != "summary"}, "answer": ans}
-        with activity_lock, open(progress("coach", "history.jsonl"), "a", encoding="utf-8") as f:
-            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        with activity_lock: append_lines(progress("coach", "history.jsonl"), [rec])
 
     @classmethod
     def get(cls, jid):
@@ -774,6 +785,28 @@ def discovery_loop(fp_hex):
         except OSError: time.sleep(1)
 
 
+def restart_on_update(every=20):
+    """When Claude updates this file (the autopilot syncs new versions into the folder), restart into the new code:
+    exit code 3 makes start-pc.cmd start it again at once. A run that was started before an update kept serving the
+    old version, so the phone's new requests (its voice download, app updates) got "not found"."""
+    me = os.path.abspath(__file__)
+    try: t0 = os.path.getmtime(me)
+    except OSError: return
+    while True:
+        time.sleep(every)
+        try: t = os.path.getmtime(me)
+        except OSError: continue
+        if t != t0:
+            time.sleep(3)                                              # (the file may still be being written)
+            try:
+                compile(open(me, encoding="utf-8").read(), me, "exec")  # only restart into code that at least parses
+            except (SyntaxError, OSError, ValueError):
+                t0 = t; continue
+            while Jobs.run_lock.locked(): time.sleep(5)                # never in the middle of a Claude request
+            print(f"{now_iso()} the PC link was updated: restarting", flush=True)
+            os._exit(3)
+
+
 def serve():
     cert, key = ensure_cert()
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -782,6 +815,7 @@ def serve():
     httpd = Server(("0.0.0.0", PORT), Handler)
     httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
     threading.Thread(target=discovery_loop, args=(fingerprint().hex(),), daemon=True).start()
+    threading.Thread(target=restart_on_update, args=(float(os.environ.get("WELLNESS_UPDATE_CHECK", "20")),), daemon=True).start()
     os.makedirs(PROGRESS, exist_ok=True)
     print(f"{now_iso()} Wellness PC link ready on port {PORT}; Claude Code: {find_claude() or 'NOT FOUND'}; "
           f"progress folder: {PROGRESS}", flush=True)

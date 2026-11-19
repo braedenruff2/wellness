@@ -12,7 +12,7 @@ const FAKE_PC = `
       'coach-scenario': { title: 'Teething at 3am', skill: 'Crying and comfort', scenario: 'It is 3am and Kid wakes up screaming, chewing her fist.', question: 'What do you do and say?' },
       'coach-grade': { score: 7, verdict: 'Kind and calm.', good: ['You stayed calm'], improve: ['Offer a cold teether'], better: 'Pick her up, name it, offer a cold teether.', why: 'Co-regulation.', practice: 'Name her feelings.', sources: [{ title: 'HealthyChildren', url: 'https://www.healthychildren.org/teething' }] },
       'tagalog-check': { ok: false, corrected: 'Salamat po', meaning: 'Thank you (polite)', explain: 'Add po for elders.', tip: 'po = respect' },
-      'advice': { headline: 'A steady week.', points: ['Keep the morning prayer', 'One more calm session'], next: 'Walk with Inara after lunch.' }
+      'advice': { headline: 'A steady week.', points: ['Keep the morning prayer', 'One more calm session'], next: 'Stroller walk after lunch.' }
     };
     window.FCAndroid = {
       pcStatus: function () { return JSON.stringify(pc.paired ? { paired: true, host: '192.168.1.20', name: 'BRAEDEN-PC' } : { paired: false }); },
@@ -114,13 +114,13 @@ const FAKE_PC = `
     await page.waitForSelector('text=Claude is thinking');
     await page.clock.runFor(3500);
     await page.waitForSelector('text=A steady week.');
-    assert.ok((await card.textContent()).includes('Walk with Inara after lunch.'));
+    assert.ok((await card.textContent()).includes('Stroller walk after lunch.'));
     await page.reload(); await page.waitForSelector('.home-card[data-module="link"]');
     assert.ok((await page.locator('.home-card[data-module="link"]').textContent()).includes('A steady week.'), 'kept');
   });
   await t.step('parenting: setup, scenario for her age, answer, feedback, progress', async () => {
     await page.click('nav#tabs a[data-tab="coach"]');
-    await page.fill('#co-name', 'Kid'); await page.fill('#co-birth', '2025-11-22'); await page.click('#co-save');
+    await page.fill('#co-name', 'Kid'); await page.fill('#co-birth', '2025-11-24'); await page.click('#co-save');
     assert.ok((await page.textContent('main')).includes('Kid is 11 months old'));
     await page.click('[data-skill="Sleep"]');
     await page.click('#co-new');

@@ -28,7 +28,9 @@ Settings > PC link > Find my PC, type the code, Pair. Same home Wi-Fi only.
 - **Parenting practice** (the 🧸 tab), **advice** (Home) and **Ask Claude about my answer** (Tagalog) run through
   Claude Code on the PC (`claude -p`, signed in as you, your own plan). Nothing is stored anywhere else.
 - Claude's autopilot reads the log every run (`python pc\wellness_pc.py summary 7`) to choose what to build next.
-- It starts with Windows (log: `%LOCALAPPDATA%\Wellness\pc.log`). Stop: delete `%LOCALAPPDATA%\Wellness\run.on`.
+- It starts with Windows (log: `%LOCALAPPDATA%\Wellness\pc.log`) and restarts by itself when Claude updates it.
+  Stop: delete `%LOCALAPPDATA%\Wellness\run.on`. **Finish setup (click in the morning).bat** restarts it by hand and
+  turns on the GitHub upload every 15 minutes (scheduled task "Wellness upload").
 
 ## Voices (Loudbook's, and a Filipino voice for Tagalog)
 Settings > Voice. English is read by the voices you built for Loudbook (not Gemini): **Kokoro on the phone** (download
@@ -54,7 +56,9 @@ reads anything they can't (before the downloads, or if something fails).
   guidance (what went well, what to change, what an expert would do and why, sources), progress per skill. Needs the PC link.
 - **PC link** (`modules/link`, Settings): pairing, what's logged, send now, advice from Claude.
 - **To do** (`modules/todo`, on Home): quick add with plain words ("call Mom tomorrow", "stretch every day"),
-  repeating tasks, overdue nudges.
+  repeating tasks, overdue nudges. Reminders: end a task with a time ("bins fri at 7pm", "meds 8:30 pm") or set
+  one in its ⋯ sheet; the phone notifies at that time even when the app is closed (TodoAlarm.java, exact alarm,
+  re-armed after a reboot/update; repeating tasks get each coming day's reminder).
 
 ## For Claude (how it's built)
 - `app/www/`: shell.js (router, Home, look, speech incl. `fil-PH`, backup of every part), lib/guided.js (voice-guided
@@ -70,5 +74,9 @@ reads anything they can't (before the downloads, or if something fails).
 - `android/` WebView shell (TTS with language switch, keep-awake, backup to Downloads, file picker, reminder, PC link);
   `tools/build-apk.sh` builds dist/Wellness.apk + dist/version.json (key android/faith.keystore: keep it, it's not in git;
   updates only install over the app with the same key). Updater.java: the app's self-update (PC link /v1/app/*, then GitHub raw).
+- Personal words: this folder is a public repo. Content never names his daughter or gives her birthday: write `{child}`
+  (faith prayers: `{child|my daughter}`); `lib/personal.js` fills in the name he typed in Parenting setup on the phone,
+  or "your daughter" / "Baby" (Tagalog). Applies to new Tagalog packs too. `tests/privacy.cjs` checks the folder against
+  `Desktop\wellness-progress\private-words.txt` (outside the repo; one word per line) when that file exists.
 - Tests: `node tests/run-all.cjs` runs every module's tests (unit in three time zones, browser tests with Playwright)
   plus the shell's. Browser tests never touch the internet.

@@ -5,7 +5,17 @@
   var store = WL.store('wl.tagalog.v1', T.defaults);
   var S = store.load(), view = null;
   function save() { store.save(S); }
-  function packs() { return T.allPacks(S, window.TL_PACKS || []); }
+  /* Lessons say {child}; the phone fills in her name from Parenting setup, or "Baby" (lib/personal.js). */
+  var P = window.WLPersonal, filled = typeof WeakMap === 'function' ? new WeakMap() : null, filledFor = null;
+  function personal(p) {
+    if (!P || !p || typeof p !== 'object') return p;
+    var name = P.childName();
+    if (name !== filledFor) { filledFor = name; if (filled) filled = new WeakMap(); }
+    var c = filled && filled.get(p);
+    if (!c) { c = P.personalize(p, name, 'Baby'); if (filled) filled.set(p, c); }
+    return c;
+  }
+  function packs() { return T.allPacks(S, window.TL_PACKS || []).map(personal); }
   function findLesson(pid, day) { var p = packs().filter(function (x) { return x.id === pid; })[0]; return p ? { pack: p, lesson: p.lessons.filter(function (l) { return l.day === day; })[0] } : null; }
   function say(text) { WL.speech.speak(text, null, { lang: 'fil-PH', rate: S.settings && S.settings.slow ? 0.8 : 1 }); }
   function hear(t) { return '<button class="link small hear" data-say="' + esc(t) + '" aria-label="Hear it">🔊</button>'; }

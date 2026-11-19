@@ -155,7 +155,7 @@ window.FC_CONTENT = {
    ],
    "sitWith": "Say the father’s prayer slowly, as your own: I believe. Help my unbelief. Let both halves be true.",
    "prayer": "God, I want to believe. Some days I think I do, and most days I don’t feel much at all. I give you the little faith I have. Help my unbelief. Take me by the hand, the way Jesus took that boy. Amen.",
-   "practice": "Three times today, maybe while feeding or rocking Inara, pray just these four words: “Help my unbelief.”",
+   "practice": "Three times today, maybe while feeding or rocking {child}, pray just these four words: “Help my unbelief.”",
    "journal": "What would you most like to be true about God? Write it plainly, doubts and all.",
    "passages": [
     {
@@ -211,7 +211,7 @@ window.FC_CONTENT = {
    ],
    "sitWith": "Picture the night sky, or your daughter’s face. Let the question sit: what is man, that you think of him?",
    "prayer": "Lord, our Lord, how majestic is your name in all the earth. I don’t understand why you would care for someone as small as me, but I want to learn to see it. Open my eyes to your work today. Amen.",
-   "practice": "Look at one thing today for a full minute, the sky, a tree, Inara asleep, and quietly say: “You made this.”",
+   "practice": "Look at one thing today for a full minute, the sky, a tree, {child} asleep, and quietly say: “You made this.”",
    "journal": "When have you felt even a small moment of wonder? Describe it.",
    "passages": [
     {
@@ -270,12 +270,12 @@ window.FC_CONTENT = {
    "keyVerse": "You are my beloved Son, in whom I am well pleased.",
    "reflection": [
     "Before Jesus has preached a sermon or healed anyone, he hears: “You are my beloved Son, in whom I am well pleased.” The love comes first; the work comes after.",
-    "Christians believe that, through Jesus, God says something like this to us too: you are loved before you have done anything to earn it. You know this from the other side now. Inara has done nothing to earn your love except exist, and you would give anything for her.",
+    "Christians believe that, through Jesus, God says something like this to us too: you are loved before you have done anything to earn it. You know this from the other side now. {child} has done nothing to earn your love except exist, and you would give anything for her.",
     "Then Jesus says to some ordinary fishermen, “Come after me.” Following him starts small: one step after him, then the next."
    ],
    "sitWith": "Imagine being loved the way you love your daughter: before you’ve done anything. Breathe with that.",
    "prayer": "Father, I find it hard to believe you love me before I’ve earned it. Let me hear it anyway, the way Jesus heard it at the river. And help me take one small step after him today. Amen.",
-   "practice": "When you pick up Inara today, say in your heart: “This is how God sees me too.”",
+   "practice": "When you pick up {child} today, say in your heart: “This is how God sees me too.”",
    "journal": "Where do you feel you have to earn love? What would change if you didn’t?",
    "passages": [
     {
@@ -607,10 +607,10 @@ window.FC_CONTENT = {
     "Then the worst news comes. Jesus turns to him at once: “Don’t be afraid, only believe.” He doesn’t say it won’t be frightening. He asks Jairus to keep walking with him into the house.",
     "Inside, Jesus takes the girl by the hand and says, “Talitha cumi”: little girl, get up. Then he tells them to give her something to eat. Great power, and very ordinary care."
    ],
-   "sitWith": "Bring Inara to Jesus the way Jairus brought his daughter. Hold her before him, in your mind or in your arms.",
+   "sitWith": "Bring {child} to Jesus the way Jairus brought his daughter. Hold her before him, in your mind or in your arms.",
    "prayer": "Jesus, I bring you my daughter. Keep her safe, and keep her close to you all her life. When I’m afraid for her, let me hear you say: don’t be afraid, only believe. Amen.",
-   "practice": "Tonight, put your hand gently on Inara and pray a short blessing over her.",
-   "journal": "What do you most hope and pray for Inara?",
+   "practice": "Tonight, put your hand gently on {child} and pray a short blessing over her.",
+   "journal": "What do you most hope and pray for {child}?",
    "passages": [
     {
      "ref": "MAR 5:21-24",
@@ -696,7 +696,7 @@ window.FC_CONTENT = {
    ],
    "sitWith": "Let your body rest for this minute. Then offer God your “five loaves”: whatever little you have today.",
    "prayer": "Jesus, I’m tired. Give me rest in you, even short rests. Here is what I have today. It isn’t much. Bless it and make it enough, for my family and for me. Amen.",
-   "practice": "Take one real rest today when Inara sleeps: no phone, no chores, just rest, and let it be a prayer.",
+   "practice": "Take one real rest today when {child} sleeps: no phone, no chores, just rest, and let it be a prayer.",
    "journal": "What are your “five loaves” today: the little things you can offer?",
    "passages": [
     {
@@ -843,12 +843,12 @@ window.FC_CONTENT = {
    "keyVerse": "He took them in his arms and blessed them, laying his hands on them.",
    "reflection": [
     "The disciples think children are a distraction. Jesus is angry with them for it. He takes the children in his arms and blesses them.",
-    "Then he says we must receive God’s kingdom “like a little child”. Watch Inara: she receives everything. Milk, comfort, being held. She doesn’t earn it or worry whether she deserves it. She just receives.",
+    "Then he says we must receive God’s kingdom “like a little child”. Watch {child}: she receives everything. Milk, comfort, being held. She doesn’t earn it or worry whether she deserves it. She just receives.",
     "Maybe faith is less about trying hard and more about learning to receive like that."
    ],
-   "sitWith": "Picture Jesus taking Inara in his arms and blessing her. Then picture him doing the same for you, as a child.",
+   "sitWith": "Picture Jesus taking {child} in his arms and blessing her. Then picture him doing the same for you, as a child.",
    "prayer": "Jesus, thank you for loving children. Bless my daughter; hold her in your arms. And teach me to receive from you the way she receives from me: simply, without having to deserve it. Amen.",
-   "practice": "Bless Inara out loud today: “May God bless you and keep you.” (The full blessing is under Pray, “Blessing for your child”.)",
+   "practice": "Bless {child} out loud today: “May God bless you and keep you.” (The full blessing is under Pray, “Blessing for your child”.)",
    "journal": "What would it look like for you to “receive like a child” from God?",
    "passages": [
     {
@@ -1602,7 +1602,7 @@ window.FC_CONTENT = {
    ],
    "sitWith": "Jesus turns and asks you: What are you looking for? Answer him honestly, in a few words.",
    "prayer": "Jesus, I’m not always sure what I’m looking for. Peace, maybe. Something real. You. I’ll keep coming to see. Show me where you are staying, and let me stay with you a while. Amen.",
-   "practice": "Spend a few minutes today simply “staying” with Jesus: sit quietly with him, no agenda, maybe while Inara naps on you.",
+   "practice": "Spend a few minutes today simply “staying” with Jesus: sit quietly with him, no agenda, maybe while {child} naps on you.",
    "journal": "What are you looking for, really?",
    "passages": [
     {
@@ -2114,7 +2114,7 @@ window.FC_CONTENT = {
    "keyVerse": "I came that they may have life, and may have it abundantly.",
    "reflection": [
     "Some people imagine faith as a smaller, stricter life. Jesus says the opposite: “I came that they may have life, and may have it abundantly.”",
-    "The difference between the shepherd and the hired hand is love. The hired hand runs when the wolf comes. The shepherd stays, because the sheep are his. You know that difference: you would never walk away from Inara when things got hard.",
+    "The difference between the shepherd and the hired hand is love. The hired hand runs when the wolf comes. The shepherd stays, because the sheep are his. You know that difference: you would never walk away from {child} when things got hard.",
     "Jesus says he knows his own, and they know him. Knowing him is not mainly information. It is the kind of knowing that grows between people who spend time together."
    ],
    "sitWith": "Hear Jesus say: I know my own. Let yourself be one of his own for these few minutes.",
@@ -2756,7 +2756,7 @@ window.FC_CONTENT = {
    ],
    "sitWith": "Sit in silence for one minute. Each time your mind runs off, come back with: My soul rests in God alone.",
    "prayer": "God, I lean like a tottering fence some days. Be my rock. I pour out my heart before you: [say what’s on it]. My soul waits for you alone. Amen.",
-   "practice": "Take one minute of real silence today, phone down, even with Inara in your arms. Just rest.",
+   "practice": "Take one minute of real silence today, phone down, even with {child} in your arms. Just rest.",
    "journal": "What are you leaning on besides God to feel okay? What would “God alone” look like?",
    "passages": [
     {
@@ -2815,8 +2815,8 @@ window.FC_CONTENT = {
     "“The LORD will keep your going out and your coming in.” Every walk with the stroller, every trip out, every coming home. Nothing in your day is outside his keeping."
    ],
    "sitWith": "Lift your eyes to the window or the sky. Ask quietly: Where does my help come from? Then answer: From the Lord.",
-   "prayer": "Lord, maker of heaven and earth, you never sleep. Watch over Inara when I can’t, and over my wife, and over me. Keep our going out and our coming in, today and always. Amen.",
-   "practice": "When you lay Inara down to sleep today, pray over her: “The LORD will keep you from all evil. He will keep your soul.”",
+   "prayer": "Lord, maker of heaven and earth, you never sleep. Watch over {child|my daughter} when I can’t, and over my wife, and over me. Keep our going out and our coming in, today and always. Amen.",
+   "practice": "When you lay {child} down to sleep today, pray over her: “The LORD will keep you from all evil. He will keep your soul.”",
    "journal": "What do you find hardest to leave in God’s keeping?",
    "passages": [
     {
@@ -2874,9 +2874,9 @@ window.FC_CONTENT = {
     "The picture is of a weaned child, a toddler no longer fed at the breast, sitting on its mother’s lap. It isn’t there to get something. It’s just content to be close.",
     "You know what a settled child looks like, heavy and peaceful against you. That’s the picture of prayer here. Not effort or performance. Just being held, and being quiet."
    ],
-   "sitWith": "If Inara is with you, hold her and notice how she rests. Let yourself rest in God the same way, for a minute.",
+   "sitWith": "If {child} is with you, hold her and notice how she rests. Let yourself rest in God the same way, for a minute.",
    "prayer": "Lord, I don’t understand great matters. I don’t need to right now. Quiet my soul like a child resting with its mother. Let me just be with you. Amen.",
-   "practice": "Next time Inara falls asleep on you, don’t reach for your phone. Rest there with her, and with God.",
+   "practice": "Next time {child} falls asleep on you, don’t reach for your phone. Rest there with her, and with God.",
    "journal": "What question about God are you willing to leave unanswered for now, and rest anyway?",
    "passages": [
     {
@@ -3061,7 +3061,7 @@ window.FC_CONTENT = {
    "reflection": [
     "Notice the wording. Jesus doesn’t tell them to try to become salt, or to work hard at being light. He says, “You are the salt of the earth.” “You are the light of the world.” It’s a statement about who his followers already are.",
     "Salt was used to keep food from spoiling and to bring out its flavour. Light lets people see. Neither is about drawing attention to itself. A lamp is for the room: “it shines to all who are in the house.”",
-    "For you right now, “the house” is quite literal. Your patience, your kindness, your attention to Inara and your wife: that’s your light, shining to all who are in the house."
+    "For you right now, “the house” is quite literal. Your patience, your kindness, your attention to {child} and your wife: that’s your light, shining to all who are in the house."
    ],
    "sitWith": "Picture a small lamp on a stand, lighting a dark room. Let Jesus’ words settle: You are the light of the world.",
    "prayer": "Jesus, you say I am salt and light. I don’t feel like much of either. Let whatever good is in me shine in my home today, so that the people I love see something of you. Amen.",
@@ -3496,14 +3496,14 @@ window.FC_CONTENT = {
    "intro": "Jesus invites people to keep asking God, and compares God to a parent.",
    "keyVerse": "Ask, and it will be given you. Seek, and you will find. Knock, and it will be opened for you.",
    "reflection": [
-    "Jesus uses a picture every parent understands: “Who is there among you who, if his son asks him for bread, will give him a stone?” You would never do that to Inara. You want to give her good things.",
+    "Jesus uses a picture every parent understands: “Who is there among you who, if his son asks him for bread, will give him a stone?” You would never do that to {child}. You want to give her good things.",
     "“How much more will your Father who is in heaven give good things to those who ask him!” This doesn’t mean every request is granted the way we want. A good parent sometimes says no or not yet. But it means asking is welcome, and that God’s answers come from love.",
     "Ask, seek, knock: the words suggest keeping on. If you want to believe more, and to know God, that is exactly the kind of thing to keep asking for."
    ],
    "sitWith": "Look at your hands, open. What do you most want to ask God for? Ask it simply, like a child asking a parent.",
    "prayer": "Father, you are a better parent than I could ever be. I ask you for [your request]. And I seek you yourself: let me find you. I’m knocking. Open the door. Amen.",
    "practice": "Add one thing to your prayer list today that you’ve been afraid to ask for. Ask anyway.",
-   "journal": "What do you want for Inara? What might that tell you about what God wants for you?",
+   "journal": "What do you want for {child}? What might that tell you about what God wants for you?",
    "passages": [
     {
      "ref": "MAT 7:7-12",
@@ -3598,7 +3598,7 @@ window.FC_CONTENT = {
    ],
    "sitWith": "Picture yourself walking home on a long road, and someone running toward you. Let yourself be met.",
    "prayer": "Father, I have wandered in my own ways. Thank you that you watch the road and run to meet me. I come home, not with a perfect speech, just as I am. Amen.",
-   "practice": "Next time you pick Inara up when she cries, remember this father. Thank God that he receives you the same way.",
+   "practice": "Next time you pick {child} up when she cries, remember this father. Thank God that he receives you the same way.",
    "journal": "In what ways have you been “far off”? What would it look like to come home?",
    "passages": [
     {
@@ -4378,13 +4378,13 @@ window.FC_CONTENT = {
    "intro": "Three verses that many people have held on to in hard times.",
    "keyVerse": "Don’t be afraid, for I have redeemed you. I have called you by your name. You are mine.",
    "reflection": [
-    "“I have called you by your name. You are mine.” You chose Inara’s name with care. You say it many times a day. It means she is known, and she belongs to you. The Bible uses that picture for how God knows his people.",
+    "“I have called you by your name. You are mine.” You chose {child}’s name with care. You say it many times a day. It means she is known, and she belongs to you. The Bible uses that picture for how God knows his people.",
     "Notice it doesn’t promise there won’t be deep water or fire. It says “When you pass through the waters, I will be with you.” When, not if. The promise is presence, not a life without trouble.",
     "This was first spoken to the people of Israel. Christians have long heard it as God’s word to them too, because of Jesus. Hear it as spoken to you today, by name."
    ],
    "sitWith": "Hear your own name, said gently. Then the words: You are mine. Let them sit.",
-   "prayer": "Lord, you know my name. Thank you that I belong to you. When I pass through deep water, be with me, as you promised. And keep Inara, whom I named and love, as yours too. Amen.",
-   "practice": "When you say Inara’s name today, remember that God knows yours, with even more love.",
+   "prayer": "Lord, you know my name. Thank you that I belong to you. When I pass through deep water, be with me, as you promised. And keep {child|my daughter}, whom I named and love, as yours too. Amen.",
+   "practice": "When you say {child}’s name today, remember that God knows yours, with even more love.",
    "journal": "What “waters” are you passing through right now? What would it mean that God is with you in them?",
    "passages": [
     {
@@ -4998,7 +4998,7 @@ window.FC_CONTENT = {
    ],
    "sitWith": "Read verses 4 to 7 slowly, as a description of how God loves you. Patient with you. Kind to you. Keeping no record of your wrongs.",
    "prayer": "God, your love is patient and kind with me. Make my love more like yours: patient when I’m tired, kind when I’m short-tempered, not keeping score at home. Amen.",
-   "practice": "Pick one phrase, like “love is patient” or “not provoked”, and practise it on purpose with your wife or Inara today.",
+   "practice": "Pick one phrase, like “love is patient” or “not provoked”, and practise it on purpose with your wife or {child} today.",
    "journal": "Which line of the love chapter is easiest for you? Which is hardest?",
    "passages": [
     {
@@ -5078,7 +5078,7 @@ window.FC_CONTENT = {
    ],
    "sitWith": "Don’t try to feel anything. Just let the sentence be true about you: He loved me first.",
    "prayer": "God, you are love. You loved me before I loved you, and before I believed much at all. Let your love drive out my fear, and flow through me to the people around me. Amen.",
-   "practice": "Do something loving today for someone who can’t pay you back. You do this for Inara all day; notice it as love.",
+   "practice": "Do something loving today for someone who can’t pay you back. You do this for {child} all day; notice it as love.",
    "journal": "How does it change things to know that God loved you first?",
    "passages": [
     {
@@ -6824,7 +6824,7 @@ window.FC_CONTENT = {
     "“Passing through the valley of Weeping, they make it a place of springs.” Hard places can become places of life. “They go from strength to strength.”",
     "This week showed the Spirit given, a church formed, gifts shared, questions answered, an enemy turned around. Faith grows best together. “A day in your courts is better than a thousand.”"
    ],
-   "sitWith": "Picture a small bird building a nest for its young in a safe place. Thank God for being a home for you and Inara.",
+   "sitWith": "Picture a small bird building a nest for its young in a safe place. Thank God for being a home for you and {child}.",
    "prayer": "Lord, my soul longs for you. Make me at home in your presence, and help me find a place among your people. Take me from strength to strength. Amen.",
    "practice": "If you looked up a church this week, consider going this Sunday, or ask someone if you can go with them.",
    "journal": "Where do you feel most at home with God? Where would you like to?",
@@ -7031,12 +7031,12 @@ window.FC_CONTENT = {
    "reflection": [
     "Paul and Silas have been beaten and locked up. And “about midnight Paul and Silas were praying and singing hymns to God, and the prisoners were listening to them.” Midnight prayer, in the worst circumstances. Others were listening.",
     "After an earthquake opens the doors, the jailer, trembling, asks: “Sirs, what must I do to be saved?” The answer is simple: “Believe in the Lord Jesus Christ.” Then they talk with his whole family, and the jailer washes their wounds and sets food before them.",
-    "Faith spreads through households. Inara will learn what prayer looks like by watching you, long before she understands any words. Your midnight prayers have more listeners than you know."
+    "Faith spreads through households. {child} will learn what prayer looks like by watching you, long before she understands any words. Your midnight prayers have more listeners than you know."
    ],
    "sitWith": "Pray for each person in your household by name. Ask God to make your home a place of faith.",
-   "prayer": "Lord Jesus, I believe; help my unbelief. Bless my household: my wife, Inara, and me. Let our home be a place where you are known and loved. Amen.",
-   "practice": "Pray out loud over Inara today, even briefly. Let her hear your voice praying.",
-   "journal": "What do you hope Inara learns about faith from watching you?",
+   "prayer": "Lord Jesus, I believe; help my unbelief. Bless my household: my wife, {child|my daughter}, and me. Let our home be a place where you are known and loved. Amen.",
+   "practice": "Pray out loud over {child} today, even briefly. Let her hear your voice praying.",
+   "journal": "What do you hope {child} learns about faith from watching you?",
    "passages": [
     {
      "ref": "ACT 16:25-26",
@@ -7098,11 +7098,11 @@ window.FC_CONTENT = {
    "reflection": [
     "“Hear, Israel: The LORD is our God. The LORD is one.” Jewish families have prayed these words for thousands of years, morning and evening. Jesus called the next line the greatest commandment.",
     "Then the practical part: “you shall teach them diligently to your children, and shall talk of them when you sit in your house, and when you walk by the way, and when you lie down, and when you rise up.”",
-    "Faith passed on isn’t mainly lectures. It’s woven into ordinary life: sitting, walking, bedtime, morning. You’re already doing these things with Inara every day. You can let God into them, a sentence at a time."
+    "Faith passed on isn’t mainly lectures. It’s woven into ordinary life: sitting, walking, bedtime, morning. You’re already doing these things with {child} every day. You can let God into them, a sentence at a time."
    ],
    "sitWith": "Think of your day’s rhythm: waking, sitting, walking, lying down. Where could one short prayer fit into each?",
    "prayer": "Lord, you are our God, and you are one. Help me love you with all my heart, soul and strength. Weave you into our home: when we sit, walk, lie down and rise. Amen.",
-   "practice": "Choose one moment of Inara’s day (waking, a walk, bedtime) and add a one-line prayer to it from now on.",
+   "practice": "Choose one moment of {child}’s day (waking, a walk, bedtime) and add a one-line prayer to it from now on.",
    "journal": "What small family rhythm of faith could you start now that you’d like to keep for years?",
    "passages": [
     {
@@ -7148,14 +7148,14 @@ window.FC_CONTENT = {
    "intro": "Two verses about learning to love by imitation.",
    "keyVerse": "Be therefore imitators of God, as beloved children.",
    "reflection": [
-    "“Be therefore imitators of God, as beloved children.” Babies learn almost everything by copying: faces, sounds, later words and habits. Soon Inara will copy you.",
+    "“Be therefore imitators of God, as beloved children.” Babies learn almost everything by copying: faces, sounds, later words and habits. Soon {child} will copy you.",
     "Paul says we learn God’s ways the same way: as “beloved children”, watching our Father and copying him. Not anxious children trying to earn approval, but loved ones.",
     "“Walk in love, even as Christ also loved us and gave himself up for us.” The pattern is Jesus. Watch how he loved in the Gospels you’ve read, and copy that, one small step at a time."
    ],
    "sitWith": "Picture a small child copying a parent’s smile. Then picture yourself as God’s beloved child, learning his ways the same way.",
-   "prayer": "Father, I am your beloved child. Help me watch you and copy you, especially in how I love. And may Inara see in me something worth copying. Amen.",
-   "practice": "Make a point of smiling at Inara today and watching her copy you. Thank God for being your Father the same way.",
-   "journal": "What do you most want to “copy” from Jesus? What do you hope Inara copies from you?",
+   "prayer": "Father, I am your beloved child. Help me watch you and copy you, especially in how I love. And may {child|my daughter} see in me something worth copying. Amen.",
+   "practice": "Make a point of smiling at {child} today and watching her copy you. Thank God for being your Father the same way.",
+   "journal": "What do you most want to “copy” from Jesus? What do you hope {child} copies from you?",
    "passages": [
     {
      "ref": "EPH 5:1-2",
@@ -7186,10 +7186,10 @@ window.FC_CONTENT = {
    "reflection": [
     "“Unless the LORD builds the house, they who build it labor in vain.” You’re building a home and a family. It’s good, hard work. But the psalm says the deepest building is God’s.",
     "“It is vain for you to rise up early, to stay up late, eating the bread of toil, for he gives sleep to his loved ones.” With a baby, sleep is in short supply. But the point is this: you don’t have to hold everything together by endless effort. Rest is a gift, not laziness.",
-    "“Behold, children are a heritage of the LORD.” Inara is a gift entrusted to you, not a project you have to perfect. God is building this home with you."
+    "“Behold, children are a heritage of the LORD.” {child} is a gift entrusted to you, not a project you have to perfect. God is building this home with you."
    ],
    "sitWith": "Let your shoulders drop. Pray: You are building this house, Lord. I can rest.",
-   "prayer": "Lord, build our home. I work hard, and I worry, but I can’t build it without you. Thank you for Inara, your gift. Give us the sleep you give your loved ones, as much as a baby allows. Amen.",
+   "prayer": "Lord, build our home. I work hard, and I worry, but I can’t build it without you. Thank you for {child|my daughter}, your gift. Give us the sleep you give your loved ones, as much as a baby allows. Amen.",
    "practice": "When you get a chance to rest today, take it without guilt, as a gift from God.",
    "journal": "What are you trying to hold together by sheer effort? What would it mean to let God build it?",
    "passages": [
@@ -7238,7 +7238,7 @@ window.FC_CONTENT = {
     "This week: one body, meeting together, a household coming to faith, faith woven into daily life, children who imitate, a home God builds. Faith isn’t only private. It lives in families and communities."
    ],
    "sitWith": "Picture your own table, now or in years to come. Ask God to bless everyone who will sit around it.",
-   "prayer": "Lord, bless our home and our table. Let Inara grow like an olive shoot, strong and slow and deep-rooted. Bless my wife and me, and let us see your goodness all the days of our lives. Amen.",
+   "prayer": "Lord, bless our home and our table. Let {child|my daughter} grow like an olive shoot, strong and slow and deep-rooted. Bless my wife and me, and let us see your goodness all the days of our lives. Amen.",
    "practice": "At a meal today, say a short grace out loud, even a single line of thanks.",
    "journal": "What blessing do you most want for your family?",
    "passages": [
@@ -7513,9 +7513,9 @@ window.FC_CONTENT = {
     "“He will wipe away every tear from their eyes. Death will be no more; neither will there be mourning, nor crying, nor pain any more.” It’s the most tender picture: God himself wiping tears, the way a parent does.",
     "“The sea is no more” can sound sad to an islander. In the Bible the sea often stands for chaos and danger. The point isn’t losing the beauty of the shore, but the end of everything that threatens. “Behold, I am making all things new.”"
    ],
-   "sitWith": "Picture someone gently wiping tears from your face, as you do for Inara. Let that be a picture of God’s promise.",
+   "sitWith": "Picture someone gently wiping tears from your face, as you do for {child}. Let that be a picture of God’s promise.",
    "prayer": "God, you are making all things new. Thank you for the hope of a world with no more death, mourning, crying or pain. Until then, make me new too, and let me help wipe tears. Amen.",
-   "practice": "When you comfort Inara today, remember: this is what God promises to do for everyone.",
+   "practice": "When you comfort {child} today, remember: this is what God promises to do for everyone.",
    "journal": "What do you most long to see made new?",
    "passages": [
     {
@@ -7599,11 +7599,11 @@ window.FC_CONTENT = {
    "reflection": [
     "“The LORD bless you, and keep you. The LORD make his face to shine on you, and be gracious to you. The LORD lift up his face toward you, and give you peace.”",
     "God told Aaron, the priest, to speak this over the people. It has been spoken over people at the end of services for many centuries. It’s a blessing you can receive, and a blessing you can give.",
-    "“Make his face to shine on you.” Think of how your face lights up when Inara smiles at you. The Bible uses that image for how God looks at his people."
+    "“Make his face to shine on you.” Think of how your face lights up when {child} smiles at you. The Bible uses that image for how God looks at his people."
    ],
-   "sitWith": "Receive the blessing slowly, line by line, as spoken over you. Then imagine speaking it over Inara.",
-   "prayer": "Lord, bless me and keep me. Make your face shine on me, and be gracious to me. Turn your face toward me, and give me peace. And bless Inara the same way, all her life. Amen.",
-   "practice": "Tonight, speak this blessing over Inara as she sleeps. You could make it a habit for years.",
+   "sitWith": "Receive the blessing slowly, line by line, as spoken over you. Then imagine speaking it over {child}.",
+   "prayer": "Lord, bless me and keep me. Make your face shine on me, and be gracious to me. Turn your face toward me, and give me peace. And bless {child|my daughter} the same way, all her life. Amen.",
+   "practice": "Tonight, speak this blessing over {child} as she sleeps. You could make it a habit for years.",
    "journal": "What blessing would you most like to speak over your family?",
    "passages": [
     {

@@ -221,9 +221,9 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
 
   await step('prayer list: add, mark answered with a note', async () => {
     await page.goto(base + '#faith/journal/prayers');
-    await page.fill('#new-prayer', 'Inara sleeping through');
+    await page.fill('#new-prayer', 'Baby sleeping through');
     await page.press('#new-prayer', 'Enter');
-    assert.ok((await page.textContent('main')).includes('Inara sleeping through'));
+    assert.ok((await page.textContent('main')).includes('Baby sleeping through'));
     // no system dialog (bright at 3am, and Cancel used to mark it answered anyway): an inline note with Save / Cancel
     let dialogs = 0; const onDialog = (d) => { dialogs++; d.dismiss(); }; page.on('dialog', onDialog);
     await page.click('.answered');

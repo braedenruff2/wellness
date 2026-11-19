@@ -1,5 +1,5 @@
 @echo off
-rem Keeps the Wellness PC link running: brings it back after a crash. Started with no window by run-pc.vbs.
+rem Keeps the Wellness PC link running: brings it back after a crash or an update. Started with no window by run-pc.vbs.
 rem Delete %LOCALAPPDATA%\Wellness\run.on to stop it.
 setlocal
 set "WL=%LOCALAPPDATA%\Wellness"
@@ -10,5 +10,7 @@ set "UV=%WL%\bin\uv.exe"
 if not exist "%WL%\run.on" exit /b 0
 "%UV%" sync --quiet --python 3.12 --project "%~dp0." >> "%WL%\pc.log" 2>&1
 "%UV%" run --no-sync --project "%~dp0." python -u "%~dp0wellness_pc.py" serve >> "%WL%\pc.log" 2>&1
+rem exit code 3: it was updated, start the new version now
+if %errorlevel%==3 goto again
 timeout /t 20 /nobreak >nul
 goto again

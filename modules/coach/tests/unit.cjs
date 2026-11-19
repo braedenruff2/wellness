@@ -6,22 +6,22 @@ let n = 0;
 function t(name, f) { f(); n++; console.log('ok', name); }
 
 t('age in words', () => {
-  const b = '2025-11-22';
-  assert.strictEqual(K.ageMonths(b, new Date(2026, 10, 21)), 11, 'the day before her birthday');
-  assert.strictEqual(K.ageMonths(b, new Date(2026, 10, 22)), 12);
-  assert.strictEqual(K.ageText(b, new Date(2026, 10, 21)), '11 months old');
-  assert.strictEqual(K.ageText(b, new Date(2027, 10, 22)), '24 months old'.replace('24 months', '2 years'));
-  assert.strictEqual(K.ageText(b, new Date(2028, 0, 23)), '2 years and 2 months old');
-  assert.strictEqual(K.ageText(b, new Date(2025, 11, 1)), '9 days old');
-  assert.strictEqual(K.ageText(b, new Date(2025, 11, 10)), '2 weeks old');
-  assert.strictEqual(K.ageText(b, new Date(2025, 11, 22)), '1 month old');
+  const b = '2025-11-24';
+  assert.strictEqual(K.ageMonths(b, new Date(2026, 10, 23)), 11, 'the day before her birthday');
+  assert.strictEqual(K.ageMonths(b, new Date(2026, 10, 24)), 12);
+  assert.strictEqual(K.ageText(b, new Date(2026, 10, 23)), '11 months old');
+  assert.strictEqual(K.ageText(b, new Date(2027, 10, 24)), '24 months old'.replace('24 months', '2 years'));
+  assert.strictEqual(K.ageText(b, new Date(2028, 0, 25)), '2 years and 2 months old');
+  assert.strictEqual(K.ageText(b, new Date(2025, 11, 3)), '9 days old');
+  assert.strictEqual(K.ageText(b, new Date(2025, 11, 12)), '2 weeks old');
+  assert.strictEqual(K.ageText(b, new Date(2025, 11, 24)), '1 month old');
   assert.strictEqual(K.ageText('2026-12-25', new Date(2026, 10, 19)), '', 'not born yet');
   assert.strictEqual(K.ageText('', new Date()), '');
   assert.strictEqual(K.ageMonths('2024-01-31', new Date(2024, 1, 29)), 0, 'end of month');
 });
 
 t('scenario, grade, skills and what to practise next', () => {
-  const s = K.defaults(); s.child = { name: 'Kid', birth: '2025-11-22' };
+  const s = K.defaults(); s.child = { name: 'Kid', birth: '2025-11-24' };
   assert.strictEqual(K.suggestSkill(s), K.SKILLS[0]);
   const now = new Date(2026, 10, 19);
   const inp = K.scenarioInput(s, null, now);

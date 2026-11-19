@@ -87,6 +87,24 @@ t('week stats and coaching', () => {
   assert.ok(/Start easy/.test(W.coach(s, at(30, 9))), '12 days later');
 });
 
+t('weekly sets per area and the balance advice', () => {
+  const s = W.defaults();
+  assert.strictEqual(W.volumeAdvice(s, at(18, 9)), '', 'nothing logged: no advice');
+  Object.keys(W.EX).filter((e) => e !== 'Walk').forEach((e) => assert.ok(W.AREAS.includes(W.AREA[e]), e + ' has an area'));
+  W.logSet(s, 'A', 0, 12, 10, at(10, 9)); // last week (Mon 9 Nov - Sun 15)
+  for (let i = 0; i < 3; i++) { W.logSet(s, 'A', 0, 12, 10, at(16, 9, i)); W.logSet(s, 'A', 1, 15, null, at(16, 9, i + 1)); }
+  W.logSet(s, 'A', 2, 0, 10, at(16, 9, 10)); // a 0 (skipped) set does not count
+  W.endSession(s);
+  s.history.push({ date: '2026-11-17', ex: 'One-Arm Rows', sets: [12, 12], w: 10, from: 'sheet' }, { date: '2026-11-17', ex: 'Walk', sets: [20], w: null, from: 'sheet' });
+  const v = W.weekVolume(s, at(19, 9));
+  assert.deepStrictEqual(v.thisWeek, { legs: 3, push: 3, pull: 2, core: 0 });
+  assert.deepStrictEqual(v.lastWeek, { legs: 1, push: 0, pull: 0, core: 0 });
+  assert.strictEqual(W.volumeAdvice(s, at(19, 9)), 'Core has 0 of about 3 sets this week: Day A gives it the most.');
+  ['Plank', 'Dead Bug', 'Plank'].forEach((e) => s.history.push({ date: '2026-11-18', ex: e, sets: [40], w: null }));
+  assert.ok(/^Pull has 2 of about 6/.test(W.volumeAdvice(s, at(19, 9))), W.volumeAdvice(s, at(19, 9)));
+  assert.deepStrictEqual(W.weekVolume(s, at(30, 9)).thisWeek, { legs: 0, push: 0, pull: 0, core: 0 }, 'a new week starts at 0');
+});
+
 t('import the sheet’s Log CSV (quoted notes, speed in Weight for walks, Rest rows, duplicates)', () => {
   const csv = 'Date,Day,Exercise,Set 1,Set 2,Set 3,Set 4,Weight,Notes,240,My Body Weight\r\n' +
     '2026-11-02,Monday,Pushups,17,16,10,,,"A · 3 x 8–20 reps  |  Last: 15/15, again",43,\r\n' +

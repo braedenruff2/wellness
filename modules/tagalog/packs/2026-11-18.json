@@ -4,7 +4,7 @@
  "title": "Family first",
  "level": "Understands some, speaks little",
  "made": "2026-11-18, written by Claude for Braeden's first week",
- "focus": "Polite Tagalog for his wife's family, talking about Inara (turning one on 22 Nov), and the core sentence patterns he half-recognises from listening.",
+ "focus": "Polite Tagalog for his wife's family, talking about the baby (and her first birthday), and the core sentence patterns he half-recognises from listening.",
  "lessons": [
   {
    "day": 1,
@@ -74,8 +74,8 @@
     },
     {
      "who": "Lola",
-     "tl": "Mabuti rin. Nasaan si Inara?",
-     "en": "Fine too. Where's Inara?"
+     "tl": "Mabuti rin. Nasaan si {child}?",
+     "en": "Fine too. Where's {child}?"
     },
     {
      "who": "You",
@@ -157,7 +157,7 @@
   {
    "day": 2,
    "title": "Talking about the baby",
-   "intro": "Everyone will ask about Inara, especially with her first birthday on 22 November. These phrases cover most of it.",
+   "intro": "Everyone will ask about the baby, especially around her first birthday. These phrases cover most of it.",
    "words": [
     {
      "tl": "anak",
@@ -241,8 +241,8 @@
       "en": "She's so big now!"
      },
      {
-      "tl": "Tulog na si Inara.",
-      "en": "Inara is asleep now."
+      "tl": "Tulog na si {child}.",
+      "en": "{child} is asleep now."
      }
     ]
    },
@@ -250,14 +250,14 @@
    "exercises": [
     {
      "type": "mc",
-     "prompt": "'Umiiyak si Inara' means:",
+     "prompt": "'Umiiyak si {child}' means:",
      "options": [
-      "Inara is crying",
-      "Inara is sleeping",
-      "Inara is eating",
-      "Inara is awake"
+      "{child} is crying",
+      "{child} is sleeping",
+      "{child} is eating",
+      "{child} is awake"
      ],
-     "answer": "Inara is crying"
+     "answer": "{child} is crying"
     },
     {
      "type": "listen",
@@ -343,8 +343,8 @@
    "dialogue": [
     {
      "who": "Wife",
-     "tl": "Kumakain si Inara ng saging.",
-     "en": "Inara is eating a banana."
+     "tl": "Kumakain si {child} ng saging.",
+     "en": "{child} is eating a banana."
     },
     {
      "who": "You",
@@ -353,8 +353,8 @@
     },
     {
      "who": "Wife",
-     "tl": "Nasa sofa. Ibigay mo kay Inara.",
-     "en": "On the sofa. Give it to Inara."
+     "tl": "Nasa sofa. Ibigay mo kay {child}.",
+     "en": "On the sofa. Give it to {child}."
     },
     {
      "who": "You",
@@ -369,7 +369,7 @@
    ],
    "grammar": {
     "title": "The three markers",
-    "explain": "In 'Kumakain si Inara ng saging': 'si' marks Inara (the one the sentence is about), 'ng' marks the banana (what she eats). 'Sa' marks places and directions: 'sa bahay' (at/to the house). For names use si / ni / kay: 'bahay ni Lola' (Lola's house), 'kay Inara' (to Inara). 'Ng' is pronounced 'nang'.",
+    "explain": "In 'Kumakain si {child} ng saging': 'si' marks {child} (the one the sentence is about), 'ng' marks the banana (what she eats). 'Sa' marks places and directions: 'sa bahay' (at/to the house). For names use si / ni / kay: 'bahay ni Lola' (Lola's house), 'kay {child}' (to {child}). 'Ng' is pronounced 'nang'.",
     "examples": [
      {
       "tl": "Umiinom ng gatas ang baby.",
@@ -385,7 +385,7 @@
    "exercises": [
     {
      "type": "mc",
-     "prompt": "Kumakain ___ Inara ng saging.",
+     "prompt": "Kumakain ___ {child} ng saging.",
      "options": [
       "si",
       "ng",
@@ -430,14 +430,14 @@
     },
     {
      "type": "listen",
-     "say": "Ibigay mo kay Inara.",
+     "say": "Ibigay mo kay {child}.",
      "options": [
-      "Give it to Inara.",
-      "Inara gave it.",
-      "Give Inara a bath.",
-      "Where is Inara?"
+      "Give it to {child}.",
+      "{child} gave it.",
+      "Give {child} a bath.",
+      "Where is {child}?"
      ],
-     "answer": "Give it to Inara."
+     "answer": "Give it to {child}."
     }
    ]
   },
@@ -488,8 +488,8 @@
     },
     {
      "who": "Wife",
-     "tl": "Uminom na ng gatas si Inara kanina.",
-     "en": "Inara already drank milk earlier."
+     "tl": "Uminom na ng gatas si {child} kanina.",
+     "en": "{child} already drank milk earlier."
     },
     {
      "who": "You",
@@ -531,7 +531,7 @@
     },
     {
      "type": "mc",
-     "prompt": "Inara is drinking milk: ___ ng gatas si Inara.",
+     "prompt": "{child} is drinking milk: ___ ng gatas si {child}.",
      "options": [
       "Umiinom",
       "Uminom",
@@ -642,8 +642,8 @@
     "explain": "'Pa' means 'still / more / yet': 'Gusto ko pa' (I want more), 'Hindi pa' (not yet). 'Na' means 'already / now / anymore': 'Busog na ako' (I'm full now), 'Ayoko na' (I don't want any more). 'Paki-' at the start of a verb means 'please': 'Pakiabot' (please pass), 'Pakihawak' (please hold).",
     "examples": [
      {
-      "tl": "Pakihawak po si Inara.",
-      "en": "Please hold Inara."
+      "tl": "Pakihawak po si {child}.",
+      "en": "Please hold {child}."
      },
      {
       "tl": "Kain pa!",
@@ -698,14 +698,14 @@
     },
     {
      "type": "build",
-     "prompt": "Please hold Inara.",
+     "prompt": "Please hold {child}.",
      "words": [
       "si",
       "po",
-      "Inara.",
+      "{child}.",
       "Pakihawak"
      ],
-     "answer": "Pakihawak po si Inara."
+     "answer": "Pakihawak po si {child}."
     }
    ]
   },
@@ -885,8 +885,8 @@
     },
     {
      "who": "You",
-     "tl": "Mabait na bata po si Inara. Pero umiiyak din po siya sa gabi!",
-     "en": "Inara is a good kid. But she cries at night too!"
+     "tl": "Mabait na bata po si {child}. Pero umiiyak din po siya sa gabi!",
+     "en": "{child} is a good kid. But she cries at night too!"
     },
     {
      "who": "Lola",
@@ -959,15 +959,15 @@
     },
     {
      "type": "build",
-     "prompt": "Inara is a good kid.",
+     "prompt": "{child} is a good kid.",
      "words": [
       "si",
       "bata",
       "Mabait",
       "na",
-      "Inara."
+      "{child}."
      ],
-     "answer": "Mabait na bata si Inara."
+     "answer": "Mabait na bata si {child}."
     }
    ]
   }

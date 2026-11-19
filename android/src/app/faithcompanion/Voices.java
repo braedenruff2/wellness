@@ -172,7 +172,13 @@ final class Voices {
                     new File(d, ".done").createNewFile();
                 }
                 loadAsync();
-            } catch (Exception e) { error = "Download stopped: " + e.getMessage(); Log.w(TAG, "voice download", e); }
+            } catch (Exception e) {
+                String m = String.valueOf(e.getMessage());
+                // (the PC link answers "not found" to requests it doesn't know: it's an older version, still running)
+                error = m.equals("not found") ? "Your PC link is an older version. On the PC, double-click \"Finish setup (click in the morning).bat\" in the wellness folder, then try again."
+                    : "Download stopped: " + m;
+                Log.w(TAG, "voice download", e);
+            }
             finally { downloading = ""; progress = ""; changed.run(); }
         }, "wl-voice-download").start();
     }

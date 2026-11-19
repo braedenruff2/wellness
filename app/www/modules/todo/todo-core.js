@@ -1,4 +1,5 @@
-/* To-do logic (no DOM). Tasks: {id, text, due: 'YYYY-MM-DD'|null, done: ISO|null, created: ISO, repeat: null|'daily'|'weekdays'|'weekly'}.
+/* To-do logic (no DOM). Tasks: {id, text, due: 'YYYY-MM-DD'|null, at: 'HH:MM'|null (a reminder at that time on the due
+   day), done: ISO|null, created: ISO, repeat: null|'daily'|'weekdays'|'weekly'}.
    Storage key 'wl.todo.v1'. Used by todo.js and by modules/todo/tests. */
 (function (root) {
   'use strict';
@@ -11,9 +12,24 @@
 
   /* "call mum tomorrow", "bins fri", "pay bill 12/3", "stretch every day": pulls a date / repeat off the end. */
   var DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  /* "at 3pm", "3:30pm", "at 15:30", "at noon", "at 7" (1-6 without am/pm means afternoon): {at: 'HH:MM', rest}. */
+  var TIME_RE = /\s+(?:at\s+(noon|midday)|(?:at\s+)?(\d{1,2})(?:[:.](\d\d))?\s*([ap])\.?m\.?|at\s+(\d{1,2})(?:[:.](\d\d))?)$/i;
+  function pad(x) { return (x < 10 ? '0' : '') + x; }
+  function takeTime(t) {
+    var m = TIME_RE.exec(t); if (!m) return null;
+    var h, mi;
+    if (m[1]) { h = 12; mi = 0; }
+    else if (m[2]) { h = +m[2]; mi = +(m[3] || 0); if (h < 1 || h > 12) return null; h = h % 12 + (m[4].toLowerCase() === 'p' ? 12 : 0); }
+    else { h = +m[5]; mi = +(m[6] || 0); if (h > 23) return null; if (!m[6] && h >= 1 && h <= 6) h += 12; }
+    if (mi > 59) return null;
+    var rest = t.slice(0, m.index);
+    if (/^\s*at\s*$/i.test(rest)) return null;
+    return { at: pad(h) + ':' + pad(mi), rest: rest };
+  }
   function quickParse(text, now) {
     now = now || new Date();
-    var t = String(text || '').trim(), today = iso(now), due = null, repeat = null, m;
+    var t = String(text || '').trim(), today = iso(now), due = null, repeat = null, at = null, m, tm;
+    if ((tm = takeTime(t))) { at = tm.at; t = tm.rest; }
     if ((m = /\s+(every day|daily)$/i.exec(t))) { repeat = 'daily'; due = today; t = t.slice(0, m.index); }
     else if ((m = /\s+(every weekday|weekdays)$/i.exec(t))) { repeat = 'weekdays'; due = today; t = t.slice(0, m.index); }
     else if ((m = /\s+(every week|weekly)$/i.exec(t))) { repeat = 'weekly'; due = today; t = t.slice(0, m.index); }
@@ -29,15 +45,22 @@
         if (c.getMonth() === mm - 1) { if (iso(c) < today) c.setFullYear(c.getFullYear() + 1); due = iso(c); t = t.slice(0, m.index); }
       }
     }
-    return { text: t.trim() || String(text || '').trim(), due: due, repeat: repeat };
+    if (!at && (tm = takeTime(t))) {                 // "call Mom at 3pm tomorrow": the time came before the date
+      at = tm.at; t = tm.rest;
+      if (!due && !repeat && (m = /\s+(every day|daily)$/i.exec(t))) { repeat = 'daily'; due = today; t = t.slice(0, m.index); }
+    }
+    if (at && !due) { due = today; if (!repeat && at <= hm(now)) due = addDays(today, 1); }  // "3pm" already gone: tomorrow
+    if (!t.trim()) return { text: String(text || '').trim(), due: null, repeat: null, at: null };
+    return { text: t.trim(), due: due, repeat: repeat, at: at };
   }
+  function hm(d) { return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
 
   function add(state, text, opts, now) {
     var q = quickParse(text, now);
     if (!q.text) return null;
     opts = opts || {};
     var task = { id: id(now), text: q.text, due: opts.due !== undefined ? opts.due : q.due, done: null,
-      created: (now || new Date()).toISOString(), repeat: opts.repeat || q.repeat || null };
+      created: (now || new Date()).toISOString(), repeat: opts.repeat || q.repeat || null, at: opts.at !== undefined ? opts.at : q.at };
     state.tasks.push(task);
     return task;
   }
@@ -109,6 +132,49 @@
     return '';
   }
 
+  /* The reminders to set on the phone: [{id, when (ms), text}] for open tasks with a time, soonest first, within
+     `days` days (repeating tasks: each coming occurrence). Sent to Android (TodoAlarm) after every change. */
+  function when(day, at) { var p = day.split('-'), h = at.split(':'); return new Date(+p[0], +p[1] - 1, +p[2], +h[0], +h[1]).getTime(); }
+  function reminders(state, now, days) {
+    now = now || new Date(); days = days || 8;
+    var t0 = now.getTime(), end = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + days)), out = [];
+    state.tasks.forEach(function (t) {
+      if (t.done || !t.at || !t.due) return;
+      var d = t.due, guard = 0;
+      while (d <= end && guard++ < 40) {
+        var w = when(d, t.at);
+        if (w > t0) out.push({ id: t.id + '@' + d, when: w, text: t.text });
+        if (!t.repeat) break;
+        var nx = nextDue({ due: d, repeat: t.repeat }, d); if (!nx || nx <= d) break; d = nx;
+      }
+    });
+    out.sort(function (a, b) { return a.when - b.when; });
+    return out.slice(0, 40);
+  }
+  /* Android's format: one "when<TAB>id<TAB>text" line each (no JSON parser needed there), then "#open<TAB>id,id" naming
+     the open tasks that have a time: a reminder snoozed from the notification is kept only while its task is one of them. */
+  function alarmLines(list, openIds) {
+    var out = list.map(function (r) { return r.when + '\t' + String(r.id).replace(/[\t\n\r]/g, ' ') + '\t' + String(r.text).replace(/[\t\n\r]+/g, ' ').slice(0, 200); });
+    if (openIds && openIds.length) out.push('#open\t' + openIds.map(function (x) { return String(x).replace(/[\t\n\r,]/g, ' '); }).join(','));
+    return out.join('\n');
+  }
+  function openTimed(state) { return state.tasks.filter(function (t) { return !t.done && t.at && t.due; }).map(function (t) { return t.id; }); }
+  /* "Remind me in an hour": the reminder moves to now + 60 min (rounded up to 5 min), on that day (after 11 pm that is
+     tomorrow). Not for repeating tasks (it would move every coming day): returns null for those. */
+  function remindIn(state, taskId, minutes, now) {
+    now = now || new Date();
+    var t = find(state, taskId); if (!t || t.done || t.repeat) return null;
+    var w = new Date(now.getTime() + (minutes || 60) * 60000);
+    var r = w.getMinutes() % 5; if (r || w.getSeconds() || w.getMilliseconds()) w = new Date(w.getFullYear(), w.getMonth(), w.getDate(), w.getHours(), w.getMinutes() - r + 5);
+    t.due = iso(w); t.at = hm(w);
+    return t;
+  }
+  function fmtTime(at) {
+    if (!at) return '';
+    var h = +at.slice(0, 2), mi = at.slice(3);
+    return (h % 12 || 12) + (mi === '00' ? '' : ':' + mi) + (h < 12 ? ' am' : ' pm');
+  }
+
   function validate(s) {
     if (!s || !Array.isArray(s.tasks)) return null;
     var dateRe = /^\d{4}-\d\d-\d\d$/;
@@ -116,13 +182,14 @@
       return { id: String(t.id || id()), text: t.text, due: dateRe.test(t.due) ? t.due : null,
         done: t.done && !isNaN(new Date(t.done).getTime()) ? new Date(t.done).toISOString() : null,
         created: t.created && !isNaN(new Date(t.created).getTime()) ? new Date(t.created).toISOString() : new Date().toISOString(),
-        repeat: ['daily', 'weekdays', 'weekly'].indexOf(t.repeat) >= 0 ? t.repeat : null };
+        repeat: ['daily', 'weekdays', 'weekly'].indexOf(t.repeat) >= 0 ? t.repeat : null,
+        at: /^([01]\d|2[0-3]):[0-5]\d$/.test(t.at) ? t.at : null };
     }) };
   }
 
   var api = { defaults: defaults, quickParse: quickParse, add: add, complete: complete, uncomplete: uncomplete, remove: remove,
     find: find, groups: groups, moveOverdueToToday: moveOverdueToToday, tidy: tidy, doneInLast: doneInLast, advice: advice,
-    nextDue: nextDue, validate: validate, iso: iso, addDays: addDays };
+    nextDue: nextDue, validate: validate, iso: iso, addDays: addDays, reminders: reminders, alarmLines: alarmLines, openTimed: openTimed, remindIn: remindIn, fmtTime: fmtTime };
   root.TodoCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

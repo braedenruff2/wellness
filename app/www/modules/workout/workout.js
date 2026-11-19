@@ -10,6 +10,9 @@
   function fmt(secs) { secs = Math.max(0, Math.round(secs)); var m = Math.floor(secs / 60), s = secs % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
   function unit(e) { return e.track === 'sec' ? 'sec' : e.track === 'min' ? 'min' : 'reps'; }
 
+  /* the phone's alarm for the rest's end (beeps with the screen off); the page beeps itself when on screen */
+  function alarm() { var n = WL.native; if (n && n.restAlarm) try { n.restAlarm(rest ? Math.max(0, rest.end - Date.now()) : 0, rest ? rest.label : ''); } catch (e) {} }
+
   function beep() {
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)(), t = ctx.currentTime;
@@ -76,7 +79,8 @@
     var tick = function () {
       var left = (rest.end - Date.now()) / 1000;
       if (left <= 0) {
-        clearInterval(restTimer); beep();
+        // (back after the screen was off: the phone's alarm already beeped, don't beep again)
+        clearInterval(restTimer); if (left > -3) beep();
         $('#rest-time').textContent = 'Go';
         var nx = rest.next != null ? $('#ex-' + rest.next) : null;
         rest = null;
@@ -111,21 +115,22 @@
         var r = W.logSet(S, day, idx, v, wt ? wt.value : null);
         save();
         rest = r.rest.secs ? { end: Date.now() + r.rest.secs * 1000, label: r.rest.label, next: r.rest.next } : null;
+        alarm();
         var y = window.scrollY;
         renderToday();
         window.scrollTo(0, y);
         if (!rest) { var nxt = $('.ex:not(.ex-done)'); if (nxt) nxt.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
       };
     });
-    var u = $('#wo-undo'); if (u) u.onclick = function () { var s = W.undoSet(S); save(); rest = null; renderToday(); if (s) WL.toast('Removed ' + s.ex + ' set ' + s.n); };
+    var u = $('#wo-undo'); if (u) u.onclick = function () { var s = W.undoSet(S); save(); rest = null; alarm(); renderToday(); if (s) WL.toast('Removed ' + s.ex + ' set ' + s.n); };
     var f = $('#wo-finish'); if (f) f.onclick = function () {
       var open = W.openSession(S), n = open ? open.sets.length : 0;
-      W.endSession(S); save(); rest = null; dayChoice = null;
+      W.endSession(S); save(); rest = null; alarm(); dayChoice = null;
       WL.toast(n ? 'Workout saved: ' + n + ' sets. Well done.' : 'Nothing logged');
       renderToday(); window.scrollTo(0, 0);
     };
-    $('#rest-skip').onclick = function () { rest = null; showRest(); };
-    $('#rest-plus').onclick = function () { if (rest) rest.end += 15000; };
+    $('#rest-skip').onclick = function () { rest = null; alarm(); showRest(); };
+    $('#rest-plus').onclick = function () { if (rest) { rest.end += 15000; alarm(); } };
   }
 
   function sparkline(vals) {
@@ -135,10 +140,19 @@
     return '<svg class="spark" viewBox="0 0 ' + w + ' ' + hgt + '" width="' + w + '" height="' + hgt + '" aria-hidden="true"><polyline points="' + pts + '" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
   }
 
+  /* Sets per area this week (last week in brackets) and one line of advice. */
+  function volume() {
+    var v = W.weekVolume(S), adv = W.volumeAdvice(S);
+    if (!adv) return '';
+    return '<p class="meta" id="wo-volume" style="margin:.4em 0 0">Sets this week (last week): ' + W.AREAS.map(function (k) {
+      return k + ' ' + v.thisWeek[k] + ' (' + v.lastWeek[k] + ')';
+    }).join(' · ') + '</p><p class="gentle" style="margin:.3em 0 0">' + esc(adv) + '</p>';
+  }
+
   function history() {
     var st = W.weekStats(S);
     var h = subnav('history') + '<h1>Progress</h1><div class="card ui"><div class="row"><div class="grow"><b>' + st.thisWeek + '</b> of ' + st.target + ' this week</div>' + weekDots() + '</div>' +
-      '<p class="meta" style="margin:.4em 0 0">' + (st.streak ? st.streak + ' week' + (st.streak > 1 ? 's' : '') + ' in a row with 2+ workouts. ' : '') + st.total + ' workout days logged in all.</p></div>';
+      '<p class="meta" style="margin:.4em 0 0">' + (st.streak ? st.streak + ' week' + (st.streak > 1 ? 's' : '') + ' in a row with 2+ workouts. ' : '') + st.total + ' workout days logged in all.</p>' + volume() + '</div>';
     var names = Object.keys(W.EX);
     var rows = names.map(function (n) { return { n: n, p: W.performances(S, n) }; }).filter(function (x) { return x.p.length; });
     if (!rows.length) return h + '<p class="meta ui">Log a workout, or import your sheet under Setup, and your progress shows here.</p>';

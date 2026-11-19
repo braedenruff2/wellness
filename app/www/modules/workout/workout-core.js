@@ -28,7 +28,7 @@
     'Single Leg Glute Bridge': { track: 'reps', range: [10, 20], side: true, hard: 'dumbbell on the hip + 2-sec squeeze', cue: 'Drive through the heel, squeeze at the top, don’t arch your back.' },
     'Calf Raises': { track: 'reps', range: [15, 30], hard: 'single-leg, holding both dumbbells', load: 5, cue: 'Full stretch at the bottom, pause at the top. Hold a wall for balance.' },
     'Russian Twists': { track: 'reps', range: [16, 40], hard: 'feet off the floor, both dumbbells together', cue: 'Turn your chest, not just your arms.' },
-    'Walk': { track: 'min', range: [10, 40], cue: 'Treadmill or a stroller walk with Inara. Brisk enough to breathe a little harder.' }
+    'Walk': { track: 'min', range: [10, 40], cue: 'Treadmill or a stroller walk with the baby. Brisk enough to breathe a little harder.' }
   };
 
   /* Three full-body days, about 25-30 minutes each. Letters = supersets (do one set of each, then rest). */
@@ -202,6 +202,38 @@
     return { thisWeek: thisWeek, target: WEEK_TARGET, streak: streak, total: Object.keys(days).length };
   }
 
+  /* Weekly sets per body area (Mon-Sun), this week and last, from logged sessions and the imported sheet. About 6+
+     hard sets per area a week is a sound beginner dose (general guidance). Walk is cardio, not counted. */
+  var AREA = { 'Bulgarian Split Squats': 'legs', 'Single Leg RDL': 'legs', 'Reverse Lunges': 'legs', 'Split Squats': 'legs',
+    'Single Leg Glute Bridge': 'legs', 'Calf Raises': 'legs', 'Pushups': 'push', 'Overhead Press': 'push', 'Pike Pushups': 'push',
+    'One-Arm Rows': 'pull', 'Rear Delt Flys': 'pull', 'Dumbbell Pullovers': 'pull', 'Hammer Curls': 'pull',
+    'Plank': 'core', 'Dead Bug': 'core', 'Russian Twists': 'core' };
+  var AREAS = ['legs', 'push', 'pull', 'core'], AREA_TARGET = { legs: 6, push: 6, pull: 6, core: 3 };
+  function weekVolume(state, now) {
+    now = now || new Date();
+    var ws = weekStart(now), a = iso(ws), b = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7));
+    var out = { thisWeek: {}, lastWeek: {} };
+    AREAS.forEach(function (k) { out.thisWeek[k] = 0; out.lastWeek[k] = 0; });
+    function add(date, ex, n) {
+      var area = AREA[ex]; if (!area || !n) return;
+      if (date >= a) out.thisWeek[area] += n; else if (date >= b) out.lastWeek[area] += n;
+    }
+    state.sessions.forEach(function (s) { (s.sets || []).forEach(function (x) { if (+x.val > 0) add(s.date, x.ex, 1); }); });
+    state.history.forEach(function (h) { add(h.date, h.ex, h.sets.filter(function (v) { return +v > 0; }).length); });
+    return out;
+  }
+  /* One plain line about the week's balance, or '' when nothing is logged yet. */
+  function volumeAdvice(state, now) {
+    var v = weekVolume(state, now).thisWeek, total = AREAS.reduce(function (t, k) { return t + v[k]; }, 0);
+    if (!total) return '';
+    var behind = AREAS.filter(function (k) { return v[k] < AREA_TARGET[k]; });
+    if (!behind.length) return 'Every area got enough work this week. Anything more is a bonus.';
+    var k = behind.sort(function (x, y) { return v[x] / AREA_TARGET[x] - v[y] / AREA_TARGET[y]; })[0];
+    var best = ORDER.map(function (d) { return { d: d, n: PROGRAM[d].items.filter(function (it) { return AREA[it.ex] === k; }).reduce(function (t, it) { return t + it.sets; }, 0) }; })
+      .sort(function (x, y) { return y.n - x.n; })[0];
+    return k.charAt(0).toUpperCase() + k.slice(1) + ' has ' + v[k] + ' of about ' + AREA_TARGET[k] + ' sets this week: Day ' + best.d + ' gives it the most.';
+  }
+
   /* One sentence of coaching for the Home card. */
   function coach(state, now) {
     now = now || new Date();
@@ -212,7 +244,7 @@
     if (open) return 'In progress: ' + open.sets.length + ' set' + (open.sets.length === 1 ? '' : 's') + ' so far. Keep going.';
     if (lastDate === iso(now)) return 'Done for today. Rest is when the muscle actually grows.';
     if (gap != null && gap > 10) return 'It’s been ' + gap + ' days. Start easy today: do two sets of each, not three.';
-    if (st.thisWeek >= st.target) return 'Three this week. Anything more is a bonus: a walk with Inara counts.';
+    if (st.thisWeek >= st.target) return 'Three this week. Anything more is a bonus: a stroller walk counts.';
     var left = st.target - st.thisWeek, daysLeft = 7 - dow;
     if (left > daysLeft) return 'A busy week. One good workout still counts; don’t try to catch up all at once.';
     return st.thisWeek + ' of ' + st.target + ' this week. ' + (st.streak >= 2 ? st.streak + ' good weeks in a row.' : 'About 30 minutes, any time today.');
@@ -276,7 +308,7 @@
 
   var api = { EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
-    last: last, ready: ready, advice: advice, weekStats: weekStats, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
+    last: last, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     validate: validate, iso: iso };
   root.WorkoutCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -18,7 +18,8 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(/Breathe in|Hold|Breathe out|In/.test(await page.textContent('#c-label')));
     const tf = await page.getAttribute('#c-ball', 'style');
     assert.ok(/scale\(/.test(tf), tf);
-    await page.clock.runFor(60000);
+    // the rest in one jump (the end is worked out from the clock; running every animation frame took over a minute)
+    await page.clock.fastForward(60000); await page.clock.runFor(1000);
     assert.ok(await page.isVisible('#c-after'));
     await page.click('#c-after-r [data-r="2"]');
     await page.click('#c-save');
@@ -33,7 +34,9 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.clock.runFor(10 * 60000);
     assert.strictEqual(await page.textContent('#c-left'), left);
     assert.ok(!(await page.isVisible('#c-after')));
-    await page.click('#c-pp'); await page.clock.runFor(6 * 60000);
+    await page.click('#c-pp'); await page.clock.runFor(5000);
+    assert.ok(!(await page.isVisible('#c-after')), 'resumed, not over yet');
+    await page.clock.fastForward(6 * 60000); await page.clock.runFor(1000);
     assert.ok(await page.isVisible('#c-after'));
   });
   await t.step('guided body scan speaks its lines; ending early after 30 s still counts', async () => {

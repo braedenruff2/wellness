@@ -232,12 +232,20 @@ check("the Tagalog week file is written", any(n.startswith("tagalog-week-") for 
 with open(os.path.join(TMP, "progress", "activity", today + ".jsonl"), "a", encoding="utf-8") as f: f.write('{"id": "half')
 st, o, _ = req("POST", "/v1/activity", {"events": ev[:1]}, token=token)
 check("a broken line is skipped, no duplicates", st == 200 and o.get("saved") == 0, o)
+# a journal entry sent first without its words, then again with them (the phone gives it a new id ending /t):
+# the day keeps both lines, the summary counts it once
+req("POST", "/v1/activity", {"events": [{"id": "faith/j/x1", "at": today + "T08:00:00-04:00", "part": "faith", "kind": "awe", "data": {"chars": 5}}]}, token=token)
+req("POST", "/v1/activity", {"events": [{"id": "faith/j/x1/t", "at": today + "T08:00:00-04:00", "part": "faith", "kind": "awe", "text": "Wow.", "data": {"chars": 5}}]}, token=token)
+fa = [e for e in W.recent_events(7) if e["part"] == "faith"]
+check("an event saved after a half-written line is kept", any(e["id"] == "faith/j/x1" for e in W.read_day(today)))
+check("journal sent again with words counts once (the one with words)", len(fa) == 1 and fa[0].get("text") == "Wow.", fa)
+check("summary: faith awe once", "- faith: 1 awe" in W.summarize(7), W.summarize(7))
 summ = W.summarize(7)
 check("summary: calm stress", "stress 4.0 -> 2.0" in summ, summ)
 check("summary: workout sets", "Push-ups: 18, 17" in summ, summ)
 check("summary: tagalog misses", "1/2 right" in summ and "salamat" in summ, summ)
 check("summary: todo", "call Mom" in summ, summ)
-check("summary: nothing for a part with no events", "- faith: nothing" in summ, summ)
+check("summary: nothing for a part with no events", "- coach: nothing" in summ, summ)
 st, o, _ = req("POST", "/v1/summary", {"days": 3}, token=token)
 check("summary over the link", st == 200 and "Activity" in o.get("summary", ""), o)
 # (the server answers 400 without reading the body, so the sender may see the connection close first: both are a refusal)
@@ -290,6 +298,24 @@ os.environ["WELLNESS_CLAUDE"] = os.path.join(TMP, "no-such-claude")
 st, r = ask("advice", {})
 check("no Claude Code: says how to fix it", r.get("state") == "error" and "Claude Code" in r.get("error", ""), r)
 os.environ["WELLNESS_CLAUDE"] = FAKE
+
+# an updated wellness_pc.py restarts the running server (exit 3 -> start-pc.cmd starts the new code)
+import subprocess as sp
+cp = os.path.join(TMP, "copy"); os.makedirs(cp)
+src = open(os.path.join(HERE, "..", "wellness_pc.py"), encoding="utf-8").read()
+open(os.path.join(cp, "wellness_pc.py"), "w", encoding="utf-8").write(src)
+s2 = socket.socket(); s2.bind(("127.0.0.1", 0)); p2 = s2.getsockname()[1]; s2.close()
+env = dict(os.environ, WELLNESS_PORT=str(p2), WELLNESS_STATE=os.path.join(TMP, "state2"), WELLNESS_UPDATE_CHECK="0.5")
+proc = sp.Popen([sys.executable, os.path.join(cp, "wellness_pc.py"), "serve"], env=env, stdout=sp.PIPE, stderr=sp.STDOUT, text=True)
+time.sleep(2.5)
+open(os.path.join(cp, "wellness_pc.py"), "w", encoding="utf-8").write(src + "\n(broken")     # a half-written update
+time.sleep(5)
+check("a broken update doesn't restart it", proc.poll() is None, proc.poll())
+time.sleep(1.1)
+open(os.path.join(cp, "wellness_pc.py"), "w", encoding="utf-8").write(src + "\n# v2\n")
+try: code = proc.wait(timeout=15)
+except sp.TimeoutExpired: proc.kill(); code = None
+check("an update restarts the server (exit 3)", code == 3, code)
 
 # forget
 W.main(["x", "forget"])

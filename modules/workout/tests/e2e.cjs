@@ -53,6 +53,8 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(/Last: 15\/15\/15 @ 10 lb/.test(adv) && /Ready for harder/.test(adv), adv);
     await page.goto(base + '#workout/history');
     assert.ok((await page.textContent('main')).includes('Pushups'));
+    const vol = await page.$('#wo-volume');
+    assert.ok(vol, 'weekly sets shown after logging'); assert.ok(/legs \d+ \(\d+\) · push/.test(await vol.textContent()), 'weekly sets line');
   });
   await t.step('switching to adjustable dumbbells changes the advice to adding weight', async () => {
     await page.goto(base + '#workout/settings');

@@ -3,7 +3,9 @@
    Storage: localStorage 'fc.v1' (unchanged). Shared things (look, speech, bell, backup) come from shell.js (WL). */
 (function () {
   'use strict';
-  var C = window.FCCore, CONTENT = window.FC_CONTENT;
+  var C = window.FCCore, P = window.WLPersonal;
+  /* {child} in the content becomes her name from Parenting setup (on the phone only; see lib/personal.js). */
+  var CONTENT = P ? P.personalize(window.FC_CONTENT, P.childName()) : window.FC_CONTENT;
   var DAYS = CONTENT.days, PRACTICES = CONTENT.practices, TOTAL = DAYS.length;
   var store = C.makeStore();
   var S = store.load();

@@ -78,7 +78,7 @@ t('entries and prayers: ids unique, newest first, remove', () => {
   assert.notStrictEqual(a.id, b.id); assert.strictEqual(s.journal[0], b);
   C.removeEntry(s, a.id); assert.deepStrictEqual(s.journal.map((e) => e.text), ['b']);
   assert.strictEqual(C.addPrayer(s, ''), null);
-  C.addPrayer(s, 'Inara’s sleep'); assert.strictEqual(s.prayers[0].answered, null);
+  C.addPrayer(s, 'Baby’s sleep'); assert.strictEqual(s.prayers[0].answered, null);
 });
 
 t('lookBack finds an entry from about a week / month ago', () => {
@@ -95,7 +95,7 @@ t('lookBack finds an entry from about a week / month ago', () => {
 t('soundsHeavy: gentle check only on strong words', () => {
   assert.ok(C.soundsHeavy('I feel hopeless lately'));
   assert.ok(C.soundsHeavy("I can't cope with this"));
-  assert.ok(!C.soundsHeavy('Tired but grateful. Inara smiled.'));
+  assert.ok(!C.soundsHeavy('Tired but grateful. The baby smiled.'));
   assert.ok(!C.soundsHeavy('the storm in the story'));
   assert.ok(!C.soundsHeavy(''));
 });

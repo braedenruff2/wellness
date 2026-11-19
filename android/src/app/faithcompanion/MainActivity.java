@@ -136,12 +136,22 @@ public class MainActivity extends Activity {
     }
 
     private String startHash(Intent i) {
+        String h = openHash(i);
+        if (h != null) return h;
         return i != null && i.getBooleanExtra("fromReminder", false) ? "#faith/today" : "";
     }
 
     @Override protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
         if (i != null && i.getBooleanExtra("fromReminder", false)) web.evaluateJavascript("location.hash='#faith/today'", null);
+        String h = openHash(i);
+        if (h != null) web.evaluateJavascript("location.hash='" + h + "'", null);
+    }
+
+    /** The screen a notification asks for (only these, never a hash from elsewhere). */
+    private static String openHash(Intent i) {
+        String h = i == null ? null : i.getStringExtra("openHash");
+        return "#workout".equals(h) || "#todo".equals(h) ? h : null;
     }
 
     private void done(String id) {
@@ -188,6 +198,8 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        RestAlarm.appVisible = true;
+        RestAlarm.cancelShown(this);
         Updater.check(getApplicationContext(), pcLink(), false, updateListener);
     }
 
@@ -201,6 +213,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onPause() {
+        RestAlarm.appVisible = false;
         if (web != null) web.evaluateJavascript("window.FCSaveNow&&FCSaveNow()", null);
         super.onPause();
     }
@@ -400,6 +413,28 @@ public class MainActivity extends Activity {
             });
         }
         @JavascriptInterface public void setBusy(boolean busy) { sessionBusy = busy; }
+
+        /** The rest timer's end, for when the screen is off (ms from now; 0 cancels). */
+        @JavascriptInterface public void restAlarm(double ms, String label) {
+            RestAlarm.set(getApplicationContext(), (long) ms, label);
+            if (ms > 0 && Build.VERSION.SDK_INT >= 33
+                    && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                    && !getSharedPreferences("asked", MODE_PRIVATE).getBoolean("notif", false)) {
+                getSharedPreferences("asked", MODE_PRIVATE).edit().putBoolean("notif", true).apply();
+                runOnUiThread(() -> requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 4));
+            }
+        }
+
+        /** Every coming to-do reminder ("when<TAB>id<TAB>text" lines); "" clears them. */
+        @JavascriptInterface public void todoAlarms(String lines) {
+            TodoAlarm.set(getApplicationContext(), lines);
+            if (lines != null && !lines.isEmpty() && Build.VERSION.SDK_INT >= 33
+                    && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                    && !getSharedPreferences("asked", MODE_PRIVATE).getBoolean("notif-todo", false)) {
+                getSharedPreferences("asked", MODE_PRIVATE).edit().putBoolean("notif-todo", true).apply();
+                runOnUiThread(() -> requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 5));
+            }
+        }
 
         /** hour/minute of the daily reminder; -1 turns it off. */
         @JavascriptInterface public void setReminder(int hour, int minute) {

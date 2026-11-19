@@ -7,3 +7,4 @@ tools/last-publish.txt
 __pycache__/
 voices/*/model.onnx
 voices/*/*.wav
+tools/last-task-error.txt

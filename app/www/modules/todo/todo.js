@@ -4,7 +4,16 @@
   var T = window.TodoCore, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   var store = WL.store('wl.todo.v1', T.defaults);
   var S = store.load(), view = null, showDone = false;
-  function save() { store.save(S); }
+  function save() { store.save(S); syncAlarms(); }
+  /* Task reminders as Android notifications (TodoAlarm), re-sent after every change and on start. */
+  var lastLines = null;
+  function syncAlarms() {
+    var n = WL.native; if (!n || !n.todoAlarms) return;
+    var lines = T.alarmLines(T.reminders(S), T.openTimed(S));
+    if (lines === lastLines) return;
+    lastLines = lines;
+    try { n.todoAlarms(lines); } catch (e) {}
+  }
 
   function fmtDue(d) {
     if (!d) return '';
@@ -22,7 +31,7 @@
     return '<li class="task' + (t.done ? ' is-done' : '') + '" data-id="' + esc(t.id) + '">' +
       '<button class="tick-box" data-tick="' + esc(t.id) + '" aria-label="' + (t.done ? 'Not done' : 'Done') + ': ' + esc(t.text) + '">' + (t.done ? '✓' : '') + '</button>' +
       '<span class="grow"><span class="task-text">' + esc(t.text) + '</span>' +
-      ((t.due || t.repeat) && !t.done ? '<span class="meta ui' + (overdue ? ' late' : '') + '"> ' + esc(fmtDue(t.due)) + (t.repeat ? ' ↻ ' + REP[t.repeat] : '') + '</span>' : '') + '</span>' +
+      ((t.due || t.repeat) && !t.done ? '<span class="meta ui' + (overdue ? ' late' : '') + '"> ' + esc(fmtDue(t.due)) + (t.at ? ' 🔔 ' + esc(T.fmtTime(t.at)) : '') + (t.repeat ? ' ↻ ' + REP[t.repeat] : '') + '</span>' : '') + '</span>' +
       '<button class="link small" data-more="' + esc(t.id) + '" aria-label="Options for ' + esc(t.text) + '">⋯</button></li>';
   }
 
@@ -35,7 +44,7 @@
     T.tidy(S); save();
     var g = T.groups(S), adv = T.advice(S);
     var h = '<h1>To do</h1><div class="card ui"><form id="td-form" class="row"><input type="text" id="td-new" class="grow" placeholder="Add a task (e.g. call Mom tomorrow)" autocomplete="off" aria-label="New task"><button class="primary" type="submit">Add</button></form>' +
-      '<p class="meta" style="margin:.5em 0 0">Ends like “today”, “tomorrow”, “fri”, “24/12” or “every day” set the date.</p></div>';
+      '<p class="meta" style="margin:.5em 0 0">Ends like “today”, “tomorrow”, “fri”, “24/12” or “every day” set the date; “at 3pm” adds a reminder.</p></div>';
     if (adv) h += '<p class="gentle ui">' + esc(adv) + (g.overdue.length ? ' <button class="link" id="td-move">Move overdue to today</button>' : '') + '</p>';
     h += '<div class="card">' + (list('Overdue', g.overdue, true) + list('Today', g.today) + list('Coming up', g.upcoming) + list('Any time', g.someday) || '<p class="meta ui">Nothing to do. ✨</p>') + '</div>';
     var wk = T.doneInLast(S, 7);
@@ -57,6 +66,9 @@
       '<div class="chips" style="margin-top:8px">' + [['', 'Once'], ['daily', 'Every day'], ['weekdays', 'Weekdays'], ['weekly', 'Every week']].map(function (o) {
         return '<button class="chip" data-rep="' + o[0] + '" aria-pressed="' + ((t.repeat || '') === o[0]) + '">' + o[1] + '</button>';
       }).join('') + '</div>' +
+      '<div class="row" style="margin-top:8px"><label for="td-time" class="meta">Remind me at</label><input type="time" id="td-time" value="' + esc(t.at || '') + '">' +
+      '<button class="link small" id="td-notime">No reminder</button>' +
+      (t.repeat ? '' : '<button class="chip" id="td-hour">In 1 hour</button>') + '</div>' +
       '<div class="row" style="margin-top:10px"><button class="primary" id="td-save">Save</button><button id="td-cancel">Cancel</button><span class="grow"></span><button class="link" id="td-del">Delete</button></div>';
     var li = $('li[data-id="' + t.id + '"]');
     (li || view).appendChild(d);
@@ -66,7 +78,16 @@
     $$('[data-rep]', d).forEach(function (b) { b.onclick = function () { rep = b.dataset.rep; $$('[data-rep]', d).forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
     $('#td-save').onclick = function () {
       var txt = $('#td-edit').value.trim(); if (!txt) return;
-      t.text = txt; t.due = due || (rep ? today : null); t.repeat = rep || null; save(); render();
+      var at = $('#td-time').value; at = /^\d\d:\d\d$/.test(at) ? at : null;
+      t.text = txt; t.due = due || (rep || at ? today : null); t.repeat = rep || null; t.at = at; save(); render();
+      if (at) WL.toast('Reminder at ' + T.fmtTime(at) + ', ' + fmtDue(t.due));
+    };
+    $('#td-notime').onclick = function () { $('#td-time').value = ''; };
+    var hr = $('#td-hour');
+    if (hr) hr.onclick = function () {  // saves at once: the quickest "not now, remind me soon"
+      var txt = $('#td-edit').value.trim(); if (txt) t.text = txt;
+      T.remindIn(S, t.id, 60); save(); render();
+      WL.toast('Reminder at ' + T.fmtTime(t.at) + ', ' + fmtDue(t.due));
     };
     $('#td-cancel').onclick = function () { d.remove(); };
     $('#td-del').onclick = function () {
@@ -81,7 +102,7 @@
       e.preventDefault();
       var inp = $('#td-new'), t = T.add(S, inp.value);
       if (!t) { inp.focus(); return; }
-      save(); render(); WL.toast(t.due ? 'Added for ' + fmtDue(t.due) : 'Added'); $('#td-new').focus();
+      save(); render(); WL.toast(t.due ? 'Added for ' + fmtDue(t.due) + (t.at ? ' at ' + T.fmtTime(t.at) + ' (reminder)' : '') : 'Added'); $('#td-new').focus();
     };
     $$('[data-tick]').forEach(function (b) {
       b.onclick = function () {
@@ -115,6 +136,7 @@
     route: function (parts, v) { view = v; render(); },
     card: card, wireCard: wireCard,
     validate: function (k, raw) { try { var s = T.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
-    reload: function () { S = store.load(); }
+    reload: function () { S = store.load(); syncAlarms(); }
   });
+  syncAlarms();
 })();
