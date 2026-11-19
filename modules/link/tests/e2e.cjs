@@ -143,6 +143,10 @@ const FAKE_PC = `
     assert.ok(txt.includes('7/10') && txt.includes('Offer a cold teether') && txt.includes('HealthyChildren'), txt.slice(0, 400));
     await page.goto(base + '#coach');
     assert.ok((await page.textContent('main')).includes('recent 7/10'));
+    assert.ok((await page.textContent('#co-tips')).includes('Name her feelings.'), 'this week\'s tip listed');
+    await page.goto(base + '#home');
+    assert.ok((await page.textContent('.home-card[data-module="coach"]')).includes('Try this week: Name her feelings.'), 'tip on Home');
+    await page.goto(base + '#coach');
     await page.waitForFunction(() => window.__fakepc().posts.some((p) => p.events.some((e) => e.part === 'coach')));
   });
   await t.step('a Claude request carries on after leaving the screen', async () => {

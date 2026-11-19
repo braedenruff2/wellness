@@ -68,4 +68,30 @@ t('validate: a damaged backup can not break it', () => {
   assert.strictEqual(v.history.length, 1);
   assert.strictEqual(v.history[0].result.score, 5);
 });
+t('tips: "Try this week" lines from the last 7 days, newest first, no repeats', () => {
+  const s = K.defaults(); s.child = { name: 'Kid', birth: '2025-11-24' };
+  const add = (day, practice, skill) => { K.setScenario(s, { scenario: 'x', skill: skill || 'Sleep' }, new Date(2026, 10, day)); K.grade(s, 'my answer', { score: 7, practice: practice }, new Date(2026, 10, day, 12)); };
+  add(10, 'Too old');
+  add(15, 'Name her feelings.', 'Connection');
+  add(16, '');
+  add(17, 'Same bedtime song');
+  add(18, 'name her feelings. ');
+  add(19, 'Pause before you answer');
+  const now = new Date(2026, 10, 19, 20);
+  assert.deepStrictEqual(K.tips(s, now).map((x) => x.text), ['Pause before you answer', 'name her feelings.', 'Same bedtime song']);
+  assert.deepStrictEqual(K.tips(s, now, 5).map((x) => x.text), ['Pause before you answer', 'name her feelings.', 'Same bedtime song']);
+  assert.strictEqual(K.tips(s, new Date(2026, 11, 30)).length, 0, 'all older than a week');
+  assert.strictEqual(K.tips(K.defaults(), now).length, 0);
+  K.addReal(s, 'She bites', { steps: ['a'] }, new Date(2026, 10, 19, 13));
+  assert.strictEqual(K.tips(s, now).length, 3, 'advice for a real situation has no "try this week" line');
+});
+t('validate keeps the scenario he was answering and his drafts', () => {
+  const s = K.defaults(); s.child = { name: 'Kid', birth: '2025-11-24' };
+  K.setScenario(s, { title: 'T', skill: 'Sleep', scenario: 'S' }, new Date(2026, 10, 19));
+  s.current.answer = 'half an answer'; s.realDraft = 'she bites';
+  const v = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.deepStrictEqual([v.current.scenario, v.current.answer, v.current.skill, v.realDraft], ['S', 'half an answer', 'Sleep', 'she bites']);
+  assert.strictEqual(K.validate({ history: [], current: { scenario: '  ' } }).current, null);
+  assert.strictEqual(K.validate({ history: [], current: 'x', realDraft: 5 }).realDraft, undefined);
+});
 console.log(n + ' coach tests passed');

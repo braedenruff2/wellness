@@ -67,6 +67,10 @@
         [''].concat(K.SKILLS).map(function (s) { return '<button class="chip" data-skill="' + esc(s) + '" aria-pressed="' + (pickSkill === s) + '">' + esc(s || 'Suggested') + '</button>'; }).join('') +
         '</div><div class="row" style="margin-top:10px"><button class="primary" id="co-new"' + (pc.ready() ? '' : ' disabled') + '>New scenario</button></div></div>';
     }
+    var tips = K.tips(S);
+    if (tips.length) h += '<div class="card ui" id="co-tips"><h3>This week, try</h3><ul class="list">' + tips.map(function (x) {
+      return '<li><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.text) + '</a><span class="meta">' + esc(x.skill) + '</span></li>';
+    }).join('') + '</ul></div>';
     if (!waiting) h += '<div class="card ui"><h3>Something happening with ' + esc(S.child.name || 'her') + '?</h3><p class="meta">Describe a real situation you’re dealing with: what she does, when, what you’ve tried. Claude checks current guidance for her age and gives you steps, words to say, and why.</p>' +
       '<label class="sr" for="co-real">Your situation</label><textarea id="co-real" rows="5" placeholder="e.g. She screams when I put her in the car seat, every time, since last week. I’ve tried…">' + esc(S.realDraft || '') + '</textarea>' +
       '<div class="row" style="margin-top:8px"><button class="primary" id="co-real-go"' + (pc.ready() ? '' : ' disabled') + '>Get advice</button></div></div>';
@@ -126,7 +130,7 @@
     err = null; waiting = { kind: 'grade', secs: 0 }; render([]);
     start('coach-grade', { child: S.child.name, age: c.age, scenario: c.scenario, question: c.question, answer: answer }, function (a) {
       var h = K.grade(S, answer, a); save();
-      if (here()) location.hash = '#coach/h/' + h.id;
+      if (h && here()) location.hash = '#coach/h/' + h.id;
       pc.sync().catch(function () {});
     });
   }
@@ -155,7 +159,7 @@
     waiting = { kind: p.task === 'coach-grade' ? 'grade' : p.task === 'coach-advice' ? 'real' : 'scenario', secs: Math.round((Date.now() - p.at) / 1000) };
     pc.poll(p.job, p.at, tick).then(function (a) {
       S.pending = null;
-      if (p.task === 'coach-grade') { var h = K.grade(S, p.answer, a); save(); if (here()) location.hash = '#coach/h/' + h.id; }
+      if (p.task === 'coach-grade') { var h = K.grade(S, p.answer, a); save(); if (h && here()) location.hash = '#coach/h/' + h.id; }
       else if (p.task === 'coach-advice') { var r = K.addReal(S, p.answer, a); S.realDraft = ''; save(); if (here()) location.hash = '#coach/h/' + r.id; }
       else { K.setScenario(S, a); save(); }
       finish();
@@ -167,6 +171,7 @@
     var st = K.skillStats(S).filter(function (s) { return s.n; }), last = S.history[S.history.length - 1];
     return '<div class="meta ui">Parenting practice</div><h3>' + (S.current ? esc(S.current.title) : waiting ? 'Claude is on it…' : 'Practise a moment with ' + esc(S.child.name || 'her')) + '</h3>' +
       (last && last.result && last.result.score != null ? '<p class="meta ui">Last: ' + last.result.score + '/10 in ' + esc(last.skill) + ' · ' + st.length + ' skill' + (st.length === 1 ? '' : 's') + ' practised</p>' : '') +
+      (function () { var t = K.tips(S, null, 1)[0]; return t && !S.current ? '<p class="ui" id="co-tip">Try this week: ' + esc(t.text) + '</p>' : ''; })() +
       '<div class="row ui"><a class="btn primary" href="#coach">' + (S.current ? 'Answer it' : 'Open') + '</a></div>';
   }
 

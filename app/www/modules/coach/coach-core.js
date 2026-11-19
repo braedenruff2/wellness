@@ -103,6 +103,19 @@
     return state.current;
   }
 
+  /* What to try this week: the "Try this week" lines from graded practice in the last 7 days (newest first, no
+     repeats, up to 3), so a tip from a scenario isn't forgotten once the next one comes. */
+  function tips(state, now, max) {
+    var t = (now || new Date()).getTime(), seen = {}, out = [];
+    for (var i = state.history.length - 1; i >= 0 && out.length < (max || 3); i--) {
+      var h = state.history[i], p = h.result && h.result.practice, at = new Date(h.at).getTime();
+      if (!p || !(t - at < 7 * 864e5) || at > t + 6e4) continue;
+      var key = p.trim().toLowerCase(); if (!key || seen[key]) continue;
+      seen[key] = 1; out.push({ text: p.trim(), skill: h.skill, id: h.id, at: h.at });
+    }
+    return out;
+  }
+
   /* The graded current scenario goes into the history. */
   function grade(state, answer, a, now) {
     var c = state.current; if (!c) return null;
@@ -126,11 +139,20 @@
         age: String(h.age || '').slice(0, 60), answer: String(h.answer || '').slice(0, 4000), result: h.result ? cleanResult(h.result) : null });
       if (h.kind === 'real' && h.advice) { var x = d.history[d.history.length - 1]; x.kind = 'real'; x.advice = cleanAdvice(h.advice); }
     });
+    // the scenario he was answering (and his half-written answers) survive a restore too
+    var c = s.current;
+    if (c && typeof c.scenario === 'string' && c.scenario.trim()) {
+      d.current = { id: String(c.id || newId()).slice(0, 40), at: isNaN(new Date(c.at).getTime()) ? new Date().toISOString() : new Date(c.at).toISOString(),
+        title: String(c.title || '').slice(0, 120), skill: SKILLS.indexOf(c.skill) >= 0 ? c.skill : 'Connection', scenario: c.scenario.slice(0, 3000),
+        question: String(c.question || 'What do you do and say?').slice(0, 400), age: String(c.age || '').slice(0, 60), answer: String(c.answer || '').slice(0, 4000) };
+      if (typeof c.from === 'string') d.current.from = c.from.slice(0, 40);
+    }
+    if (typeof s.realDraft === 'string') d.realDraft = s.realDraft.slice(0, 3000);
     return d;
   }
 
   var api = { SKILLS: SKILLS, defaults: defaults, ageMonths: ageMonths, ageText: ageText, skillStats: skillStats, suggestSkill: suggestSkill,
-    scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, practiseReal: practiseReal, cleanResult: cleanResult, validate: validate };
+    scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, practiseReal: practiseReal, tips: tips, cleanResult: cleanResult, validate: validate };
   root.CoachCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);
