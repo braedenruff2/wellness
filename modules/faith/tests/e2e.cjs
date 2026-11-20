@@ -202,6 +202,9 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     assert.strictEqual(await page.textContent('#pp'), 'Done');
     assert.strictEqual((await page.evaluate(() => window.__spoken)).length, 0);
     await page.goto(base + '#faith/pray');
+    // the finished practice gets a tick and a count for this week; one ended early (Lectio above) does not
+    assert.ok(/1\u00d7 this week/.test(await page.textContent('a[href="#faith/session/p/pause"] h3')), 'pause ticked');
+    assert.strictEqual(await page.$('a[href="#faith/session/p/lectio"] .done-week'), null);
     await page.click('#voice-toggle');
   });
 

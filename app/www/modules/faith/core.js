@@ -175,6 +175,19 @@
     return x;
   }
 
+  /* Practices played to the end this week (Monday 00:00 local onward): {practiceId: count}. */
+  function practicesThisWeek(state, when) {
+    var now = when || new Date(), out = {};
+    var ws = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7)).getTime();
+    (Array.isArray(state.sessions) ? state.sessions : []).forEach(function (x) {
+      if (!x || x.kind !== 'practice' || x.id == null) return;
+      var t = new Date(x.at).getTime();
+      if (isNaN(t) || t < ws || t > now.getTime()) return;
+      out[x.id] = (out[x.id] || 0) + 1;
+    });
+    return out;
+  }
+
   function addPrayer(state, text, when) {
     text = String(text == null ? '' : text).trim();
     if (!text) return null;
@@ -305,7 +318,7 @@
   var api = {
     defaults: defaults, makeStore: makeStore, isoDate: isoDate, currentDay: currentDay, finishDay: finishDay,
     unfinishDay: unfinishDay, walkAgain: walkAgain, earlierDayJournal: earlierDayJournal, daysShowedUp: daysShowedUp, finishedToday: finishedToday, doneInLast: doneInLast, addEntry: addEntry,
-    setDayJournal: setDayJournal, dayJournal: dayJournal, removeEntry: removeEntry, addPrayer: addPrayer, logSession: logSession,
+    setDayJournal: setDayJournal, dayJournal: dayJournal, removeEntry: removeEntry, addPrayer: addPrayer, logSession: logSession, practicesThisWeek: practicesThisWeek,
     lookBack: lookBack, soundsHeavy: soundsHeavy, scaleScript: scaleScript, scriptLength: scriptLength,
     wordsSeconds: wordsSeconds, dayScript: dayScript, Player: Player, exportData: exportData, importData: importData,
     themeFor: themeFor, nightHours: nightHours

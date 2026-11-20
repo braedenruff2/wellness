@@ -348,4 +348,23 @@ t('walk it again: day 1 again, old answers kept and shown as "last time", new an
   assert.deepStrictEqual(junk.pastRounds, [{ done: { 2: '2026-11-18' }, ended: null }]);
 });
 
+t('practicesThisWeek: counts finished practices since Monday, local time', () => {
+  const s = C.defaults();
+  assert.deepStrictEqual(C.practicesThisWeek(s, new Date(2026, 10, 20, 12)), {});
+  C.logSession(s, 'practice', 'examen', 'Examen', 5, new Date(2026, 10, 16, 0, 5));   // Monday just after midnight
+  C.logSession(s, 'practice', 'examen', 'Examen', 5, new Date(2026, 10, 19, 21));    // Thursday
+  C.logSession(s, 'practice', 'breath', 'Breath prayer', 2, new Date(2026, 10, 15, 23, 50)); // Sunday before: last week
+  C.logSession(s, 'day', 3, 'Day 3', 5, new Date(2026, 10, 18));                      // a day's prayer is not a practice
+  assert.deepStrictEqual(C.practicesThisWeek(s, new Date(2026, 10, 20, 12)), { examen: 2 });
+  // on Sunday the whole week still counts; next Monday starts fresh
+  assert.deepStrictEqual(C.practicesThisWeek(s, new Date(2026, 10, 22, 23)), { examen: 2 });
+  assert.deepStrictEqual(C.practicesThisWeek(s, new Date(2026, 10, 23, 8)), {});
+  // DST week (US clocks change 1 Nov 2026) and junk entries
+  const d = C.defaults();
+  C.logSession(d, 'practice', 'lectio', 'Lectio', 5, new Date(2026, 10, 2, 7));
+  d.sessions.push(null, { kind: 'practice', at: 'nope', id: 'x' }, { kind: 'practice', at: new Date(2026, 10, 3).toISOString() });
+  assert.deepStrictEqual(C.practicesThisWeek(d, new Date(2026, 10, 8, 22)), { lectio: 1 });
+  assert.deepStrictEqual(C.practicesThisWeek({}, new Date()), {});
+});
+
 console.log(n + ' unit tests passed');
