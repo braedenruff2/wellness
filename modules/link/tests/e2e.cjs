@@ -23,6 +23,7 @@ const FAKE_PC = `
         else if (op === 'pair') { if (b.replace(/[^A-Za-z0-9]/g, '').toUpperCase() !== 'ABCDEFGHJKMN') { ok = false; out = "wrong code (or that's not your PC)"; } else { pc.paired = true; out = '{"paired":true}'; } }
         else if (op === 'forget') { pc.paired = false; out = '{}'; }
         else if (op === 'post' && a === '/v1/activity') { var o = JSON.parse(b); pc.posts.push(o); out = JSON.stringify({ saved: o.events.length, got: o.events.length }); }
+        else if (op === 'post' && a === '/v1/ask' && window.__failAsk) { ok = false; out = 'could not reach the PC'; }
         else if (op === 'post' && a === '/v1/ask') { pc.asks.push(JSON.parse(b)); out = JSON.stringify({ job: 'j' + pc.asks.length }); }
         else if (op === 'get' && a.indexOf('/v1/job') === 0 && window.__failPoll) { window.__failPoll--; ok = false; out = 'could not reach the PC'; }
         else if (op === 'get' && a.indexOf('/v1/job') === 0) { var k = pc.asks[+a.split('=j')[1] - 1]; k.polls = (k.polls || 0) + 1; out = JSON.stringify(k.polls < 2 ? { state: 'running' } : { state: 'done', answer: ANSWERS[k.task] }); }
@@ -251,6 +252,15 @@ const FAKE_PC = `
     await page.waitForSelector('.home-card[data-module="link"] >> text=A steady week.');
     assert.strictEqual((await fake()).asks.length, n0 + 1, 'one job');
     assert.ok(!(await page.locator('.home-card[data-module="link"] [data-advice]').isDisabled()));
+  });
+  await t.step('parenting with the PC not answering: a plain note, tips and past practice still there', async () => {
+    await page.goto(base + '#coach');
+    await page.evaluate(() => { window.__failAsk = true; });
+    const skip = await page.$('#co-skip'); if (skip) await skip.click(); else await page.click('#co-new');
+    await page.waitForSelector('#co-offline');
+    assert.ok(/still work/.test(await page.textContent('#co-offline')));
+    assert.ok(/Past practice/.test(await page.textContent('#view')));
+    await page.evaluate(() => { window.__failAsk = false; });
   });
   await t.step('unpair needs two taps', async () => {
     await page.goto(base + '#link');

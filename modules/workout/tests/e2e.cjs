@@ -84,6 +84,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok((await page.textContent('main')).includes('Pushups'));
     const vol = await page.$('#wo-volume');
     assert.ok(vol, 'weekly sets shown after logging'); assert.ok(/legs \d+ \(\d+\) · push/.test(await vol.textContent()), 'weekly sets line');
+    assert.strictEqual(await page.locator('[data-me-fit][data-about="balance"]').count(), 1, '"Not for me?" on the balance line');
   });
   await t.step('switching to adjustable dumbbells changes the advice to adding weight', async () => {
     await page.goto(base + '#workout/settings');

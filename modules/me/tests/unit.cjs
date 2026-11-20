@@ -218,4 +218,11 @@ t('14-day trend from check-ins: levels by day, oldest first, gaps null', () => {
   assert.deepStrictEqual(tr.days[11], { date: '2026-11-18', sleep: 0, energy: 0, mood: null });
   assert.strictEqual(tr.n, 2);
 });
+t('broken nights (2+ wakes on 3 of the last 5 check-ins) get their own line', () => {
+  const s = K.defaults();
+  for (const d of [18, 19]) K.checkin(s, '2026-11-' + d, 'wakes', '3+');
+  assert.ok(!K.guidance(s, D(20), 9).some((g) => g.key === 'brokennights'));
+  K.checkin(s, '2026-11-20', 'wakes', '2');
+  assert.ok(K.guidance(s, D(20), 9).some((g) => g.key === 'brokennights' && /3 of the last 3/.test(g.text)));
+});
 console.log(n + ' me unit tests passed');

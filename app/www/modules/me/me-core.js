@@ -155,6 +155,8 @@
       var short = week.filter(function (c) { return c.sleep === 'Under 4 h' || c.sleep === '4–5 h'; }).length;
       if (short >= 3) out.push({ key: 'shortsleep', part: 'home', text: 'Short sleep on ' + short + ' of the last ' + week.length + ' nights. Protect one nap-time rest a day this week; it matters more than anything else here.' });
     }
+    var r5 = recentCheckins(state, now, 5), broken = r5.filter(function (c) { return c.wakes === '2' || c.wakes === '3+'; }).length;
+    if (broken >= 3 && !out.some(function (g) { return g.key === 'shortsleep'; })) out.push({ key: 'brokennights', part: 'home', text: 'Broken nights on ' + broken + ' of the last ' + r5.length + ' check-ins. On these days a nap beats a workout, and Calm’s “Back to sleep” helps after a night feed.' });
     var w = lastN(state, 'workout', 'after', 3);
     var lw = w[w.length - 1];
     if (lw && lw.a.pain === 'Yes, I stopped') out.push({ key: 'wpain', part: 'workout', text: 'Last workout you stopped for pain. Next time skip or lighten that exercise, and if it keeps hurting, ask a doctor or physio.' });

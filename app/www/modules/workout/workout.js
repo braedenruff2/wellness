@@ -178,7 +178,7 @@
     if (!adv) return '';
     return '<p class="meta" id="wo-volume" style="margin:.4em 0 0">Sets this week (last week): ' + W.AREAS.map(function (k) {
       return k + ' ' + v.thisWeek[k] + ' (' + v.lastWeek[k] + ')';
-    }).join(' · ') + '</p><p class="gentle" style="margin:.3em 0 0">' + esc(adv) + '</p>';
+    }).join(' · ') + '</p><p class="gentle" style="margin:.3em 0 0">' + esc(adv) + (window.WLMe ? ' ' + WLMe.fitLink('workout', 'balance', adv) : '') + '</p>';
   }
 
   function history() {

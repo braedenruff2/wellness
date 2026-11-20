@@ -197,6 +197,23 @@
         : new Date().getHours() >= 20 ? '<p class="meta">It’s evening: what’s left can wait. Tomorrow is fine.</p>'
         : n === 0 ? '<p class="meta">Do what fits today; on a hard day one of these is plenty.</p>' : '') + '</div>';
   }
+  /* A gentle backup nudge: everything lives only on the phone, so 14 days without a backup file earns one line in
+     Settings, and on Home at most one day a week. */
+  function backupDue(now) {
+    now = now || new Date();
+    if (!SH.since) { SH.since = now.toISOString(); shellStore.save(SH); }
+    var last = Date.parse(SH.lastBackup || SH.since);
+    return !(now.getTime() - last < 14 * 864e5);
+  }
+  function backupNudge(now) {
+    now = now || new Date();
+    if (!backupDue(now)) return '';
+    var today = isoDate(now);
+    if (SH.nudged && SH.nudged !== today && now.getTime() - Date.parse(SH.nudged) < 7 * 864e5) return '';
+    if (SH.nudged !== today) { SH.nudged = today; shellStore.save(SH); }
+    return '<div class="card ui" id="wl-backup"><p>' + (SH.lastBackup ? 'Your last backup was ' + Math.floor((now.getTime() - Date.parse(SH.lastBackup)) / 864e5) + ' days ago.' : 'You haven’t saved a backup yet.') +
+      ' Everything lives only on this phone. <a href="#settings">Save one in Settings</a>.</p></div>';
+  }
   /* Sunday from noon: one plain line about the week across parts (no streaks, no scores). */
   function weekCard(now) {
     now = now || new Date();
@@ -210,7 +227,7 @@
 
   function home() {
     var h = '<div class="meta ui">' + esc(greeting()) + ' · ' + esc(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>' +
-      '<h1>Today</h1>' + todayList() + weekCard();
+      '<h1>Today</h1>' + todayList() + weekCard() + backupNudge();
     order.forEach(function (id) {
       var m = modules[id];
       if (!m.card) return;
@@ -233,7 +250,8 @@
     order.forEach(function (id) { var m = modules[id]; if (m.settingsLink) h += '<p class="ui"><a href="' + m.settingsLink + '">' + esc(m.title) + ' settings</a></p>'; });
     h += voiceHtml();
     h += updateHtml();
-    h += '<div class="card ui"><h3>Backup</h3><p class="meta">Everything lives only on this phone. Save a backup file now and then (all parts of the app in one file).</p>' +
+    h += '<div class="card ui"><h3>Backup</h3><p class="meta">Everything lives only on this phone. Save a backup file now and then (all parts of the app in one file).' +
+      (SH.lastBackup ? ' Last saved ' + esc(new Date(SH.lastBackup).toLocaleDateString()) + '.' : '') + (backupDue() ? ' <b>It’s been a while: save one now.</b>' : '') + '</p>' +
       '<div class="row"><button id="wl-export">Save a backup</button><label class="btn" for="wl-import">Restore a backup</label><input type="file" id="wl-import" accept=".json,application/json" class="sr"></div></div>';
     return h;
   }
@@ -353,7 +371,7 @@
     });
     wireUpdate(); wireVoice();
     var ld = $('#wl-logday'); if (ld) ld.onchange = function () { setLogDay(ld.value || null); toast(ld.value ? 'Logging for ' + dayLabel(ld.value) : 'Logging for today'); };
-    var ex = $('#wl-export'); if (ex) ex.onclick = function () { saveFile('wellness-backup-' + isoDate() + '.json', backupText()); };
+    var ex = $('#wl-export'); if (ex) ex.onclick = function () { saveFile('wellness-backup-' + isoDate() + '.json', backupText()); SH.lastBackup = new Date().toISOString(); shellStore.save(SH); };
     var im = $('#wl-import');
     if (im) im.onchange = function () {
       var f = im.files && im.files[0]; if (!f) return;
