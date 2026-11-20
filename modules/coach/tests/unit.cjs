@@ -17,7 +17,10 @@ t('age in words', () => {
   assert.strictEqual(K.ageText(b, new Date(2025, 11, 24)), '1 month old');
   assert.strictEqual(K.ageText('2026-12-25', new Date(2026, 10, 19)), '', 'not born yet');
   assert.strictEqual(K.ageText('', new Date()), '');
-  assert.strictEqual(K.ageMonths('2024-01-31', new Date(2024, 1, 29)), 0, 'end of month');
+  assert.strictEqual(K.ageMonths('2024-01-31', new Date(2024, 1, 28)), 0, 'not yet');
+  assert.strictEqual(K.ageMonths('2024-01-31', new Date(2024, 1, 29)), 1, 'born on the 31st: a month old on the last day of February');
+  assert.strictEqual(K.ageMonths('2025-10-31', new Date(2026, 10, 30)), 13, 'end of a 30-day month');
+  assert.strictEqual(K.ageText('2024-02-29', new Date(2026, 1, 28)), K.ageText('2024-02-29', new Date(2026, 2, 1)), '29 Feb birthday: 2 on 28 Feb');
 });
 
 t('scenario, grade, skills and what to practise next', () => {
@@ -93,5 +96,13 @@ t('validate keeps the scenario he was answering and his drafts', () => {
   assert.deepStrictEqual([v.current.scenario, v.current.answer, v.current.skill, v.realDraft], ['S', 'half an answer', 'Sleep', 'she bites']);
   assert.strictEqual(K.validate({ history: [], current: { scenario: '  ' } }).current, null);
   assert.strictEqual(K.validate({ history: [], current: 'x', realDraft: 5 }).realDraft, undefined);
+});
+t('a grade that comes back after he moved on is saved for the scenario he answered', () => {
+  const s = K.defaults(); s.child.birth = '2025-06-10';
+  K.setScenario(s, { title: 'X', skill: 'Crying and comfort', scenario: 'scenario X text here', question: 'What do you do?' });
+  const x = s.current;
+  K.setScenario(s, { title: 'Y', skill: 'Sleep', scenario: 'scenario Y text here', question: 'What do you do?' });
+  const h = K.grade(s, 'my answer to X, long enough', { score: 7, verdict: 'ok' }, null, x);
+  assert.strictEqual(h.title, 'X'); assert.strictEqual(s.current.title, 'Y', 'the new scenario stays');
 });
 console.log(n + ' coach tests passed');

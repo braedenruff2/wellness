@@ -131,7 +131,7 @@
     var c = S.current; c.answer = answer; save();
     err = null; waiting = { kind: 'grade', secs: 0 }; render([]);
     start('coach-grade', { child: S.child.name, age: c.age, scenario: c.scenario, question: c.question, answer: answer }, function (a) {
-      var h = K.grade(S, answer, a); save();
+      var h = K.grade(S, answer, a, null, c); save();
       if (h && here()) location.hash = '#coach/h/' + h.id;
       pc.sync().catch(function () {});
     });
@@ -149,10 +149,13 @@
   /* Starts a Claude request; its job id is saved so leaving the app and coming back carries on waiting for it. */
   function start(task, input, onAnswer) {
     pc.post('/v1/ask', { task: task, input: input }).then(function (r) {
-      S.pending = { job: r.job, task: task, at: Date.now(), answer: input.answer || input.situation || '' }; save();
+      S.pending = { job: r.job, task: task, at: Date.now(), answer: input.answer || input.situation || '' };
+      if (task === 'coach-grade' && S.current) S.pending.scn = JSON.parse(JSON.stringify(S.current)); // graded against this one
+      save();
       return pc.poll(r.job, Date.now(), tick);
-    }).then(function (a) { S.pending = null; onAnswer(a); save(); finish(); },
-      function (e) { S.pending = null; save(); err = e.message || String(e); finish(); });
+    }).then(function (a) { S.pending = null; onAnswer(a); save(); })
+      // an answer Claude sent as prose (onAnswer throws) ends the wait with a message instead of a spinner forever
+      .then(finish, function (e) { S.pending = null; save(); err = e.message || String(e); finish(); });
   }
   function resume() {
     var p = S.pending;
@@ -161,11 +164,10 @@
     waiting = { kind: p.task === 'coach-grade' ? 'grade' : p.task === 'coach-advice' ? 'real' : 'scenario', secs: Math.round((Date.now() - p.at) / 1000) };
     pc.poll(p.job, p.at, tick).then(function (a) {
       S.pending = null;
-      if (p.task === 'coach-grade') { var h = K.grade(S, p.answer, a); save(); if (h && here()) location.hash = '#coach/h/' + h.id; }
+      if (p.task === 'coach-grade') { var h = K.grade(S, p.answer, a, null, p.scn || null); save(); if (h && here()) location.hash = '#coach/h/' + h.id; }
       else if (p.task === 'coach-advice') { var r = K.addReal(S, p.answer, a); S.realDraft = ''; save(); if (here()) location.hash = '#coach/h/' + r.id; }
       else { K.setScenario(S, a); save(); }
-      finish();
-    }, function (e) { S.pending = null; save(); err = e.message; finish(); });
+    }).then(finish, function (e) { S.pending = null; save(); err = e.message || String(e); finish(); });
   }
 
   function card() {

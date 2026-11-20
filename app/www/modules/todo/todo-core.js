@@ -20,7 +20,7 @@
     var h, mi;
     if (m[1]) { h = 12; mi = 0; }
     else if (m[2]) { h = +m[2]; mi = +(m[3] || 0); if (h < 1 || h > 12) return null; h = h % 12 + (m[4].toLowerCase() === 'p' ? 12 : 0); }
-    else { h = +m[5]; mi = +(m[6] || 0); if (h > 23) return null; if (!m[6] && h >= 1 && h <= 6) h += 12; }
+    else { h = +m[5]; mi = +(m[6] || 0); if (h > 23) return null; if (m[5].length === 1 && h >= 1 && h <= 6) h += 12; } // "at 2" / "at 2:30" = afternoon; "at 02:30" = night
     if (mi > 59) return null;
     var rest = t.slice(0, m.index);
     if (/^\s*at\s*$/i.test(rest)) return null;
@@ -82,12 +82,13 @@
   }
 
   /* Ticking a repeating task logs it as done and moves the task to its next date. */
-  function complete(state, taskId, now) {
+  /* day: which occurrence was done (Done on a notification after midnight is still the day it rang for). */
+  function complete(state, taskId, now, day) {
     now = now || new Date();
     var t = find(state, taskId); if (!t) return null;
     if (t.repeat) {
       state.tasks.push({ id: id(now), text: t.text, due: t.due, done: now.toISOString(), created: t.created, repeat: null, fromRepeat: t.id });
-      t.due = nextDue(t, iso(now));
+      t.due = nextDue(t, day || iso(now));
       return t;
     }
     t.done = now.toISOString();
@@ -106,7 +107,7 @@
       // a repeating task: only the occurrence that notification was for (Done on yesterday's reminder, already ticked
       // in the app, must not tick today's)
       if (t.repeat && t.due && t.due > day) return;
-      complete(state, t.id, at); out.push(t);
+      complete(state, t.id, at, day); out.push(t);
     });
     return out;
   }
@@ -165,7 +166,9 @@
     var t0 = now.getTime(), end = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() + days)), out = [];
     state.tasks.forEach(function (t) {
       if (t.done || !t.at || !t.due) return;
-      var d = t.due, guard = 0;
+      var d = t.due, guard = 0, today = iso(now), skip = 0;
+      // a repeating task left unticked for weeks: walk past the old days first, or the 40 steps run out on them
+      while (t.repeat && d < today && skip++ < 5000) { var n0 = nextDue({ due: d, repeat: t.repeat }, d); if (!n0 || n0 <= d) break; d = n0; }
       while (d <= end && guard++ < 40) {
         var w = when(d, t.at);
         if (w > t0) out.push({ id: t.id + '@' + d, when: w, text: t.text });

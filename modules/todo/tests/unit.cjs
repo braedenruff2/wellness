@@ -183,4 +183,25 @@ t('Done on yesterday\'s reminder of a daily task (already ticked in the app) doe
   assert.strictEqual(T.applyTicked(s, tap + '\t' + x.id + '\t2026-11-18').length, 0, 'yesterday\'s notification');
   assert.strictEqual(T.applyTicked(s, tap + '\t' + x.id + '\t2026-11-19').length, 1, 'today\'s notification ticks today');
 });
+t('times: "at 2:30" is afternoon like "at 2"; "at 02:30" stays night', () => {
+  assert.strictEqual(T.quickParse('nap at 2:30', wed).at, '14:30');
+  assert.strictEqual(T.quickParse('nap at 3.15', wed).at, '15:15');
+  assert.strictEqual(T.quickParse('feed at 02:30', wed).at, '02:30');
+  assert.strictEqual(T.quickParse('meds at 2', wed).at, '14:00');
+});
+
+t('Done on a reminder after midnight: the next date counts from the day it rang for', () => {
+  const s = T.defaults();
+  const m = T.add(s, 'meds every day at 11pm', { due: '2026-11-16' }, new Date(2026, 10, 16, 9));
+  T.applyTicked(s, new Date(2026, 10, 17, 0, 15).getTime() + '\t' + m.id + '\t2026-11-16');
+  assert.strictEqual(m.due, '2026-11-17', 'Tuesday still due (was moved to Wednesday)');
+});
+
+t('a daily reminder left unticked for weeks keeps ringing', () => {
+  const s = T.defaults();
+  T.add(s, 'vitamins every day at 9pm', { due: '2026-10-01' }, new Date(2026, 9, 1, 9));
+  const r = T.reminders(s, new Date(2026, 10, 20, 12), 8);
+  assert.ok(r.length >= 8, r.length + ' reminders (was 0 after ~45 days)');
+  assert.ok(r[0].id.endsWith('@2026-11-20'), r[0].id);
+});
 console.log(n + ' to-do unit tests passed');

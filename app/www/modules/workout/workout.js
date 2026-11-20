@@ -117,7 +117,8 @@
       var idx = +card.dataset.i, val = card.querySelector('.val');
       $$('.step', card).forEach(function (b) { b.onclick = function () { val.value = Math.max(0, (+val.value || 0) + +b.dataset.d); }; });
       var lb = card.querySelector('.logbtn');
-      if (lb) lb.onclick = function () {
+      if (lb) lb.onclick = function (ev) {
+        if (ev && ev.detail > 1) return; // the second tap of a double-tap would log the next set too
         var v = +val.value; if (!(v > 0)) { val.focus(); return; }
         var day = W.openSession(S, now()) ? W.openSession(S, now()).day : (dayChoice || W.nextDay(S, now()));
         var wt = card.querySelector('.wt');

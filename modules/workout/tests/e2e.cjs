@@ -36,6 +36,13 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#wo-undo');
     assert.strictEqual(await page.locator('.sc.on').count(), 1);
   });
+  await t.step('a double-tap on Log set logs one set', async () => {
+    const n = await page.locator('#ex-0 .sc.on').count();
+    await page.locator('#ex-0 .logbtn').dblclick();
+    assert.strictEqual(await page.locator('#ex-0 .sc.on').count(), n + 1);
+    await page.click('#wo-undo');
+    assert.strictEqual(await page.locator('#ex-0 .sc.on').count(), n);
+  });
   await t.step('tap a logged set to fix a mistyped number', async () => {
     await page.click('#ex-0 [data-edit="0"]');
     await page.fill('#ex-0 .ed-val', '11'); await page.click('#ex-0 .ed-save');

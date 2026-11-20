@@ -83,12 +83,13 @@
   /* The workout in progress for now's day: not finished, and started that day (or, past midnight, sets within the
      last 6 hours). It stays open however long the gaps are (a set, the baby, another set hours later) until
      "Finish workout". (It used to close after 45 min without a set, cutting a workout in two.) */
-  function openSession(state, now) {
+  function openSession(state, now, withEmpty) {
     now = now || new Date();
     var day = iso(now), t = now.getTime();
     for (var i = state.sessions.length - 1; i >= 0; i--) {
       var s = state.sessions[i];
       if (s.end) continue;
+      if (!s.sets.length && !withEmpty) continue; // every set undone or removed: not a workout in progress (the day can be changed again)
       if (s.date === day) return s;
       var lastAt = s.sets.length ? new Date(s.sets[s.sets.length - 1].at).getTime() : new Date(s.start).getTime();
       if (s.date < day && t >= lastAt && t - lastAt < LATE_HOURS * 3600e3) return s;
@@ -123,8 +124,9 @@
     if (open) return open;
     closeStale(state, now);
     var s = { id: newId(now), date: iso(now), day: day, start: now.toISOString(), end: null, sets: [] };
-    // an empty session left behind is replaced
-    state.sessions = state.sessions.filter(function (x) { return x.sets.length || x.end; });
+    // an empty session left behind is replaced (one with removed sets is kept, closed, so the PC still hears of them)
+    state.sessions = state.sessions.filter(function (x) { return x.sets.length || x.end || (x.removed && x.removed.length); });
+    state.sessions.forEach(function (x) { if (!x.sets.length && !x.end) x.end = x.start; });
     // kept in date order (a session logged for an earlier day goes before later ones)
     var k = state.sessions.length;
     while (k > 0 && state.sessions[k - 1].start > s.start) k--;
@@ -136,9 +138,9 @@
   function lastUnfinished(state) { for (var i = state.sessions.length - 1; i >= 0; i--) if (!state.sessions[i].end) return state.sessions[i]; return null; }
 
   function endSession(state, now) {
-    var s = now ? openSession(state, now) : lastUnfinished(state);
+    var s = now ? openSession(state, now, true) : lastUnfinished(state);
     if (!s) return;
-    if (!s.sets.length) state.sessions.splice(state.sessions.indexOf(s), 1);
+    if (!s.sets.length) { if (s.removed && s.removed.length) s.end = s.start; else state.sessions.splice(state.sessions.indexOf(s), 1); }
     else s.end = (now || new Date()).toISOString();
   }
 

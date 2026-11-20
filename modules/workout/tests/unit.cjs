@@ -202,4 +202,15 @@ t('today line for Home: done, planned rest, in progress, next', () => {
   W.logSet(s, 'C', 0, 12, 10, d(20)); W.endSession(s, d(20, 9, 30));
   assert.ok(W.today(s, d(22)).done && /3 this week/.test(W.today(s, d(22)).text), 'three done: Sunday is rest');
 });
+t('every set undone: no workout "in progress", the day can change, removed sets still reach the PC', () => {
+  const s = W.defaults();
+  W.logSet(s, 'A', 0, 12, 10, at(18, 9)); W.undoSet(s, at(18, 9, 1));
+  assert.strictEqual(W.openSession(s, at(18, 9, 2)), null);
+  assert.ok(!/in progress/.test(W.today(s, at(18, 9, 2)).text));
+  W.logSet(s, 'B', 0, 10, 10, at(18, 9, 5));
+  assert.strictEqual(W.openSession(s, at(18, 9, 6)).day, 'B', 'switched to B');
+  const s2 = W.defaults(); W.logSet(s2, 'A', 0, 12, 10, at(18, 9)); W.editSet(s2, 0, 0, 0, null, at(18, 9, 1));
+  W.endSession(s2, at(18, 9, 2));
+  assert.ok(s2.sessions.some((x) => x.removed && x.removed.length), 'kept (closed) for the PC');
+});
 console.log(n + ' workout unit tests passed');

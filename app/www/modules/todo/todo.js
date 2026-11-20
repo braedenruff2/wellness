@@ -98,6 +98,10 @@
     $('#td-edit').focus();
   }
 
+  // after a tick the list redraws and the next task's box lands under the finger: the second tap of a double-tap
+  // (click detail 2+) must not tick it too
+  function secondTap(e) { return !!(e && e.detail > 1); }
+
   function wire() {
     $('#td-form').onsubmit = function (e) {
       e.preventDefault();
@@ -106,7 +110,8 @@
       save(); render(); WL.toast(t.due ? 'Added for ' + fmtDue(t.due) + (t.at ? ' at ' + T.fmtTime(t.at) + ' (reminder)' : '') : 'Added'); $('#td-new').focus();
     };
     $$('[data-tick]').forEach(function (b) {
-      b.onclick = function () {
+      b.onclick = function (e) {
+        if (secondTap(e)) return;
         var t = T.find(S, b.dataset.tick); if (!t) return;
         if (t.done) T.uncomplete(S, t.id); else { T.complete(S, t.id, logNow()); if (t.repeat) WL.toast('Done. Next: ' + fmtDue(t.due)); }
         save(); render();
@@ -127,7 +132,7 @@
     return h + '<div class="row ui"><a class="btn" href="#todo">Open the list</a></div>';
   }
   function wireCard(el) {
-    $$('[data-tick]', el).forEach(function (b) { b.onclick = function () { T.complete(S, b.dataset.tick, logNow()); save(); WL.route(); }; });
+    $$('[data-tick]', el).forEach(function (b) { b.onclick = function (e) { if (secondTap(e)) return; T.complete(S, b.dataset.tick, logNow()); save(); WL.route(); }; });
     $$('[data-more]', el).forEach(function (b) { b.style.display = 'none'; });
   }
 

@@ -14,7 +14,9 @@
     var b = parse(birth); if (!b || isNaN(b)) return null;
     now = now || new Date();
     var m = (now.getFullYear() - b.getFullYear()) * 12 + now.getMonth() - b.getMonth();
-    if (now.getDate() < b.getDate()) m--;
+    // born on the 31st (or 29 Feb): the month counts on the last day of a shorter month
+    var lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    if (now.getDate() < b.getDate() && now.getDate() !== lastDay) m--;
     return m;
   }
   function ageText(birth, now) {
@@ -117,13 +119,15 @@
   }
 
   /* The graded current scenario goes into the history. */
-  function grade(state, answer, a, now) {
-    var c = state.current; if (!c) return null;
+  /* scn: the scenario that was answered (the request may come back after he moved on to another one). */
+  function grade(state, answer, a, now, scn) {
+    var c = scn || state.current; if (!c) return null;
     var h = { id: c.id, at: (now || new Date()).toISOString(), title: c.title, skill: c.skill, scenario: c.scenario, question: c.question, age: c.age,
       answer: String(answer).slice(0, 4000), result: cleanResult(a || {}) };
     state.history.push(h);
     if (state.history.length > 300) state.history.splice(0, state.history.length - 300);
-    state.current = null; state.pending = null;
+    if (state.current && state.current.id === c.id) state.current = null;
+    state.pending = null;
     return h;
   }
 

@@ -49,6 +49,14 @@ const W = require('../../../tests/lib/web.cjs');
     await page.fill('#td-new', 'a'); await page.press('#td-new', 'Enter');
     await page.fill('#td-new', 'b yesterday-ish'); await page.press('#td-new', 'Enter');
   });
+  await t.step('a double-tap on a tick ticks only that task (the next one moves under the finger)', async () => {
+    await page.goto(base + '#todo');
+    for (const x of ['aaa task today', 'bbb task today']) { await page.fill('#td-new', x); await page.press('#td-new', 'Enter'); }
+    const open = () => page.evaluate(() => JSON.parse(localStorage.getItem('wl.todo.v1')).tasks.filter((t) => !t.done && /^(aaa|bbb)/.test(t.text)).length);
+    assert.strictEqual(await open(), 2);
+    await page.locator('li', { hasText: 'aaa task' }).locator('[data-tick]').dblclick();
+    assert.strictEqual(await open(), 1, 'one ticked, not two');
+  });
   await t.step('no overflow, no console errors', async () => {
     await t.noOverflow(['#todo', '#home']);
     assert.deepStrictEqual(t.errors, []);
