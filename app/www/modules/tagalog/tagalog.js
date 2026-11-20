@@ -271,6 +271,7 @@
   WL.register({
     id: 'tagalog', title: 'Tagalog', short: 'Tagalog', icon: '💬', nav: true, storageKeys: [store.key], settingsLink: '#tagalog/settings',
     route: route, card: card,
+    week: function () { var st = T.stats(S); return st.weekLessons ? st.weekLessons + ' Tagalog lesson' + (st.weekLessons === 1 ? '' : 's') : ''; },
     today: function () {
       var d = T.iso(new Date()), lessonToday = Object.keys(S.done).some(function (k) { return T.iso(new Date(S.done[k])) === d; });
       var st = T.stats(S), nx = T.nextLesson(S, packs());

@@ -159,6 +159,16 @@
     h += WL.pc && WL.pc.ready() ? '<button id="me-plan"' + (planBusy ? ' disabled' : '') + '>' + (planBusy ? 'Claude is on it…' : (S.plan ? 'Make a new plan now' : 'Make this week’s plan')) + '</button>'
       : '<p class="meta">The weekly plan needs the PC link (Settings › PC link).</p>';
     h += '</div>';
+    var tr = K.trend(S, new Date(), 14);
+    if (tr.n >= 2) {
+      // one small bar per day (no check-in: a dot); taller = more sleep / better
+      var bars = function (k, max) { return tr.days.map(function (x) { var v = x[k]; return v == null ? '<span class="tb none" title="' + esc(x.date) + '">·</span>' : '<span class="tb" style="height:' + Math.round(20 + 80 * v / max) + '%" title="' + esc(x.date) + '"></span>'; }).join(''); };
+      h += '<div class="card ui" id="me-trend"><h3>Last 14 days</h3>' +
+        '<div class="trow"><span class="tl">Sleep</span><span class="tbars">' + bars('sleep', 4) + '</span></div>' +
+        '<div class="trow"><span class="tl">Energy</span><span class="tbars">' + bars('energy', 2) + '</span></div>' +
+        '<div class="trow"><span class="tl">Mood</span><span class="tbars">' + bars('mood', 2) + '</span></div>' +
+        '<p class="meta">Oldest on the left, today on the right. Taller is more sleep, more energy, better mood.</p></div>';
+    }
     var days = K.recentCheckins(S, new Date(), 7);
     if (days.length) h += '<div class="card ui"><h3>Last 7 check-ins</h3><ul class="me-g">' + Object.keys(S.checkins).sort().reverse().slice(0, 7).map(function (d) {
       var c = S.checkins[d]; return '<li><b>' + esc(d) + '</b> ' + esc(K.CHECKIN.map(function (q) { return c[q.k] ? q.q.split(' ')[0] + ': ' + c[q.k] : ''; }).filter(Boolean).join(' · ')) + (c.note ? ' — ' + esc(c.note) : '') + '</li>';

@@ -193,13 +193,24 @@
     return '<div class="card ui" id="wl-today"><div class="row"><b class="grow">' + (n === items.length ? 'All done for today ✓' : n + ' of ' + items.length + ' done today') + '</b></div>' +
       '<ul class="today-list">' + items.map(function (t) {
         return '<li' + (t.done ? ' class="done"' : '') + '><a href="' + esc(t.href || '#home') + '"><span class="tk" aria-hidden="true">' + (t.done ? '✓' : '○') + '</span> ' + esc(t.label) + '</a></li>';
-      }).join('') + '</ul>' + (n === items.length ? '<p class="meta">Nothing else you need to do. Anything more is a bonus.</p>' : n === 0 ? '<p class="meta">Do what fits today; on a hard day one of these is plenty.</p>' : '') + '</div>';
+      }).join('') + '</ul>' + (n === items.length ? '<p class="meta">Nothing else you need to do. Anything more is a bonus.</p>'
+        : new Date().getHours() >= 20 ? '<p class="meta">It’s evening: what’s left can wait. Tomorrow is fine.</p>'
+        : n === 0 ? '<p class="meta">Do what fits today; on a hard day one of these is plenty.</p>' : '') + '</div>';
+  }
+  /* Sunday from noon: one plain line about the week across parts (no streaks, no scores). */
+  function weekCard(now) {
+    now = now || new Date();
+    if (now.getDay() !== 0 || now.getHours() < 12) return '';
+    var bits = [];
+    order.forEach(function (id) { var m = modules[id]; if (!m.week) return; try { var w = m.week(); if (w) bits.push(w); } catch (e) {} });
+    return '<div class="card ui" id="wl-week"><b>Your week</b><p>' + (bits.length ? esc(bits.join(', ')) + '.' : 'A quiet week in the app. That’s allowed; looking after her counts most.') + '</p>' +
+      '<p class="meta">Whatever this week held, a new one starts tomorrow.</p></div>';
   }
   function refreshToday() { var el = document.getElementById('wl-today'); if (el) el.outerHTML = todayList(); }
 
   function home() {
     var h = '<div class="meta ui">' + esc(greeting()) + ' · ' + esc(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>' +
-      '<h1>Today</h1>' + todayList();
+      '<h1>Today</h1>' + todayList() + weekCard();
     order.forEach(function (id) {
       var m = modules[id];
       if (!m.card) return;

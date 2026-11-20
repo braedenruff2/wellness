@@ -38,6 +38,16 @@ const W = require('./lib/web.cjs');
     await page.goto(base + '#home'); await page.waitForSelector('#wl-today');
     assert.ok(/To do: call the clinic/.test(await page.textContent('#wl-today')), await page.textContent('#wl-today'));
     await page.click('#wl-today a[href^="#faith"]'); await page.waitForSelector('.subnav');
+    // in the evening what's left isn't nagging
+    await page.clock.setSystemTime(new Date(new Date().setHours(21, 0, 0, 0))); await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#wl-today');
+    assert.ok(/Tomorrow is fine/.test(await page.textContent('#wl-today')), await page.textContent('#wl-today'));
+  });
+  await t.step('Sunday afternoon: a plain "Your week" line across parts; not on other days', async () => {
+    await page.goto(base + '#home'); await page.waitForSelector('#wl-today');
+    assert.strictEqual(await page.$('#wl-week'), null, 'not on a Friday');
+    await page.clock.setSystemTime(new Date(2026, 10, 22, 15, 0)); await page.reload(); await page.waitForSelector('#wl-today');
+    const w = await page.textContent('#wl-week');
+    assert.ok(/Your week/.test(w) && /day of calm|days of calm/.test(w), w);
   });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('shell browser');

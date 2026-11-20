@@ -67,6 +67,7 @@ const Wb = require('../../../tests/lib/web.cjs');
   await t.step('About you page lists check-ins, flags and the plan state; activity log carries it all', async () => {
     await page.goto(base + '#me');
     const txt = await page.textContent('#view');
+    assert.ok(!(await page.$('#me-trend')) || (await page.locator('#me-trend .tb').count()) === 42, 'trend: 3 rows of 14 days');
     assert.ok(/Last 7 check-ins/.test(txt) && /teething/.test(txt) && /not for me/.test(txt) && /PC link/.test(txt), txt);
     const ev = await page.evaluate(() => window.WLActivity.collect({ 'wl.me.v1': JSON.parse(localStorage.getItem('wl.me.v1')) }, {}, new Date()));
     assert.ok(ev.some((e) => e.part === 'checkin') && ev.some((e) => e.kind === 'feedback' && e.part === 'workout') && ev.some((e) => e.kind === 'not-for-me'));

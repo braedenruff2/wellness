@@ -35,11 +35,17 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 8. Code health: dead code and duplicated date helpers (iso/addDays in several cores); keep behaviour identical (tests).
 9. More guidance rules in me-core guidance() from combinations (e.g. short sleep + workout planned -> lighter workout),
    each with a stable key and unit test.
-10. Home: after 8 pm, unfinished today-list items get a gentle line ("Tomorrow is fine.") instead of looking undone;
+10. (done 20 Nov 07:15) Home: after 8 pm, unfinished today-list items get a gentle line ("Tomorrow is fine.") instead of looking undone;
     test with the fake clock.
-11. Home: on Sunday evening, a short "Your week" card across parts (faith days, calm sessions, workouts, Tagalog
+11. (done 20 Nov 07:25: Sunday from noon, module week()) Home: on Sunday evening, a short "Your week" card across parts (faith days, calm sessions, workouts, Tagalog
     lessons, to-dos done), no streaks or scores; tests.
-12. #me page: a simple 14-day trend of sleep and mood from check-ins (text or inline SVG bars, dark-mode safe); tests.
+12. (done 20 Nov 07:20) #me page: a simple 14-day trend of sleep and mood from check-ins (text or inline SVG bars, dark-mode safe); tests.
 13. Faith practices (#faith/pray): wording variants like dayScript's DAY_LINES for the guiding lines (Scripture exact).
-14. Workout: show the "light on <area>" line on the Move screen too (Fri-Sun), with "Not for me?"; tests.
+14. (Move screen already shows volumeAdvice) Workout: add "Not for me?" to that balance line; tests.
+15. Parenting (coach): when the PC link isn't reachable, keep the screen useful: last tips and past advice with a plain
+    "your PC isn't answering; these still work" note, retry button; tests (link e2e fake PC can fail).
+16. Backup nudge: if no backup file was saved in 14 days (shell tracks the last save), one gentle line in Settings and
+    once a week on Home; tests with the fake clock.
+17. Calm: "Box breathing" and "Slow breathing" pacers: optional soft tick sound on each phase change (setting, off by
+    default); tests that the setting persists and restores.
 

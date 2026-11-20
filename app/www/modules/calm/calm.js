@@ -186,6 +186,7 @@
   WL.register({
     id: 'calm', title: 'Calm', short: 'Calm', icon: '○', nav: true, storageKeys: [store.key],
     route: route, leave: leave, card: card,
+    week: function () { var st = K.stats(S); return st.weekDays ? st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') + ' of calm (' + st.weekMins + ' min)' : ''; },
     today: function () { var t = K.today(S); if (t.done) return { label: 'Calm: done', done: true, href: '#calm' }; var sug = practice(K.suggest(S, null, sopts())); return { label: 'Calm: ' + sug.title.toLowerCase() + ' (' + mins(sug) + ' min)', done: false, href: '#calm/s/' + sug.id }; },
     pause: function () { var b = $('#c-pp'); if (b && b.dataset.state === 'playing') b.click(); },
     validate: function (k, raw) { try { var s = K.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },

@@ -254,7 +254,20 @@
     return d;
   }
 
-  var api = { Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
+  /* 14 days of sleep / energy / mood from check-ins, oldest first: {days:[{date, sleep, energy, mood}] (0-based levels
+     or null), counts}. For the #me page's trend. */
+  function trend(state, now, n) {
+    now = now || new Date(); n = n || 14;
+    var out = [];
+    for (var i = n - 1; i >= 0; i--) {
+      var d = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)), c = state.checkins[d] || {};
+      var lv = function (k) { var q = qFor(CHECKIN, k), j = q.opts.indexOf(c[k]); return j >= 0 ? j : null; };
+      out.push({ date: d, sleep: lv('sleep'), energy: lv('energy'), mood: lv('mood') });
+    }
+    return { days: out, n: out.filter(function (x) { return x.sleep != null || x.mood != null || x.energy != null; }).length };
+  }
+
+  var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
     notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;

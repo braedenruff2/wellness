@@ -208,4 +208,14 @@ t('a changed answer while logging an earlier day: edited is the real time, so th
   const f = K.answer(s, 'coach', 'tip:1', 'tried', 'It worked', D(19, 10), D(20, 10, 5) || D(20, 11));
   assert.ok(f.edited >= D(20, 10).toISOString(), f.edited);
 });
+t('14-day trend from check-ins: levels by day, oldest first, gaps null', () => {
+  const s = K.defaults();
+  K.checkin(s, '2026-11-20', 'sleep', '7 h+'); K.checkin(s, '2026-11-20', 'mood', 'Good');
+  K.checkin(s, '2026-11-18', 'sleep', 'Under 4 h'); K.checkin(s, '2026-11-18', 'energy', 'Low');
+  const tr = K.trend(s, D(20), 14);
+  assert.strictEqual(tr.days.length, 14); assert.strictEqual(tr.days[0].date, '2026-11-07'); assert.strictEqual(tr.days[13].date, '2026-11-20');
+  assert.deepStrictEqual(tr.days[13], { date: '2026-11-20', sleep: 4, energy: null, mood: 2 });
+  assert.deepStrictEqual(tr.days[11], { date: '2026-11-18', sleep: 0, energy: 0, mood: null });
+  assert.strictEqual(tr.n, 2);
+});
 console.log(n + ' me unit tests passed');

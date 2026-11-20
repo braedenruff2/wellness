@@ -141,6 +141,7 @@
     storageKeys: [store.key],
     route: function (parts, v) { view = v; render(); },
     card: card, wireCard: wireCard,
+    week: function () { var n = T.doneInLast(S, 7); return n ? n + ' to-do' + (n === 1 ? '' : 's') + ' done' : ''; },
     today: function () {
       var g = T.groups(S), due = g.overdue.concat(g.today); if (!due.length) return null;
       var first = String(due[0].text || '').slice(0, 40);
