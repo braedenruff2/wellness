@@ -67,6 +67,24 @@
       { say: 'If thoughts come, imagine setting each one on a shelf for tomorrow.', wait: 50 },
       { say: 'Nothing else to do now. Just rest.', wait: 0 }
     ] },
+    { id: 'night', kind: 'guided', title: 'Back to sleep after a night wake', minutes: 5, when: 'After settling her at night, wide awake', blurb: 'For when she’s asleep again and your mind won’t stop.', steps: [
+      { say: 'She’s settled. You did the job. Lie down and let the screen go dark.', wait: 5 },
+      { say: 'Let your breath be slow, with the out-breath a little longer than the in-breath.', wait: 25 },
+      { say: 'If you’re checking the clock or counting the hours left, notice that, and let it go. Rest still counts, even before sleep comes.', wait: 30 },
+      { say: 'Let your jaw loosen. Let your shoulders sink into the bed.', wait: 30 },
+      { say: 'If you listen for her, that’s natural. The monitor will tell you if she needs you. You can stop listening for now.', wait: 40 },
+      { say: 'Picture a calm place you know well. Walk slowly through it in your mind.', wait: 60 },
+      { say: 'Nothing to do now. Just rest.', wait: 0 }
+    ] },
+    { id: 'walk', kind: 'guided', title: 'Mindful walk', minutes: 6, when: 'Out with the stroller or on any walk', blurb: 'Turn a walk into a reset: steps, breath, and what’s around you.', steps: [
+      { say: 'Walk at an easy pace. Keep your eyes on the path and your surroundings, and stay safe near traffic.', wait: 5 },
+      { say: 'Notice your feet: heel, sole, toes, with each step.', wait: 30 },
+      { say: 'Let your breathing find a rhythm with your steps. Maybe in for three steps, out for four.', wait: 45 },
+      { say: 'Notice the air on your face. Is it cold, warm, still, windy?', wait: 40 },
+      { say: 'Look for three things you haven’t noticed before on this walk.', wait: 60 },
+      { say: 'Listen: near sounds, far sounds. Let them come and go.', wait: 50 },
+      { say: 'Before you finish, take one slow breath and notice how you feel now compared with when you started.', wait: 0 }
+    ] },
     { id: 'timer', kind: 'timer', title: 'Quiet timer', minutes: 10, when: 'Sit in silence with a bell at the end', blurb: 'No voice. A soft bell to start and finish.' }
   ];
 
@@ -107,7 +125,8 @@
   function suggest(state, now) {
     now = now || new Date();
     var h = now.getHours();
-    if (h >= 22 || h < 5) return 'sleep';
+    if (h >= 22) return 'sleep';
+    if (h < 5) return 'night'; /* up in the night: likely a wake to settle her */
     if (h < 9) return 'slow';
     var st = stats(state, now);
     if (st.weekDays === 0) return 'sigh';

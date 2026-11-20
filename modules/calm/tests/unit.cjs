@@ -37,6 +37,7 @@ t('stats, stress change, advice and suggestions', () => {
   assert.ok(Math.abs(st.avgDrop - 5 / 3) < 1e-9);
   assert.ok(/calmer afterwards/.test(K.advice(s, now)));
   assert.strictEqual(K.suggest(s, new Date(2026, 10, 18, 23)), 'sleep');
+  assert.strictEqual(K.suggest(s, new Date(2026, 10, 18, 3)), 'night');
   assert.strictEqual(K.suggest(s, new Date(2026, 10, 18, 7)), 'slow');
 });
 t('validate drops unknown practices and bad numbers', () => {
