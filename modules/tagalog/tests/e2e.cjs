@@ -19,6 +19,7 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
   });
   await t.step('a lesson: hear a word in Filipino, then answer every exercise', async () => {
     await page.click('a[href="#tagalog/l/2026-11-18/1"]');
+    await page.waitForSelector('[data-me-fit][data-about="lesson:2026-11-18/1"]', { state: 'attached', timeout: 3000 });
     await page.click('[data-say="opo"]');
     const sp = await page.evaluate(() => window.__spoken[window.__spoken.length - 1]);
     assert.deepStrictEqual(sp, { text: 'opo', lang: 'fil-PH' });
@@ -64,6 +65,13 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     await page.click('#tl-yes');
     const r = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).reviews.slice(-1)[0]);
     assert.strictEqual(r.dir, 'say'); assert.strictEqual(r.tl, tl);
+  });
+  await t.step('finishing review asks one optional question and keeps the answer', async () => {
+    for (let n = 0; n < 40 && !(await page.textContent('#tl-card')).includes('All done'); n++) { await page.click('#tl-show'); await page.click('#tl-yes'); }
+    assert.ok(await page.isVisible('#tl-card .me-ask[data-part="tagalog"]'));
+    await page.click('#tl-card [data-me-a][data-k="level"][data-v="Too easy"]');
+    const f = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.me.v1')).feedback.filter((x) => x.part === 'tagalog').slice(-1)[0]);
+    assert.ok(/^review@/.test(f.about) && f.a.level === 'Too easy', JSON.stringify(f));
   });
   await t.step('mixed practice: the missed exercise comes first; finishing offers another 8', async () => {
     await page.goto(base + '#tagalog');

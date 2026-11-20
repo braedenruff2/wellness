@@ -47,7 +47,8 @@
   }
 
   function lessonHtml(pk, l) {
-    var h = subnav('') + '<div class="meta ui">Week ' + esc(pk.week || '') + ' · lesson ' + l.day + '</div><h1>' + esc(l.title) + '</h1><p>' + esc(l.intro) + '</p>';
+    var h = subnav('') + '<div class="meta ui">Week ' + esc(pk.week || '') + ' · lesson ' + l.day + '</div><h1>' + esc(l.title) + '</h1><p>' + esc(l.intro) + '</p>' +
+      (window.WLMe ? '<div class="ui" style="text-align:right">' + WLMe.fitLink('tagalog', 'lesson:' + pk.id + '/' + l.day, l.title + ': ' + l.intro) + '</div>' : '');
     h += '<div class="card"><h2>Words</h2><p class="meta ui">Tap 🔊 to hear each one, then say it out loud.</p><ul class="list">' + l.words.map(function (w) {
       return '<li class="row"><span class="grow"><b lang="tl">' + esc(w.tl) + '</b><br><span class="meta ui">' + esc(w.en) + '</span></span>' + hear(w.tl) + '</li>';
     }).join('') + '</ul></div>';
@@ -57,7 +58,7 @@
     if (l.grammar) h += '<div class="card"><h2>' + esc(l.grammar.title) + '</h2><p>' + esc(l.grammar.explain) + '</p>' + (l.grammar.examples || []).map(function (x) {
       return '<p class="row"><span class="grow"><b lang="tl">' + esc(x.tl) + '</b><br><span class="meta ui">' + esc(x.en) + '</span></span>' + hear(x.tl) + '</p>';
     }).join('') + '</div>';
-    if (l.culture) h += '<div class="card"><h2>Family tip</h2><p>' + esc(l.culture) + '</p></div>';
+    if (l.culture) h += '<div class="card"><h2>Family tip</h2><p>' + esc(l.culture) + '</p>' + (window.WLMe ? '<div class="ui" style="text-align:right">' + WLMe.fitLink('tagalog', 'tip:' + pk.id + '/' + l.day, l.culture) + '</div>' : '') + '</div>';
     h += '<div class="card" id="tl-practice"><h2>Practice</h2><div id="tl-ex"></div></div>';
     return h;
   }
@@ -140,7 +141,10 @@
   function runReview() {
     var due = T.dueCards(S), i = 0, el = $('#tl-card'); if (!el) return;
     function show() {
-      if (i >= due.length) { el.innerHTML = '<p class="ui"><b>All done.</b> See you tomorrow.</p><a class="btn" href="#tagalog">Back</a>'; return; }
+      if (i >= due.length) {
+        el.innerHTML = '<p class="ui"><b>All done.</b> See you tomorrow.</p>' + (window.WLMe && due.length ? WLMe.askHtml('tagalog', 'review@' + new Date().toISOString().slice(0, 16), 'Quick question (optional): it shapes next week’s lessons', true) : '') + '<a class="btn" href="#tagalog">Back</a>';
+        return;
+      }
       var k = due[i], c = S.cards[k], sayIt = T.direction(c) === 'say';
       el.innerHTML = '<div class="meta ui">' + (i + 1) + ' / ' + due.length + (sayIt ? ' · say it in Tagalog' : '') + '</div>' +
         (sayIt ? '<p class="big">' + esc(c.en) + '</p><div id="tl-ans" hidden><p class="big" lang="tl">' + esc(k) + ' ' + hear(k) + '</p></div>'
@@ -214,7 +218,7 @@
       view.innerHTML = subnav('') + '<h1>Mixed practice</h1><p class="meta ui">From lessons you’ve done. Say each answer out loud too.</p><div class="card" id="tl-practice"><div id="tl-ex"></div></div>';
       runSet(set, function (right, n) {
         return '<p class="ui"><b>' + right + ' of ' + n + ' right.</b> ' + (right === n ? 'Excellent.' : 'The ones you missed come back first next time.') +
-          '</p><div class="row ui"><a class="btn primary" href="#tagalog">Done</a><button id="tl-more">Another 8</button></div>';
+          '</p>' + (window.WLMe ? WLMe.askHtml('tagalog', 'practice@' + new Date().toISOString().slice(0, 16), 'Quick question (optional): it shapes next week’s lessons') : '') + '<div class="row ui"><a class="btn primary" href="#tagalog">Done</a><button id="tl-more">Another 8</button></div>';
       }, function () { $('#tl-more').onclick = function () { route(['practice']); }; });
       return;
     }

@@ -28,7 +28,7 @@
       { k: 'tried', q: 'Did you try it with her?', opts: ['It worked', 'Sort of', 'Didn’t work', 'Not yet'] }
     ],
     tagalog: [
-      { k: 'level', q: 'This lesson was', opts: ['Too easy', 'About right', 'Too hard'] }
+      { k: 'level', q: 'That was', opts: ['Too easy', 'About right', 'Too hard'] }
     ]
   };
 
@@ -167,6 +167,20 @@
     if (tips.length) out.push({ key: 'tipworked', part: 'coach', text: 'A tip that worked with her: keep doing it, so it becomes a habit for you both.', id: tips[tips.length - 1].about });
     var f = lastN(state, 'faith', 'after', 5), hard = f.filter(function (x) { return x.a.felt === 'Hard to focus'; }).length;
     if (f.length >= 3 && hard >= 2) out.push({ key: 'faithfocus', part: 'faith', text: 'Focus has been hard in prayer lately. Try it shorter, or with the voice off and the words read slowly; a tired mind still counts.' });
+    // a few more, each from his own recent answers (stable keys so "not for me" can hide them)
+    var cf = lastN(state, 'calm', 'after', 5), intr = cf.filter(function (x) { return Array.isArray(x.a.block) && x.a.block.indexOf('Interrupted') >= 0; }).length;
+    if (intr >= 2) out.push({ key: 'calminterrupt', part: 'calm', text: 'Calm got interrupted ' + intr + ' of the last ' + cf.length + ' times. The one-minute reset fits between things, or start one when she goes down for a nap; stopping part-way still counts.' });
+    var lowE = w.filter(function (x) { return x.a.energy === 'Low'; }).length;
+    if (w.length >= 2 && lowE >= 2 && !(lw && lw.a.pain === 'Yes, I stopped')) out.push({ key: 'wlowenergy', part: 'workout', text: 'Low energy going into ' + lowE + ' of your last ' + w.length + ' workouts. A short one still counts: do just the first superset on tired days, or move it to after her first nap.' });
+    var ct = lastN(state, 'coach', 'after', 5), notW = ct.filter(function (x) { return x.a.tried === 'Didn’t work'; }).length;
+    if (notW >= 2) out.push({ key: 'tipnot', part: 'coach', text: notW + ' recent tips didn’t work with her. Tap “Not for me?” on them and say why (her age, her mood, your situation); the next ones will take it into account.' });
+    var tl = lastN(state, 'tagalog', 'after', 3), tlE = tl.filter(function (x) { return x.a.level === 'Too easy'; }).length, tlH = tl.filter(function (x) { return x.a.level === 'Too hard'; }).length;
+    if (tlE >= 2) out.push({ key: 'tleasy', part: 'tagalog', text: 'Lessons have felt too easy: try “say it in Tagalog” in Review out loud, and next week’s lessons step up (longer sentences, more speaking).' });
+    else if (tlH >= 2) out.push({ key: 'tlhard', part: 'tagalog', text: 'Lessons have felt hard: one lesson a day is plenty, and Review first helps the new words stick. Next week’s lessons slow down a little.' });
+    var good = f.filter(function (x) { return x.a.felt === 'Felt close to God' || x.a.felt === 'Moved'; }), stood = {};
+    good.forEach(function (x) { (Array.isArray(x.a.stood) ? x.a.stood : []).forEach(function (k) { if (k !== 'Nothing much') stood[k] = (stood[k] || 0) + 1; }); });
+    var top = Object.keys(stood).sort(function (a, b) { return stood[b] - stood[a]; })[0];
+    if (good.length >= 2 && top && stood[top] >= 2 && hard < 2) out.push({ key: 'faithstood', part: 'faith', text: 'When prayer has felt close lately, ' + top.toLowerCase() + ' stood out. Give it a little more time: ' + ({ 'The Scripture': 'read the passage twice, slowly, before you pray.', 'The prayer': 'stay with the prayer and add your own words to it.', 'The quiet': 'set the guided prayer to 10 min for longer silences.', 'The reflection': 'write a line after the Think part.' })[top] });
     if (today && today.note && /\b(sick|fever|teeth|teething)\b/i.test(today.note)) out.push({ key: 'sick', part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
     return out.filter(function (g) { return !hidden[g.key]; }).slice(0, max || 3);
   }

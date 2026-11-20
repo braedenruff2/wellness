@@ -87,6 +87,15 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.clock.runFor(100);
     assert.strictEqual(await page.evaluate(() => WL.logDay()), null, 'ran out after 2 h');
   });
+  await t.step('Faith day: "Not for me?" on Think and the practice, saved with the day', async () => {
+    await page.goto(base + '#faith/day/1');
+    assert.strictEqual(await page.locator('#reflect [data-me-fit][data-about="day:1:think"]').count(), 1);
+    await page.click('#practice [data-me-fit][data-about="day:1:practice"]');
+    await page.click('#me-sheet [data-r="Doesn’t fit my situation"]'); await page.click('#me-send');
+    const f = (await me()).feedback.filter((x) => x.kind === 'notfit' && x.part === 'faith')[0];
+    assert.ok(f && f.about === 'day:1:practice' && f.shown.length > 10, JSON.stringify(f));
+    assert.ok(/Noted/.test(await page.textContent('#practice [data-me-fit]')));
+  });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#home', '#me', '#calm', '#workout', '#coach']);
     assert.deepStrictEqual(t.errors, []);

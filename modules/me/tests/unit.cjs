@@ -109,6 +109,36 @@ t('guidance from his answers: rough night, low mood, workout pain / too hard / e
   assert.ok(K.guidance(s, D(20), 1).length === 1, 'max respected');
 });
 
+t('more guidance: calm interrupted, low workout energy, tips that didn’t work, Tagalog level, what stood out in prayer', () => {
+  const keys = (s) => K.guidance(s, D(20), 20).map((g) => g.key);
+  const c = K.defaults();
+  K.answer(c, 'calm', 'body@1', 'block', 'Interrupted');
+  assert.ok(!keys(c).includes('calminterrupt'), 'once is not a pattern');
+  K.answer(c, 'calm', 'slow@2', 'block', 'Interrupted');
+  assert.ok(keys(c).includes('calminterrupt'));
+  assert.ok(/2 of the last 2/.test(K.guidance(c, D(20), 20).find((g) => g.key === 'calminterrupt').text));
+  const w = K.defaults(); K.answer(w, 'workout', 'a', 'energy', 'Low'); K.answer(w, 'workout', 'b', 'energy', 'Low');
+  assert.ok(keys(w).includes('wlowenergy'));
+  K.answer(w, 'workout', 'c', 'pain', 'Yes, I stopped');
+  assert.ok(keys(w).includes('wpain') && !keys(w).includes('wlowenergy'), 'pain comes first, no energy nudge then');
+  const co = K.defaults(); K.answer(co, 'coach', 'tip:1', 'tried', 'Didn’t work'); K.answer(co, 'coach', 'tip:2', 'tried', 'Didn’t work');
+  assert.ok(keys(co).includes('tipnot'));
+  const t1 = K.defaults(); K.answer(t1, 'tagalog', 'p/1', 'level', 'Too easy'); K.answer(t1, 'tagalog', 'review@x', 'level', 'Too easy');
+  assert.ok(keys(t1).includes('tleasy') && !keys(t1).includes('tlhard'));
+  const t2 = K.defaults(); K.answer(t2, 'tagalog', 'p/1', 'level', 'Too hard'); K.answer(t2, 'tagalog', 'p/2', 'level', 'Too hard'); K.answer(t2, 'tagalog', 'p/3', 'level', 'About right');
+  assert.ok(keys(t2).includes('tlhard'));
+  const f = K.defaults();
+  K.answer(f, 'faith', 'day:1@a', 'felt', 'Moved'); K.answer(f, 'faith', 'day:1@a', 'stood', 'The quiet');
+  K.answer(f, 'faith', 'day:2@b', 'felt', 'Felt close to God'); K.answer(f, 'faith', 'day:2@b', 'stood', 'The quiet'); K.answer(f, 'faith', 'day:2@b', 'stood', 'The prayer');
+  const g = K.guidance(f, D(20), 20).find((x) => x.key === 'faithstood');
+  assert.ok(g && /the quiet stood out/.test(g.text) && /10 min/.test(g.text), g && g.text);
+  K.answer(f, 'faith', 'day:3@c', 'felt', 'Hard to focus'); K.answer(f, 'faith', 'day:4@d', 'felt', 'Hard to focus');
+  assert.ok(keys(f).includes('faithfocus') && !keys(f).includes('faithstood'), 'hard to focus wins');
+  // every key can be hidden with "not for me"
+  K.notFit(c, 'calm', 'guide:calminterrupt', 'x', ['Too generic'], '', D(20));
+  assert.ok(!keys(c).includes('calminterrupt'));
+});
+
 t('weekly plan: checked, per part, expires after 10 days, due after a week; what the PC is sent', () => {
   const s = K.defaults();
   assert.ok(K.planDue(s, D(20)));
