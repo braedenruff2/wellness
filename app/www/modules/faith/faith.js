@@ -167,7 +167,7 @@
     } else {
       var p = practice(id); if (!p) return null;
       var tv = day(C.currentDay(S, TOTAL)) || DAYS[DAYS.length - 1];
-      steps = p.steps.map(function (s) { return { say: s.say.replace(/\{\{TODAY\}\}/g, tv.keyVerse), wait: s.wait }; });
+      steps = C.practiceScript(p, C.practiceTimes(S, p.id)).map(function (s) { return { say: s.say.replace(/\{\{TODAY\}\}/g, tv.keyVerse), wait: s.wait }; });
       title = p.title; minutes = p.fixed ? null : S.settings.minutes;
     }
     if (minutes) steps = C.scaleScript(steps, minutes, S.settings.rate);

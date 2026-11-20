@@ -367,4 +367,41 @@ t('practicesThisWeek: counts finished practices since Monday, local time', () =>
   assert.deepStrictEqual(C.practicesThisWeek({}, new Date()), {});
 });
 
+t('practice wordings: guiding lines vary, Scripture and the Lord’s Prayer never do, timing kept', () => {
+  global.window = global.window || {};
+  require('../../../app/www/modules/faith/content.js');
+  const P = global.window.FC_CONTENT.practices, ids = P.map((p) => p.id);
+  Object.keys(C.PRACTICE_LINES).forEach((id) => assert.ok(ids.includes(id), 'unknown practice ' + id));
+  assert.ok(!C.PRACTICE_LINES.lords, 'the Lord’s Prayer is always exact');
+  P.forEach((p) => {
+    const v = C.PRACTICE_LINES[p.id] || {};
+    Object.keys(v).forEach((i) => {
+      const st = p.steps[+i];
+      assert.ok(st, p.id + ' step ' + i + ' exists');
+      assert.ok(!/\(\d?\s?[A-Z][a-z]+ \d+:\d+/.test(st.say) && !/\{\{TODAY\}\}/.test(st.say), p.id + ' step ' + i + ' is Scripture: no variants');
+      v[i].forEach((alt) => {
+        assert.ok(alt && alt !== st.say, p.id + ' ' + i + ' differs');
+        assert.ok(!/\d+:\d+|\{\{/.test(alt), 'no Scripture references in a variant');
+        const a = alt.split(/\s+/).length, b = st.say.split(/\s+/).length;
+        assert.ok(a >= b * 0.6 && a <= b * 1.5 + 2, p.id + ' ' + i + ' about the same length: ' + a + ' vs ' + b);
+      });
+    });
+    const base = C.practiceScript(p, 0);
+    assert.deepStrictEqual(base, p.steps.map((x) => ({ say: x.say, wait: x.wait })), 'first time: the original words');
+    for (let n = 1; n < C.practiceVariants(p) + 2; n++) {
+      const sc = C.practiceScript(p, n);
+      assert.deepStrictEqual(sc.map((x) => x.wait), p.steps.map((x) => x.wait), p.id + ' same waits');
+      sc.forEach((x, i) => { if (!(C.PRACTICE_LINES[p.id] || {})[i]) assert.strictEqual(x.say, p.steps[i].say, p.id + ' unvaried step exact'); });
+      // scaled to 5 minutes, any wording comes out the same length
+      if (!p.fixed) assert.ok(Math.abs(C.scriptLength(C.scaleScript(sc, 5, 1)) - C.scriptLength(C.scaleScript(base, 5, 1))) <= 15, p.id + ' timing');
+    }
+    if (C.PRACTICE_LINES[p.id]) assert.notDeepStrictEqual(C.practiceScript(p, 1), base, p.id + ' second time sounds different');
+  });
+  const s = C.defaults();
+  assert.strictEqual(C.practiceTimes(s, 'examen'), 0);
+  C.logSession(s, 'practice', 'examen', 'Examen', 5); C.logSession(s, 'day', 'examen', 'x', 5);
+  assert.strictEqual(C.practiceTimes(s, 'examen'), 1);
+  assert.strictEqual(C.practiceTimes({}, 'examen'), 0);
+});
+
 console.log(n + ' unit tests passed');
