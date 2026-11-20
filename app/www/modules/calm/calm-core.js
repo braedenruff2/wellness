@@ -3,6 +3,7 @@
    Storage 'wl.calm.v1': { sessions:[{date, at, id, mins, before, after}], settings:{voice, rate, minutes} } */
 (function (root) {
   'use strict';
+  var WLD = root.WLDates || require('../../lib/dates.js');
 
   /* Breathing patterns: phases in seconds [in, hold, out, hold]. */
   var PACERS = {
@@ -222,7 +223,7 @@
   function timesDone(state, id) { return state.sessions.filter(function (s) { return s.id === id; }).length; }
 
   function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false } }; }
-  function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
+  var iso = WLD.iso;
 
   /* Where in a breathing cycle we are at time t (seconds): {phase: 0..3, label, frac (0-1 within phase), scale (0-1 circle size)}. */
   /* The sound for entering a phase: in rises, out falls, holds sit between. */

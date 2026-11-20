@@ -57,11 +57,7 @@
     return { load: load, save: save, key: KEY };
   }
 
-  function isoDate(d) {
-    d = d || new Date();
-    var m = d.getMonth() + 1, day = d.getDate();
-    return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
-  }
+  var isoDate = (root.WLDates || require('../../lib/dates.js')).iso;
 
   /* The day to show on the Today screen: the first day not finished yet.
      Not tied to the calendar, so missing days never "costs" anything. */

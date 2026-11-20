@@ -3,10 +3,11 @@
    Storage key 'wl.todo.v1'. Used by todo.js and by modules/todo/tests. */
 (function (root) {
   'use strict';
+  var WLD = root.WLDates || require('../../lib/dates.js');
   function defaults() { return { tasks: [] }; }
-  function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
+  var iso = WLD.iso;
   function parse(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
-  function addDays(s, n) { var d = parse(s); d.setDate(d.getDate() + n); return iso(d); }
+  var addDays = WLD.addDays;
   var n = 0;
   function id(now) { return (now || new Date()).getTime().toString(36) + '-' + (++n); }
 

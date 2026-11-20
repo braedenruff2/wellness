@@ -5,12 +5,13 @@
                               answers:[{at, pack, day, ok, prompt}], source, lastCheck } */
 (function (root) {
   'use strict';
+  var WLD = root.WLDates || require('../../lib/dates.js');
   var INTERVALS = [0, 1, 2, 4, 8, 16, 32]; // days until the next review, by box
   // where new weeks come from (the PC pushes the wellness folder to this GitHub repo; changeable in the app)
   var DEFAULT_SOURCE = 'https://raw.githubusercontent.com/braedenruff2/wellness/main/modules/tagalog/packs/';
   function defaults() { return { packs: {}, done: {}, cards: {}, answers: [], reviews: [], source: DEFAULT_SOURCE, lastCheck: null, settings: { slow: true } }; }
-  function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
-  function addDays(s, n) { var p = s.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2] + n); return iso(d); }
+  var iso = WLD.iso;
+  var addDays = WLD.addDays;
 
   /* Pack format check (used by the build tool, the tests, and before accepting a downloaded pack). */
   function checkPack(p) {

@@ -9,6 +9,7 @@
    Only on the phone and (with the PC link) in Desktop\wellness-progress on his PC: never in the repo. */
 (function (root) {
   'use strict';
+  var WLD = root.WLDates || require('../../lib/dates.js');
 
   var Q = {
     calm: [
@@ -44,7 +45,7 @@
   var PARTS = ['calm', 'workout', 'faith', 'coach', 'tagalog', 'todo', 'home'];
 
   function defaults() { return { feedback: [], checkins: {}, plan: null, skipped: {} }; }
-  function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
+  var iso = WLD.iso;
   function cut(s, n) { s = String(s == null ? '' : s); return s.length > n ? s.slice(0, n) : s; }
   function questions(part) { return Q[part] || []; }
   function qFor(list, k) { return list.filter(function (q) { return q.k === k; })[0]; }

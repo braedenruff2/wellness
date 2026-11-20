@@ -88,7 +88,7 @@ reads anything they can't (before the downloads, or if something fails).
   (ticks the task next time the app is open, or at once if it is) and "Snooze 1 hour".
 
 ## For Claude (how it's built)
-- `app/www/`: shell.js (router, Home, look, speech incl. `fil-PH`, backup of every part), lib/guided.js (voice-guided
+- `app/www/`: shell.js (router, Home, look, speech incl. `fil-PH`, backup of every part), lib/dates.js (shared `iso` / `addDays`, loaded first), lib/guided.js (voice-guided
   session engine), modules/<id>/ (each part's code; own storage key `fc.v1` / `wl.<id>.v1`).
 - `modules/<id>/`: each part's sources, tools and tests, kept separate. Faith content: `modules/faith/tools/build-content.cjs`.
   Tagalog packs: `modules/tagalog/packs/*.json` -> `node modules/tagalog/tools/build-packs.cjs` (checks the format).

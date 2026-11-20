@@ -39,11 +39,7 @@
     t.textContent = msg; t.classList.add('show');
     clearTimeout(toast.t); toast.t = setTimeout(function () { t.classList.remove('show'); }, 2600);
   }
-  function isoDate(d) {
-    d = d || new Date();
-    var m = d.getMonth() + 1, day = d.getDate();
-    return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
-  }
+  var isoDate = window.WLDates.iso;
 
   /* ---- look (shared by every module) ---- */
   function nightHours(when) { var h = (when || new Date()).getHours(); return h >= 21 || h < 6; }
