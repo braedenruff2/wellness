@@ -221,10 +221,12 @@
   }
   function timesDone(state, id) { return state.sessions.filter(function (s) { return s.id === id; }).length; }
 
-  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5 } }; }
+  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false } }; }
   function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
 
   /* Where in a breathing cycle we are at time t (seconds): {phase: 0..3, label, frac (0-1 within phase), scale (0-1 circle size)}. */
+  /* The sound for entering a phase: in rises, out falls, holds sit between. */
+  function tickFor(phase) { return phase === 0 ? 'up' : phase === 2 ? 'down' : 'hold'; }
   function pacerAt(pacer, t) {
     var p = PACERS[pacer].phases, cycle = p[0] + p[1] + p[2] + p[3];
     var x = ((t % cycle) + cycle) % cycle, i = 0;
@@ -327,12 +329,13 @@
     });
     var st = s.settings || {};
     if (typeof st.voice === 'boolean') d.settings.voice = st.voice;
+    if (typeof st.tick === 'boolean') d.settings.tick = st.tick;
     if (typeof st.rate === 'number' && st.rate >= 0.5 && st.rate <= 1.6) d.settings.rate = st.rate;
     if ([3, 5, 10, 15, 20].indexOf(st.minutes) >= 0) d.settings.minutes = st.minutes;
     return d;
   }
 
-  var api = { PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, record: record, stats: stats, suggest: suggest, advice: advice, validate: validate, iso: iso };
+  var api = { PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, suggest: suggest, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

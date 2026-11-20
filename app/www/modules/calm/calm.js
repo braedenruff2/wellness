@@ -40,7 +40,8 @@
     h += '<p class="meta ui">' + esc(K.advice(S)) + '</p>';
     h += '<div class="card ui"><div class="row"><span class="grow">Length for breathing and the quiet timer</span></div><div class="chips">' + [3, 5, 10, 15, 20].map(function (m) {
       return '<button class="chip" data-min="' + m + '" aria-pressed="' + (S.settings.minutes === m) + '">' + m + ' min</button>';
-    }).join('') + '</div><div class="row" style="margin-top:8px"><span class="grow">Voice guidance</span><button class="chip" id="cv" aria-pressed="' + S.settings.voice + '">' + (S.settings.voice ? 'On' : 'Off') + '</button></div></div>';
+    }).join('') + '</div><div class="row" style="margin-top:8px"><span class="grow">Voice guidance</span><button class="chip" id="cv" aria-pressed="' + S.settings.voice + '">' + (S.settings.voice ? 'On' : 'Off') + '</button></div>' +
+      '<div class="row" style="margin-top:8px"><span class="grow">Soft tick when breathing changes</span><button class="chip" id="ctk" aria-pressed="' + !!S.settings.tick + '">' + (S.settings.tick ? 'On' : 'Off') + '</button></div></div>';
     h += '<h2 class="ui" style="font-size:1em;margin:1em 0 .3em">All practices</h2><ul class="list">' + K.PRACTICES.map(function (p) {
       return '<li><a href="#calm/s/' + p.id + '"><h3>' + esc(p.title) + '</h3><div class="meta ui">' + esc(p.when) + ' · ' + mins(p) + ' min</div>' +
         (p.blurb || (p.pacer && K.PACERS[p.pacer].blurb) ? '<p style="margin:.3em 0 0">' + esc(p.blurb || K.PACERS[p.pacer].blurb) + '</p>' : '') + '</a>' +
@@ -112,7 +113,11 @@
         if (!run || run.done || run.paused) return; // paused: no frames (resume restarts the loop)
         var a = K.pacerAt(p.pacer, elapsed());
         var ball = $('#c-ball'); if (ball) ball.style.transform = 'scale(' + (0.35 + 0.65 * a.scale).toFixed(3) + ')';
-        if (a.phase !== lastPhase) { $('#c-label').textContent = a.label; lastPhase = a.phase; }
+        if (a.phase !== lastPhase) {
+          $('#c-label').textContent = a.label;
+          if (lastPhase >= 0 && S.settings.tick && WL.tick) WL.tick(K.tickFor(a.phase)); // the start already has the bell
+          lastPhase = a.phase;
+        }
         run.raf = requestAnimationFrame(frame);
       };
       run.frame = frame;
@@ -173,6 +178,7 @@
     view.innerHTML = list();
     $$('[data-min]').forEach(function (b) { b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route([]); }; });
     $('#cv').onclick = function () { S.settings.voice = !S.settings.voice; save(); route([]); };
+    $('#ctk').onclick = function () { S.settings.tick = !S.settings.tick; save(); route([]); };
   }
 
   function card() {

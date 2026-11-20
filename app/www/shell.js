@@ -132,6 +132,17 @@
       });
     } catch (e) {}
   }
+  /* A very soft, short tick (breathing pacers: each change of phase). pitch: 'up' | 'down' | 'hold'. */
+  function tick(pitch) {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      var t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'sine'; o.frequency.value = pitch === 'up' ? 660 : pitch === 'down' ? 440 : 550;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+      o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.3);
+    } catch (e) {}
+  }
   function keepAwake(on) { if (native && native.keepAwake) try { native.keepAwake(!!on); } catch (e) {} }
 
   /* ---- modules and routing ---- */
@@ -430,7 +441,7 @@
 
   window.WL = {
     register: register, start: start, route: route, logNow: logNow, logDay: getLogDay, setLogDay: setLogDay, store: store, $: $, $$: $$, esc: esc, toast: toast, isoDate: isoDate,
-    speech: speech, bell: bell, keepAwake: keepAwake, wordsSeconds: wordsSeconds, applyLook: applyLook, themeNow: themeNow,
+    speech: speech, bell: bell, tick: tick, keepAwake: keepAwake, wordsSeconds: wordsSeconds, applyLook: applyLook, themeNow: themeNow,
     refreshToday: refreshToday, saveFile: saveFile, native: native, modules: modules, backupText: backupText, restoreText: restoreText
   };
 })();
