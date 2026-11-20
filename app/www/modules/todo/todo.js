@@ -136,6 +136,7 @@
     storageKeys: [store.key],
     route: function (parts, v) { view = v; render(); },
     card: card, wireCard: wireCard,
+    today: function () { var g = T.groups(S), n = g.overdue.length + g.today.length; return n ? { label: 'To do: ' + n + ' for today', done: false, href: '#todo' } : null; },
     validate: function (k, raw) { try { var s = T.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); syncAlarms(); }
   });

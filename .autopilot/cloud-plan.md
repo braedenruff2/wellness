@@ -27,7 +27,8 @@ Can't do here: APK build/signing (key not in repo), anything using data outside 
 3. Faith: the same "today" clarity check: does every screen say plainly what to do today and when it's done?
    Wording variants for guided prayer steps where the script repeats daily (keep Scripture text exact, WEB only).
 4. Workout: volumeAdvice is shown on the Move screen; next: a plain note on Home when an area is behind late in the week.
-5. Home: one clear "today" list across parts (what's done, what's left), consistent with each part's own card.
+5. Home: "today" list done 20 Nov (module today()). Next: To do's today() could list the first task; a gentle evening
+   note when items are left ("tomorrow is fine").
 6. Tagalog: review/practice UX polish; tests for edge cases (no packs, pack replaced, very long answers).
 7. To-do: edge cases (repeats across DST change 2027-03-14, month ends, Feb 29) with tests.
 8. Accessibility pass: font scaling, contrast in night mode, tap target sizes (tests/lib/web.cjs noOverflow at 200%).

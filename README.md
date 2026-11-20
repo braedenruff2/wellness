@@ -42,6 +42,8 @@ reads anything they can't (before the downloads, or if something fails).
 
 ## What's in it
 - **Home**: today across everything (faith day, workout, calm practice, Tagalog lesson, to-dos due), with advice.
+  At the top, one "today" list ("2 of 5 done today", each line a link): every part says what it asks of today and
+  when that's done (module `today()` -> {label, done, href}; Move counts a planned rest day as done).
 - **About you** (`modules/me`, 20 Nov 2026, so guidance fits him instead of being generic): a 20-second daily check-in
   first on Home (sleep, night wakes, energy, mood, the day with her, one line); one-tap questions at the end of a calm
   practice, a workout, a guided prayer, a Tagalog lesson and on Parenting's "This week, try" tips; "Not for me?" (reasons +

@@ -173,3 +173,9 @@ p.ok { color: var(--good); } p.no { color: var(--warn); }
 
 /* The hidden attribute always hides (a button's display: flex used to win: the calm "Pause" button stayed after the end) */
 [hidden] { display: none !important; }
+/* Home: today's list across parts */
+.today-list { list-style: none; padding: 0; margin: .4em 0 0; }
+.today-list li a { display: flex; gap: .5em; align-items: center; min-height: 44px; color: inherit; text-decoration: none; border-top: 1px solid var(--line, rgba(127,127,127,.2)); }
+.today-list li .tk { width: 1.4em; text-align: center; font-weight: 700; }
+.today-list li.done { opacity: .65; }
+.today-list li.done .tk { color: var(--ok, #2e7d32); }

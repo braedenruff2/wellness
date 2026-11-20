@@ -252,6 +252,13 @@
   WL.register({
     id: 'tagalog', title: 'Tagalog', short: 'Tagalog', icon: '💬', nav: true, storageKeys: [store.key], settingsLink: '#tagalog/settings',
     route: route, card: card,
+    today: function () {
+      var d = T.iso(new Date()), lessonToday = Object.keys(S.done).some(function (k) { return T.iso(new Date(S.done[k])) === d; });
+      var st = T.stats(S), nx = T.nextLesson(S, packs());
+      if (lessonToday) return { label: 'Tagalog: lesson done' + (st.due ? ' (' + st.due + ' to review, optional)' : ''), done: true, href: '#tagalog' };
+      if (nx) return { label: 'Tagalog: lesson ' + nx.lesson.day + (st.due ? ' + ' + st.due + ' to review' : ''), done: false, href: '#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day };
+      return st.due ? { label: 'Tagalog: ' + st.due + ' to review', done: false, href: '#tagalog/review' } : null;
+    },
     validate: function (k, raw) { try { var s = T.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); },
     weekSummary: function () { return T.weeklySummary(S, packs()); } // the PC link sends it with the activity log

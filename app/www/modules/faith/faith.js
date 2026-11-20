@@ -493,6 +493,7 @@
     id: 'faith', title: 'Faith', short: 'Faith', icon: '\u271D', nav: true,
     storageKeys: [store.key], settingsLink: '#faith/settings',
     route: route, leave: leave, card: card, saveNow: saveNow,
+    today: function () { var t = C.finishedToday(S), n = C.currentDay(S, TOTAL); return t ? { label: 'Faith: day ' + t + ' done', done: true, href: '#faith/today' } : day(n) ? { label: 'Faith: day ' + n + ' (about ' + (+S.settings.minutes) + ' min)', done: false, href: '#faith/today' } : null; },
     pause: function () { var pp = view && view.querySelector('#pp'); if (pp && pp.dataset.state === 'playing') pp.click(); },
     validate: function (k, raw) { try { return JSON.stringify(C.importData(JSON.stringify({ app: 'faith-companion', state: JSON.parse(raw) }))); } catch (e) { return null; } },
     importOld: function (text) { S = C.importData(text); save(); },

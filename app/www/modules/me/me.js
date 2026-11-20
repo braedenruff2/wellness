@@ -73,7 +73,7 @@
     if (b.dataset.meCk) {
       var c = K.checkin(S, today(), b.dataset.k, b.dataset.v, new Date()); if (!c) return; save();
       $$('[data-me-ck][data-k="' + b.dataset.k + '"]').forEach(function (x) { x.setAttribute('aria-pressed', c[b.dataset.k] === x.dataset.v); });
-      if (K.checkinDone(c)) { var card = b.closest('.home-card'); setTimeout(function () { if (card) { card.innerHTML = cardHtml(); wireCard(card); } }, 400); }
+      if (K.checkinDone(c)) { var card = b.closest('.home-card'); setTimeout(function () { if (card) { card.innerHTML = cardHtml(); wireCard(card); } if (WL.refreshToday) WL.refreshToday(); }, 400); }
     }
   });
 
@@ -112,7 +112,7 @@
     el.innerHTML = cardHtml(); wireCard(el);
   }
   function wireCard(el) {
-    var sk = $('#me-skip', el); if (sk) sk.onclick = function () { S.skipped[today()] = 1; save(); el.innerHTML = cardHtml(); wireCard(el); };
+    var sk = $('#me-skip', el); if (sk) sk.onclick = function () { S.skipped[today()] = 1; save(); el.innerHTML = cardHtml(); wireCard(el); if (WL.refreshToday) WL.refreshToday(); };
     var n = $('#me-ck-note', el); if (n) n.onchange = function () { K.checkinNote(S, today(), n.value, new Date()); save(); };
     var pb = $('#me-plan', el); if (pb) pb.onclick = function () { makePlan(redrawCard); el.innerHTML = cardHtml(); wireCard(el); };
   }
@@ -198,6 +198,7 @@
   WL.register({
     id: 'me', title: 'About you', short: 'You', icon: '☺', nav: false, navAs: 'home', storageKeys: [store.key],
     route: route, card: cardHtml, wireCard: wireCard,
+    today: function () { var c = S.checkins[today()]; return K.checkinDone(c) || S.skipped[today()] ? { label: 'Check-in', done: true, href: '#me' } : { label: 'Check-in (20 seconds, below)', done: false, href: '#home' }; },
     validate: function (k, raw) { try { var s = K.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); }
   });

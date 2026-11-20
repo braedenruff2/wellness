@@ -307,6 +307,21 @@
     return st.thisWeek + ' of ' + st.target + ' this week. ' + (st.streak >= 2 ? st.streak + ' good weeks in a row.' : 'About 30 minutes, any time today.');
   }
 
+  /* Home's "today" line: a workout done today, a rest day that's part of the plan (worked out yesterday, or the
+     week's three are done), or the next workout. {done, text} */
+  function today(state, now) {
+    now = now || new Date();
+    var d = iso(now), y = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+    var dates = {}; sessionsWithSets(state).forEach(function (s) { dates[s.date] = 1; }); state.history.forEach(function (h) { dates[h.date] = 1; });
+    var open = openSession(state, now);
+    if (open) return { done: false, text: 'in progress (' + PROGRAM[open.day].title + ')' };
+    if (dates[d]) return { done: true, text: 'workout done' };
+    var st = weekStats(state, now);
+    if (st.thisWeek >= st.target) return { done: true, text: st.target + ' this week, rest or a walk' };
+    if (dates[y]) return { done: true, text: 'rest day (worked out yesterday)' };
+    return { done: false, text: PROGRAM[nextDay(state, now)].title + ' (about 30 min)' };
+  }
+
   /* Import the Google Sheet "Log" tab saved as CSV (File > Download > CSV): Date, Day, Exercise, Set 1-4, Weight, ... */
   function parseCsv(text) {
     var rows = [], row = [], cell = '', q = false;
@@ -366,7 +381,7 @@
     return d;
   }
 
-  var api = { EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
+  var api = { today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
     last: last, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     validate: validate, iso: iso };

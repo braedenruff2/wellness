@@ -249,6 +249,7 @@
 
   WL.register({
     id: 'workout', title: 'Workout', short: 'Move', icon: '❁', nav: true,
+    today: function () { var t = W.today(S, new Date()); return t.done ? { label: 'Move: ' + t.text, done: true, href: '#workout' } : { label: 'Move: ' + t.text, done: false, href: '#workout' }; },
     storageKeys: [store.key], settingsLink: '#workout/settings',
     route: route, leave: leave, card: card,
     validate: function (k, raw) { try { var s = W.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },

@@ -189,4 +189,17 @@ t('undo tells the PC the set is gone (it may have been sent already)', () => {
   assert.deepStrictEqual(s.sessions[0].removed, [{ at: x.at, i: 1 }]);
   assert.deepStrictEqual(W.validate(JSON.parse(JSON.stringify(s))).sessions[0].removed, [{ at: x.at, i: 1 }], 'kept through a backup');
 });
+t('today line for Home: done, planned rest, in progress, next', () => {
+  const s = W.defaults(), d = (day, h, m) => new Date(2026, 10, day, h || 9, m || 0); // Mon 16 Nov 2026
+  assert.deepStrictEqual(W.today(s, d(16)), { done: false, text: 'Full body A (about 30 min)' });
+  W.logSet(s, 'A', 0, 12, 10, d(16, 9)); 
+  assert.ok(/in progress/.test(W.today(s, d(16, 9, 5)).text));
+  W.endSession(s, d(16, 9, 30));
+  assert.deepStrictEqual(W.today(s, d(16, 20)), { done: true, text: 'workout done' });
+  assert.ok(W.today(s, d(17)).done && /rest day/.test(W.today(s, d(17)).text), 'the day after: rest');
+  assert.ok(!W.today(s, d(18)).done && /Full body B/.test(W.today(s, d(18)).text));
+  W.logSet(s, 'B', 0, 12, 10, d(18)); W.endSession(s, d(18, 9, 30));
+  W.logSet(s, 'C', 0, 12, 10, d(20)); W.endSession(s, d(20, 9, 30));
+  assert.ok(W.today(s, d(22)).done && /3 this week/.test(W.today(s, d(22)).text), 'three done: Sunday is rest');
+});
 console.log(n + ' workout unit tests passed');

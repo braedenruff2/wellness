@@ -183,9 +183,23 @@
       '<select id="wl-logday" aria-label="Log for which day">' + o + '</select></div></div>';
   }
 
+  /* One list of what each part asks of today (module.today() -> {label, done, href} or null), so it's clear what's
+     left and when the day is done. Each part decides what "done" means, the same way its own card does. */
+  function todayList() {
+    var items = [];
+    order.forEach(function (id) { var m = modules[id]; if (!m.today) return; try { var t = m.today(); if (t && t.label) items.push(t); } catch (e) {} });
+    if (!items.length) return '';
+    var n = items.filter(function (t) { return t.done; }).length;
+    return '<div class="card ui" id="wl-today"><div class="row"><b class="grow">' + (n === items.length ? 'All done for today ✓' : n + ' of ' + items.length + ' done today') + '</b></div>' +
+      '<ul class="today-list">' + items.map(function (t) {
+        return '<li' + (t.done ? ' class="done"' : '') + '><a href="' + esc(t.href || '#home') + '"><span class="tk" aria-hidden="true">' + (t.done ? '✓' : '○') + '</span> ' + esc(t.label) + '</a></li>';
+      }).join('') + '</ul>' + (n === items.length ? '<p class="meta">Nothing else you need to do. Anything more is a bonus.</p>' : n === 0 ? '<p class="meta">Do what fits today; on a hard day one of these is plenty.</p>' : '') + '</div>';
+  }
+  function refreshToday() { var el = document.getElementById('wl-today'); if (el) el.outerHTML = todayList(); }
+
   function home() {
     var h = '<div class="meta ui">' + esc(greeting()) + ' · ' + esc(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>' +
-      '<h1>Today</h1>';
+      '<h1>Today</h1>' + todayList();
     order.forEach(function (id) {
       var m = modules[id];
       if (!m.card) return;
@@ -388,6 +402,6 @@
   window.WL = {
     register: register, start: start, route: route, logNow: logNow, logDay: getLogDay, setLogDay: setLogDay, store: store, $: $, $$: $$, esc: esc, toast: toast, isoDate: isoDate,
     speech: speech, bell: bell, keepAwake: keepAwake, wordsSeconds: wordsSeconds, applyLook: applyLook, themeNow: themeNow,
-    saveFile: saveFile, native: native, modules: modules, backupText: backupText, restoreText: restoreText
+    refreshToday: refreshToday, saveFile: saveFile, native: native, modules: modules, backupText: backupText, restoreText: restoreText
   };
 })();
