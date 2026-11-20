@@ -309,6 +309,14 @@
     return st.thisWeek + ' of ' + st.target + ' this week. ' + (st.streak >= 2 ? st.streak + ' good weeks in a row.' : 'About 30 minutes, any time today.');
   }
 
+  /* He expects adjustable dumbbells after Christmas: from 26 Dec, while still on the 10 lb pair, ask (again a week
+     after "Not yet"). */
+  function askDumbbells(state, now) {
+    now = now || new Date();
+    if (state.equipment !== 'fixed10' || iso(now) < '2026-12-26') return false;
+    return !state.dbAsked || (new Date(iso(now)) - new Date(state.dbAsked)) / 864e5 >= 7;
+  }
+
   /* Home's "today" line: a workout done today, a rest day that's part of the plan (worked out yesterday, or the
      week's three are done), or the next workout. {done, text} */
   function today(state, now) {
@@ -371,6 +379,7 @@
     if (!s || typeof s !== 'object' || !Array.isArray(s.sessions)) return null;
     var d = defaults(), dateRe = /^\d{4}-\d\d-\d\d$/;
     d.equipment = s.equipment === 'adjustable' ? 'adjustable' : 'fixed10';
+    if (typeof s.dbAsked === 'string' && dateRe.test(s.dbAsked)) d.dbAsked = s.dbAsked;
     Object.keys(s.weights || {}).forEach(function (k) { if (EX[k] && typeof s.weights[k] === 'number') d.weights[k] = s.weights[k]; });
     Object.keys(s.next || {}).forEach(function (k) { if (EX[k] && typeof s.next[k] === 'string') d.next[k] = s.next[k]; });
     s.sessions.forEach(function (x) {
@@ -390,7 +399,7 @@
     return d;
   }
 
-  var api = { today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
+  var api = { askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
     last: last, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     validate: validate, iso: iso };

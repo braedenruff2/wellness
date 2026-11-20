@@ -159,7 +159,8 @@
     var steps, title, minutes;
     if (kind === 'day') {
       var d = day(id); if (!d) return null;
-      steps = C.dayScript(d, d.n + (S.round || 1) - 1); title = 'Day ' + d.n + ': ' + d.title; minutes = S.settings.minutes;
+      var open = (S.prayers || []).filter(function (p) { return !p.answered; }).map(function (p) { return p.text; });
+      steps = C.dayScript(d, d.n + (S.round || 1) - 1, open); title = 'Day ' + d.n + ': ' + d.title; minutes = S.settings.minutes;
     } else {
       var p = practice(id); if (!p) return null;
       var tv = day(C.currentDay(S, TOTAL)) || DAYS[DAYS.length - 1];

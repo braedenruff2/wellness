@@ -49,7 +49,8 @@
   function lessonHtml(pk, l) {
     var h = subnav('') + '<div class="meta ui">Week ' + esc(pk.week || '') + ' · lesson ' + l.day + '</div><h1>' + esc(l.title) + '</h1><p>' + esc(l.intro) + '</p>' +
       (window.WLMe ? '<div class="ui" style="text-align:right">' + WLMe.fitLink('tagalog', 'lesson:' + pk.id + '/' + l.day, l.title + ': ' + l.intro) + '</div>' : '');
-    h += '<div class="card"><h2>Words</h2><p class="meta ui">Tap 🔊 to hear each one, then say it out loud.</p><ul class="list">' + l.words.map(function (w) {
+    h += '<div class="card"><h2>Words</h2><p class="meta ui">Tap 🔊 to hear each one, then say it out loud.</p>' +
+      '<div class="row ui" style="margin-bottom:6px"><button class="chip" id="tl-walk" aria-pressed="false">🎧 Listen while walking</button></div><ul class="list">' + l.words.map(function (w) {
       return '<li class="row"><span class="grow"><b lang="tl">' + esc(w.tl) + '</b><br><span class="meta ui">' + esc(w.en) + '</span></span>' + hear(w.tl) + '</li>';
     }).join('') + '</ul></div>';
     if (l.dialogue && l.dialogue.length) h += '<div class="card"><h2>Conversation</h2><div class="row ui"><button class="chip" id="tl-play">▶ Play all</button><button class="chip" id="tl-en" aria-pressed="true">English</button></div><ul class="list dlg">' + l.dialogue.map(function (d) {
@@ -226,6 +227,21 @@
         var pl = $('#tl-play'); if (pl) pl.onclick = function () {
           var lines = f.lesson.dialogue.map(function (d) { return d.tl; }), k = 0;
           (function next() { if (k < lines.length && location.hash.indexOf('#tagalog/l/') === 0) WL.speech.speak(lines[k++], function () { setTimeout(next, 600); }, { lang: 'fil-PH', rate: S.settings.slow ? 0.8 : 1 }); })();
+        };
+        // hands-free: each word in Tagalog, its meaning, the Tagalog again (time to repeat it), then the conversation
+        var wk = $('#tl-walk'); if (wk) wk.onclick = function () {
+          if (wk.getAttribute('aria-pressed') === 'true') { wk.setAttribute('aria-pressed', 'false'); wk.textContent = '🎧 Listen while walking'; WL.speech.stop(); return; }
+          wk.setAttribute('aria-pressed', 'true'); wk.textContent = '■ Stop listening';
+          var here = location.hash, rate = S.settings.slow ? 0.8 : 1, seq = [];
+          f.lesson.words.forEach(function (w) { seq.push([w.tl, 'fil-PH', 900], [w.en, '', 900], [w.tl, 'fil-PH', 2500]); });
+          (f.lesson.dialogue || []).forEach(function (d) { seq.push([d.tl, 'fil-PH', 1500]); });
+          var k = 0;
+          (function next() {
+            if (location.hash !== here || wk.getAttribute('aria-pressed') !== 'true') return;
+            if (k >= seq.length) { wk.setAttribute('aria-pressed', 'false'); wk.textContent = '🎧 Listen again'; return; }
+            var it = seq[k++];
+            WL.speech.speak(it[0], function () { setTimeout(next, it[2]); }, it[1] ? { lang: it[1], rate: rate } : { rate: 1 });
+          })();
         };
         runExercises(f.pack, f.lesson);
         return;

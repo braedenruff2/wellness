@@ -21,7 +21,7 @@ Done 20 Nov early (PC run): "Not for me?" on Faith day / Tagalog lesson / Home a
 rules; Home "today" list (module today()); reviews of every module + Android side (29 bugs fixed with tests).
 1. (done 20 Nov 07:10: dayScript DAY_LINES x3) Faith: wording variants for guided-prayer steps that repeat daily (like Calm's VARIANTS; Scripture text exact, WEB
    only, never speak as God); unit test that every variant keeps the same timing.
-2. Calm (done 20 Nov 06:45: pickup, sink): 1 more short practice (2-4 min) for a parent: "Breathing with the baby asleep on you", "Before you pick her
+2. (done 20 Nov 08:00: pickup, sink, contact) Calm short practices (2-4 min) for a parent: "Breathing with the baby asleep on you", "Before you pick her
    up (30-second reset)", "Kitchen-sink mindfulness" (content + VARIANTS + tests). Not therapy, no medical claims.
 3. (done 20 Nov 06:55: "light on legs this week" Fri-Sun) Workout: a plain note on Home's Move line late in the week when an area (legs / push / pull / core) is behind
    (volumeAdvice exists); unit tests across Mon/Sun and DST.
@@ -51,6 +51,14 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 
 18. (done 20 Nov 07:50) Faith journal: search box (find a word across entries, journal/awe/gratitude); tests.
 19. (done 20 Nov 07:45) To-do: "every 2 weeks" and "every month" repeats (month ends: the 31st -> last day of shorter months; Feb 29); tests.
-20. Faith: "Awe moments" look-back: on the 1st of each month, show one awe moment from a month ago on the Faith today
+20. (exists already: C.lookBack shows a week/month/3 months ago entry) Faith: "Awe moments" look-back: on the 1st of each month, show one awe moment from a month ago on the Faith today
     screen (if any); tests with the fake clock.
 21. (done 20 Nov 07:55: #tagalog/words) Tagalog: a "Words I know" list (cards in box >= 3) with hear buttons, and "Hard words" (most wrong); tests.
+22. (done 20 Nov 08:05) Workout: from 26 Dec, the Move screen asks once "Got the adjustable dumbbells?" (one tap switches equipment to
+    adjustable and explains weight progression; "Not yet" hides it for a week); tests with the fake clock.
+23. (done 20 Nov 08:10) Tagalog: "Listen while walking" on a lesson: plays every word (Tagalog, then English) and the conversation with
+    pauses, hands-free, stops on leaving; tests (fake speech).
+24. (done 20 Nov 08:00) Faith: the guided prayer's "others" step names one or two open Prayer list items ("You're praying for: ...");
+    tests (text escaped, nothing when the list is empty).
+25. Parenting progress: per skill, a small score-over-time row (like #me's 14-day bars); tests.
+26. Faith Pray list: practices done this week get a tick and a count ("2× this week"); tests.

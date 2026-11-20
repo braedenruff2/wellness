@@ -50,6 +50,8 @@
     if (!open) h += '<div class="chips ui" style="margin-bottom:10px">' + W.ORDER.map(function (d) {
       return '<button class="chip" data-day="' + d + '" aria-pressed="' + (d === day) + '">' + W.PROGRAM[d].title.replace('Full body ', 'Day ') + '</button>';
     }).join('') + '</div>';
+    if (W.askDumbbells(S, new Date())) h += '<div class="card ui" id="wo-db"><p><b>Got the adjustable dumbbells?</b> Then the app switches from “make it harder” (slower, pauses) to adding weight: when you hit the top of the range on every set, go up 5 lb (2.5 lb for small muscles) and start again at the bottom.</p>' +
+      '<div class="row"><button class="primary" id="wo-db-yes">Yes, switch</button><button id="wo-db-no">Not yet</button></div></div>';
     h += '<p class="meta ui">Warm up 2 minutes first: march on the spot, arm circles, 10 easy squats. Letters are supersets: one set of each, then rest.</p>';
     var groupSeen = {};
     plan.items.forEach(function (it, idx) {
@@ -113,6 +115,8 @@
 
   function wireToday() {
     $$('[data-day]').forEach(function (b) { b.onclick = function () { dayChoice = b.dataset.day; renderToday(); }; });
+    var dy = $('#wo-db-yes'); if (dy) dy.onclick = function () { S.equipment = 'adjustable'; save(); WL.toast('Switched to adjustable dumbbells'); renderToday(); };
+    var dn = $('#wo-db-no'); if (dn) dn.onclick = function () { S.dbAsked = W.iso(new Date()); save(); renderToday(); };
     $$('.ex').forEach(function (card) {
       var idx = +card.dataset.i, val = card.querySelector('.val');
       $$('.step', card).forEach(function (b) { b.onclick = function () { val.value = Math.max(0, (+val.value || 0) + +b.dataset.d); }; });

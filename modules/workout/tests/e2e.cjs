@@ -86,10 +86,12 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(vol, 'weekly sets shown after logging'); assert.ok(/legs \d+ \(\d+\) · push/.test(await vol.textContent()), 'weekly sets line');
     assert.strictEqual(await page.locator('[data-me-fit][data-about="balance"]').count(), 1, '"Not for me?" on the balance line');
   });
-  await t.step('switching to adjustable dumbbells changes the advice to adding weight', async () => {
-    await page.goto(base + '#workout/settings');
-    await page.click('[data-eq="adjustable"]');
+  await t.step('after Christmas the Move screen asks about the adjustable dumbbells; "Yes" switches the advice to adding weight', async () => {
     await page.goto(base + '#workout');
+    assert.strictEqual(await page.$('#wo-db'), null, 'not before 26 Dec');
+    await page.clock.setSystemTime(new Date(2026, 11, 26, 9, 0)); await page.reload(); await page.waitForSelector('#wo-db');
+    await page.click('#wo-db-yes');
+    assert.strictEqual(await page.$('#wo-db'), null);
     assert.ok(/go up to 15 lb/.test(await page.textContent('#ex-0 .adv')));
   });
   await t.step('leaving during a rest stops the timer (no beep on another screen)', async () => {

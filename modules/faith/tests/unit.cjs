@@ -264,6 +264,13 @@ t('guided prayer: guiding lines worded three ways (by day), same steps and timin
   assert.ok(!/\b(I am your God|I love you, my child|says the Lord)\b/i.test(all));
 });
 
+t('guided prayer names up to two open prayer-list items in the "others" step', () => {
+  const d = { n: 1, keyVerse: 'K', prayer: 'P', practice: 'Q' };
+  assert.ok(!/prayer list/.test(C.dayScript(d, 0, [])[7].say));
+  const s = C.dayScript(d, 0, ['Mom’s surgery', 'a friend\nlooking for work', 'third'])[7].say;
+  assert.ok(/On your prayer list: Mom’s surgery; and a friend looking for work\.$/.test(s), s);
+});
+
 t('Player: back after the end does not end twice (bell, duplicate buttons)', () => {
   const log = [], env = fakeEnv(log);
   const p = new C.Player([{ say: 'a', wait: 0 }], env);

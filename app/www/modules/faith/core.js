@@ -229,7 +229,8 @@
     practice: ['Before you go, remember today’s practice: ', 'One thing to carry with you today: ', 'Today’s practice, before you go: '],
     end: ['Amen. Go gently.', 'Amen. Go in peace.', 'Amen. Take this quiet with you.']
   };
-  function dayScript(day, variant) {
+  /* praying: up to two open Prayer list items, named in the "others" step. */
+  function dayScript(day, variant, praying) {
     var v = ((Math.floor(+(variant == null ? day.n : variant) || 0)) % 3 + 3) % 3, L = function (k) { return DAY_LINES[k][v]; };
     var steps = [
       { say: L('open'), wait: 3 },
@@ -239,7 +240,7 @@
       { say: day.sitWith || L('sit'), wait: 30 },
       { say: L('pray'), wait: 1 },
       { say: day.prayer, wait: 15, kind: 'prayer' },
-      { say: L('others'), wait: 20 },
+      { say: L('others') + (praying && praying.length ? ' On your prayer list: ' + praying.slice(0, 2).map(function (t) { return String(t).replace(/\s+/g, ' ').trim().slice(0, 80); }).join('; and ') + '.' : ''), wait: 20 },
       { say: L('practice') + day.practice, wait: 4 },
       { say: L('end'), wait: 0, kind: 'end' }
     ];

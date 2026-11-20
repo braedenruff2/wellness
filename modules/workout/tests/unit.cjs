@@ -218,4 +218,14 @@ t('every set undone: no workout "in progress", the day can change, removed sets 
   W.endSession(s2, at(18, 9, 2));
   assert.ok(s2.sessions.some((x) => x.removed && x.removed.length), 'kept (closed) for the PC');
 });
+t('after Christmas: ask once about adjustable dumbbells, again a week after "Not yet", never once switched', () => {
+  const s = W.defaults();
+  assert.ok(!W.askDumbbells(s, new Date(2026, 11, 25, 12)));
+  assert.ok(W.askDumbbells(s, new Date(2026, 11, 26, 9)));
+  s.dbAsked = '2026-12-26';
+  assert.ok(!W.askDumbbells(s, new Date(2027, 0, 1, 9)));
+  assert.ok(W.askDumbbells(s, new Date(2027, 0, 2, 9)));
+  assert.strictEqual(W.validate(JSON.parse(JSON.stringify(s))).dbAsked, '2026-12-26', 'kept through a backup');
+  s.equipment = 'adjustable'; assert.ok(!W.askDumbbells(s, new Date(2027, 0, 9, 9)));
+});
 console.log(n + ' workout unit tests passed');

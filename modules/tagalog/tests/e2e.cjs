@@ -5,6 +5,7 @@ const Wb = require('../../../tests/lib/web.cjs');
 const pack = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'packs', '2026-11-18.json'), 'utf8'));
 const next = JSON.parse(JSON.stringify(pack)); next.id = '2026-11-25'; next.week = 2; next.title = 'Week two test';
 const HASHES = {}, GOT = { n: 0 };
+const PACK0 = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'packs', '2026-11-18.json'), 'utf8'));
 const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalog/packs/';
 (async () => {
   const t = await Wb.open({ routes: [[RAW + '**', (route) => {
@@ -35,6 +36,19 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
       await page.click('#tl-next');
     }
     assert.ok((await page.textContent('#tl-ex')).includes(exs.length + ' of ' + exs.length + ' right'));
+  });
+  await t.step('Listen while walking: word in Tagalog, its meaning, the Tagalog again; stops when he leaves', async () => {
+    await page.evaluate(() => { window.__spoken.length = 0; });
+    await page.click('#tl-walk');
+    for (let i = 0; i < 6; i++) await page.clock.runFor(1000);
+    const sp = await page.evaluate(() => window.__spoken.slice(0, 3));
+    const w = PACK0.lessons[0].words[0];
+    assert.deepStrictEqual(sp.map((x) => x.text), [w.tl, w.en, w.tl], JSON.stringify(sp));
+    assert.strictEqual(sp[0].lang, 'fil-PH'); assert.notStrictEqual(sp[1].lang, 'fil-PH');
+    await page.click('#tl-walk'); // stop
+    const n = await page.evaluate(() => window.__spoken.length);
+    for (let i = 0; i < 5; i++) await page.clock.runFor(1000);
+    assert.strictEqual(await page.evaluate(() => window.__spoken.length), n, 'stopped');
   });
   await t.step('a wrong answer shows the right one', async () => {
     await page.click('#tl-again');
