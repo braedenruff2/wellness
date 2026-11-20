@@ -250,6 +250,20 @@ t('dayScript uses the day’s own words', () => {
   assert.ok(sc.includes('KV') && sc.includes('PR') && sc.includes('PRAC') && sc.includes('SIT'));
 });
 
+t('guided prayer: guiding lines worded three ways (by day), same steps and timing; the day’s own words exact', () => {
+  const d = { n: 4, keyVerse: 'KV', prayer: 'PR', practice: 'PRAC' };
+  const a = C.dayScript(d, 0), b = C.dayScript(d, 1), c = C.dayScript(d, 2), again = C.dayScript(d, 3);
+  assert.deepStrictEqual(a.map((s) => s.wait), b.map((s) => s.wait)); assert.deepStrictEqual(a.map((s) => s.wait), c.map((s) => s.wait));
+  for (const i of [0, 1, 2, 4, 5, 7, 9]) assert.ok(a[i].say !== b[i].say && b[i].say !== c[i].say && a[i].say !== c[i].say, 'step ' + i);
+  assert.deepStrictEqual(again.map((s) => s.say), a.map((s) => s.say), 'wraps');
+  for (const sc of [a, b, c]) { assert.strictEqual(sc[3].say, 'KV'); assert.strictEqual(sc[6].say, 'PR'); assert.ok(sc[8].say.endsWith('PRAC')); }
+  assert.deepStrictEqual(C.dayScript(d).map((s) => s.say), C.dayScript(d, 4).map((s) => s.say), 'default: by day number');
+  assert.ok(C.dayScript({ keyVerse: 'K', prayer: 'P', practice: 'Q' })[0].say.length > 10, 'no day number: first wording');
+  // never speaks as God: guiding lines talk about God, not as God
+  const all = [a, b, c].flat().map((s) => s.say).join(' ');
+  assert.ok(!/\b(I am your God|I love you, my child|says the Lord)\b/i.test(all));
+});
+
 t('Player: back after the end does not end twice (bell, duplicate buttons)', () => {
   const log = [], env = fakeEnv(log);
   const p = new C.Player([{ say: 'a', wait: 0 }], env);

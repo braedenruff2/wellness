@@ -159,7 +159,7 @@
     var steps, title, minutes;
     if (kind === 'day') {
       var d = day(id); if (!d) return null;
-      steps = C.dayScript(d); title = 'Day ' + d.n + ': ' + d.title; minutes = S.settings.minutes;
+      steps = C.dayScript(d, d.n + (S.round || 1) - 1); title = 'Day ' + d.n + ': ' + d.title; minutes = S.settings.minutes;
     } else {
       var p = practice(id); if (!p) return null;
       var tv = day(C.currentDay(S, TOTAL)) || DAYS[DAYS.length - 1];

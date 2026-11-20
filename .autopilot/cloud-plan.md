@@ -19,14 +19,14 @@ Can't do here: APK build/signing (key not in repo), anything using data outside 
 ## Tasks (pick in order; update this list on the PC; keep going until usage runs out)
 Done 20 Nov early (PC run): "Not for me?" on Faith day / Tagalog lesson / Home advice / exercise cues; 6 more guidance
 rules; Home "today" list (module today()); reviews of every module + Android side (29 bugs fixed with tests).
-1. Faith: wording variants for guided-prayer steps that repeat daily (like Calm's VARIANTS; Scripture text exact, WEB
+1. (done 20 Nov 07:10: dayScript DAY_LINES x3) Faith: wording variants for guided-prayer steps that repeat daily (like Calm's VARIANTS; Scripture text exact, WEB
    only, never speak as God); unit test that every variant keeps the same timing.
 2. Calm (done 20 Nov 06:45: pickup, sink): 1 more short practice (2-4 min) for a parent: "Breathing with the baby asleep on you", "Before you pick her
    up (30-second reset)", "Kitchen-sink mindfulness" (content + VARIANTS + tests). Not therapy, no medical claims.
 3. (done 20 Nov 06:55: "light on legs this week" Fri-Sun) Workout: a plain note on Home's Move line late in the week when an area (legs / push / pull / core) is behind
    (volumeAdvice exists); unit tests across Mon/Sun and DST.
 4. (done 20 Nov 06:50) To-do: today() names the first task ("To do: call Mom + 2 more"); tests.
-5. Tagalog: edge-case tests (no packs at all, a pack replaced by a newer version with the same id, very long typed
+5. (20 Nov 07:00: corrected packs now re-download via index.json hashes) Tagalog: edge-case tests (no packs at all, a pack replaced by a newer version with the same id, very long typed
    answers, a lesson with no dialogue/grammar); fix what they find.
 6. (done 20 Nov 06:55: tests/e2e-a11y.cjs, all pass; night mode .meta contrast 3.4:1 on purpose, dim at 3am) Accessibility: run tests/lib/web.cjs noOverflow at text size "Larger" (1.3) on every screen; tap targets >= 44 px
    on Home's today list, chips and quick-question buttons; night-mode contrast of .meta text (>= 4.5:1).
@@ -35,3 +35,11 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 8. Code health: dead code and duplicated date helpers (iso/addDays in several cores); keep behaviour identical (tests).
 9. More guidance rules in me-core guidance() from combinations (e.g. short sleep + workout planned -> lighter workout),
    each with a stable key and unit test.
+10. Home: after 8 pm, unfinished today-list items get a gentle line ("Tomorrow is fine.") instead of looking undone;
+    test with the fake clock.
+11. Home: on Sunday evening, a short "Your week" card across parts (faith days, calm sessions, workouts, Tagalog
+    lessons, to-dos done), no streaks or scores; tests.
+12. #me page: a simple 14-day trend of sleep and mood from check-ins (text or inline SVG bars, dark-mode safe); tests.
+13. Faith practices (#faith/pray): wording variants like dayScript's DAY_LINES for the guiding lines (Scripture exact).
+14. Workout: show the "light on <area>" line on the Move screen too (Fri-Sun), with "Not for me?"; tests.
+

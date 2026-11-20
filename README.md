@@ -20,6 +20,8 @@ sharing > "Send my week" on the phone and put the file in `Desktop\wellness-prog
 The summary (also sent by the PC link) has `feel`: his "That was: too easy / about right / too hard" answers after
 lessons, review and practice, and "Not for me?" on lessons/tips. The weekly run steps up (longer sentences, more
 speaking) on "Too easy", slows down and recycles words on "Too hard", and avoids what he marked not for him.
+A week already sent can be corrected in place (same file name; run build-packs): index.json carries a hash per week,
+and phones that downloaded the old one fetch it again (lesson progress is kept; it's keyed by week + lesson number).
 Nothing personal goes to GitHub: journal, workouts, to-dos and progress stay on the phone (and, with the PC link, in Desktop\wellness-progress).
 
 ## PC link (activity log + Claude on your PC)

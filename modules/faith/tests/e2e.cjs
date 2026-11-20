@@ -99,7 +99,7 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     await page.click('#pp');
     await page.clock.runFor(1500);
     const first = await page.textContent('#line');
-    assert.ok(first.startsWith('Let’s be still'), first);
+    assert.ok(/^(Let’s be still|Take a few quiet|Let’s slow down)/.test(first), first); // the opening is worded three ways by day
     await page.clock.runFor(60000);
     const mid = await page.evaluate(() => JSON.parse(localStorage.getItem('fc.v1')).resume.step);
     assert.ok(mid >= 1, 'moved on: ' + mid);

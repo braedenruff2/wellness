@@ -181,10 +181,16 @@
     var base = S.source.replace(/\/?$/, '/');
     return fetch(base + 'index.json', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (idx) {
       var have = {}; packs().forEach(function (p) { have[p.id] = 1; });
-      var want = (idx.packs || []).filter(function (id) { return /^\d{4}-\d\d-\d\d$/.test(id) && !have[id]; });
+      var hashes = idx.hashes && typeof idx.hashes === 'object' ? idx.hashes : {}, hs = S.packHash || (S.packHash = {}), isNew = {};
+      // new weeks, and downloaded weeks that were corrected since (their hash changed); weeks inside the app update with it
+      var want = (idx.packs || []).filter(function (id) {
+        if (!/^\d{4}-\d\d-\d\d$/.test(id)) return false;
+        if (!have[id]) return (isNew[id] = true);
+        return !!(S.packs[id] && typeof hashes[id] === 'string' && hs[id] !== hashes[id]);
+      });
       return Promise.all(want.map(function (id) {
         return fetch(base + id + '.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (p) {
-          if (!T.checkPack(p).length && p.id === id) { S.packs[id] = p; return 1; } return 0;
+          if (!T.checkPack(p).length && p.id === id) { S.packs[id] = p; if (typeof hashes[id] === 'string') hs[id] = hashes[id]; return isNew[id] ? 1 : 0; } return 0;
         }).catch(function () { return 0; });
       }));
     }).then(function (got) {

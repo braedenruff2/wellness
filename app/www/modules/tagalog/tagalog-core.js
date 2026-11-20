@@ -189,6 +189,7 @@
     });
     Object.keys(s.packs || {}).forEach(function (k) { if (!checkPack(s.packs[k]).length) d.packs[k] = s.packs[k]; });
     if (s.settings && typeof s.settings.slow === 'boolean') d.settings.slow = s.settings.slow;
+    if (s.packHash && typeof s.packHash === 'object') Object.keys(s.packHash).forEach(function (k) { if (d.packs[k] && /^[0-9a-f]{12}$/.test(s.packHash[k])) (d.packHash = d.packHash || {})[k] = s.packHash[k]; });
     if (typeof s.source === 'string' && /^https:\/\/raw\.githubusercontent\.com\//.test(s.source)) d.source = s.source;
     return d;
   }

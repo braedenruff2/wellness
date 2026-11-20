@@ -209,19 +209,39 @@
   var G = root.WLGuided || require('../../lib/guided.js');
   var wordsSeconds = G.wordsSeconds, scaleScript = G.scaleScript, scriptLength = G.scriptLength, Player = G.Player;
 
-  /* The guided prayer for a day of the path. */
-  function dayScript(day) {
+  /* The guided prayer for a day of the path. The guiding lines around the day's own words (Scripture, prayer, practice:
+     always exact) come in three wordings that take turns by day, so it doesn't sound the same every day. */
+  var DAY_LINES = {
+    open: ['Let’s be still for a few minutes. You can keep your eyes open or closed. If the baby needs you, just pause; this will wait.',
+      'Take a few quiet minutes. Sit or lie however is comfortable. If she needs you, pause; this will be here when you come back.',
+      'Let’s slow down together for a little while. Eyes open or closed, whatever helps. If you’re called away, just pause.'],
+    breathe: ['Breathe in slowly… and out. Again, in… and out. Notice your feet, your hands, the weight of your body. You are here, and God is here.',
+      'Let your breathing slow… in… and out. Feel the floor or the chair holding you. You are here, and God is with you.',
+      'Breathe in… and let it go. Once more. Let your shoulders drop. You don’t have to do anything to be welcome here.'],
+    hear: ['Hear today’s words again, slowly.', 'Listen to today’s words once more.', 'Here are today’s words again. Let them sink in.'],
+    sit: ['Which word or phrase stays with you? Rest on it. If your mind wanders, gently come back to it.',
+      'Is there one word that stands out? Stay with it for a while. When your thoughts drift, return to it gently.',
+      'Let one phrase from it stay with you. Turn it over slowly. A wandering mind is normal; just come back.'],
+    pray: ['Now pray, in these words or your own.', 'Now let’s pray. Use these words, or your own.', 'Pray along with these words, or in your own way.'],
+    others: ['Is there someone you want to bring to God right now? Your wife, your daughter, a friend, yourself. Just hold them in mind.',
+      'Who is on your heart today? Your family, a friend, someone who is struggling, or yourself. Bring them to God in a few words.',
+      'Think of someone who needs prayer today, maybe someone at home, maybe someone far away. Hold them before God for a moment.'],
+    practice: ['Before you go, remember today’s practice: ', 'One thing to carry with you today: ', 'Today’s practice, before you go: '],
+    end: ['Amen. Go gently.', 'Amen. Go in peace.', 'Amen. Take this quiet with you.']
+  };
+  function dayScript(day, variant) {
+    var v = ((Math.floor(+(variant == null ? day.n : variant) || 0)) % 3 + 3) % 3, L = function (k) { return DAY_LINES[k][v]; };
     var steps = [
-      { say: 'Let’s be still for a few minutes. You can keep your eyes open or closed. If the baby needs you, just pause; this will wait.', wait: 3 },
-      { say: 'Breathe in slowly… and out. Again, in… and out. Notice your feet, your hands, the weight of your body. You are here, and God is here.', wait: 8 },
-      { say: 'Hear today’s words again, slowly.', wait: 1 },
+      { say: L('open'), wait: 3 },
+      { say: L('breathe'), wait: 8 },
+      { say: L('hear'), wait: 1 },
       { say: day.keyVerse, wait: 12, kind: 'verse' },
-      { say: day.sitWith || 'Which word or phrase stays with you? Rest on it. If your mind wanders, gently come back to it.', wait: 30 },
-      { say: 'Now pray, in these words or your own.', wait: 1 },
+      { say: day.sitWith || L('sit'), wait: 30 },
+      { say: L('pray'), wait: 1 },
       { say: day.prayer, wait: 15, kind: 'prayer' },
-      { say: 'Is there someone you want to bring to God right now? Your wife, your daughter, a friend, yourself. Just hold them in mind.', wait: 20 },
-      { say: 'Before you go, remember today’s practice: ' + day.practice, wait: 4 },
-      { say: 'Amen. Go gently.', wait: 0, kind: 'end' }
+      { say: L('others'), wait: 20 },
+      { say: L('practice') + day.practice, wait: 4 },
+      { say: L('end'), wait: 0, kind: 'end' }
     ];
     return steps;
   }
