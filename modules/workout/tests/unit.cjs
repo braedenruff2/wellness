@@ -201,6 +201,11 @@ t('today line for Home: done, planned rest, in progress, next', () => {
   W.logSet(s, 'B', 0, 12, 10, d(18)); W.endSession(s, d(18, 9, 30));
   W.logSet(s, 'C', 0, 12, 10, d(20)); W.endSession(s, d(20, 9, 30));
   assert.ok(W.today(s, d(22)).done && /3 this week/.test(W.today(s, d(22)).text), 'three done: Sunday is rest');
+  // late in the week with an area behind: named
+  const b = W.defaults();
+  W.logSet(b, 'B', 1, 10, null, d(17)); W.endSession(b, d(17, 9, 30)); // pike pushups only (push)
+  assert.ok(!/light on/.test(W.today(b, d(19)).text), 'Thursday: not yet');
+  assert.ok(/light on (legs|pull) this week/.test(W.today(b, d(20)).text), W.today(b, d(20)).text);
 });
 t('every set undone: no workout "in progress", the day can change, removed sets still reach the PC', () => {
   const s = W.defaults();

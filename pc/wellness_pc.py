@@ -316,9 +316,11 @@ def save_events(events):
     new = 0
     with activity_lock:
         for day, evs in sorted(by_day.items()):
-            # older versions filed by the UTC date: an event already there (the next day's file) is not saved again
-            nxt = (datetime.date.fromisoformat(day) + datetime.timedelta(days=1)).isoformat()
-            seen = {x.get("id") for x in read_day(day) + read_day(nxt)}
+            # older versions filed by the UTC date: an event already there (the next day's file west of UTC, the day
+            # before east of it) is not saved again
+            d0 = datetime.date.fromisoformat(day)
+            nxt, prv = (d0 + datetime.timedelta(days=1)).isoformat(), (d0 - datetime.timedelta(days=1)).isoformat()
+            seen = {x.get("id") for x in read_day(day) + read_day(nxt) + read_day(prv)}
             fresh = []
             for e in sorted(evs, key=lambda x: x["at"]):
                 if e["id"] in seen: continue
@@ -332,8 +334,9 @@ def save_events(events):
 def recent_events(days, today=None):
     today = today or datetime.date.today()
     out, first, ids0 = [], (today - datetime.timedelta(days=days - 1)).isoformat(), set()
-    # one file more: older versions filed evening events under the next (UTC) day
-    for i in range(days - 1, -2, -1):
+    # one file more each side: older versions filed by the UTC date (evening events under the next day west of UTC,
+    # early-morning ones under the day before east of it)
+    for i in range(days, -2, -1):
         for e in read_day((today - datetime.timedelta(days=i)).isoformat()):
             d = local_day(e.get("at", ""))
             if first <= d <= today.isoformat() and e.get("id") not in ids0:

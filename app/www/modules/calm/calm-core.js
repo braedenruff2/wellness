@@ -85,6 +85,21 @@
       { say: 'Listen: near sounds, far sounds. Let them come and go.', wait: 50 },
       { say: 'Before you finish, take one slow breath and notice how you feel now compared with when you started.', wait: 0 }
     ] },
+    { id: 'pickup', kind: 'guided', title: 'Before you pick her up', minutes: 1, fixed: true, when: 'She’s crying and you’re wound up', blurb: 'Thirty seconds to steady yourself first, so she borrows your calm.', steps: [
+      { say: 'She’s safe for a moment. Stop where you are and put both feet flat on the floor.', wait: 4 },
+      { say: 'Breathe in through your nose, and let a long breath out through your mouth.', wait: 8 },
+      { say: 'Once more. In, and a long, slow breath out. Let your shoulders drop.', wait: 8 },
+      { say: 'Soften your face and your hands. She feels your body before she hears your words.', wait: 6 },
+      { say: 'Now go to her slowly, and keep breathing out long while you hold her.', wait: 0 }
+    ] },
+    { id: 'sink', kind: 'guided', title: 'Washing-up mindfulness', minutes: 4, when: 'Dishes, bottles, laundry: any chore', blurb: 'A chore you have to do anyway becomes a few calm minutes.', steps: [
+      { say: 'Keep doing the chore, just a little slower than usual.', wait: 10 },
+      { say: 'Notice the temperature: warm water, cool air, the weight of what’s in your hands.', wait: 35 },
+      { say: 'Notice the sounds: water, cups, the hum of the room.', wait: 35 },
+      { say: 'When your mind runs to the next job, notice where it went, and come back to your hands.', wait: 45 },
+      { say: 'Breathe out slowly as you finish each item.', wait: 40 },
+      { say: 'Before you stop, notice one thing that’s going fine right now.', wait: 0 }
+    ] },
     { id: 'timer', kind: 'timer', title: 'Quiet timer', minutes: 10, when: 'Sit in silence with a bell at the end', blurb: 'No voice. A soft bell to start and finish.' }
   ];
 
@@ -152,6 +167,21 @@
       ['Part of you may still be listening for her. You’ll hear her if she needs you. You can let that go for now.', 'You’ll hear her if she wakes. For now, let the listening rest.'],
       ['Imagine somewhere peaceful you’ve been. Notice what you see and hear there, slowly.', 'Picture a quiet place you love. Take a slow walk around it in your mind.'],
       ['Nothing else is needed. Rest.', 'Let go. Rest now.']
+    ],
+    pickup: [
+      ['Pause for a moment; she’s safe. Feel your feet on the floor.', 'Stop for a breath before you go to her. Plant your feet.'],
+      ['In through your nose, then breathe out long through your mouth.', 'Take a breath in, and let it out slowly, like blowing on hot tea.'],
+      ['Again: in, then a slow, long breath out. Shoulders down.', 'One more slow breath. Let your shoulders fall away from your ears.'],
+      ['Let your face and hands go soft. Babies pick up on a calm body.', 'Unclench your jaw and your fingers. Your calm reaches her through your arms.'],
+      ['Go to her gently. Keep your out-breaths long as you hold her.', 'Pick her up slowly, and keep breathing out long and easy.']
+    ],
+    sink: [
+      ['Carry on with the job, just a bit more slowly.', 'Keep going with what you’re doing, at a gentler pace.'],
+      ['Feel the warmth or coolness, and the weight of what you’re holding.', 'Notice what your hands feel: water, steam, cloth, weight.'],
+      ['Listen to the sounds around you: water running, things clinking, the room itself.', 'Notice what you can hear while you work, near and far.'],
+      ['Your mind will jump to the next task. When it does, notice, and bring it back to your hands.', 'When you catch yourself planning, that’s fine. Come back to what your hands are doing.'],
+      ['Let a slow breath out each time you put something down.', 'Each time you finish one thing, breathe out slowly.'],
+      ['Before you finish, find one thing that’s going okay right now.', 'As you finish, notice one small thing that’s fine in this moment.']
     ],
     walk: [
       ['Walk at a comfortable pace. Stay aware of the path, traffic and the people around you.', 'Keep an easy pace and watch where you’re going; this practice works with your eyes open.'],
@@ -221,7 +251,7 @@
     if (h >= 22) return ['sleep', 'body', 'slow'];
     if (h < 5) return ['night', 'slow', 'sigh'];
     if (h < 9) return ['slow', 'box', 'sigh', 'walk'];
-    return ['body', 'ground', 'kind', 'walk', 'feed', 'slow', 'box', 'sigh', 'timer'];
+    return ['body', 'ground', 'kind', 'walk', 'feed', 'sink', 'slow', 'box', 'sigh', 'pickup', 'timer'];
   }
 
   /* A practice that fits the moment: never one already done today; among those that fit the time of day, the one

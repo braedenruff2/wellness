@@ -141,7 +141,11 @@
     storageKeys: [store.key],
     route: function (parts, v) { view = v; render(); },
     card: card, wireCard: wireCard,
-    today: function () { var g = T.groups(S), n = g.overdue.length + g.today.length; return n ? { label: 'To do: ' + n + ' for today', done: false, href: '#todo' } : null; },
+    today: function () {
+      var g = T.groups(S), due = g.overdue.concat(g.today); if (!due.length) return null;
+      var first = String(due[0].text || '').slice(0, 40);
+      return { label: 'To do: ' + first + (due.length > 1 ? ' + ' + (due.length - 1) + ' more' : ''), done: false, href: '#todo' };
+    },
     validate: function (k, raw) { try { var s = T.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); syncAlarms(); }
   });

@@ -321,7 +321,14 @@
     var st = weekStats(state, now);
     if (st.thisWeek >= st.target) return { done: true, text: st.target + ' this week, rest or a walk' };
     if (dates[y]) return { done: true, text: 'rest day (worked out yesterday)' };
-    return { done: false, text: PROGRAM[nextDay(state, now)].title + ' (about 30 min)' };
+    var txt = PROGRAM[nextDay(state, now)].title + ' (about 30 min)';
+    // Friday to Sunday: name an area that's behind for the week (if anything was logged this week)
+    if ((now.getDay() + 6) % 7 >= 4) {
+      var v = weekVolume(state, now).thisWeek, tot = AREAS.reduce(function (t, k) { return t + v[k]; }, 0);
+      var behind = AREAS.filter(function (k) { return v[k] < AREA_TARGET[k]; }).sort(function (x, y) { return v[x] / AREA_TARGET[x] - v[y] / AREA_TARGET[y]; });
+      if (tot && behind.length) txt += ', light on ' + behind[0] + ' this week';
+    }
+    return { done: false, text: txt };
   }
 
   /* Import the Google Sheet "Log" tab saved as CSV (File > Download > CSV): Date, Day, Exercise, Set 1-4, Weight, ... */
