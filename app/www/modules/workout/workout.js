@@ -66,7 +66,7 @@
           return done[k] ? '<button class="sc on" data-edit="' + k + '" aria-label="Set ' + (k + 1) + ': ' + done[k].val + '. Tap to fix">' + done[k].val + '</button>' : '<span class="sc"></span>';
         }).join('') + '</span></div><div class="editrow ui" hidden></div>' +
         '<p class="meta ui adv">' + esc(W.advice(S, it, lp)) + (done.length ? ' <span class="meta">Tap a set’s number to fix it.</span>' : '') + '</p>' +
-        '<details class="ui"><summary class="meta">How</summary><p class="meta">' + esc(e.cue || '') + (S.next[it.ex] ? ' Now doing: ' + esc(S.next[it.ex]) + '.' : '') + '</p></details>' +
+        '<details class="ui"><summary class="meta">How</summary><p class="meta">' + esc(e.cue || '') + (S.next[it.ex] ? ' Now doing: ' + esc(S.next[it.ex]) + '.' : '') + (window.WLMe ? ' ' + WLMe.fitLink('workout', 'ex:' + it.ex, it.ex + ': ' + (e.cue || '')) : '') + '</p></details>' +
         (full ? '' : '<div class="row ui logrow"><button class="step" data-d="-1" aria-label="One less">−</button><input type="number" inputmode="numeric" class="val" value="' + esc(suggest) + '" aria-label="' + esc(unit(e)) + '"><button class="step" data-d="1" aria-label="One more">+</button><span class="meta">' + unit(e) + '</span>' +
           (e.track === 'reps' && (e.load || w !== '') ? '<input type="number" inputmode="decimal" class="wt" value="' + esc(w) + '" aria-label="Weight in lb"><span class="meta">lb</span>' : '') +
           '<button class="primary logbtn">Log set ' + (done.length + 1) + '</button></div>') + '</div>';

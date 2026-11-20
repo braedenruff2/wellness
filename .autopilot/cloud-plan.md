@@ -17,19 +17,21 @@ Can't do here: APK build/signing (key not in repo), anything using data outside 
 - No paid services, API keys, accounts or required network for core use.
 
 ## Tasks (pick in order; update this list on the PC; keep going until usage runs out)
-0. "About you" (modules/me): done 20 Nov 04:50 UTC for Faith day/Tagalog lesson/review. Next: "Not for me?" on Home
-   advice lines from the PC (shell advice card) and on workout exercise cues; a quick question after Faith practices
-   that end without the guided player (journal-only days); keep everything optional and one tap.
-1. Bug hunting: read modules and shell code, add tests for untested paths, fix what they find. (20 Nov 05:20: faith, tagalog, shell restore reviewed + fixed. 19 Nov evening: coach,
-   workout undo/log-day, to-do reminders, activity ids and PC day filing reviewed; next: tests for less-used paths (CSV import, Tagalog pack replace, voices). 20 Nov 06:05: todo, workout, coach reviewed + fixed. 05:35: me, calm, link reviewed + fixed; minor left: PC de-dup of old files only looks a day ahead (east-of-UTC zones).)
-2. Calm (reworked 20 Nov: one practice a day, "done for today", rotation, wording variants): review it for edge cases
-   (log-for-earlier-day, midnight, restore) and add tests; more short practices (content + tests + VARIANTS).
-3. Faith: the same "today" clarity check: does every screen say plainly what to do today and when it's done?
-   Wording variants for guided prayer steps where the script repeats daily (keep Scripture text exact, WEB only).
-4. Workout: volumeAdvice is shown on the Move screen; next: a plain note on Home when an area is behind late in the week.
-5. Home: "today" list done 20 Nov (module today()). Next: To do's today() could list the first task; a gentle evening
-   note when items are left ("tomorrow is fine").
-6. Tagalog: review/practice UX polish; tests for edge cases (no packs, pack replaced, very long answers).
-7. To-do: edge cases (repeats across DST change 2027-03-14, month ends, Feb 29) with tests.
-8. Accessibility pass: font scaling, contrast in night mode, tap target sizes (tests/lib/web.cjs noOverflow at 200%).
-9. Code health: dead code, duplicated helpers, slow tests.
+Done 20 Nov early (PC run): "Not for me?" on Faith day / Tagalog lesson / Home advice / exercise cues; 6 more guidance
+rules; Home "today" list (module today()); reviews of every module + Android side (29 bugs fixed with tests).
+1. Faith: wording variants for guided-prayer steps that repeat daily (like Calm's VARIANTS; Scripture text exact, WEB
+   only, never speak as God); unit test that every variant keeps the same timing.
+2. Calm: 2-3 more short practices (2-4 min) for a parent: "Breathing with the baby asleep on you", "Before you pick her
+   up (30-second reset)", "Kitchen-sink mindfulness" (content + VARIANTS + tests). Not therapy, no medical claims.
+3. Workout: a plain note on Home's Move line late in the week when an area (legs / push / pull / core) is behind
+   (volumeAdvice exists); unit tests across Mon/Sun and DST.
+4. To-do: today() could name the first task ("To do: call Mom + 2 more"); tests.
+5. Tagalog: edge-case tests (no packs at all, a pack replaced by a newer version with the same id, very long typed
+   answers, a lesson with no dialogue/grammar); fix what they find.
+6. Accessibility: run tests/lib/web.cjs noOverflow at text size "Larger" (1.3) on every screen; tap targets >= 44 px
+   on Home's today list, chips and quick-question buttons; night-mode contrast of .meta text (>= 4.5:1).
+7. PC server (pc/wellness_pc.py): east-of-UTC de-dup (save_events checks only day+1 for old-style files; also check
+   day-1) + tests in pc/test/test_pc.py.
+8. Code health: dead code and duplicated date helpers (iso/addDays in several cores); keep behaviour identical (tests).
+9. More guidance rules in me-core guidance() from combinations (e.g. short sleep + workout planned -> lighter workout),
+   each with a stable key and unit test.

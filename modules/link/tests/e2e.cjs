@@ -117,6 +117,7 @@ const FAKE_PC = `
     await page.clock.runFor(3500);
     await page.waitForSelector('text=A steady week.');
     assert.ok((await card.textContent()).includes('Stroller walk after lunch.'));
+    assert.strictEqual(await card.locator('[data-me-fit][data-about^="advice:"]').count(), 1, '"Not for me?" on the advice');
     await page.reload(); await page.waitForSelector('.home-card[data-module="link"]');
     assert.ok((await page.locator('.home-card[data-module="link"]').textContent()).includes('A steady week.'), 'kept');
   });

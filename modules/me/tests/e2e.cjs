@@ -54,6 +54,7 @@ const Wb = require('../../../tests/lib/web.cjs');
   });
   await t.step('a finished workout asks how hard it was; answers saved', async () => {
     await page.goto(base + '#workout');
+    assert.strictEqual(await page.locator('#ex-0 [data-me-fit][data-about="ex:Bulgarian Split Squats"]').count(), 1, '"Not for me?" on each exercise');
     await page.click('#ex-0 .logbtn'); await page.click('#wo-finish');
     assert.ok(await page.isVisible('.me-ask[data-part="workout"]'));
     await page.click('[data-me-a][data-k="hard"][data-v="Too hard"]');

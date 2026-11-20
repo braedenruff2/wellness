@@ -57,7 +57,7 @@
     return '<div class="advice">' + (a.headline ? '<p><b>' + esc(a.headline) + '</b></p>' : '') +
       (Array.isArray(a.points) ? '<ul>' + a.points.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' : '') +
       (a.next ? '<p>Next step: ' + esc(a.next) + '</p>' : '') + (a.text ? '<p>' + esc(a.text) + '</p>' : '') +
-      '<p class="meta">' + esc(ago(advice.at)) + '</p></div>';
+      '<p class="meta">' + esc(ago(advice.at)) + (window.WLMe ? ' ' + WLMe.fitLink('home', 'advice:' + String(advice.at || '').slice(0, 16), [a.headline].concat(a.points || []).concat(a.next || []).join(' / ')) : '') + '</p></div>';
   }
 
   function logHtml(P) {
