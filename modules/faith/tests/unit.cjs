@@ -154,6 +154,35 @@ t('Player: plays steps in order, waits quiet, ends', () => {
   assert.strictEqual(p.phase, 'ended');
 });
 
+t('Player: time paused is counted (logged minutes leave it out), also when ⏭ ends the pause', () => {
+  const log = [], env = fakeEnv(log);
+  const p = new C.Player([{ say: 'a', wait: 10 }, { say: 'b', wait: 10 }, { say: 'c', wait: 0 }], env);
+  p.start(); env.finishSpeech(); env.advance(2000);
+  p.pause(); env.advance(40 * 60000); p.resume();
+  assert.strictEqual(p.pausedMs, 40 * 60000);
+  p.pause(); env.advance(5000); p.skip();
+  assert.strictEqual(p.pausedMs, 40 * 60000 + 5000); assert.strictEqual(p.i, 1);
+});
+
+t('Player: "Carry on" from step 3, then ⏭ / ⏮ / End before it began keep the place', () => {
+  const steps = [0, 1, 2, 3, 4, 5].map((i) => ({ say: 's' + i, wait: 1 }));
+  const a = new C.Player(steps, fakeEnv([])); a.from = 3;
+  a.skip(); assert.strictEqual(a.i, 4, 'skip goes to the step after the one it would start at (was: step 0)');
+  const b = new C.Player(steps, fakeEnv([])); b.from = 3; b.pause(); b.back();
+  assert.strictEqual(b.i, 2);
+  const c = new C.Player(steps, fakeEnv([])); c.from = 3;
+  assert.strictEqual(c.place(), 3, 'End before it began keeps step 3 (was: 0)');
+  c.pause(); assert.strictEqual(c.place(), 3);
+  c.resume(); assert.strictEqual(c.i, 3); assert.strictEqual(c.place(), 3);
+});
+
+t('daysShowedUp also counts guided prayers and new prayer-list items', () => {
+  const s = C.defaults();
+  C.logSession(s, 'practice', 'pause', 'Pause', 1, new Date(2026, 10, 18, 9));
+  C.addPrayer(s, 'for my family', new Date(2026, 10, 19, 9));
+  assert.strictEqual(C.daysShowedUp(s), 2);
+});
+
 t('Player: pause during quiet keeps the time left', () => {
   const log = [], env = fakeEnv(log);
   const p = new C.Player([{ say: 'a', wait: 10 }, { say: 'b', wait: 0 }], env);

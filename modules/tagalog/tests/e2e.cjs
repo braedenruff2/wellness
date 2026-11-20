@@ -13,6 +13,7 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     return route.fulfill({ status: 404, body: '' });
   }]] });
   const { page, base } = t;
+  const reveal = async () => { await page.click('#tl-show'); await page.clock.runFor(450); }; // answer buttons ignore taps for 0.4 s
   await page.goto(base + '#tagalog');
   await t.step('today shows lesson 1', async () => {
     assert.ok((await page.textContent('main')).includes('Po, opo and greeting elders'));
@@ -27,7 +28,7 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     for (let i = 0; i < exs.length; i++) {
       const ex = exs[i];
       if (ex.type === 'mc' || ex.type === 'listen') await page.click(`#tl-ex [data-o="${ex.answer.replace(/"/g, '\\"')}"]`);
-      if (ex.type === 'type') { await page.fill('#tl-in', ex.answer.toLowerCase()); await page.click('#tl-check'); }
+      if (ex.type === 'type') { await page.fill('#tl-in', ex.answer.toLowerCase()); await page.press('#tl-in', 'Enter'); } // Enter used to skip the feedback
       if (ex.type === 'build') { for (const w of ex.answer.split(' ')) await page.click(`#tl-ex .word:not([disabled]):text-is("${w}")`); await page.click('#tl-check'); }
       assert.ok((await page.textContent('#tl-fb')).includes('Right'), 'exercise ' + (i + 1));
       await page.click('#tl-next');
@@ -44,8 +45,13 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     await page.goto(base + '#tagalog');
     assert.ok((await page.textContent('main')).includes('Talking about the baby'));
     await page.goto(base + '#tagalog/review');
-    await page.click('#tl-show'); await page.click('#tl-yes');
-    await page.click('#tl-show'); await page.click('#tl-no');
+    const nrev = () => page.evaluate(() => (JSON.parse(localStorage.getItem('wl.tagalog.v1')).reviews || []).length);
+    const before = await nrev();
+    await page.click('#tl-show'); await page.click('#tl-no'); // a double-tap on Show lands where "Not yet" appears
+    assert.ok(await nrev() === before && await page.isVisible('#tl-yes'), 'double-tap ignored: still on the same card, nothing recorded');
+    await page.clock.runFor(450);
+    await page.click('#tl-yes');
+    await reveal(); await page.click('#tl-no');
     const cards = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).cards);
     assert.strictEqual(Object.values(cards).filter((c) => c.box === 2).length, 1);
   });
@@ -55,10 +61,10 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     const [tl, c] = Object.entries(cards).find(([, x]) => x.box === 2);
     await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/review');
     // box-1 cards come first; skip to the English-first one
-    for (let n = 0; n < 30 && !(await page.textContent('#tl-card')).includes('say it in Tagalog'); n++) { await page.click('#tl-show'); await page.click('#tl-yes'); }
+    for (let n = 0; n < 30 && !(await page.textContent('#tl-card')).includes('say it in Tagalog'); n++) { await reveal(); await page.click('#tl-yes'); }
     const txt = await page.textContent('#tl-card');
     assert.ok(txt.includes(c.en) && await page.isHidden('#tl-ans'), 'English shown, Tagalog hidden');
-    await page.click('#tl-show');
+    await reveal();
     assert.ok(await page.isVisible('#tl-ans') && (await page.textContent('#tl-ans')).includes(tl));
     const sp = await page.evaluate(() => window.__spoken[window.__spoken.length - 1]);
     assert.deepStrictEqual(sp, { text: tl, lang: 'fil-PH' });
@@ -67,7 +73,7 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.strictEqual(r.dir, 'say'); assert.strictEqual(r.tl, tl);
   });
   await t.step('finishing review asks one optional question and keeps the answer', async () => {
-    for (let n = 0; n < 40 && !(await page.textContent('#tl-card')).includes('All done'); n++) { await page.click('#tl-show'); await page.click('#tl-yes'); }
+    for (let n = 0; n < 40 && !(await page.textContent('#tl-card')).includes('All done'); n++) { await reveal(); await page.click('#tl-yes'); }
     assert.ok(await page.isVisible('#tl-card .me-ask[data-part="tagalog"]'));
     await page.click('#tl-card [data-me-a][data-k="level"][data-v="Too easy"]');
     const f = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.me.v1')).feedback.filter((x) => x.part === 'tagalog').slice(-1)[0]);

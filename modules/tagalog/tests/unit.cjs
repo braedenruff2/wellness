@@ -89,4 +89,21 @@ t('validate keeps good data, drops bad packs, odd sources and junk', () => {
   assert.deepStrictEqual(Object.keys(v.cards), ['opo']); assert.strictEqual(v.cards.opo.box, T.INTERVALS.length - 1);
   assert.deepStrictEqual(Object.keys(v.done), ['2026-11-18/1']); assert.deepStrictEqual(v.packs, {}); assert.strictEqual(v.source, T.defaults().source, 'a bad address falls back to the default'); assert.strictEqual(v.answers.length, 0);
 });
+t('week stats count local days (answers late in the evening, any time zone)', () => {
+  const s = T.defaults();
+  // one answer at 8 pm local on each of 8 days, the oldest one wrong: only the last 7 count
+  for (let d = 13; d <= 20; d++) s.answers.push({ at: new Date(2026, 10, d, 20, 0).toISOString(), ok: d !== 13, pack: 'p', day: 1, prompt: 'x', type: 'mc' });
+  const st = T.stats(s, new Date(2026, 10, 20, 21, 0));
+  assert.strictEqual(st.weekDays, 7); assert.strictEqual(st.weekAccuracy, 1);
+  // 7 am local on the first day of the window still counts (UTC+ zones used to drop it)
+  const m = T.defaults(); m.answers.push({ at: new Date(2026, 10, 14, 7, 0).toISOString(), ok: true });
+  assert.strictEqual(T.stats(m, new Date(2026, 10, 20, 12)).weekDays, 1);
+});
+
+t('restore keeps the slow-voice setting and drops only a damaged answer', () => {
+  const v = T.validate({ cards: {}, settings: { slow: false }, answers: [{ at: 'nope', given: 'x', ok: true }, { at: '2026-11-19T10:00:00Z', given: 'kumusta', ok: true }] });
+  assert.ok(v, 'not thrown away'); assert.strictEqual(v.settings.slow, false);
+  assert.strictEqual(v.answers.length, 1); assert.strictEqual(v.answers[0].given, 'kumusta');
+  assert.strictEqual(T.validate({ cards: {} }).settings.slow, true, 'default stays slow');
+});
 console.log(n + ' tagalog unit tests passed');

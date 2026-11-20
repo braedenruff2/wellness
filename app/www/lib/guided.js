@@ -35,10 +35,15 @@
     this.steps = steps; this.env = env;
     this.i = -1; this.phase = 'idle'; // idle | speaking | quiet | paused | ended
     this.from = 0; this.timer = null; this.token = 0; this.quietLeft = 0; this.quietStart = 0; this.pausedPhase = null;
+    this.pausedMs = 0; this.pausedAt = null; // time spent paused (so logged minutes are minutes actually spent)
   }
+  Player.prototype.unpaused = function () { if (this.pausedAt != null) { this.pausedMs += Math.max(0, this.env.now() - this.pausedAt); this.pausedAt = null; } };
+  // not begun yet (waiting for the bell, or paused before it began): skip/back count from where it will start
+  Player.prototype.notBegun = function () { return this.phase === 'idle' || (this.phase === 'paused' && this.pausedPhase === 'idle'); };
   Player.prototype.start = function (from) { if (from != null) this.from = from; this.go(this.from || 0); };
   Player.prototype.go = function (i) {
     var self = this, env = this.env;
+    this.unpaused();
     this.clear();
     if (i >= this.steps.length) { this.phase = 'ended'; this.i = this.steps.length; if (env.onEnd) env.onEnd(); return; }
     this.i = i; this.phase = 'speaking';
@@ -57,17 +62,18 @@
     this.token++;
   };
   Player.prototype.pause = function () {
-    if (this.phase === 'idle') { this.pausedPhase = 'idle'; this.phase = 'paused'; return; } // paused before it began
+    if (this.phase === 'idle') { this.pausedPhase = 'idle'; this.phase = 'paused'; this.pausedAt = this.env.now(); return; } // paused before it began
     if (this.phase === 'speaking') { this.clear(); this.env.stopSpeech(); this.pausedPhase = 'speaking'; }
     else if (this.phase === 'quiet') {
       this.clear();
       this.quietLeft = Math.max(0, this.quietLeft - (this.env.now() - this.quietStart));
       this.pausedPhase = 'quiet';
     } else return;
-    this.phase = 'paused';
+    this.phase = 'paused'; this.pausedAt = this.env.now();
   };
   Player.prototype.resume = function () {
     if (this.phase !== 'paused') return;
+    this.unpaused();
     if (this.pausedPhase === 'idle') { this.go(this.from || 0); return; }
     if (this.pausedPhase === 'quiet') {
       var self = this, tok = ++this.token;
@@ -75,8 +81,15 @@
       this.timer = this.env.setTimeout(function () { if (tok === self.token) self.go(self.i + 1); }, this.quietLeft);
     } else this.go(this.i); // say the interrupted sentence again from its start
   };
-  Player.prototype.skip = function () { if (this.phase !== 'ended') { this.env.stopSpeech(); this.go(this.i + 1); } };
-  Player.prototype.back = function () { if (this.phase === 'ended' || this.phase === 'idle') return; this.env.stopSpeech(); this.go(Math.max(0, this.i - (this.phase === 'speaking' ? 1 : 0))); };
+  Player.prototype.skip = function () { if (this.phase !== 'ended') { this.env.stopSpeech(); this.go((this.notBegun() ? this.from || 0 : this.i) + 1); } };
+  Player.prototype.back = function () {
+    if (this.phase === 'ended' || this.phase === 'idle') return;
+    this.env.stopSpeech();
+    if (this.notBegun()) { this.go(Math.max(0, (this.from || 0) - 1)); return; }
+    this.go(Math.max(0, this.i - (this.phase === 'speaking' ? 1 : 0)));
+  };
+  /* where to carry on from after End: the step playing, or where it was going to start */
+  Player.prototype.place = function () { return this.i >= 0 && !this.notBegun() ? Math.min(this.i, this.steps.length - 1) : this.from || 0; };
   Player.prototype.stop = function () { this.clear(); this.env.stopSpeech(); this.phase = 'ended'; };
 
   var api = { wordsSeconds: wordsSeconds, scaleScript: scaleScript, scriptLength: scriptLength, Player: Player };

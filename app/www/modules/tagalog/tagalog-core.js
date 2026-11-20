@@ -135,7 +135,7 @@
     var from = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
     var keys = Object.keys(state.cards);
     var known = keys.filter(function (k) { return state.cards[k].box >= 3; }).length;
-    var weekAns = state.answers.filter(function (a) { return a.at.slice(0, 10) >= from; });
+    var weekAns = state.answers.filter(function (a) { return iso(new Date(a.at)) >= from; }); // local days, like the rest
     var days = {}; Object.keys(state.done).forEach(function (k) { var d = iso(new Date(state.done[k])); if (d >= from) days[d] = 1; });
     weekAns.forEach(function (a) { days[iso(new Date(a.at))] = 1; });
     return { words: keys.length, known: known, due: dueCards(state, now).length, lessonsDone: Object.keys(state.done).length,
@@ -179,13 +179,16 @@
         d.cards[k] = { en: c.en, box: Math.max(0, Math.min(INTERVALS.length - 1, +c.box || 1)), due: c.due, seen: +c.seen || 0, right: +c.right || 0, wrong: +c.wrong || 0, from: String(c.from || '') };
     });
     (Array.isArray(s.answers) ? s.answers : []).slice(-2000).forEach(function (a) {
-      if (a && !isNaN(new Date(a.at).getTime())) d.answers.push({ at: new Date(a.at).toISOString(), pack: String(a.pack || ''), day: +a.day || 0, ok: !!a.ok, prompt: String(a.prompt || '').slice(0, 120), type: String(a.type || '') });
-      if (a && typeof a.given === 'string' && d.answers.length && d.answers[d.answers.length - 1].at === new Date(a.at).toISOString()) d.answers[d.answers.length - 1].given = a.given.slice(0, 200);
+      if (!a || isNaN(new Date(a.at).getTime())) return; // a damaged entry is dropped, not the whole Tagalog backup
+      var x = { at: new Date(a.at).toISOString(), pack: String(a.pack || ''), day: +a.day || 0, ok: !!a.ok, prompt: String(a.prompt || '').slice(0, 120), type: String(a.type || '') };
+      if (typeof a.given === 'string') x.given = a.given.slice(0, 200);
+      d.answers.push(x);
     });
     (Array.isArray(s.reviews) ? s.reviews : []).slice(-2000).forEach(function (r) {
       if (r && typeof r.tl === 'string' && r.tl.length < 120 && !isNaN(new Date(r.at).getTime())) d.reviews.push({ at: new Date(r.at).toISOString(), tl: r.tl, right: !!r.right, dir: r.dir === 'say' ? 'say' : 'meaning' });
     });
     Object.keys(s.packs || {}).forEach(function (k) { if (!checkPack(s.packs[k]).length) d.packs[k] = s.packs[k]; });
+    if (s.settings && typeof s.settings.slow === 'boolean') d.settings.slow = s.settings.slow;
     if (typeof s.source === 'string' && /^https:\/\/raw\.githubusercontent\.com\//.test(s.source)) d.source = s.source;
     return d;
   }

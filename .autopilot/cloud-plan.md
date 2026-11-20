@@ -20,8 +20,8 @@ Can't do here: APK build/signing (key not in repo), anything using data outside 
 0. "About you" (modules/me): done 20 Nov 04:50 UTC for Faith day/Tagalog lesson/review. Next: "Not for me?" on Home
    advice lines from the PC (shell advice card) and on workout exercise cues; a quick question after Faith practices
    that end without the guided player (journal-only days); keep everything optional and one tap.
-1. Bug hunting: read modules and shell code, add tests for untested paths, fix what they find. (19 Nov evening: coach,
-   workout undo/log-day, to-do reminders, activity ids and PC day filing reviewed; next: faith, tagalog, link, shell.)
+1. Bug hunting: read modules and shell code, add tests for untested paths, fix what they find. (20 Nov 05:20: faith, tagalog, shell restore reviewed + fixed. 19 Nov evening: coach,
+   workout undo/log-day, to-do reminders, activity ids and PC day filing reviewed; next: link, me, calm, todo.)
 2. Calm (reworked 20 Nov: one practice a day, "done for today", rotation, wording variants): review it for edge cases
    (log-for-earlier-day, midnight, restore) and add tests; more short practices (content + tests + VARIANTS).
 3. Faith: the same "today" clarity check: does every screen say plainly what to do today and when it's done?

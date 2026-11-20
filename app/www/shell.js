@@ -297,17 +297,18 @@
     var o = JSON.parse(text);
     if (o && o.app === 'faith-companion' && modules.faith && modules.faith.importOld) { modules.faith.importOld(text); return; }
     if (!o || o.app !== 'wellness' || !o.stores || typeof o.stores !== 'object') throw new Error('This is not a backup from this app.');
-    var allowed = {}; allowed[SKEY] = 1;
+    var allowed = {}, skipped = []; allowed[SKEY] = 1;
     order.forEach(function (id) { (modules[id].storageKeys || []).forEach(function (k) { allowed[k] = 1; }); });
     Object.keys(o.stores).forEach(function (k) {
       if (!allowed[k] || typeof o.stores[k] !== 'string') return;
       var m = order.map(function (id) { return modules[id]; }).filter(function (m) { return (m.storageKeys || []).indexOf(k) >= 0; })[0];
       var val = o.stores[k];
       if (m && m.validate) val = m.validate(k, val); // each module checks its own data
-      if (val != null) lsSet(k, val);
+      if (val != null) lsSet(k, val); else if (m) skipped.push(m.title || m.id || k);
     });
     SH = shellStore.load();
     order.forEach(function (id) { if (modules[id].reload) modules[id].reload(); });
+    return skipped; // parts whose data in the backup was unreadable (left as they were)
   }
 
   function saveFile(name, text) {
@@ -335,7 +336,8 @@
       r.onload = function () {
         try {
           if (!window.confirm || window.confirm('Replace what is on this phone with the backup from that file?')) {
-            restoreText(String(r.result)); applyLook(); toast('Backup restored'); route();
+            var bad = restoreText(String(r.result)) || []; applyLook();
+            toast(bad.length ? 'Backup restored, except ' + bad.join(', ') + ' (unreadable there; kept as it was)' : 'Backup restored'); route();
           }
         } catch (e) { toast(e.message || 'Could not read that file'); }
       };

@@ -292,6 +292,15 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     await page.waitForSelector('h1:text-is("The path")');
   });
 
+  await step('a double-tap on "I’ve spent time with today" leaves the day done; "Mark as not done" still works after', async () => {
+    await page.goto(base + '#faith/day/9');
+    await page.click('#finish'); await page.click('#undone', { timeout: 2000 }); // second tap lands on the link
+    assert.ok(await page.evaluate(() => !!JSON.parse(localStorage.getItem('fc.v1')).done[9]), 'still done');
+    await page.clock.runFor(1000);
+    await page.click('#undone');
+    assert.ok(await page.evaluate(() => !JSON.parse(localStorage.getItem('fc.v1')).done[9]), 'undone on purpose');
+  });
+
   await step('look-back day shows the week’s writing', async () => {
     await page.goto(base + '#faith/day/7');
     assert.ok((await page.textContent('main')).includes('Your week'));

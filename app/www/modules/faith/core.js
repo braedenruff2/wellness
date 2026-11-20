@@ -105,6 +105,9 @@
     for (var k in state.done) seen[state.done[k]] = 1;
     (state.pastRounds || []).forEach(function (r) { for (var j in r.done) seen[r.done[j]] = 1; });
     state.journal.forEach(function (e) { if (e.at) seen[isoDate(new Date(e.at))] = 1; }); // local date, like done[]
+    // a guided prayer or practice, or a new prayer-list item, is showing up too
+    (state.sessions || []).forEach(function (x) { if (x.at && !isNaN(new Date(x.at))) seen[isoDate(new Date(x.at))] = 1; });
+    (state.prayers || []).forEach(function (x) { if (x.at && !isNaN(new Date(x.at))) seen[isoDate(new Date(x.at))] = 1; });
     return Object.keys(seen).length;
   }
 

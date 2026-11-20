@@ -15,6 +15,7 @@
   var player = null, session = null, quietTimer = null;
 
   function save() { store.save(S); }
+  var finishedAt = -1e9;
   function $(sel, el) { return (el || document).querySelector(sel); }
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function day(n) { for (var i = 0; i < DAYS.length; i++) if (DAYS[i].n === n) return DAYS[i]; return null; }
@@ -202,7 +203,7 @@
       onEnd: function () {
         clearInterval(quietTimer); prog.style.width = '100%'; quiet.textContent = '';
         S.resume = null;
-        C.logSession(S, session.kind, session.id, session.title, session.started ? (Date.now() - session.started) / 60000 : 0, logNow());
+        C.logSession(S, session.kind, session.id, session.title, session.started ? Math.max(0, Date.now() - session.started - player.pausedMs) / 60000 : 0, logNow());
         save(); bell(); keepAwake(false);
         pp.textContent = 'Done'; pp.dataset.state = 'done';
         if (session.kind === 'day' && !S.done[session.id]) {
@@ -367,10 +368,11 @@
     on('#forget-resume', function (el) { el.onclick = function () { S.resume = null; save(); $('#resume').remove(); }; });
     on('#dj', function (el) { journalSaver(el); });
     on('#finish', function (el) { el.onclick = function () {
-      var n = +el.dataset.day; C.finishDay(S, n, logNow()); save();
+      var n = +el.dataset.day; C.finishDay(S, n, logNow()); save(); finishedAt = performance.now();
       toast('Day ' + n + ' done. Go gently.'); route();
     }; });
-    on('#undone', function (el) { el.onclick = function () { C.unfinishDay(S, +el.dataset.day); save(); route(); }; });
+    // a double-tap on "I've spent time with today" would land on "Mark as not done" (drawn where it was)
+    on('#undone', function (el) { el.onclick = function () { if (performance.now() - finishedAt < 700) return; C.unfinishDay(S, +el.dataset.day); save(); route(); }; });
     on('#walk-again', function (el) { el.onclick = function () {
       if (!el.dataset.armed) { el.dataset.armed = 1; el.textContent = 'Tap again to start at day 1'; return; } // no accidental restarts
       C.walkAgain(S); save(); toast('Day 1 again. Go gently.'); location.hash = '#faith/today'; route(['today']);
@@ -396,7 +398,7 @@
       $('#skip').onclick = function () { if (!player) return; player.skip(); if ($('#pp').dataset.state === 'paused') { $('#pp').textContent = '\u23F8 Pause'; $('#pp').dataset.state = 'playing'; } };
       $('#back').onclick = function () { if (!player) return; player.back(); if ($('#pp').dataset.state === 'paused') { $('#pp').textContent = '\u23F8 Pause'; $('#pp').dataset.state = 'playing'; } };
       $('#end').onclick = function () {
-        if (player && player.phase !== 'ended') { S.resume = { kind: session.kind, id: session.id, step: Math.max(0, player.i), at: Date.now() }; save(); }
+        if (player && player.phase !== 'ended') { S.resume = { kind: session.kind, id: session.id, step: player.place(), at: Date.now() }; save(); }
         if (player) player.stop(); player = null; keepAwake(false);
         history.length > 1 ? history.back() : (location.hash = '#faith/today');
       };

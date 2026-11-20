@@ -75,6 +75,9 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.evaluate(() => localStorage.removeItem('wl.me.v1'));
     await page.evaluate((x) => WL.restoreText(x), txt);
     assert.strictEqual((await me()).checkins['2026-11-20'].sleep, '4–5 h');
+    // an unreadable part in the backup is named (it used to be skipped silently under "Backup restored")
+    const bad = await page.evaluate((x) => { const o = JSON.parse(x); o.stores['wl.tagalog.v1'] = '{"nope":1}'; return WL.restoreText(JSON.stringify(o)); }, txt);
+    assert.deepStrictEqual(bad, ['Tagalog']);
   });
   await t.step('"Log for an earlier day" doesn’t move the check-in, and Home doesn’t keep that mode alive', async () => {
     await page.clock.setSystemTime(new Date(2026, 10, 22, 9, 0)); await page.goto(base + '#home'); await page.reload();

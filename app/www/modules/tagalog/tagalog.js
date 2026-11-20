@@ -118,7 +118,7 @@
         $('#tl-next').focus();
       }
       $$('[data-o]', box).forEach(function (b) { b.onclick = function () { if (b.dataset.o !== ex.answer) b.classList.add('wrong'); done(b.dataset.o); }; });
-      if (ex.type === 'type') { $('#tl-check').onclick = function () { done($('#tl-in').value); }; $('#tl-in').onkeydown = function (e) { if (e.key === 'Enter') done(this.value); }; }
+      if (ex.type === 'type') { $('#tl-check').onclick = function () { done($('#tl-in').value); }; $('#tl-in').onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); if (!answered) done(this.value); } }; }
       if (ex.type === 'build') {
         var picked = [];
         var words = shuffle(ex.words, i + 3);
@@ -155,8 +155,10 @@
         $('#tl-ans').hidden = false;
         if (sayIt) say(k); // hear it right after saying it yourself
         $('#tl-btns').innerHTML = '<button id="tl-no">Not yet</button><button class="primary" id="tl-yes">Got it</button>';
-        $('#tl-no').onclick = function () { T.review(S, k, false); save(); i++; show(); };
-        $('#tl-yes').onclick = function () { T.review(S, k, true); save(); i++; show(); };
+        // a double-tap on Show would land on "Not yet" (now where Show was): ignore taps for a moment
+        var shownAt = Date.now(), late = function () { return Date.now() - shownAt >= 400; };
+        $('#tl-no').onclick = function () { if (!late()) return; T.review(S, k, false); save(); i++; show(); };
+        $('#tl-yes').onclick = function () { if (!late()) return; T.review(S, k, true); save(); i++; show(); };
       };
     }
     show();
