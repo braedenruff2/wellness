@@ -219,6 +219,17 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     assert.ok((await page.textContent('main')).includes('Nothing here yet'));
   });
 
+  await step('journal search: with more than 5 entries, a search box filters them', async () => {
+    await page.goto(base + '#faith/journal/gratitude');
+    for (const x of ['the sunrise', 'her first laugh', 'a quiet coffee', 'friends dropping by soup', 'warm socks', 'a long nap']) { await page.fill('#new-entry', x); await page.click('#add-entry'); }
+    await page.goto(base + '#faith/journal/gratitude');
+    await page.fill('#j-search', 'LAUGH');
+    assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 1);
+    assert.ok(/1 found/.test(await page.textContent('#j-found')));
+    await page.fill('#j-search', '');
+    assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 6);
+  });
+
   await step('prayer list: add, mark answered with a note', async () => {
     await page.goto(base + '#faith/journal/prayers');
     await page.fill('#new-prayer', 'Baby sleeping through');

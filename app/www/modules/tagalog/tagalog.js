@@ -34,7 +34,7 @@
       '<h3 style="margin:.2em 0">' + esc(nx.lesson.title) + '</h3><p class="meta ui">' + esc(nx.lesson.intro) + '</p>' +
       '<a class="btn primary ui" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Start lesson · about 10 min</a></div>';
     if (Object.keys(S.done).length) h += '<div class="card ui"><div class="row"><div class="grow"><b>Mixed practice</b><div class="meta">8 exercises from lessons you’ve done, the ones you missed first</div></div><a class="btn' + (nx ? '' : ' primary') + '" href="#tagalog/practice">Practise</a></div></div>';
-    h += '<div class="card ui"><div class="row"><span class="grow">Words met <b>' + st.words + '</b> · known well <b>' + st.known + '</b></span></div>' +
+    h += '<div class="card ui"><div class="row"><span class="grow">Words met <b>' + st.words + '</b> · known well <b>' + st.known + '</b></span>' + (st.words ? '<a class="btn" href="#tagalog/words">Your words</a>' : '') + '</div>' +
       '<div class="meta">This week: ' + st.weekLessons + ' lesson' + (st.weekLessons === 1 ? '' : 's') + ', practised on ' + st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') +
       (st.weekAccuracy != null ? ', ' + Math.round(st.weekAccuracy * 100) + '% of answers right' : '') + '</div></div>';
     all.slice().reverse().forEach(function (p) {
@@ -138,6 +138,17 @@
     return subnav('review') + '<h1>Review</h1><p class="meta ui">' + due.length + ' due. Say the meaning out loud, then check.</p><div class="card flash" id="tl-card"></div>';
   }
 
+  /* Every word met: the hard ones first (most often wrong), then the rest, known-well ones marked; tap 🔊 to hear. */
+  function wordsHtml() {
+    var keys = Object.keys(S.cards), hard = T.weakWords(S, 10), known = keys.filter(function (k) { return S.cards[k].box >= 3; });
+    var row = function (k) { var c = S.cards[k]; return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(c.en) + '</span></span>' + (c.box >= 3 ? '<span class="tick" title="known well">✓</span>' : '') + hear(k) + '</li>'; };
+    var h = subnav('') + '<h1>Your words</h1><p class="meta ui">' + keys.length + ' met · ' + known.length + ' known well (✓).</p>';
+    if (hard.length) h += '<div class="card"><h2>Hard ones</h2><p class="meta ui">Missed most often. Say each one out loud a few times.</p><ul class="list" id="tl-hard">' + hard.map(row).join('') + '</ul></div>';
+    var rest = keys.filter(function (k) { return hard.indexOf(k) < 0; }).sort(function (a, b) { return a.localeCompare(b); });
+    if (rest.length) h += '<div class="card"><h2>All the others</h2><ul class="list" id="tl-all">' + rest.map(row).join('') + '</ul></div>';
+    return h;
+  }
+
   function runReview() {
     var due = T.dueCards(S), i = 0, el = $('#tl-card'); if (!el) return;
     function show() {
@@ -231,6 +242,7 @@
       return;
     }
     if (parts[0] === 'review') { view.innerHTML = reviewHtml(); runReview(); return; }
+    if (parts[0] === 'words') { view.innerHTML = wordsHtml(); wireHear(view); return; }
     if (parts[0] === 'settings') {
       view.innerHTML = settingsHtml();
       $('#tl-save-src').onclick = function () {

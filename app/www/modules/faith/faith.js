@@ -239,7 +239,8 @@
     h += '<div class="card ui"><label for="new-entry">' + esc(hint) + '</label><textarea id="new-entry"></textarea>' +
       '<div class="row" style="margin-top:8px"><button class="primary" id="add-entry" data-kind="' + (tab === 'all' ? 'journal' : tab) + '">Save</button><span class="grow"></span></div><div id="entry-gentle"></div></div>';
     var items = S.journal.filter(function (e) { return tab === 'all' || e.kind === tab; });
-    h += items.length ? '<ul class="list card">' + items.map(function (e) {
+    if (items.length > 5) h += '<div class="ui" style="margin:8px 0"><label class="sr" for="j-search">Search your journal</label><input type="search" id="j-search" placeholder="Search your journal" autocomplete="off"><span class="meta" id="j-found"></span></div>';
+    h += items.length ? '<ul class="list card" id="j-list">' + items.map(function (e) {
       return entryHtml(e).replace('</li>', '<button class="link del" data-id="' + esc(e.id) + '" aria-label="Delete">Delete</button></li>');
     }).join('') + '</ul>' : '<p class="meta ui">Nothing here yet.</p>';
     return h;
@@ -407,6 +408,11 @@
       b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route(); };
     });
     on('#voice-toggle', function (el) { el.onclick = function () { S.settings.voice = !S.settings.voice; save(); route(); }; });
+    on('#j-search', function (el) { el.oninput = function () {
+      var q = el.value.trim().toLowerCase(), n = 0;
+      [].forEach.call(document.querySelectorAll('#j-list > li'), function (li) { var hit = !q || li.textContent.toLowerCase().indexOf(q) >= 0; li.hidden = !hit; if (hit) n++; });
+      $('#j-found').textContent = q ? ' ' + n + ' found' : '';
+    }; });
     [].forEach.call(document.querySelectorAll('[data-jtab]'), function (b) { b.onclick = function () { location.hash = '#faith/journal/' + b.dataset.jtab; }; });
     on('#add-entry', function (el) { el.onclick = function () {
       var ta = $('#new-entry'), e = C.addEntry(S, el.dataset.kind, ta.value, null, logNow());

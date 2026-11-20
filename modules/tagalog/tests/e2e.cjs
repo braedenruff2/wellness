@@ -80,6 +80,16 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     const f = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.me.v1')).feedback.filter((x) => x.part === 'tagalog').slice(-1)[0]);
     assert.ok(/^review@/.test(f.about) && f.a.level === 'Too easy', JSON.stringify(f));
   });
+  await t.step('Your words: hard ones first (missed), the rest A-Z, hear any of them', async () => {
+    await page.goto(base + '#tagalog'); await page.click('a[href="#tagalog/words"]');
+    await page.waitForSelector('#tl-all');
+    const hard = await page.$('#tl-hard');
+    if (hard) assert.ok((await hard.textContent()).length > 2);
+    const first = await page.getAttribute('#tl-all [data-say]', 'data-say');
+    await page.click('#tl-all [data-say]');
+    const sp = await page.evaluate(() => window.__spoken[window.__spoken.length - 1]);
+    assert.deepStrictEqual(sp, { text: first, lang: 'fil-PH' });
+  });
   await t.step('mixed practice: the missed exercise comes first; finishing offers another 8', async () => {
     await page.goto(base + '#tagalog');
     assert.ok((await page.textContent('main')).includes('Mixed practice'));
@@ -126,7 +136,7 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.strictEqual(GOT.n, n0 + 1, 'same hash: not fetched again');
   });
   await t.step('no overflow, no errors', async () => {
-    await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#home']);
+    await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#tagalog/words', '#home']);
     assert.deepStrictEqual(t.errors, []);
   });
   await t.close('tagalog browser');

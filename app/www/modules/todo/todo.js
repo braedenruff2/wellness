@@ -26,7 +26,7 @@
     if (diff > 0 && diff < 7) return dt.toLocaleDateString(undefined, { weekday: 'long' });
     return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
-  var REP = { daily: 'every day', weekdays: 'weekdays', weekly: 'every week' };
+  var REP = { daily: 'every day', weekdays: 'weekdays', weekly: 'every week', biweekly: 'every 2 weeks', monthly: 'every month' };
 
   function item(t, overdue) {
     return '<li class="task' + (t.done ? ' is-done' : '') + '" data-id="' + esc(t.id) + '">' +
@@ -64,7 +64,7 @@
       '<div class="chips" style="margin-top:8px">' + [['Today', today], ['Tomorrow', T.addDays(today, 1)], ['Next week', T.addDays(today, 7)], ['No date', '']].map(function (o) {
         return '<button class="chip" data-due="' + o[1] + '" aria-pressed="' + ((t.due || '') === o[1]) + '">' + o[0] + '</button>';
       }).join('') + '<input type="date" id="td-date" value="' + esc(t.due || '') + '" aria-label="Pick a date"></div>' +
-      '<div class="chips" style="margin-top:8px">' + [['', 'Once'], ['daily', 'Every day'], ['weekdays', 'Weekdays'], ['weekly', 'Every week']].map(function (o) {
+      '<div class="chips" style="margin-top:8px">' + [['', 'Once'], ['daily', 'Every day'], ['weekdays', 'Weekdays'], ['weekly', 'Every week'], ['biweekly', 'Every 2 weeks'], ['monthly', 'Every month']].map(function (o) {
         return '<button class="chip" data-rep="' + o[0] + '" aria-pressed="' + ((t.repeat || '') === o[0]) + '">' + o[1] + '</button>';
       }).join('') + '</div>' +
       '<div class="row" style="margin-top:8px"><label for="td-time" class="meta">Remind me at</label><input type="time" id="td-time" value="' + esc(t.at || '') + '">' +
@@ -80,7 +80,7 @@
     $('#td-save').onclick = function () {
       var txt = $('#td-edit').value.trim(); if (!txt) return;
       var at = $('#td-time').value; at = /^\d\d:\d\d$/.test(at) ? at : null;
-      t.text = txt; t.due = due || (rep || at ? today : null); t.repeat = rep || null; t.at = at; t.due = T.firstDue(t); save(); render();
+      t.text = txt; t.due = due || (rep || at ? today : null); t.repeat = rep || null; t.at = at; t.due = T.firstDue(t); if (t.repeat === 'monthly' && t.due) t.mday = +t.due.slice(8, 10); else delete t.mday; save(); render();
       if (at) WL.toast('Reminder at ' + T.fmtTime(at) + ', ' + fmtDue(t.due));
     };
     $('#td-notime').onclick = function () { $('#td-time').value = ''; };

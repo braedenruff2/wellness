@@ -100,6 +100,14 @@
       { say: 'Breathe out slowly as you finish each item.', wait: 40 },
       { say: 'Before you stop, notice one thing that’s going fine right now.', wait: 0 }
     ] },
+    { id: 'contact', kind: 'guided', title: 'Breathing with her asleep on you', minutes: 4, when: 'She’s napping on your chest and you can’t move', blurb: 'Turn a contact nap into rest for you too.', steps: [
+      { say: 'She’s asleep on you. You don’t need to go anywhere. Let your back and head rest against something.', wait: 8 },
+      { say: 'Feel the weight and warmth of her on your chest. Feel her breathing.', wait: 30 },
+      { say: 'Let your own breath slow down, a little longer on the out-breath. She may slow down with you.', wait: 40 },
+      { say: 'Let your shoulders and jaw soften. Keep one hand gently on her back.', wait: 35 },
+      { say: 'If your mind lists the things you could be doing, let them wait. This counts too.', wait: 40 },
+      { say: 'Stay as long as she sleeps. When you’re ready, just keep resting with her.', wait: 0 }
+    ] },
     { id: 'timer', kind: 'timer', title: 'Quiet timer', minutes: 10, when: 'Sit in silence with a bell at the end', blurb: 'No voice. A soft bell to start and finish.' }
   ];
 
@@ -167,6 +175,14 @@
       ['Part of you may still be listening for her. You’ll hear her if she needs you. You can let that go for now.', 'You’ll hear her if she wakes. For now, let the listening rest.'],
       ['Imagine somewhere peaceful you’ve been. Notice what you see and hear there, slowly.', 'Picture a quiet place you love. Take a slow walk around it in your mind.'],
       ['Nothing else is needed. Rest.', 'Let go. Rest now.']
+    ],
+    contact: [
+      ['She’s sleeping on you. Nowhere to be. Lean back and let your head rest.', 'She’s settled on your chest. Get as comfortable as you can without waking her.'],
+      ['Notice her weight and warmth, and the rise and fall of her breathing.', 'Feel how heavy and warm she is, and her small breaths.'],
+      ['Slow your breathing a little, with a longer breath out. Babies often settle with you.', 'Breathe slowly and let each out-breath be long and easy. She can feel you calm down.'],
+      ['Soften your shoulders and your jaw. Rest a hand lightly on her back.', 'Let your arms and face relax. One hand resting on her back is enough.'],
+      ['Your to-do list can wait. Resting together is worth it.', 'If you start planning, that’s fine. Let it go for now; this time matters.'],
+      ['Stay while she sleeps. When it ends, it ends. Keep resting with her.', 'Rest here with her as long as the nap lasts.']
     ],
     pickup: [
       ['Pause for a moment; she’s safe. Feel your feet on the floor.', 'Stop for a breath before you go to her. Plant your feet.'],
@@ -251,7 +267,7 @@
     if (h >= 22) return ['sleep', 'body', 'slow'];
     if (h < 5) return ['night', 'slow', 'sigh'];
     if (h < 9) return ['slow', 'box', 'sigh', 'walk'];
-    return ['body', 'ground', 'kind', 'walk', 'feed', 'sink', 'slow', 'box', 'sigh', 'pickup', 'timer'];
+    return ['body', 'ground', 'kind', 'walk', 'feed', 'contact', 'sink', 'slow', 'box', 'sigh', 'pickup', 'timer'];
   }
 
   /* A practice that fits the moment: never one already done today; among those that fit the time of day, the one

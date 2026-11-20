@@ -204,4 +204,27 @@ t('a daily reminder left unticked for weeks keeps ringing', () => {
   assert.ok(r.length >= 8, r.length + ' reminders (was 0 after ~45 days)');
   assert.ok(r[0].id.endsWith('@2026-11-20'), r[0].id);
 });
+t('every 2 weeks and every month (the 31st -> last day of shorter months, then the 31st again; Feb 29)', () => {
+  assert.strictEqual(T.quickParse('pay rent every month', wed).repeat, 'monthly');
+  assert.strictEqual(T.quickParse('recycling every 2 weeks', wed).repeat, 'biweekly');
+  assert.strictEqual(T.quickParse('recycling every other week', wed).repeat, 'biweekly');
+  const s = T.defaults();
+  const b = T.add(s, 'recycling every 2 weeks', null, wed);
+  T.complete(s, b.id, wed); assert.strictEqual(b.due, '2026-12-02');
+  const m = T.add(s, 'bill', { due: '2027-01-31', repeat: 'monthly' }, new Date(2027, 0, 5));
+  assert.strictEqual(m.mday, 31);
+  const seq = [];
+  for (let i = 0; i < 4; i++) { T.complete(s, m.id, new Date(m.due.slice(0, 4), +m.due.slice(5, 7) - 1, +m.due.slice(8), 12)); seq.push(m.due); }
+  assert.deepStrictEqual(seq, ['2027-02-28', '2027-03-31', '2027-04-30', '2027-05-31']);
+  const leap = T.add(s, 'x', { due: '2028-01-30', repeat: 'monthly' }, new Date(2028, 0, 2));
+  T.complete(s, leap.id, new Date(2028, 0, 30, 12)); assert.strictEqual(leap.due, '2028-02-29');
+  // ticked late (3 months behind): next one is after today
+  const late = T.add(s, 'y', { due: '2026-08-15', repeat: 'monthly' }, new Date(2026, 7, 1));
+  T.complete(s, late.id, wed); assert.strictEqual(late.due, '2026-12-15');
+  const v = T.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.tasks.find((x) => x.id === m.id).mday, 31); assert.strictEqual(v.tasks.find((x) => x.id === m.id).repeat, 'monthly');
+  // reminders walk monthly too
+  const r = T.defaults(); T.add(r, 'pay at 9am', { due: '2026-11-30', repeat: 'monthly' }, wed);
+  assert.ok(T.reminders(r, wed, 45).some((x) => x.id.endsWith('@2026-12-30')));
+});
 console.log(n + ' to-do unit tests passed');

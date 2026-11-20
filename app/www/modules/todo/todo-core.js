@@ -1,5 +1,5 @@
 /* To-do logic (no DOM). Tasks: {id, text, due: 'YYYY-MM-DD'|null, at: 'HH:MM'|null (a reminder at that time on the due
-   day), done: ISO|null, created: ISO, repeat: null|'daily'|'weekdays'|'weekly'}.
+   day), done: ISO|null, created: ISO, repeat: null|'daily'|'weekdays'|'weekly'|'biweekly'|'monthly', mday (monthly: its day of the month)}.
    Storage key 'wl.todo.v1'. Used by todo.js and by modules/todo/tests. */
 (function (root) {
   'use strict';
@@ -33,6 +33,8 @@
     if ((m = /\s+(every day|daily)$/i.exec(t))) { repeat = 'daily'; due = today; t = t.slice(0, m.index); }
     else if ((m = /\s+(every weekday|weekdays)$/i.exec(t))) { repeat = 'weekdays'; due = today; t = t.slice(0, m.index); }
     else if ((m = /\s+(every week|weekly)$/i.exec(t))) { repeat = 'weekly'; due = today; t = t.slice(0, m.index); }
+    else if ((m = /\s+(every (?:2|two|other) weeks?|every other week|fortnightly|biweekly)$/i.exec(t))) { repeat = 'biweekly'; due = today; t = t.slice(0, m.index); }
+    else if ((m = /\s+(every month|monthly)$/i.exec(t))) { repeat = 'monthly'; due = today; t = t.slice(0, m.index); }
     if ((m = /\s+(today|tonight)$/i.exec(t))) { due = today; t = t.slice(0, m.index); }
     else if ((m = /\s+(tomorrow|tmrw)$/i.exec(t))) { due = addDays(today, 1); t = t.slice(0, m.index); }
     else if ((m = /\s+(?:on |next )?(sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)[a-z]*$/i.exec(t))) {
@@ -62,6 +64,7 @@
     var task = { id: id(now), text: q.text, due: opts.due !== undefined ? opts.due : q.due, done: null,
       created: (now || new Date()).toISOString(), repeat: opts.repeat || q.repeat || null, at: opts.at !== undefined ? opts.at : q.at };
     task.due = firstDue(task);
+    if (task.repeat === 'monthly' && task.due) task.mday = +task.due.slice(8, 10);
     state.tasks.push(task);
     return task;
   }
@@ -70,6 +73,13 @@
     var base = task.due && task.due > today ? task.due : today, d;
     if (task.repeat === 'daily') return addDays(base, 1);
     if (task.repeat === 'weekly') { d = addDays(task.due || today, 7); while (d <= today) d = addDays(d, 7); return d; }
+    if (task.repeat === 'biweekly') { d = addDays(task.due || today, 14); while (d <= today) d = addDays(d, 14); return d; }
+    if (task.repeat === 'monthly') {
+      // the same day each month (the 31st falls on the last day of shorter months, then back to the 31st)
+      var from = task.due || today, md = task.mday || +from.slice(8, 10), y = +from.slice(0, 4), mo = +from.slice(5, 7) - 1, guard = 0;
+      do { mo++; if (mo > 11) { mo = 0; y++; } d = iso(new Date(y, mo, Math.min(md, new Date(y, mo + 1, 0).getDate()))); } while (d <= today && guard++ < 1200);
+      return d;
+    }
     if (task.repeat === 'weekdays') { d = addDays(base, 1); while ([0, 6].indexOf(parse(d).getDay()) >= 0) d = addDays(d, 1); return d; }
     return null;
   }
@@ -168,12 +178,12 @@
       if (t.done || !t.at || !t.due) return;
       var d = t.due, guard = 0, today = iso(now), skip = 0;
       // a repeating task left unticked for weeks: walk past the old days first, or the 40 steps run out on them
-      while (t.repeat && d < today && skip++ < 5000) { var n0 = nextDue({ due: d, repeat: t.repeat }, d); if (!n0 || n0 <= d) break; d = n0; }
+      while (t.repeat && d < today && skip++ < 5000) { var n0 = nextDue({ due: d, repeat: t.repeat, mday: t.mday }, d); if (!n0 || n0 <= d) break; d = n0; }
       while (d <= end && guard++ < 40) {
         var w = when(d, t.at);
         if (w > t0) out.push({ id: t.id + '@' + d, when: w, text: t.text });
         if (!t.repeat) break;
-        var nx = nextDue({ due: d, repeat: t.repeat }, d); if (!nx || nx <= d) break; d = nx;
+        var nx = nextDue({ due: d, repeat: t.repeat, mday: t.mday }, d); if (!nx || nx <= d) break; d = nx;
       }
     });
     out.sort(function (a, b) { return a.when - b.when; });
@@ -217,7 +227,9 @@
       return { id: String(t.id || id()), text: t.text, due: dateRe.test(t.due) ? t.due : null,
         done: t.done && !isNaN(new Date(t.done).getTime()) ? new Date(t.done).toISOString() : null,
         created: t.created && !isNaN(new Date(t.created).getTime()) ? new Date(t.created).toISOString() : new Date().toISOString(),
-        repeat: ['daily', 'weekdays', 'weekly'].indexOf(t.repeat) >= 0 ? t.repeat : null,
+        repeat: ['daily', 'weekdays', 'weekly', 'biweekly', 'monthly'].indexOf(t.repeat) >= 0 ? t.repeat : null,
+        mday: t.mday >= 1 && t.mday <= 31 ? Math.floor(t.mday) : undefined,
+        fromRepeat: typeof t.fromRepeat === 'string' ? t.fromRepeat : undefined,
         at: /^([01]\d|2[0-3]):[0-5]\d$/.test(t.at) ? t.at : null };
     }) };
   }

@@ -63,7 +63,7 @@ reads anything they can't (before the downloads, or if something fails).
 - **Faith** (`modules/faith`): the 120-day guided path (WEB Scripture), guided prayer read aloud, 11 Pray-now practices,
   journal / awe moments / prayer list, look-backs, "walk it again", daily reminder. Its own README: modules/faith/README.md.
 - **Calm** (`modules/calm`): one-minute reset, slow and box breathing with a breathing circle, body scan, 5-4-3-2-1
-  grounding, mindful feed, kindness practice, sleep wind-down, back to sleep after a night wake (suggested 0-5 am), mindful walk, "Before you pick her up" (30 s, for crying moments), washing-up mindfulness (any chore), quiet timer; stress before/after; minutes per week.
+  grounding, mindful feed, kindness practice, sleep wind-down, back to sleep after a night wake (suggested 0-5 am), mindful walk, "Before you pick her up" (30 s, for crying moments), washing-up mindfulness (any chore), breathing with her asleep on you (contact naps), quiet timer; stress before/after; minutes per week.
 - **Move** (`modules/workout`): his Google Sheet routine, ported and improved: 3 full-body days A/B/C that rotate
   (each muscle 2-3x a week; a skipped day never leaves a gap), supersets with transition and rest timer (beep +
   vibrate), "last time" numbers and progression ("ready for harder" with the 10 lb pair; "go up to N lb" once set to
@@ -81,7 +81,7 @@ reads anything they can't (before the downloads, or if something fails).
 - **Log for an earlier day** (Home, bottom): pick one of the last 7 days and use any part as usual: workout sets,
   faith days/journal, calm sessions and ticked to-dos are recorded on that day (WL.logNow()). A banner shows it on every
   screen; "Back to today" or 2 hours ends it.
-- **To do** (`modules/todo`, on Home): quick add with plain words ("call Mom tomorrow", "stretch every day"),
+- **To do** (`modules/todo`, on Home): quick add with plain words ("call Mom tomorrow", "stretch every day", "rent every month", "recycling every 2 weeks"),
   repeating tasks, overdue nudges. Reminders: end a task with a time ("bins fri at 7pm", "meds 8:30 pm") or set
   one in its ⋯ sheet; the phone notifies at that time even when the app is closed (TodoAlarm.java, exact alarm,
   re-armed after a reboot/update; repeating tasks get each coming day's reminder). The notification has "Done"

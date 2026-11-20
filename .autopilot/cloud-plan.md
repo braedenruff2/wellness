@@ -49,5 +49,8 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 17. Calm: "Box breathing" and "Slow breathing" pacers: optional soft tick sound on each phase change (setting, off by
     default); tests that the setting persists and restores.
 
-18. Faith journal: search box (find a word across entries, journal/awe/gratitude); tests.
-19. To-do: "every 2 weeks" and "every month" repeats (month ends: the 31st -> last day of shorter months; Feb 29); tests.
+18. (done 20 Nov 07:50) Faith journal: search box (find a word across entries, journal/awe/gratitude); tests.
+19. (done 20 Nov 07:45) To-do: "every 2 weeks" and "every month" repeats (month ends: the 31st -> last day of shorter months; Feb 29); tests.
+20. Faith: "Awe moments" look-back: on the 1st of each month, show one awe moment from a month ago on the Faith today
+    screen (if any); tests with the fake clock.
+21. (done 20 Nov 07:55: #tagalog/words) Tagalog: a "Words I know" list (cards in box >= 3) with hear buttons, and "Hard words" (most wrong); tests.
