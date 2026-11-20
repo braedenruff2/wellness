@@ -32,7 +32,7 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
    on Home's today list, chips and quick-question buttons; night-mode contrast of .meta text (>= 4.5:1).
 7. (done 20 Nov 06:50) PC server: east-of-UTC de-dup (save_events checks only day+1 for old-style files; also check
    day-1) + tests in pc/test/test_pc.py.
-8. Code health: dead code and duplicated date helpers (iso/addDays in several cores); keep behaviour identical (tests).
+8. (done 20 Nov cloud: lib/dates.js shared iso/addDays; no dead functions found) Code health: dead code and duplicated date helpers (iso/addDays in several cores); keep behaviour identical (tests).
 9. (20 Nov 07:40: brokennights added) More guidance rules in me-core guidance() from combinations (e.g. short sleep + workout planned -> lighter workout),
    each with a stable key and unit test.
 10. (done 20 Nov 07:15) Home: after 8 pm, unfinished today-list items get a gentle line ("Tomorrow is fine.") instead of looking undone;
@@ -40,13 +40,13 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 11. (done 20 Nov 07:25: Sunday from noon, module week()) Home: on Sunday evening, a short "Your week" card across parts (faith days, calm sessions, workouts, Tagalog
     lessons, to-dos done), no streaks or scores; tests.
 12. (done 20 Nov 07:20) #me page: a simple 14-day trend of sleep and mood from check-ins (text or inline SVG bars, dark-mode safe); tests.
-13. Faith practices (#faith/pray): wording variants like dayScript's DAY_LINES for the guiding lines (Scripture exact).
+13. (done 20 Nov cloud: core PRACTICE_LINES, practiceScript) Faith practices (#faith/pray): wording variants like dayScript's DAY_LINES for the guiding lines (Scripture exact).
 14. (done 20 Nov 07:40) Workout: add "Not for me?" to that balance line; tests.
 15. (done 20 Nov 07:35: offline note) Parenting (coach): when the PC link isn't reachable, keep the screen useful: last tips and past advice with a plain
     "your PC isn't answering; these still work" note, retry button; tests (link e2e fake PC can fail).
 16. (done 20 Nov 07:30) Backup nudge: if no backup file was saved in 14 days (shell tracks the last save), one gentle line in Settings and
     once a week on Home; tests with the fake clock.
-17. Calm: "Box breathing" and "Slow breathing" pacers: optional soft tick sound on each phase change (setting, off by
+17. (done 20 Nov cloud: settings.tick, WL.tick) Calm: "Box breathing" and "Slow breathing" pacers: optional soft tick sound on each phase change (setting, off by
     default); tests that the setting persists and restores.
 
 18. (done 20 Nov 07:50) Faith journal: search box (find a word across entries, journal/awe/gratitude); tests.
@@ -60,5 +60,5 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
     pauses, hands-free, stops on leaving; tests (fake speech).
 24. (done 20 Nov 08:00) Faith: the guided prayer's "others" step names one or two open Prayer list items ("You're praying for: ...");
     tests (text escaped, nothing when the list is empty).
-25. Parenting progress: per skill, a small score-over-time row (like #me's 14-day bars); tests.
-26. Faith Pray list: practices done this week get a tick and a count ("2× this week"); tests.
+25. (done 20 Nov cloud: .c-bars, skillStats().scores) Parenting progress: per skill, a small score-over-time row (like #me's 14-day bars); tests.
+26. (done 20 Nov cloud: practicesThisWeek) Faith Pray list: practices done this week get a tick and a count ("2× this week"); tests.
