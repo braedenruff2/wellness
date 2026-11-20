@@ -5,10 +5,12 @@
   'use strict';
   var K = window.MeCore, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   var store = WL.store('wl.me.v1', K.defaults);
-  var S = store.load(), view = null, planBusy = false, planTried = null;
+  var S = store.load(), view = null, planBusy = false;
   function save() { store.save(S); }
   function now() { return WL.logNow ? WL.logNow() : new Date(); }
-  function today() { return K.iso(now()); }
+  // the check-in is always about the real today ("Log for an earlier day" is for things done, and WL.logNow() would
+  // keep that mode alive every time Home is drawn)
+  function today() { return K.iso(new Date()); }
 
   function chips(attrs, q, cur) {
     return '<div class="me-q"><div class="meta">' + esc(q.q) + '</div><div class="chips">' + q.opts.map(function (o) {
@@ -69,7 +71,7 @@
       return;
     }
     if (b.dataset.meCk) {
-      var c = K.checkin(S, today(), b.dataset.k, b.dataset.v, now()); if (!c) return; save();
+      var c = K.checkin(S, today(), b.dataset.k, b.dataset.v, new Date()); if (!c) return; save();
       $$('[data-me-ck][data-k="' + b.dataset.k + '"]').forEach(function (x) { x.setAttribute('aria-pressed', c[b.dataset.k] === x.dataset.v); });
       if (K.checkinDone(c)) { var card = b.closest('.home-card'); setTimeout(function () { if (card) { card.innerHTML = cardHtml(); wireCard(card); } }, 400); }
     }
@@ -95,7 +97,7 @@
     var c = S.checkins[today()], g = K.guidance(S, new Date(), 3);
     if (!K.checkinDone(c) && !S.skipped[today()]) return '<div class="meta ui">Quick check-in</div><h3>How are you today?</h3>' + checkinHtml(false);
     var h = '<div class="meta ui">For you</div>';
-    if (g.length) h += '<ul class="me-g">' + g.map(function (x) { return '<li>' + esc(x.text) + ' ' + fitLink(x.part === 'home' ? 'home' : x.part, 'guide:' + x.text.slice(0, 40), x.text) + '</li>'; }).join('') + '</ul>';
+    if (g.length) h += '<ul class="me-g">' + g.map(function (x) { return '<li>' + esc(x.text) + ' ' + fitLink(x.part, 'guide:' + x.key, x.text) + '</li>'; }).join('') + '</ul>';
     else h += '<p class="meta ui">Thanks for checking in. Answer the quick questions after things you do, and the app learns what fits you.</p>';
     h += planHtml();
     h += '<div class="row ui"><a class="btn" href="#me">About you</a>' + (c ? '<span class="meta grow" style="text-align:right">Check-in ✓</span>' : '') + '</div>';
@@ -104,20 +106,28 @@
 
   function wireCard(el) {
     var sk = $('#me-skip', el); if (sk) sk.onclick = function () { S.skipped[today()] = 1; save(); el.innerHTML = cardHtml(); wireCard(el); };
-    var n = $('#me-ck-note', el); if (n) n.onchange = function () { K.checkinNote(S, today(), n.value, now()); save(); };
+    var n = $('#me-ck-note', el); if (n) n.onchange = function () { K.checkinNote(S, today(), n.value, new Date()); save(); };
     var pb = $('#me-plan', el); if (pb) pb.onclick = function () { makePlan(function () { el.innerHTML = cardHtml(); wireCard(el); }); el.innerHTML = cardHtml(); wireCard(el); };
   }
 
-  function makePlan(done) {
+  /* quiet: the automatic try (no toasts). The day's try counts as used only when the PC answered (Claude's plan or
+     Claude's error); away from home Wi-Fi it simply tries again later. */
+  function makePlan(done, quiet) {
     var pc = WL.pc; if (!pc || !pc.ready() || planBusy) return;
-    planBusy = true; planTried = today();
+    planBusy = true;
     var input = K.forPlan(S, new Date());
     try { var co = JSON.parse(localStorage.getItem('wl.coach.v1') || 'null'); if (window.CoachCore && co && co.child && co.child.birth) input.age = CoachCore.ageText(co.child.birth); } catch (e) {}
-    pc.sync().catch(function () {}).then(function () { return pc.ask('weekly-plan', input); }).then(function (a) {
-      var p = K.cleanPlan(a, new Date()); planBusy = false;
-      if (!p) { WL.toast('Claude’s plan came back empty. Try again later.'); return done && done(); }
+    var reached = false;
+    pc.sync().then(function () { reached = true; return pc.ask('weekly-plan', input); }).then(function (a) {
+      var p = K.cleanPlan(a, new Date()); planBusy = false; S.planTried = today();
+      if (!p) { save(); if (!quiet) WL.toast('Claude’s plan came back empty. Try again later.'); return done && done(); }
       S.plan = p; save(); WL.toast('Your plan for this week is ready'); if (done) done();
-    }, function (e) { planBusy = false; WL.toast(e.message || 'Could not make the plan'); if (done) done(); });
+    }, function (e) {
+      planBusy = false;
+      if (reached) { S.planTried = today(); save(); }
+      if (!quiet) WL.toast(e.message || 'Could not make the plan');
+      if (done) done();
+    });
   }
 
   /* One line of the weekly plan for a part's screen ('' if none). */
@@ -159,16 +169,19 @@
   function route(parts, v) {
     if (v) view = v;
     view.innerHTML = page();
-    var n = $('#me-ck-note'); if (n) n.onchange = function () { K.checkinNote(S, today(), n.value, now()); save(); };
+    var n = $('#me-ck-note'); if (n) n.onchange = function () { K.checkinNote(S, today(), n.value, new Date()); save(); };
     var pb = $('#me-plan'); if (pb) pb.onclick = function () { makePlan(function () { if (location.hash === '#me') route([]); }); route([]); };
   }
 
-  // The weekly plan makes itself when one is due and the PC link is there (at most one try a day; the button is there too).
+  // The weekly plan makes itself when one is due and the PC link answers (at most one answered try a day; the button
+  // is there too): shortly after the app opens, whenever it comes back to the front, and every 15 minutes.
   function autoPlan() {
-    if (WL.pc && WL.pc.ready() && K.planDue(S, new Date()) && planTried !== today() && !document.hidden && (S.feedback.length || Object.keys(S.checkins).length))
-      makePlan(function () { if (location.hash === '' || location.hash === '#home') WL.route(); });
+    if (WL.pc && WL.pc.ready() && K.planDue(S, new Date()) && S.planTried !== today() && !document.hidden && (S.feedback.length || Object.keys(S.checkins).length))
+      makePlan(function () { if (location.hash === '' || location.hash === '#home') WL.route(); }, true);
   }
   setTimeout(autoPlan, 20000);
+  setInterval(autoPlan, 15 * 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(autoPlan, 5000); });
 
   window.WLMe = {
     askHtml: askHtml, fitLink: fitLink, planLine: planLine, rough: function () { return K.rough(S, new Date()); },

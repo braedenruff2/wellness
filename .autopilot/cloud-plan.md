@@ -17,6 +17,9 @@ Can't do here: APK build/signing (key not in repo), anything using data outside 
 - No paid services, API keys, accounts or required network for core use.
 
 ## Tasks (pick in order; update this list on the PC; keep going until usage runs out)
+0. "About you" (modules/me, new 20 Nov): add "Not for me?" (WLMe.fitLink) to the Faith day screen, Tagalog lesson intro
+   and Home advice; quick questions (WLMe.askHtml) after Faith practices and Tagalog review; more guidance rules in
+   me-core guidance() with unit tests (each with a stable key); keep everything optional and one tap.
 1. Bug hunting: read modules and shell code, add tests for untested paths, fix what they find. (19 Nov evening: coach,
    workout undo/log-day, to-do reminders, activity ids and PC day filing reviewed; next: faith, tagalog, link, shell.)
 2. Calm (reworked 20 Nov: one practice a day, "done for today", rotation, wording variants): review it for edge cases

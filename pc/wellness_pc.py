@@ -426,7 +426,7 @@ def summarize(days=7, today=None):
         for e in fb[-40:]:
             d = e.get("data") or {}
             a = d.get("a") or {}
-            ans = "; ".join(f"{k}: {', '.join(v) if isinstance(v, list) else v}" for k, v in a.items())
+            ans = "; ".join(f"{k}: {', '.join(str(x) for x in v) if isinstance(v, list) else v}" for k, v in a.items()) if isinstance(a, dict) else str(a)
             lines.append(f"  - {local_day(e['at'])} {e['part']} {'NOT FOR ME' if e['kind'] == 'not-for-me' else 'answers'}"
                          f" [{d.get('about', '')}] {ans}" + (f" | {e['text']}" if e.get("text") else ""))
     last = max(e["at"] for e in ev)

@@ -232,7 +232,7 @@
   function suggest(state, now, opts) {
     now = now || new Date(); opts = opts || {};
     var h = now.getHours(), t = today(state, now), sc = opts.score || {}, pref = opts.prefer || [], long = opts.tooLong || {};
-    if (!state.sessions.length && h >= 5 && h < 22 && !pref.length) return 'sigh';
+    if (!state.sessions.length && h >= 5 && h < 22 && !pref.length && (sc.sigh || 0) > -2 && !opts.rough) return 'sigh';
     var base = fits(h);
     if (opts.rough && h >= 5 && h < 22) base = ['sigh', 'slow', 'ground'].concat(base.filter(function (id) { return ['sigh', 'slow', 'ground'].indexOf(id) < 0; }));
     var pool = base.filter(function (id) { return t.ids.indexOf(id) < 0; });

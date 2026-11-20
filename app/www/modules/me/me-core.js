@@ -123,10 +123,10 @@
     state.feedback.forEach(function (f) {
       if (f.part !== 'calm') return;
       var id = String(f.about).split('@')[0];
-      if (f.kind === 'notfit') { score[id] = (score[id] || 0) - 3; if ((f.a.reasons || []).indexOf('Too long') >= 0) tooLong[id] = 1; return; }
+      if (f.kind === 'notfit') { score[id] = (score[id] || 0) - 3; if (Array.isArray(f.a.reasons) && f.a.reasons.indexOf('Too long') >= 0) tooLong[id] = 1; return; }
       var h = f.a.helped;
       if (h) score[id] = (score[id] || 0) + (h === 'A lot' ? 2 : h === 'A bit' ? 1 : -1);
-      if ((f.a.block || []).indexOf('Too long') >= 0) tooLong[id] = 1;
+      if (Array.isArray(f.a.block) && f.a.block.indexOf('Too long') >= 0) tooLong[id] = 1;
     });
     return { score: score, tooLong: tooLong };
   }
@@ -142,27 +142,33 @@
      Each: {part, text}. Plain rules here; the weekly plan from Claude on his PC goes deeper. */
   function guidance(state, now, max) {
     now = now || new Date(); var out = [];
+    // a line he marked "not for me" stays hidden for two weeks (keys are stable even when the numbers in it change)
+    var since = new Date(now.getTime() - 14 * 864e5).toISOString(), hidden = {};
+    state.feedback.forEach(function (f) { if (f.kind === 'notfit' && /^guide:/.test(f.about) && f.at >= since) hidden[f.about.slice(6)] = 1; });
     var today = state.checkins[iso(now)], week = recentCheckins(state, now, 7);
-    if (rough(state, now)) out.push({ part: 'home', text: 'Rough night. Keep today small: the one-minute reset, a shorter workout (or rest), and lie down when she naps if you can.' });
+    if (rough(state, now)) out.push({ key: 'rough', part: 'home', text: 'Rough night. Keep today small: the one-minute reset, a shorter workout (or rest), and lie down when she naps if you can.' });
     var low = week.filter(function (c) { return c.mood === 'Low'; }).length;
-    if (low >= 4) out.push({ part: 'home', text: 'Your mood has been low on ' + low + ' of the last ' + week.length + ' check-ins. That’s worth sharing with someone you trust, or your doctor; 811 can help too.' });
+    if (low >= 4) out.push({ key: 'lowmood', part: 'home', text: 'Your mood has been low on ' + low + ' of the last ' + week.length + ' check-ins. That’s worth sharing with someone you trust, or your doctor; 811 can help too.' });
     else if (week.length >= 3) {
       var short = week.filter(function (c) { return c.sleep === 'Under 4 h' || c.sleep === '4–5 h'; }).length;
-      if (short >= 3) out.push({ part: 'home', text: 'Short sleep on ' + short + ' of the last ' + week.length + ' nights. Protect one nap-time rest a day this week; it matters more than anything else here.' });
+      if (short >= 3) out.push({ key: 'shortsleep', part: 'home', text: 'Short sleep on ' + short + ' of the last ' + week.length + ' nights. Protect one nap-time rest a day this week; it matters more than anything else here.' });
     }
     var w = lastN(state, 'workout', 'after', 3);
     var lw = w[w.length - 1];
-    if (lw && lw.a.pain === 'Yes, I stopped') out.push({ part: 'workout', text: 'Last workout you stopped for pain. Next time skip or lighten that exercise, and if it keeps hurting, ask a doctor or physio.' });
-    else if (lw && lw.a.hard === 'Too hard') out.push({ part: 'workout', text: 'Last workout felt too hard: keep the same weights next time and aim for the bottom of each rep range.' });
-    else if (w.length >= 2 && w.slice(-2).every(function (f) { return f.a.hard === 'Easy'; })) out.push({ part: 'workout', text: 'Your last two workouts felt easy: add a couple of reps, or the next weight up, where the app says you’re ready.' });
+    if (lw && lw.a.pain === 'Yes, I stopped') out.push({ key: 'wpain', part: 'workout', text: 'Last workout you stopped for pain. Next time skip or lighten that exercise, and if it keeps hurting, ask a doctor or physio.' });
+    else if (lw && lw.a.hard === 'Too hard') out.push({ key: 'whard', part: 'workout', text: 'Last workout felt too hard: keep the same weights next time and aim for the bottom of each rep range.' });
+    else if (w.length >= 2 && w.slice(-2).every(function (f) { return f.a.hard === 'Easy'; })) out.push({ key: 'weasy', part: 'workout', text: 'Your last two workouts felt easy: add a couple of reps, or the next weight up, where the app says you’re ready.' });
     var cl = calmLikes(state), best = Object.keys(cl.score).filter(function (k) { return cl.score[k] >= 3; }).sort(function (a, b) { return cl.score[b] - cl.score[a]; })[0];
-    if (best) out.push({ part: 'calm', text: 'What helps you most so far: ' + best + '. Calm suggests it more often.', id: best });
+    if (best) {
+      var CC = typeof CalmCore !== 'undefined' ? CalmCore : root.CalmCore, cp = CC && CC.PRACTICES.filter(function (x) { return x.id === best; })[0];
+      out.push({ key: 'calmbest', part: 'calm', text: 'What helps you most so far: ' + (cp ? cp.title.toLowerCase() : best) + '. Calm suggests it more often.', id: best });
+    }
     var tips = lastN(state, 'coach', 'after', 10).filter(function (f) { return f.a.tried === 'It worked'; });
-    if (tips.length) out.push({ part: 'coach', text: 'A tip that worked with her: keep doing it, so it becomes a habit for you both.', id: tips[tips.length - 1].about });
+    if (tips.length) out.push({ key: 'tipworked', part: 'coach', text: 'A tip that worked with her: keep doing it, so it becomes a habit for you both.', id: tips[tips.length - 1].about });
     var f = lastN(state, 'faith', 'after', 5), hard = f.filter(function (x) { return x.a.felt === 'Hard to focus'; }).length;
-    if (f.length >= 3 && hard >= 2) out.push({ part: 'faith', text: 'Focus has been hard in prayer lately. Try it shorter, or with the voice off and the words read slowly; a tired mind still counts.' });
-    if (today && today.note && /\b(sick|fever|teeth|teething)\b/i.test(today.note)) out.push({ part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
-    return out.slice(0, max || 3);
+    if (f.length >= 3 && hard >= 2) out.push({ key: 'faithfocus', part: 'faith', text: 'Focus has been hard in prayer lately. Try it shorter, or with the voice off and the words read slowly; a tired mind still counts.' });
+    if (today && today.note && /\b(sick|fever|teeth|teething)\b/i.test(today.note)) out.push({ key: 'sick', part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
+    return out.filter(function (g) { return !hidden[g.key]; }).slice(0, max || 3);
   }
 
   /* The weekly plan from Claude on the PC (task "weekly-plan"), checked. */
@@ -199,12 +205,24 @@
     }).slice(-150) };
   }
 
+  /* Only answers the app could have saved: known questions and their labels (a list for multi ones); reasons from REASONS. */
+  function cleanA(part, kind, a) {
+    var o = {};
+    if (kind === 'notfit') { o.reasons = Array.isArray(a.reasons) ? a.reasons.filter(function (r) { return REASONS.indexOf(r) >= 0; }) : []; return o; }
+    questions(part).forEach(function (q) {
+      var v = a[q.k];
+      if (q.multi) { if (Array.isArray(v)) { v = v.filter(function (x) { return q.opts.indexOf(x) >= 0; }); if (v.length) o[q.k] = v; } }
+      else if (q.opts.indexOf(v) >= 0) o[q.k] = v;
+    });
+    return o;
+  }
+
   function validate(s) {
     if (!s || typeof s !== 'object' || !Array.isArray(s.feedback)) return null;
     var d = defaults();
     s.feedback.forEach(function (f) {
       if (f && typeof f.id === 'string' && typeof f.at === 'string' && PARTS.indexOf(f.part) >= 0 && typeof f.about === 'string' && f.a && typeof f.a === 'object')
-        d.feedback.push({ id: cut(f.id, 200), at: cut(f.at, 40), part: f.part, about: cut(f.about, 80), kind: f.kind === 'notfit' ? 'notfit' : 'after', a: f.a,
+        d.feedback.push({ id: cut(f.id, 200), at: cut(f.at, 40), part: f.part, about: cut(f.about, 80), kind: f.kind === 'notfit' ? 'notfit' : 'after', a: cleanA(f.part, f.kind, f.a),
           shown: f.shown ? cut(f.shown, 300) : undefined, note: f.note ? cut(f.note, 600) : undefined, edited: f.edited ? cut(f.edited, 40) : undefined });
     });
     if (s.checkins && typeof s.checkins === 'object') Object.keys(s.checkins).forEach(function (k) {
@@ -215,6 +233,7 @@
       d.checkins[k] = o;
     });
     if (s.plan) d.plan = s.plan.at ? (function () { var p = cleanPlan(s.plan); if (p) p.at = cut(s.plan.at, 40); return p; })() : null;
+    if (typeof s.planTried === 'string' && /^\d{4}-\d\d-\d\d$/.test(s.planTried)) d.planTried = s.planTried;
     if (s.skipped && typeof s.skipped === 'object') Object.keys(s.skipped).forEach(function (k) { if (/^\d{4}-\d\d-\d\d$/.test(k)) d.skipped[k] = 1; });
     return d;
   }

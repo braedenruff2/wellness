@@ -76,6 +76,17 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.evaluate((x) => WL.restoreText(x), txt);
     assert.strictEqual((await me()).checkins['2026-11-20'].sleep, '4–5 h');
   });
+  await t.step('"Log for an earlier day" doesn’t move the check-in, and Home doesn’t keep that mode alive', async () => {
+    await page.clock.setSystemTime(new Date(2026, 10, 22, 9, 0)); await page.goto(base + '#home'); await page.reload();
+    await page.selectOption('#wl-logday', '2026-11-21');
+    await page.click('[data-me-ck][data-k="sleep"][data-v="7 h+"]');
+    const s = await me();
+    assert.strictEqual(s.checkins['2026-11-22'].sleep, '7 h+'); assert.ok(!s.checkins['2026-11-21']);
+    await page.clock.runFor(2.1 * 3600e3);
+    await page.goto(base + '#calm'); await page.goto(base + '#home');
+    await page.clock.runFor(100);
+    assert.strictEqual(await page.evaluate(() => WL.logDay()), null, 'ran out after 2 h');
+  });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#home', '#me', '#calm', '#workout', '#coach']);
     assert.deepStrictEqual(t.errors, []);

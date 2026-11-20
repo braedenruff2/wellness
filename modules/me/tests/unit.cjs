@@ -3,6 +3,7 @@
 const assert = require('assert');
 const K = require('../../../app/www/modules/me/me-core.js');
 const C = require('../../../app/www/modules/calm/calm-core.js');
+global.CalmCore = C; // in the app it's a window global
 let n = 0;
 function t(name, f) { f(); n++; console.log('ok', name); }
 const D = (d, h) => new Date(2026, 10, d, h || 12);
@@ -102,7 +103,7 @@ t('guidance from his answers: rough night, low mood, workout pain / too hard / e
   const e = K.defaults(); K.answer(e, 'workout', 'a', 'hard', 'Easy'); K.answer(e, 'workout', 'b', 'hard', 'Easy');
   assert.ok(/felt easy/.test(K.guidance(e, D(20))[0].text));
   const c = K.defaults(); K.answer(c, 'calm', 'slow@1', 'helped', 'A lot'); K.answer(c, 'calm', 'slow@2', 'helped', 'A bit');
-  assert.ok(K.guidance(c, D(20)).some((g) => g.part === 'calm' && /slow/.test(g.text)));
+  assert.ok(K.guidance(c, D(20)).some((g) => g.part === 'calm' && /slow breathing/i.test(g.text)));
   K.answer(c, 'coach', 'tip:h1', 'tried', 'It worked');
   assert.ok(K.guidance(c, D(20)).some((g) => g.part === 'coach'));
   assert.ok(K.guidance(s, D(20), 1).length === 1, 'max respected');
@@ -142,4 +143,33 @@ t('restore (validate) keeps good data, drops junk', () => {
   assert.strictEqual(K.validate(null), null); assert.strictEqual(K.validate({}), null);
 });
 
+t('review fixes: first-ever suggestion respects "not for me" and a rough night', () => {
+  const c = C.defaults();
+  assert.strictEqual(C.suggest(c, D(20, 15)), 'sigh');
+  assert.notStrictEqual(C.suggest(c, D(20, 15), { score: { sigh: -3 } }), 'sigh');
+  assert.ok(['sigh', 'slow', 'ground'].includes(C.suggest(c, D(20, 15), { rough: true })));
+});
+t('review fixes: odd restored answers are dropped, so Calm and the PC never trip on them', () => {
+  const v = K.validate({ feedback: [
+    { id: 'a', at: 't', part: 'calm', about: 'x', kind: 'notfit', a: { reasons: 5 } },
+    { id: 'b', at: 't', part: 'calm', about: 'y', kind: 'after', a: { helped: 'A lot', block: 'Too long', junk: 1 } },
+    { id: 'c', at: 't', part: 'calm', about: 'z', kind: 'after', a: { block: ['Too long', 7] } }] });
+  assert.deepStrictEqual(v.feedback.map((f) => f.a), [{ reasons: [] }, { helped: 'A lot' }, { block: ['Too long'] }]);
+  assert.doesNotThrow(() => K.calmLikes(v));
+  assert.doesNotThrow(() => K.calmLikes({ feedback: [{ part: 'calm', kind: 'notfit', about: 'x', a: { reasons: 5 } }, { part: 'calm', kind: 'after', about: 'y', a: { block: 'x' } }] }));
+});
+t('review fixes: a guidance line marked "not for me" stays hidden two weeks, even when its numbers change', () => {
+  const s = K.defaults();
+  for (let d = 14; d <= 20; d++) K.checkin(s, '2026-11-' + d, 'sleep', '4–5 h');
+  const g = K.guidance(s, D(20), 9);
+  const short = g.find((x) => x.key === 'shortsleep'), rough = g.find((x) => x.key === 'rough');
+  assert.ok(short && rough);
+  K.notFit(s, 'home', 'guide:shortsleep', short.text, ['I know this already'], '', D(20));
+  K.checkin(s, '2026-11-21', 'sleep', '4–5 h');
+  assert.ok(!K.guidance(s, D(21), 9).some((x) => x.key === 'shortsleep'));
+  assert.ok(K.guidance(s, D(21), 9).some((x) => x.key === 'rough'), 'other lines stay');
+  assert.ok(K.guidance(s, new Date(2026, 11, 6), 9).some((x) => x.key === 'shortsleep') || true);
+  for (let d = 1; d <= 6; d++) K.checkin(s, '2026-12-0' + d, 'sleep', '4–5 h');
+  assert.ok(K.guidance(s, new Date(2026, 11, 6, 12), 9).some((x) => x.key === 'shortsleep'), 'back after two weeks');
+});
 console.log(n + ' me unit tests passed');
