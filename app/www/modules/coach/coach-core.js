@@ -32,13 +32,13 @@
 
   function scored(state) { return state.history.filter(function (h) { return h.result && typeof h.result.score === 'number'; }); }
 
-  /* Per skill: {skill, n, avg (last 5), last}. */
+  /* Per skill: {skill, n, avg (last 5), last, scores (last 10, oldest first)}. */
   function skillStats(state) {
     var by = {};
     scored(state).forEach(function (h) { (by[h.skill] = by[h.skill] || []).push(h.result.score); });
     return SKILLS.map(function (s) {
       var v = by[s] || [], l5 = v.slice(-5);
-      return { skill: s, n: v.length, avg: l5.length ? Math.round(10 * l5.reduce(function (a, b) { return a + b; }, 0) / l5.length) / 10 : null, last: v.length ? v[v.length - 1] : null };
+      return { skill: s, n: v.length, avg: l5.length ? Math.round(10 * l5.reduce(function (a, b) { return a + b; }, 0) / l5.length) / 10 : null, last: v.length ? v[v.length - 1] : null, scores: v.slice(-10) };
     });
   }
 

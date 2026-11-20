@@ -46,8 +46,12 @@
     var st = K.skillStats(S).filter(function (s) { return s.n; });
     if (!st.length) return '';
     return '<div class="card ui"><h3>Your progress</h3><ul class="list">' + st.map(function (s) {
-      return '<li><span class="grow">' + esc(s.skill) + '</span><span class="meta">' + s.n + ' practised · recent ' + s.avg + '/10</span></li>';
-    }).join('') + '</ul></div>';
+      // the last scores as small bars (oldest on the left), once there are two to compare
+      var bars = s.scores.length >= 2 ? '<span class="tbars c-bars" role="img" aria-label="Last scores, oldest first: ' + s.scores.join(', ') + '">' + s.scores.map(function (v) {
+        return '<span class="tb" style="height:' + Math.round(10 + 90 * v / 10) + '%" title="' + v + '/10"></span>';
+      }).join('') + '</span>' : '';
+      return '<li><div class="row"><span class="grow">' + esc(s.skill) + '</span><span class="meta">' + s.n + ' practised · recent ' + s.avg + '/10</span></div>' + bars + '</li>';
+    }).join('') + '</ul>' + (st.some(function (s) { return s.scores.length >= 2; }) ? '<p class="meta">Bars: your last scores per skill, oldest on the left.</p>' : '') + '</div>';
   }
 
   function mainHtml() {

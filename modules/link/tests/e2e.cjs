@@ -146,6 +146,7 @@ const FAKE_PC = `
     assert.ok(txt.includes('7/10') && txt.includes('Offer a cold teether') && txt.includes('HealthyChildren'), txt.slice(0, 400));
     await page.goto(base + '#coach');
     assert.ok((await page.textContent('main')).includes('recent 7/10'));
+    assert.strictEqual(await page.locator('.c-bars').count(), 0, 'one score: no bars yet');
     assert.ok((await page.textContent('#co-tips')).includes('Name her feelings.'), 'this week\'s tip listed');
     await page.goto(base + '#home');
     assert.ok((await page.textContent('.home-card[data-module="coach"]')).includes('Try this week: Name her feelings.'), 'tip on Home');
@@ -261,6 +262,20 @@ const FAKE_PC = `
     assert.ok(/still work/.test(await page.textContent('#co-offline')));
     assert.ok(/Past practice/.test(await page.textContent('#view')));
     await page.evaluate(() => { window.__failAsk = false; });
+  });
+  await t.step('parenting progress: a row of score bars per skill once it has two scores', async () => {
+    await page.goto(base + '#coach');
+    const key = await page.evaluate(() => Object.keys(localStorage).find((k) => /coach/.test(k)));
+    await page.evaluate((k) => {
+      const s = JSON.parse(localStorage.getItem(k));
+      [4, 6, 8].forEach((sc, i) => s.history.push({ id: 'x' + i, at: new Date(2026, 10, 10 + i).toISOString(), title: 'T', skill: 'Crying and comfort', scenario: 'S', question: 'Q', result: { score: sc } }));
+      localStorage.setItem(k, JSON.stringify(s));
+    }, key);
+    await page.reload(); await page.waitForSelector('.c-bars');
+    const bars = page.locator('.c-bars');
+    assert.strictEqual(await bars.count(), 1, 'only the skill with two or more scores');
+    assert.strictEqual(await bars.locator('.tb').count(), 4);
+    assert.ok(/oldest first: 7, 4, 6, 8/.test(await bars.getAttribute('aria-label')), await bars.getAttribute('aria-label'));
   });
   await t.step('unpair needs two taps', async () => {
     await page.goto(base + '#link');
