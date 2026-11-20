@@ -88,6 +88,93 @@
     { id: 'timer', kind: 'timer', title: 'Quiet timer', minutes: 10, when: 'Sit in silence with a bell at the end', blurb: 'No voice. A soft bell to start and finish.' }
   ];
 
+  /* Other wordings for the guided scripts, so a practice doesn't sound the same every time. VARIANTS[id][i] lists
+     alternatives for step i (the step's own `say` is wording 0). scriptFor picks wording n % count for each step,
+     where n = how many times he has done that practice, so each time through it changes. Same timing either way. */
+  var VARIANTS = {
+    body: [
+      ['Find a position you can stay in for a few minutes. Close your eyes, or rest your gaze on the floor.', 'Settle in, lying down or sitting. There’s nothing to get right here; just follow along.'],
+      ['Breathe in slowly, and let the breath out slowly. Twice more. Feel where your body meets what’s under it.', 'Three slow breaths. With each one out, let yourself be a little heavier.'],
+      ['Start at the soles of your feet. What do they feel like right now? Whatever you notice is fine.', 'Let your attention rest on your toes, then the rest of your feet. You don’t need to feel anything special.'],
+      ['Now your ankles, shins and knees. Wherever it’s tight, breathe towards it and let it ease as you breathe out.', 'Your calves and knees. Notice them, and on the next out-breath, let them loosen.'],
+      ['Your upper legs and hips. Let the floor or the chair take their weight.', 'Move to your thighs and hips. Nothing to hold up now.'],
+      ['Your stomach. Notice it moving as you breathe, all on its own.', 'Rest your attention on your belly. In, and out. Let it be soft.'],
+      ['Your back, from the bottom to the top. If it aches from carrying and bending, give it a moment of attention, kindly.', 'Your lower back, then between your shoulder blades. Let the support behind you take some of the load.'],
+      ['Your arms and hands. They lift and hold all day. For now, there’s nothing to hold.', 'Notice your fingers, palms, wrists and arms. Let your hands lie open.'],
+      ['Your shoulders. Notice if they’ve crept up, and let them settle down.', 'Let your shoulders sink, as if they were melting a little.'],
+      ['Your neck, your jaw, the muscles round your eyes. Let your teeth part a little. Let your forehead be smooth.', 'Your face. Loosen your jaw, your cheeks, your eyes, your forehead.'],
+      ['Now take in your whole body together, from head to feet, breathing quietly.', 'Feel your body as one whole, resting and breathing.'],
+      ['Begin to move a little: fingers, toes, a stretch if you like. Then open your eyes.', 'Take a deeper breath, move gently, and come back when you’re ready.']
+    ],
+    ground: [
+      ['Stop for a moment. One slow breath in, and out.', 'Wherever you are, let yourself pause. Breathe out slowly.'],
+      ['Find five things you can see. Name each one to yourself, slowly.', 'Look for five things around you. Notice their colour or shape as you name them.'],
+      ['Now four things you can feel: the chair or floor under you, the temperature, your hands, whatever is touching you.', 'Four things you can touch or feel right now. Take your time with each.'],
+      ['Three sounds. Near or far, loud or soft.', 'Listen for three different sounds.'],
+      ['Two smells, or think of two smells you enjoy.', 'Notice two things you can smell, even faintly.'],
+      ['One taste. Or take a sip of water and notice it.', 'Notice one taste in your mouth, or have a drink and taste it.'],
+      ['Take one more slow breath. You’re here, and this moment is enough to handle.', 'One more breath. Notice that you’re a little more here than a few minutes ago.']
+    ],
+    feed: [
+      ['As you feed or rock her, put the phone down and let the voice do the rest.', 'Let your phone rest nearby. For these few minutes, just be with her.'],
+      ['Feel how heavy she is in your arms. Notice your hands, your arms, your back holding her.', 'Notice the warmth of her against you, and where you feel it.'],
+      ['Listen to her: swallowing, breathing, the small noises.', 'Notice her breathing. Is it fast, slow, settling?'],
+      ['Notice your breath too. Let it slow, a little at a time.', 'Breathe out slowly, and let your shoulders drop.'],
+      ['Choose one small detail of her and really look at it, as if you’d never seen it before.', 'Look at her hands, or her hair, or her face. Notice something you hadn’t noticed today.'],
+      ['When your mind wanders to other things, that’s fine. Bring it back to her in your arms.', 'Thoughts will come. Each time, come back to the feeling of holding her.'],
+      ['These ordinary minutes are a gift. Stay here with her for as long as the feed lasts.', 'Take one more slow breath and let this moment be enough.']
+    ],
+    kind: [
+      ['Settle into your seat. Let your breath be easy.', 'Sit comfortably, and let your breathing slow down by itself.'],
+      ['Picture yourself today, doing your best. Say quietly: may I be gentle with myself. May I get the rest I need.', 'Think of yourself kindly, as you would a friend. May I be at ease. May I forgive myself the hard moments today.'],
+      ['Picture your daughter. May you be safe. May you be happy. May you always know you are loved.', 'Think of your daughter as she is right now. May you be healthy. May you sleep well. May you feel safe with us.'],
+      ['Think of your wife. May you be well. May you have moments of rest. May we look after each other.', 'Picture your wife. May you be happy. May you feel loved. May we be patient with each other.'],
+      ['Think of someone who is hard for you right now. As best you can: may you be well. May things go well for you.', 'Bring to mind someone you’re struggling with. It’s fine if this is hard. May you find peace. May you be well.'],
+      ['Widen it out to everyone up with a child tonight, or caring for someone. May we all be well.', 'And all the parents, everywhere, doing their best today. May we all be well.'],
+      ['Let the words go. Rest here a moment.', 'Let it all go now, and simply sit for a moment.']
+    ],
+    sleep: [
+      ['Get comfortable in bed and turn the screen over. Just listen.', 'Lie back and let the bed hold you. Put the phone face down.'],
+      ['Tense your feet and toes, hold for a moment… and let them relax.', 'Point your toes and tighten your feet… hold it… and let go.'],
+      ['Now your legs: tighten them… hold… and let go.', 'Press your legs down into the bed and tense them… hold… and release.'],
+      ['Make fists and tighten your arms… hold… and let them drop.', 'Clench your hands and arms… hold for a few seconds… and let them go loose.'],
+      ['Raise your shoulders up high… hold… and let them fall.', 'Pull your shoulders up towards your ears… hold… and drop them down.'],
+      ['Squeeze your eyes and face tight… hold… and let it all go soft.', 'Tighten your face… hold… and let your jaw and eyes loosen completely.'],
+      ['Breathe slowly now, the out-breath a little longer each time.', 'Let your breathing slow down. Out a little longer than in.'],
+      ['Thoughts may come. Put each one aside for tomorrow, one at a time.', 'If your mind is busy, let each thought drift past like a car going by outside.'],
+      ['There’s nothing left to do today. Rest.', 'You can let the day go now. Rest.']
+    ],
+    night: [
+      ['She’s asleep. That part’s done. Lie back and let yourself rest too.', 'Well done getting her back down. Now it’s your turn. Lie back.'],
+      ['Breathe slowly. Let the breath out take a little longer than the breath in.', 'Slow your breathing down, a little at a time. Long, easy breaths out.'],
+      ['If you’re working out how much sleep is left, notice it, and let it go. Lying still and resting helps, even awake.', 'Try not to watch the clock. Resting quietly is good for you, even before sleep comes.'],
+      ['Soften your jaw. Let your shoulders and arms go heavy.', 'Unclench your hands and jaw. Let your body sink a little deeper.'],
+      ['Part of you may still be listening for her. You’ll hear her if she needs you. You can let that go for now.', 'You’ll hear her if she wakes. For now, let the listening rest.'],
+      ['Imagine somewhere peaceful you’ve been. Notice what you see and hear there, slowly.', 'Picture a quiet place you love. Take a slow walk around it in your mind.'],
+      ['Nothing else is needed. Rest.', 'Let go. Rest now.']
+    ],
+    walk: [
+      ['Walk at a comfortable pace. Stay aware of the path, traffic and the people around you.', 'Keep an easy pace and watch where you’re going; this practice works with your eyes open.'],
+      ['Feel your feet as they meet the ground: heel, then toes.', 'Notice each step: the push of one foot, the landing of the other.'],
+      ['Let your breath fall into time with your walking. In for a few steps, out for a few more.', 'Count your steps as you breathe in and as you breathe out. Let the out-breath be a step longer.'],
+      ['Notice the air: cold or mild, wind or still, on your face and hands.', 'Notice the weather on your skin. What’s it like today?'],
+      ['Look around for three things you’ve never noticed on this route.', 'Look up and around. Find three things you’d normally walk past without seeing.'],
+      ['Listen to what’s around you: close sounds and distant ones.', 'Let your ears open: your footsteps, the wheels, birds, cars, wind.'],
+      ['Take a slow breath and notice how you feel now compared with when you set out.', 'Before you go on, notice: is anything different from when you started?']
+    ]
+  };
+
+  function variantCount(p) { var v = VARIANTS[p.id]; return v ? 1 + Math.max.apply(null, v.map(function (a) { return a.length; })) : 1; }
+  /* The guided steps for the n-th time through this practice (n from 0). */
+  function scriptFor(p, n) {
+    var v = VARIANTS[p.id] || [], k = Math.max(0, n | 0);
+    return p.steps.map(function (s, i) {
+      var all = [s.say].concat(v[i] || []);
+      return { say: all[k % all.length], wait: s.wait };
+    });
+  }
+  function timesDone(state, id) { return state.sessions.filter(function (s) { return s.id === id; }).length; }
+
   function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5 } }; }
   function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
 
@@ -121,16 +208,36 @@
     return { weekMins: Math.round(mins), weekDays: Object.keys(days).length, total: state.sessions.length, avgDrop: drop, rated: rated.length };
   }
 
-  /* A practice that fits the moment. */
+  /* What Calm asks of him: one short practice a day. today() says whether that's done. */
+  function today(state, now) {
+    now = now || new Date();
+    var d = iso(now), list = state.sessions.filter(function (s) { return s.date === d; });
+    return { done: list.length > 0, count: list.length, mins: Math.round(list.reduce(function (a, s) { return a + s.mins; }, 0)),
+      ids: list.map(function (s) { return s.id; }) };
+  }
+
+  /* Practices that fit the time of day, best first. */
+  function fits(h) {
+    if (h >= 22) return ['sleep', 'body', 'slow'];
+    if (h < 5) return ['night', 'slow', 'sigh'];
+    if (h < 9) return ['slow', 'box', 'sigh', 'walk'];
+    return ['body', 'ground', 'kind', 'walk', 'feed', 'slow', 'box', 'sigh', 'timer'];
+  }
+
+  /* A practice that fits the moment: never one already done today; among those that fit the time of day, the one
+     done least recently (so the days vary), keeping the time-of-day order for ties. First time ever: the short reset. */
   function suggest(state, now) {
     now = now || new Date();
-    var h = now.getHours();
-    if (h >= 22) return 'sleep';
-    if (h < 5) return 'night'; /* up in the night: likely a wake to settle her */
-    if (h < 9) return 'slow';
-    var st = stats(state, now);
-    if (st.weekDays === 0) return 'sigh';
-    return 'body';
+    var h = now.getHours(), t = today(state, now);
+    if (!state.sessions.length && h >= 5 && h < 22) return 'sigh';
+    var pool = fits(h).filter(function (id) { return t.ids.indexOf(id) < 0; });
+    if (!pool.length) pool = fits(9).filter(function (id) { return t.ids.indexOf(id) < 0; });
+    if (!pool.length) return fits(h)[0];
+    var last = {};
+    state.sessions.forEach(function (s) { if (!last[s.id] || s.at > last[s.id]) last[s.id] = s.at || s.date; });
+    var best = pool[0];
+    pool.forEach(function (id) { if ((last[id] || '') < (last[best] || '')) best = id; });
+    return best;
   }
 
   function advice(state, now) {
@@ -157,7 +264,7 @@
     return d;
   }
 
-  var api = { PACERS: PACERS, PRACTICES: PRACTICES, defaults: defaults, pacerAt: pacerAt, record: record, stats: stats, suggest: suggest, advice: advice, validate: validate, iso: iso };
+  var api = { PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, record: record, stats: stats, suggest: suggest, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

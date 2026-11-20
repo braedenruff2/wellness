@@ -9,15 +9,32 @@
   function practice(id) { return K.PRACTICES.filter(function (p) { return p.id === id; })[0]; }
   function mins(p) { return p.fixed ? p.minutes : (p.kind === 'pacer' || p.kind === 'timer' ? S.settings.minutes : p.minutes); }
 
+  /* The top of Calm: what to do today. One short practice a day is the goal; once it's done, say so plainly and
+     offer a different one only as an extra. */
+  function todayCard() {
+    var t = K.today(S), sug = practice(K.suggest(S));
+    if (!t.done) {
+      return '<div class="card" id="c-today"><div class="meta ui">Today’s practice · not done yet</div><h3 style="margin:.2em 0">' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3>' +
+        '<p class="meta ui">' + esc(sug.when) + '. One short practice a day is all Calm asks; this one fits the time of day.</p>' +
+        '<a class="btn primary ui" href="#calm/s/' + sug.id + '">Begin</a></div>';
+    }
+    var names = t.ids.map(function (id) { return practice(id).title; }).filter(function (x, i, a) { return a.indexOf(x) === i; });
+    return '<div class="card" id="c-today"><div class="meta ui">Today</div><h3 style="margin:.2em 0">✓ Done for today</h3>' +
+      '<p class="ui">' + esc(names.join(', ')) + ' · ' + Math.max(1, t.mins) + ' min. That’s today’s practice. Nothing else you need to do; come back tomorrow.</p>' +
+      '<p class="meta ui">If things get hard later, the one-minute reset helps. Want more now? <a href="#calm/s/' + sug.id + '">' + esc(sug.title) + ' (' + mins(sug) + ' min)</a> is a different one.</p></div>';
+  }
+
   function list() {
-    var st = K.stats(S), sug = practice(K.suggest(S));
-    var h = '<h1>Calm</h1><p class="meta ui">' + esc(K.advice(S)) + '</p>';
-    h += '<div class="card"><div class="meta ui">Right now</div><h3 style="margin:.2em 0">' + esc(sug.title) + '</h3><p class="meta ui">' + esc(sug.when) + '</p>' +
-      '<a class="btn primary ui" href="#calm/s/' + sug.id + '">Begin · ' + mins(sug) + ' min</a></div>';
+    var st = K.stats(S);
+    var h = '<h1>Calm</h1>' + todayCard();
+    h += '<details class="card ui"><summary>How Calm works</summary><p>Do one short practice a day; the card above picks one for the time of day and changes from day to day. ' +
+      'Press Begin, rate how stressed you are if you like, then follow the voice (or the breathing circle). At the end, rate again and press Done. ' +
+      'Guided practices are worded a little differently each time. Any practice below works any time; the one-minute reset is for hard moments.</p></details>';
+    h += '<p class="meta ui">' + esc(K.advice(S)) + '</p>';
     h += '<div class="card ui"><div class="row"><span class="grow">Length for breathing and the quiet timer</span></div><div class="chips">' + [3, 5, 10, 15, 20].map(function (m) {
       return '<button class="chip" data-min="' + m + '" aria-pressed="' + (S.settings.minutes === m) + '">' + m + ' min</button>';
     }).join('') + '</div><div class="row" style="margin-top:8px"><span class="grow">Voice guidance</span><button class="chip" id="cv" aria-pressed="' + S.settings.voice + '">' + (S.settings.voice ? 'On' : 'Off') + '</button></div></div>';
-    h += '<ul class="list">' + K.PRACTICES.map(function (p) {
+    h += '<h2 class="ui" style="font-size:1em;margin:1em 0 .3em">All practices</h2><ul class="list">' + K.PRACTICES.map(function (p) {
       return '<li><a href="#calm/s/' + p.id + '"><h3>' + esc(p.title) + '</h3><div class="meta ui">' + esc(p.when) + ' · ' + mins(p) + ' min</div>' +
         (p.blurb || (p.pacer && K.PACERS[p.pacer].blurb) ? '<p style="margin:.3em 0 0">' + esc(p.blurb || K.PACERS[p.pacer].blurb) + '</p>' : '') + '</a></li>';
     }).join('') + '</ul>';
@@ -62,7 +79,7 @@
     var rec = K.record(S, p.id, m, before, null, WL.logNow ? WL.logNow() : null); save(); // saved straight away; "Done" only adds the after rating
     run = { p: p, done: true, mins: m, before: before, rec: rec };
     $('#c-pp').hidden = true; $('#c-before').hidden = true; $('#c-after').hidden = false;
-    var l = $('#c-label') || $('#c-line'); if (l) l.textContent = 'Well done.';
+    var l = $('#c-label') || $('#c-line'); if (l) l.textContent = K.today(S).count > 1 ? 'Well done. That’s another one today.' : 'Well done. That’s today’s practice done ✓';
     $('#c-prog').style.width = '100%'; $('#c-left').textContent = '';
   }
 
@@ -92,7 +109,8 @@
       run.frame = frame;
       frame();
     } else if (p.kind === 'guided') {
-      var steps = G.scaleScript(p.steps, p.minutes, S.settings.rate);
+      // a different wording each time through (counted before this session is saved)
+      var steps = G.scaleScript(K.scriptFor(p, K.timesDone(S, p.id)), p.minutes, S.settings.rate);
       run.player = new G.Player(steps, {
         speak: function (t, done) { WL.speech.speak(t, done, { voice: S.settings.voice, rate: S.settings.rate }); },
         stopSpeech: function () { WL.speech.stop(); },
@@ -144,8 +162,10 @@
   }
 
   function card() {
-    var sug = practice(K.suggest(S));
-    return '<div class="meta ui">Calm</div><h3>' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3><p class="meta ui">' + esc(K.advice(S)) + '</p>' +
+    var t = K.today(S), sug = practice(K.suggest(S));
+    if (t.done) return '<div class="meta ui">Calm</div><h3>✓ Done for today</h3><p class="meta ui">' + esc(practice(t.ids[0]).title) + (t.count > 1 ? ' and ' + (t.count - 1) + ' more' : '') + ' · ' + Math.max(1, t.mins) + ' min. Nothing else needed today.</p>' +
+      '<div class="row ui"><a class="btn" href="#calm">Calm</a></div>';
+    return '<div class="meta ui">Calm · today’s practice</div><h3>' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3><p class="meta ui">' + esc(K.advice(S)) + '</p>' +
       '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + '">Begin</a><a class="btn" href="#calm">All practices</a></div>';
   }
 

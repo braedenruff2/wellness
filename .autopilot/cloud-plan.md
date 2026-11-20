@@ -16,11 +16,16 @@ Can't do here: APK build/signing (key not in repo), anything using data outside 
 - Tagalog: natural, correct everyday Tagalog only; never invent words.
 - No paid services, API keys, accounts or required network for core use.
 
-## Tasks (pick in order; update this list on the PC)
+## Tasks (pick in order; update this list on the PC; keep going until usage runs out)
 1. Bug hunting: read modules and shell code, add tests for untested paths, fix what they find. (19 Nov evening: coach,
-   workout undo/log-day, to-do reminders, activity ids and PC day filing reviewed; next: faith, calm, tagalog, link.)
-2. Calm: more short practices (content + tests). (20 Nov: night-wake and mindful walk added.)
-3. Workout: volumeAdvice is shown on the Move screen; next: a plain note on Home when an area is behind late in the week.
-4. Tagalog: review/practice UX polish (two-way review and mixed practice exist since 19 Nov); tests for edge cases
-   (no packs, pack replaced, very long answers).
-5. Code health: dead code, duplicated helpers, slow tests.
+   workout undo/log-day, to-do reminders, activity ids and PC day filing reviewed; next: faith, tagalog, link, shell.)
+2. Calm (reworked 20 Nov: one practice a day, "done for today", rotation, wording variants): review it for edge cases
+   (log-for-earlier-day, midnight, restore) and add tests; more short practices (content + tests + VARIANTS).
+3. Faith: the same "today" clarity check: does every screen say plainly what to do today and when it's done?
+   Wording variants for guided prayer steps where the script repeats daily (keep Scripture text exact, WEB only).
+4. Workout: volumeAdvice is shown on the Move screen; next: a plain note on Home when an area is behind late in the week.
+5. Home: one clear "today" list across parts (what's done, what's left), consistent with each part's own card.
+6. Tagalog: review/practice UX polish; tests for edge cases (no packs, pack replaced, very long answers).
+7. To-do: edge cases (repeats across DST change 2027-03-14, month ends, Feb 29) with tests.
+8. Accessibility pass: font scaling, contrast in night mode, tap target sizes (tests/lib/web.cjs noOverflow at 200%).
+9. Code health: dead code, duplicated helpers, slow tests.

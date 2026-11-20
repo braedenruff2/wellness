@@ -50,6 +50,26 @@ const Wb = require('../../../tests/lib/web.cjs');
     const n = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions.length);
     assert.strictEqual(n, 3, 'a finished session is saved even without tapping Done; the early-ended body scan too');
   });
+  await t.step('his report: once a practice is done today, Calm says so (not the same practice again)', async () => {
+    await page.goto(base + '#calm');
+    const top = await page.textContent('#c-today');
+    assert.ok(/Done for today/.test(top), top);
+    assert.ok(/One-minute reset/.test(top), top);
+    await page.goto(base + '#home');
+    assert.ok(/Done for today/.test(await page.textContent('.home-card[data-module="calm"]')));
+  });
+  await t.step('a new day: today’s practice not done; the body scan speaks different words the second time', async () => {
+    await page.clock.setSystemTime(new Date(2026, 10, 19, 14, 0));
+    await page.goto(base + '#calm'); await page.reload();
+    const top = await page.textContent('#c-today');
+    assert.ok(/not done yet/.test(top), top);
+    await page.evaluate(() => { window.__spoken.length = 0; });
+    await page.goto(base + '#calm/s/body');
+    await page.click('#c-pp'); await page.clock.runFor(30000);
+    const spoken = await page.evaluate(() => window.__spoken.map((x) => x.text));
+    assert.ok(spoken.length && !spoken[0].startsWith('Get comfortable'), spoken.join('|'));
+    await page.click('#c-end');
+  });
   await t.step('Home card, no overflow, no errors', async () => {
     await page.goto(base + '#home');
     assert.ok((await page.textContent('.home-card[data-module="calm"]')).length > 10);

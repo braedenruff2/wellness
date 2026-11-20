@@ -38,11 +38,51 @@ t('stats, stress change, advice and suggestions', () => {
   assert.ok(/calmer afterwards/.test(K.advice(s, now)));
   assert.strictEqual(K.suggest(s, new Date(2026, 10, 18, 23)), 'sleep');
   assert.strictEqual(K.suggest(s, new Date(2026, 10, 18, 3)), 'night');
-  assert.strictEqual(K.suggest(s, new Date(2026, 10, 18, 7)), 'slow');
+  assert.strictEqual(K.suggest(s, new Date(2026, 10, 18, 7)), 'walk', 'slow breathing was done today; walk never done');
+  assert.strictEqual(K.suggest(s, new Date(2026, 10, 19, 7)), 'walk');
 });
 t('validate drops unknown practices and bad numbers', () => {
   const v = K.validate({ sessions: [{ id: 'slow', date: '2026-11-18', mins: 5, before: 3 }, { id: 'x', date: '2026-11-18', mins: 5 }, { id: 'box', date: 'no', mins: 1 }, { id: 'box', date: '2026-11-18', mins: 9999 }], settings: { minutes: 7 } });
   assert.strictEqual(v.sessions.length, 2); assert.strictEqual(v.sessions[1].mins, 240); assert.strictEqual(v.settings.minutes, 5);
   assert.strictEqual(K.validate(null), null);
+});
+t('his report: after finishing the body scan, today is done and the suggestion is a different practice', () => {
+  const s = K.defaults(), at = new Date(2026, 10, 19, 15);
+  assert.strictEqual(K.suggest(s, at), 'sigh', 'first time ever: the one-minute reset');
+  K.record(s, 'sigh', 1, null, null, new Date(2026, 10, 18, 10));
+  assert.strictEqual(K.today(s, at).done, false);
+  const first = K.suggest(s, at);
+  assert.strictEqual(first, 'body');
+  K.record(s, 'body', 8, 3, 2, new Date(2026, 10, 19, 14, 30));
+  const t = K.today(s, at);
+  assert.deepStrictEqual([t.done, t.count, t.mins, t.ids], [true, 1, 8, ['body']]);
+  assert.notStrictEqual(K.suggest(s, at), 'body', 'never suggests what was just done');
+  assert.strictEqual(K.suggest(s, at), 'ground');
+  // the next days rotate through the daytime practices rather than repeating
+  const seen = new Set();
+  for (let d = 20; d < 27; d++) { const when = new Date(2026, 10, d, 15); const id = K.suggest(s, when); seen.add(id); K.record(s, id, 3, null, null, when); }
+  assert.ok(seen.size >= 6, [...seen].join(','));
+  assert.strictEqual(K.today(s, new Date(2026, 10, 27, 15)).done, false, 'a new day starts not done');
+});
+t('every practice done today: still suggests something (no crash)', () => {
+  const s = K.defaults(), at = new Date(2026, 10, 19, 15);
+  K.PRACTICES.forEach((p) => K.record(s, p.id, 1, null, null, at));
+  assert.ok(K.PRACTICES.some((p) => p.id === K.suggest(s, at)));
+  assert.ok(K.PRACTICES.some((p) => p.id === K.suggest(s, new Date(2026, 10, 19, 3))));
+});
+t('guided wording changes each time through; timing stays the same', () => {
+  for (const p of K.PRACTICES.filter((x) => x.kind === 'guided')) {
+    const v = K.VARIANTS[p.id];
+    assert.ok(v, p.id + ' has other wordings');
+    assert.strictEqual(v.length, p.steps.length, p.id);
+    const a = K.scriptFor(p, 0), b = K.scriptFor(p, 1), c = K.scriptFor(p, K.variantCount(p));
+    assert.deepStrictEqual(a.map((x) => x.say), p.steps.map((x) => x.say), 'first time: the original');
+    assert.deepStrictEqual(a.map((x) => x.wait), b.map((x) => x.wait));
+    assert.ok(a.every((x, i) => x.say !== b[i].say), p.id + ': every line differs the second time');
+    assert.deepStrictEqual(c, a, 'wraps around');
+    for (const x of K.scriptFor(p, 2)) { assert.ok(typeof x.say === 'string' && x.say.length > 10); assert.ok(!/\{|\}/.test(x.say)); }
+  }
+  const s = K.defaults(); K.record(s, 'body', 8); K.record(s, 'body', 8); K.record(s, 'slow', 5);
+  assert.strictEqual(K.timesDone(s, 'body'), 2);
 });
 console.log(n + ' calm unit tests passed');
