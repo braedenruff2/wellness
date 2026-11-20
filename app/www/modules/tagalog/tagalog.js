@@ -68,7 +68,7 @@
     runSet(l.exercises.map(function (ex) { return { pack: pk, lesson: l, ex: ex }; }), function (right, n) {
       T.finishLesson(S, pk, l); save();
       return '<p class="ui"><b>' + right + ' of ' + n + ' right.</b> ' + (right === n ? 'Excellent.' : right >= n * 0.6 ? 'Good work.' : 'Worth another go tomorrow.') +
-        ' The words are now in your review.</p><div class="row ui"><a class="btn primary" href="#tagalog">Done</a><button id="tl-again">Practice again</button></div>';
+        ' The words are now in your review.</p>' + (window.WLMe ? WLMe.askHtml('tagalog', pk.id + '/' + l.day, 'Quick question (optional): it shapes next week’s lessons') : '') + '<div class="row ui"><a class="btn primary" href="#tagalog">Done</a><button id="tl-again">Practice again</button></div>';
     });
   }
 

@@ -44,7 +44,9 @@
   function today() {
     var open = W.openSession(S, now()), day = open ? open.day : (dayChoice || W.nextDay(S, now())), plan = W.PROGRAM[day];
     var h = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">' + esc(plan.title) + '</h1>' + weekDots() + '</div>';
-    h += '<p class="meta ui">' + esc(W.coach(S, now())) + '</p>';
+    var M = window.WLMe, co = W.coach(S, now());
+    h += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + day, co) : '') + '</p>';
+    if (M) h += M.planLine('workout');
     if (!open) h += '<div class="chips ui" style="margin-bottom:10px">' + W.ORDER.map(function (d) {
       return '<button class="chip" data-day="' + d + '" aria-pressed="' + (d === day) + '">' + W.PROGRAM[d].title.replace('Full body ', 'Day ') + '</button>';
     }).join('') + '</div>';
@@ -70,7 +72,7 @@
           '<button class="primary logbtn">Log set ' + (done.length + 1) + '</button></div>') + '</div>';
     });
     var fin = !open && W.finishedToday(S, now());
-    if (fin) h = h.replace('</p>', '</p><div class="card ui"><div class="row"><span class="grow">Finished ' + esc(W.PROGRAM[fin.day].title) + ' (' + fin.sets.length + ' sets) by mistake?</span><button id="wo-reopen" data-id="' + esc(fin.id) + '">Carry on with it</button></div></div>');
+    if (fin) h = h.replace('</p>', function () { return '</p>' + (M ? M.askHtml('workout', fin.id, 'Workout done ✓ Quick questions (optional): they shape your next workouts') : '') + '<div class="card ui"><div class="row"><span class="grow">Finished ' + esc(W.PROGRAM[fin.day].title) + ' (' + fin.sets.length + ' sets) by mistake?</span><button id="wo-reopen" data-id="' + esc(fin.id) + '">Carry on with it</button></div></div>'; });
     h += '<div class="row ui" style="margin:8px 0 90px">' + (open ? '<button id="wo-undo">Undo last set</button><span class="grow"></span><button class="primary" id="wo-finish">Finish workout</button>' : '') + '</div>';
     h += '<div id="restbar" class="restbar ui" hidden><div class="grow"><div id="rest-label" class="meta"></div><div id="rest-time" class="rest-time">0:00</div></div><button id="rest-plus">+15 s</button><button id="rest-skip">Skip</button></div>';
     h += open && !(WL.logDay && WL.logDay()) ? '<div class="sessclock ui meta" id="sessclock"></div>' : '';

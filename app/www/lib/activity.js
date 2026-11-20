@@ -107,6 +107,30 @@
     });
   };
 
+  /* About you (wl.me.v1): the daily check-in, quick answers after things he did, "not for me" flags. A changed answer
+     gets a new id ending /e<ms> (the PC keeps the newest). Notes are his words about the app and his day: sent so the
+     weekly plan can use them (only to his own PC). */
+  X['wl.me.v1'] = function (s, o, out) {
+    var ck = s.checkins || {};
+    Object.keys(ck).forEach(function (d) {
+      var c = ck[d]; if (!c || !/^\d{4}-\d\d-\d\d$/.test(d)) return;
+      var at = okDate(c.at) ? c.at : localNoon(d), data = {};
+      ['sleep', 'wakes', 'energy', 'mood', 'day'].forEach(function (k) { if (c[k] != null) data[k] = c[k]; });
+      var ev = { id: 'checkin/' + d + (okDate(c.edited) ? '/e' + Date.parse(c.edited) : ''), at: at, part: 'checkin', kind: 'checkin', data: data };
+      if (c.note) ev.text = cut(c.note, 600);
+      out.push(ev);
+    });
+    (s.feedback || []).forEach(function (f) {
+      if (!f || !okDate(f.at) || typeof f.id !== 'string') return;
+      var part = f.part === 'home' ? 'app' : f.part;
+      var ev = { id: 'fb/' + f.id + (okDate(f.edited) ? '/e' + Date.parse(f.edited) : ''), at: f.at, part: part, kind: f.kind === 'notfit' ? 'not-for-me' : 'feedback',
+        data: { about: f.about, a: f.a } };
+      var t = [f.shown, f.note].filter(Boolean).join(' | ');
+      if (t) ev.text = cut(t, 900);
+      out.push(ev);
+    });
+  };
+
   /* All events from the saved data ({storageKey: parsed state}), oldest first, last MAX_DAYS days only. */
   function collect(states, opts, now) {
     opts = opts || {}; now = now || new Date();
@@ -155,8 +179,10 @@
       case 'todo/added': return 'To do: added “' + cut(e.text, 60) + '”';
       case 'todo/done': return 'To do: done “' + cut(e.text, 60) + '”';
       case 'coach/advice': return 'Parenting: asked about ' + cut(e.text, 60);
+      case 'checkin/checkin': return 'Check-in: ' + Object.keys(d).map(function (k) { return k + ' ' + d[k]; }).join(', ') + (e.text ? ' — ' + cut(e.text, 60) : '');
       case 'coach/graded': return 'Parenting: ' + cut(e.text, 60) + ' — ' + (d.score != null ? d.score + '/10' : '');
     }
+    if (e.kind === 'feedback' || e.kind === 'not-for-me') return e.part + (e.kind === 'feedback' ? ' answers: ' : ' — not for me: ') + cut(JSON.stringify((d || {}).a || {}).replace(/[{}"\[\]]/g, '').replace(/,/g, ', '), 80);
     if (e.part === 'faith') return 'Faith: wrote in the journal (' + e.kind + ')' + (e.text ? ': ' + cut(e.text, 60) : '');
     return e.part + ': ' + e.kind;
   }

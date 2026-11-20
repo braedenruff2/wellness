@@ -114,7 +114,7 @@ def loudbook_speak(text, sid, speed, engine="natural", timeout=60):
     except (OSError, http.client.HTTPException) as e:
         raise RuntimeError("Loudbook's PC voice isn't running (" + str(e)[:80] + ")")
     finally: c.close()
-PARTS = ("faith", "calm", "workout", "tagalog", "todo", "coach", "app")
+PARTS = ("faith", "calm", "workout", "tagalog", "todo", "coach", "checkin", "app")
 
 
 def path(name):
@@ -342,16 +342,17 @@ def recent_events(days, today=None):
     ids = {e.get("id") for e in out}
     out = [e for e in out if not (isinstance(e.get("id"), str) and e["id"] + "/t" in ids)]
     # Workout sets fixed on the phone come again as <id>/e<ms> (newest wins); removed ones as <id>/x (all dropped).
-    # A finished workout and a ticked to-do carry their time the same way (finished again after "Carry on": newest wins).
+    # A finished workout and a ticked to-do carry their time the same way (finished again after "Carry on": newest wins),
+    # and so do a changed check-in (checkin/<day>/e<ms>) and a changed quick answer (fb/<id>/e<ms>).
     newest, gone = {}, set()
     for e in out:
-        m = re.match(r"^((?:workout|todo)/.+)/(e(\d+)|x)$", str(e.get("id", "")))
+        m = re.match(r"^((?:workout|todo|checkin|fb)/.+)/(e(\d+)|x)$", str(e.get("id", "")))
         if not m: continue
         if m.group(2) == "x": gone.add(m.group(1))
         elif int(m.group(3)) > newest.get(m.group(1), -1): newest[m.group(1)] = int(m.group(3))
     def keep(e):
         i = str(e.get("id", ""))
-        m = re.match(r"^((?:workout|todo)/.+)/(e(\d+)|x)$", i)
+        m = re.match(r"^((?:workout|todo|checkin|fb)/.+)/(e(\d+)|x)$", i)
         base = m.group(1) if m else i
         if base in gone: return False
         if base in newest: return bool(m) and m.group(2) != "x" and int(m.group(3)) == newest[base]
@@ -378,7 +379,13 @@ def summarize(days=7, today=None):
         return ", ".join(f"{n} {name}" for name, n in sorted(k.items(), key=lambda x: -x[1]))
 
     for part in PARTS:
-        es = per.get(part)
+        es = [e for e in per.get(part, []) if e["kind"] not in ("feedback", "not-for-me")]
+        if part == "checkin":
+            if es: lines.append("- check-ins (his own words, newest last): " + "; ".join(
+                local_day(e["at"]) + " " + ", ".join(f"{k} {v}" for k, v in (e.get("data") or {}).items())
+                + (f" ({e['text']})" if e.get("text") else "") for e in es[-10:]))
+            else: lines.append("- check-ins: none")
+            continue
         if not es: lines.append(f"- {part}: nothing"); continue
         d = len({local_day(e["at"]) for e in es})
         extra = ""
@@ -413,6 +420,15 @@ def summarize(days=7, today=None):
             done = [e.get("text", "") for e in es if e["kind"] == "done"]
             if done: extra = "; done: " + ", ".join(t for t in done[-8:] if t)
         lines.append(f"- {part}: {kinds(es)} on {d} day(s){extra}")
+    fb = [e for e in ev if e["kind"] in ("feedback", "not-for-me")]
+    if fb:
+        lines.append("His quick answers (after things he did) and \"not for me\" flags, newest last:")
+        for e in fb[-40:]:
+            d = e.get("data") or {}
+            a = d.get("a") or {}
+            ans = "; ".join(f"{k}: {', '.join(v) if isinstance(v, list) else v}" for k, v in a.items())
+            lines.append(f"  - {local_day(e['at'])} {e['part']} {'NOT FOR ME' if e['kind'] == 'not-for-me' else 'answers'}"
+                         f" [{d.get('about', '')}] {ans}" + (f" | {e['text']}" if e.get("text") else ""))
     last = max(e["at"] for e in ev)
     lines.append(f"Last event: {last}.")
     return "\n".join(lines)
@@ -502,6 +518,29 @@ def prompt_for(task, inp):
             "Give advice that fits his real week: what is going well, and the one or two next steps that would help "
             "most. Faith: point to Scripture accurately (World English Bible) and never speak as God. " + RULES +
             ' JSON: {"headline": one sentence, "points": [3-5 short, specific items], "next": "the single best next step"}', "")
+    if task == "weekly-plan":
+        return (
+            "You are a kind, practical, evidence-based coach for Braeden, writing his plan for the coming week inside his "
+            "Wellness phone app. Who he is: a new Christian who wants to feel belief and awe and become a better person; a dad "
+            f"on parental leave, mostly caring alone for his baby daughter (now {inp.get('age') or 'about one year old'}); "
+            "a beginner getting back into strength training (3 full-body workouts a week, A/B/C); learning Tagalog for his "
+            "wife's Filipino family; using short calm practices for stress. He said the app's guidance felt generic, so "
+            "he now answers quick questions and a daily check-in: USE THEM. Every line must come from what he actually did "
+            "and said below (cite it in 'why', e.g. 'you rated the body scan \"a lot\" twice', 'you slept under 5 h on 4 "
+            "nights'); never generic advice he could read anywhere. Respect everything he marked \"not for me\": don't "
+            "suggest it again, and adjust to his reasons. Keep the plan small enough for a tired solo parent.\n"
+            "What the app logged (last 14 days):\n" + (inp.get("summary") or "") + "\n"
+            "Check-ins and answers straight from the phone (may repeat the above): " + j({"checkins": inp.get("checkins"), "feedback": inp.get("feedback")})[:20000] + "\n"
+            "Calm practice ids you may list in calm.prefer: sigh (one-minute reset), slow, box, body (body scan), ground (5-4-3-2-1), "
+            "feed (mindful feed), kind (kindness), sleep (wind-down), night (back to sleep after a night wake), walk, timer. "
+            "Faith: point to Scripture accurately (World English Bible), never speak as God. Health: general guidance only; if "
+            "he reports pain or a low mood that keeps coming back, gently suggest a doctor/physio or someone he trusts (811 "
+            "in PEI). Leave out a part if there is nothing real to say about it. " + RULES +
+            ' JSON: {"headline": "one sentence: the theme of his week, specific to him", "parts": {"calm": {"focus": '
+            '"what to do this week, 1-2 sentences", "why": "the evidence from his own data", "prefer": [1-3 practice ids]}, '
+            '"workout": {"focus": ..., "why": ...}, "faith": {"focus": ..., "why": ...}, "coach": {"focus": ..., "why": ...}, '
+            '"tagalog": {"focus": ..., "why": ...}, "todo": {"focus": ..., "why": ...}, "home": {"focus": "sleep, energy '
+            'and looking after himself", "why": ...}}, "check": "one question for him to notice this week"}', "")
     raise ValueError("unknown task")
 
 
@@ -573,7 +612,7 @@ def parse_answer(text):
     return {"text": text.strip()[:MAX_TEXT]}
 
 
-TASKS = ("coach-scenario", "coach-grade", "coach-advice", "tagalog-check", "advice")
+TASKS = ("coach-scenario", "coach-grade", "coach-advice", "tagalog-check", "advice", "weekly-plan")
 
 
 class Jobs:
@@ -587,7 +626,7 @@ class Jobs:
         if task not in TASKS: raise ValueError("unknown task")
         if not isinstance(inp, dict): raise ValueError("input must be an object")
         inp = {k: (v[:MAX_TEXT] if isinstance(v, str) else v) for k, v in list(inp.items())[:20]}
-        if task == "advice": inp["summary"] = summarize(14)
+        if task in ("advice", "weekly-plan"): inp["summary"] = summarize(14)
         prompt, tools = prompt_for(task, inp)
         jid = secrets.token_hex(8)
         with cls.lock:
@@ -617,6 +656,10 @@ class Jobs:
     @staticmethod
     def remember(task, inp, ans):
         """Coach answers are kept on the PC too (progress over time, for him and for Claude's runs)."""
+        if task == "weekly-plan":
+            # kept on the PC (his progress folder) so autopilot runs and later plans can see what was planned
+            with activity_lock: append_lines(progress("plans", "weekly.jsonl"), [{"at": now_iso(), "answer": ans}])
+            return
         if not task.startswith("coach"): return
         rec = {"at": now_iso(), "task": task, "input": {k: v for k, v in inp.items() if k != "summary"}, "answer": ans}
         with activity_lock: append_lines(progress("coach", "history.jsonl"), [rec])

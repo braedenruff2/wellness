@@ -225,18 +225,36 @@
   }
 
   /* A practice that fits the moment: never one already done today; among those that fit the time of day, the one
-     done least recently (so the days vary), keeping the time-of-day order for ties. First time ever: the short reset. */
-  function suggest(state, now) {
-    now = now || new Date();
-    var h = now.getHours(), t = today(state, now);
-    if (!state.sessions.length && h >= 5 && h < 22) return 'sigh';
-    var pool = fits(h).filter(function (id) { return t.ids.indexOf(id) < 0; });
+     done least recently (so the days vary), keeping the time-of-day order for ties. First time ever: the short reset.
+     opts (from what he told the app, modules/me): score {id: n} (helped +, "not for me" -3), prefer [ids] from the
+     weekly plan, tooLong {id: 1}, rough (bad night: short ones first). Practices he marked down (score <= -2) are
+     left out while anything else fits; liked / planned ones come first. */
+  function suggest(state, now, opts) {
+    now = now || new Date(); opts = opts || {};
+    var h = now.getHours(), t = today(state, now), sc = opts.score || {}, pref = opts.prefer || [], long = opts.tooLong || {};
+    if (!state.sessions.length && h >= 5 && h < 22 && !pref.length) return 'sigh';
+    var base = fits(h);
+    if (opts.rough && h >= 5 && h < 22) base = ['sigh', 'slow', 'ground'].concat(base.filter(function (id) { return ['sigh', 'slow', 'ground'].indexOf(id) < 0; }));
+    var pool = base.filter(function (id) { return t.ids.indexOf(id) < 0; });
     if (!pool.length) pool = fits(9).filter(function (id) { return t.ids.indexOf(id) < 0; });
-    if (!pool.length) return fits(h)[0];
+    if (!pool.length) return base[0];
+    var ok = pool.filter(function (id) { return (sc[id] || 0) > -2; });
+    if (ok.length) pool = ok;
     var last = {};
     state.sessions.forEach(function (s) { if (!last[s.id] || s.at > last[s.id]) last[s.id] = s.at || s.date; });
+    function rank(id) {
+      var r = (sc[id] || 0) + (pref.indexOf(id) >= 0 ? 3 : 0) - (long[id] ? 1 : 0);
+      if (opts.rough && ['sigh', 'slow', 'ground'].indexOf(id) >= 0) r += 4;
+      return r;
+    }
+    // liked (or planned) ones lead, but not every day: a practice done in the last 2 days drops behind fresh ones
+    var day2 = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2));
+    function key(id) { return rank(id) - ((last[id] || '').slice(0, 10) >= day2 ? 2.5 : 0); }
     var best = pool[0];
-    pool.forEach(function (id) { if ((last[id] || '') < (last[best] || '')) best = id; });
+    pool.forEach(function (id) {
+      var a = key(id), b = key(best);
+      if (a > b || (a === b && (last[id] || '') < (last[best] || ''))) best = id;
+    });
     return best;
   }
 

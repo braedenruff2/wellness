@@ -32,7 +32,10 @@ if 'REVOKED' in p:
     print(json.dumps({"type": "result", "subtype": "success", "is_error": True, "result": "Failed to authenticate. API Error: 401 OAuth access token has been revoked"})); sys.exit(1)
 if 'NOT-JSON' in p:
     print('Invalid API key'); sys.exit(1)
-if 'practical coach' in p:
+if 'writing his plan for the coming week' in p:
+    ans = json.dumps({"headline": "plan " + ("SAW-CHECKIN" if "teething-note" in p else "") + (" SAW-NOTFIT" if "NOT FOR ME" in p else ""),
+                      "parts": {"calm": {"focus": "f", "why": "w", "prefer": ["body"]}}, "check": "c"})
+elif 'practical coach' in p:
     ans = json.dumps({"headline": "h", "points": [p[p.find('Activity'):p.find('Activity') + 60]], "next": "n"})
 elif 'Grade a dad' in p:
     ans = 'Here you go:\\n```json\\n{"score": 7, "verdict": "Good start {really}.", "good": ["stayed calm"], "improve": ["name the feeling"], "better": "x", "why": "y", "practice": "z", "sources": []}\\n```'
@@ -336,6 +339,25 @@ st, r = ask("rm -rf", {})
 check("unknown task refused", st == 400, (st, r))
 st, r, _ = req("GET", "/v1/job?id=nope", token=token)
 check("unknown job", st == 404, st)
+# About you: check-ins and quick answers reach the summary and the weekly plan; a changed answer replaces the old one
+evs = [{"id": "checkin/2026-11-19/e1", "at": "2026-11-19T12:00:00Z", "part": "checkin", "kind": "checkin", "data": {"sleep": "4–5 h", "wakes": "3+"}},
+       {"id": "checkin/2026-11-19/e2", "at": "2026-11-19T12:00:00Z", "part": "checkin", "kind": "checkin", "data": {"sleep": "5–6 h", "wakes": "2"}, "text": "teething-note"},
+       {"id": "fb/calm/after/body@x/e5", "at": "2026-11-19T13:00:00Z", "part": "calm", "kind": "feedback", "data": {"about": "body@x", "a": {"helped": "A bit"}}},
+       {"id": "fb/calm/after/body@x/e9", "at": "2026-11-19T13:00:00Z", "part": "calm", "kind": "feedback", "data": {"about": "body@x", "a": {"helped": "A lot"}}},
+       {"id": "fb/workout/notfit/coach:A/7", "at": "2026-11-19T14:00:00Z", "part": "workout", "kind": "not-for-me", "data": {"about": "coach:A", "a": {"reasons": ["Too generic"]}}, "text": "shown words | my note"}]
+st, o, _ = req("POST", "/v1/activity", {"events": evs}, token=token)
+check("check-in and answers accepted", st == 200, (st, o))
+sm = W.summarize(14, datetime.date(2026, 11, 20))
+check("summary has the newest check-in only", "sleep 5–6 h" in sm and "sleep 4–5 h" not in sm and "teething-note" in sm, sm)
+check("summary has the newest answer and the not-for-me flag", "helped: A lot" in sm and "helped: A bit" not in sm and "NOT FOR ME" in sm and "my note" in sm, sm)
+check("feedback isn't counted as activity", "1 feedback" not in sm, sm)
+st, r = ask("weekly-plan", {"age": "12 months old", "checkins": {"2026-11-19": {"note": "teething-note"}}, "feedback": []})
+check("weekly plan sees his check-ins", r.get("state") == "done" and "SAW-CHECKIN" in r["answer"].get("headline", ""), r)
+plans = open(os.path.join(TMP, "progress", "plans", "weekly.jsonl"), encoding="utf-8").read().splitlines()
+check("weekly plan kept on the PC", len(plans) == 1 and json.loads(plans[0])["answer"]["parts"]["calm"]["prefer"] == ["body"], plans)
+args = json.load(open(FAKE + ".args"))
+check("weekly plan can't use tools", args[args.index("--tools") + 1] == "", args)
+
 os.environ["WELLNESS_CLAUDE"] = os.path.join(TMP, "no-such-claude")
 st, r = ask("advice", {})
 check("no Claude Code: says how to fix it", r.get("state") == "error" and "Claude Code" in r.get("error", ""), r)

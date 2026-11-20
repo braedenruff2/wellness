@@ -21,6 +21,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     // the rest in one jump (the end is worked out from the clock; running every animation frame took over a minute)
     await page.clock.fastForward(60000); await page.clock.runFor(1000);
     assert.ok(await page.isVisible('#c-after'));
+    assert.ok(!(await page.isVisible('#c-pp')), 'no Pause button once it has ended');
     await page.click('#c-after-r [data-r="2"]');
     await page.click('#c-save');
     await page.waitForSelector('.list');

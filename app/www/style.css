@@ -162,3 +162,14 @@ p.ok { color: var(--good); } p.no { color: var(--warn); }
   padding-top: calc(8px + env(safe-area-inset-top, 0px)); background: var(--accent); color: var(--accent-ink); }
 .logday[hidden] { display: none; }
 .logday .chip { background: var(--card); color: var(--ink); }
+/* About you (modules/me): quick questions, check-in, "Not for me?" */
+.me-q { margin-top: 8px; }
+.me-q .chips { margin-top: 4px; }
+.me-fit { font-size: .8em; opacity: .8; padding: 2px 0; }
+.me-g { padding-left: 1.1em; margin: .3em 0; }
+.me-g li { margin: .35em 0; }
+.me-plan { border-left: 3px solid currentColor; }
+#me-ck-note { margin-top: 10px; width: 100%; }
+
+/* The hidden attribute always hides (a button's display: flex used to win: the calm "Pause" button stayed after the end) */
+[hidden] { display: none !important; }

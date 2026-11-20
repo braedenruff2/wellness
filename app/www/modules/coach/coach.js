@@ -67,9 +67,11 @@
         [''].concat(K.SKILLS).map(function (s) { return '<button class="chip" data-skill="' + esc(s) + '" aria-pressed="' + (pickSkill === s) + '">' + esc(s || 'Suggested') + '</button>'; }).join('') +
         '</div><div class="row" style="margin-top:10px"><button class="primary" id="co-new"' + (pc.ready() ? '' : ' disabled') + '>New scenario</button></div></div>';
     }
+    if (window.WLMe) h += WLMe.planLine('coach');
     var tips = K.tips(S);
     if (tips.length) h += '<div class="card ui" id="co-tips"><h3>This week, try</h3><ul class="list">' + tips.map(function (x) {
-      return '<li><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.text) + '</a><span class="meta">' + esc(x.skill) + '</span></li>';
+      return '<li style="flex-wrap:wrap"><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.text) + '</a><span class="meta">' + esc(x.skill) + '</span>' +
+        (window.WLMe ? '<div style="flex-basis:100%">' + WLMe.askHtml('coach', 'tip:' + x.id, ' ', true) + WLMe.fitLink('coach', 'tip:' + x.id, x.text) + '</div>' : '') + '</li>';
     }).join('') + '</ul></div>';
     if (!waiting) h += '<div class="card ui"><h3>Something happening with ' + esc(S.child.name || 'her') + '?</h3><p class="meta">Describe a real situation you’re dealing with: what she does, when, what you’ve tried. Claude checks current guidance for her age and gives you steps, words to say, and why.</p>' +
       '<label class="sr" for="co-real">Your situation</label><textarea id="co-real" rows="5" placeholder="e.g. She screams when I put her in the car seat, every time, since last week. I’ve tried…">' + esc(S.realDraft || '') + '</textarea>' +

@@ -42,6 +42,15 @@ reads anything they can't (before the downloads, or if something fails).
 
 ## What's in it
 - **Home**: today across everything (faith day, workout, calm practice, Tagalog lesson, to-dos due), with advice.
+- **About you** (`modules/me`, 20 Nov 2026, so guidance fits him instead of being generic): a 20-second daily check-in
+  first on Home (sleep, night wakes, energy, mood, the day with her, one line); one-tap questions at the end of a calm
+  practice, a workout, a guided prayer, a Tagalog lesson and on Parenting's "This week, try" tips; "Not for me?" (reasons +
+  note) on suggestions and advice; "For you" lines on Home from those answers (rough night, low mood -> talk to someone /
+  811, workout too hard / pain / easy, what helps, a tip that worked); Calm's suggestion uses them (marked-down ones left
+  out, liked ones first, short ones after a rough night). Weekly plan: the PC task `weekly-plan` (claude -p, no tools)
+  reads 14 days of activity + answers and writes a focus and "why, from your data" per part, shown on Home, #me and each
+  part's screen (kept on the PC in wellness-progress\plans\weekly.jsonl). Answers go to the PC as part "checkin" and
+  kinds "feedback" / "not-for-me" (changed answers: id /e<ms>, newest wins).
 - **Faith** (`modules/faith`): the 120-day guided path (WEB Scripture), guided prayer read aloud, 11 Pray-now practices,
   journal / awe moments / prayer list, look-backs, "walk it again", daily reminder. Its own README: modules/faith/README.md.
 - **Calm** (`modules/calm`): one-minute reset, slow and box breathing with a breathing circle, body scan, 5-4-3-2-1

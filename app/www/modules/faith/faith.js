@@ -68,6 +68,7 @@
     var today = C.finishedToday(S);
     var html = '<div class="meta ui">' + esc(greeting()) + '</div>';
     html += resumeCard();
+    if (window.WLMe) html += WLMe.planLine('faith');
     if (today && n <= TOTAL) {
       html += '<div class="card done-banner ui"><b>You did day ' + today + ' today.</b> That\u2019s enough for one day. ' +
         'Day ' + n + ' is below if you want it, or come back tomorrow. You could also <a href="#faith/pray">pray freely</a>.</div>';
@@ -210,6 +211,7 @@
           line.parentNode.insertBefore(b, line.nextSibling.nextSibling);
           $('#end-finish').onclick = function () { C.finishDay(S, session.id, logNow()); save(); toast('Day ' + session.id + ' done. Go gently.'); location.hash = '#faith/today'; };
         } else line.textContent = 'Amen.';
+        if (window.WLMe) line.parentNode.insertAdjacentHTML('beforeend', WLMe.askHtml('faith', session.kind + ':' + session.id + '@' + new Date().toISOString().slice(0, 16), 'Quick questions (optional): they help shape your prayer times'));
       }
     };
     player = new C.Player(session.steps, env);
