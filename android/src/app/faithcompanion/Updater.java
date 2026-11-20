@@ -179,8 +179,18 @@ final class Updater {
             if (st == PackageInstaller.STATUS_PENDING_USER_ACTION) {
                 Intent confirm = i.getParcelableExtra(Intent.EXTRA_INTENT);
                 if (confirm != null) {
+                    // the app is in the background (it installs when he leaves it), so Android blocks opening the
+                    // prompt from here: put it in a notification he can tap instead
                     confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    try { c.startActivity(confirm); } catch (Throwable ignored) { }
+                    try {
+                        NotificationManager nm = (NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE);
+                        if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(new NotificationChannel("updates", "App updates", NotificationManager.IMPORTANCE_LOW));
+                        PendingIntent pi = PendingIntent.getActivity(c, 8, confirm, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+                        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, "updates") : new Notification.Builder(c);
+                        nm.notify(8, b.setSmallIcon(R.drawable.ic_note).setContentTitle("Wellness update ready")
+                            .setContentText("Tap to install the new version.").setContentIntent(pi).setAutoCancel(true).build());
+                    } catch (Throwable ignored) { }
+                    prefs(c).edit().putString("error", "install: waiting for a tap (notification)").apply();
                 }
             } else if (st != PackageInstaller.STATUS_SUCCESS) {
                 String msg = i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);

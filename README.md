@@ -17,6 +17,9 @@ Double-click **Turn on lesson updates.bat** once. It makes a public GitHub repo 
 15 minutes. Every Wednesday at noon (when your Claude usage resets) a scheduled Claude run writes next week's 7 lessons
 into `modules\tagalog\packs\`; the app downloads them when you open Tagalog. To tailor them, save Tagalog > Lessons &
 sharing > "Send my week" on the phone and put the file in `Desktop\wellness-progress\` before Wednesday noon.
+The summary (also sent by the PC link) has `feel`: his "That was: too easy / about right / too hard" answers after
+lessons, review and practice, and "Not for me?" on lessons/tips. The weekly run steps up (longer sentences, more
+speaking) on "Too easy", slows down and recycles words on "Too hard", and avoids what he marked not for him.
 Nothing personal goes to GitHub: journal, workouts, to-dos and progress stay on the phone (and, with the PC link, in Desktop\wellness-progress).
 
 ## PC link (activity log + Claude on your PC)

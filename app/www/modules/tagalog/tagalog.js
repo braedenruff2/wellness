@@ -233,13 +233,26 @@
         S.source = u; save(); route(['settings']); WL.toast('Saved');
       };
       $('#tl-fetch').onclick = function () { fetchPacks(true).then(function () { if (location.hash === '#tagalog/settings') route(['settings']); }); };
-      $('#tl-send').onclick = function () { WL.saveFile('tagalog-week-' + T.iso(new Date()) + '.json', JSON.stringify(T.weeklySummary(S, packs()), null, 1)); };
+      $('#tl-send').onclick = function () { WL.saveFile('tagalog-week-' + T.iso(new Date()) + '.json', JSON.stringify(weekSummary(), null, 1)); };
       $('#tl-slow').onclick = function () { S.settings.slow = !S.settings.slow; save(); route(['settings']); };
       return;
     }
     view.innerHTML = home();
     // once a day, look for next week's lessons
     if (S.source && (!S.lastCheck || Date.now() - new Date(S.lastCheck).getTime() > 20 * 3600e3)) fetchPacks(false).then(function (n) { if (n && location.hash.replace(/\/$/, '') === '#tagalog') route([]); });
+  }
+
+  /* The week's summary for next week's lessons, with how the lessons felt to him ("That was: too easy / about right /
+     too hard" after lessons, review and practice; "Not for me?" on lessons and tips) from the last 14 days. */
+  function weekSummary() {
+    var sum = T.weeklySummary(S, packs());
+    try {
+      var M = window.WLMe && WLMe.state(), from = new Date(Date.now() - 14 * 864e5).toISOString();
+      if (M) sum.feel = M.feedback.filter(function (f) { return f.part === 'tagalog' && f.at >= from; }).slice(-40).map(function (f) {
+        return f.kind === 'notfit' ? { about: f.about, notForMe: f.a.reasons || [], note: f.note || '' } : { about: f.about, level: f.a.level || null };
+      });
+    } catch (e) {}
+    return sum;
   }
 
   function card() {
@@ -261,6 +274,6 @@
     },
     validate: function (k, raw) { try { var s = T.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); },
-    weekSummary: function () { return T.weeklySummary(S, packs()); } // the PC link sends it with the activity log
+    weekSummary: function () { return weekSummary(); } // the PC link sends it with the activity log
   });
 })();

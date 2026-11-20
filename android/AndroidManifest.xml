@@ -3,6 +3,8 @@
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- lets the app update itself without a prompt (Android 12+; without it every install waits for a tap) -->
+    <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- the rest timer's beep with the screen off, on time -->
@@ -30,18 +32,18 @@
         </activity>
         <receiver android:name=".RestAlarm" android:exported="false" />
         <receiver android:name=".Updater$Result" android:exported="false" />
-        <receiver android:name=".Updater$Replaced" android:exported="true">
+        <receiver android:name=".Updater$Replaced" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
-        <receiver android:name=".TodoAlarm" android:exported="true">
+        <receiver android:name=".TodoAlarm" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
-        <receiver android:name=".Reminder" android:exported="true">
+        <receiver android:name=".Reminder" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />

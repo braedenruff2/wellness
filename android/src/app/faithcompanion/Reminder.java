@@ -42,7 +42,7 @@ public class Reminder extends BroadcastReceiver {
         am.cancel(pi);
         if (h < 0) return;
         long at = nextTime(System.currentTimeMillis(), h, m);
-        am.setWindow(AlarmManager.RTC_WAKEUP, at, 10 * 60_000L, pi);
+        am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi); // setWindow waits out Doze (hours late at night)
     }
 
     @Override public void onReceive(Context c, Intent i) {

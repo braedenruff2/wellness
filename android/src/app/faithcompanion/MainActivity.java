@@ -54,6 +54,7 @@ public class MainActivity extends Activity {
     private boolean ttsReady;
     private final List<String[]> pending = new ArrayList<>();
     private ValueCallback<Uri[]> fileCallback;
+    private boolean ownScreenOnTop; // set when the app opens something over itself; cleared when it comes back
     /** Loudbook's voices (Kokoro, the PC's natural voice) and the Tagalog voice; the phone's own voice when they can't. */
     private Voices voices;
     /** Headphones unplugged or Bluetooth dropped: pause, so the voice doesn't carry on out of the speaker. */
@@ -91,7 +92,7 @@ public class MainActivity extends Activity {
                 Uri u = r.getUrl();
                 if ("file".equals(u.getScheme())) return false;
                 // links to the outside world (none yet) open in the browser, never inside the app
-                try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) { }
+                try { ownScreenOnTop = true; startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) { ownScreenOnTop = false; }
                 return true;
             }
         });
@@ -204,6 +205,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        ownScreenOnTop = false;
         RestAlarm.appVisible = true;
         RestAlarm.cancelShown(this);
         shown = new java.lang.ref.WeakReference<>(this);
@@ -214,7 +216,8 @@ public class MainActivity extends Activity {
     @Override protected void onStop() {
         super.onStop();
         // install a downloaded update while he's away from the app (it restarts the app)
-        if (!sessionBusy && !isChangingConfigurations() && Updater.readyCode(this) > 0 && Updater.mayInstall(this)) {
+        // not while the app has its own screen on top (the backup file picker, a link): the restart would lose it
+        if (!sessionBusy && !isChangingConfigurations() && !ownScreenOnTop && fileCallback == null && Updater.readyCode(this) > 0 && Updater.mayInstall(this)) {
             final Context app = getApplicationContext();
             new Thread(() -> Updater.install(app), "wl-update-install").start();
         }
@@ -291,6 +294,7 @@ public class MainActivity extends Activity {
     }
 
     static String jsString(String s) {
+        if (s == null) return "null";
         StringBuilder b = new StringBuilder("\"");
         for (char c : s.toCharArray()) {
             if (c == '"' || c == '\\') b.append('\\').append(c);
@@ -304,6 +308,7 @@ public class MainActivity extends Activity {
     class Bridge {
         @JavascriptInterface public void speak(String text, String id, double rate) {
             if (voices != null && voices.takes("")) { runOnUiThread(() -> { if (ttsReady) tts.stop(); }); voices.say(text, id, (float) rate, ""); return; }
+            if (voices != null) voices.stop(); // an old sentence still playing must not replace this one
             runOnUiThread(() -> {
                 if (ttsReady) speakNow(text, id, (float) rate);
                 else pending.add(new String[]{text, id, String.valueOf(rate), ""});
@@ -417,7 +422,7 @@ public class MainActivity extends Activity {
         /** Opens Android's "Install unknown apps" switch for this app (once, so updates install by themselves). */
         @JavascriptInterface public void updateAllow() {
             runOnUiThread(() -> {
-                try { startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName()))); }
+                try { ownScreenOnTop = true; startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName()))); }
                 catch (Exception ignored) { }
             });
         }

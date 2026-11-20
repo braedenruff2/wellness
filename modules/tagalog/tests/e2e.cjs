@@ -112,6 +112,7 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#tl-send')]);
     const f = await dl.path(); const sum = JSON.parse(fs.readFileSync(f, 'utf8'));
     assert.strictEqual(sum.app, 'wellness-tagalog-summary'); assert.ok(sum.missed.length >= 1);
+    assert.ok(Array.isArray(sum.feel) && sum.feel.some((x) => /^review@/.test(x.about) && x.level === 'Too easy'), 'how lessons felt goes to next week\'s lessons: ' + JSON.stringify(sum.feel));
   });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#home']);
