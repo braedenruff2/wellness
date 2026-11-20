@@ -202,4 +202,10 @@ t('review fixes: a guidance line marked "not for me" stays hidden two weeks, eve
   for (let d = 1; d <= 6; d++) K.checkin(s, '2026-12-0' + d, 'sleep', '4–5 h');
   assert.ok(K.guidance(s, new Date(2026, 11, 6, 12), 9).some((x) => x.key === 'shortsleep'), 'back after two weeks');
 });
+t('a changed answer while logging an earlier day: edited is the real time, so the PC keeps the newest', () => {
+  const s = K.defaults();
+  K.answer(s, 'coach', 'tip:1', 'tried', 'Not yet', D(20, 10), D(20, 10));
+  const f = K.answer(s, 'coach', 'tip:1', 'tried', 'It worked', D(19, 10), D(20, 10, 5) || D(20, 11));
+  assert.ok(f.edited >= D(20, 10).toISOString(), f.edited);
+});
 console.log(n + ' me unit tests passed');

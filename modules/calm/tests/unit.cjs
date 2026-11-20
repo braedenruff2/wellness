@@ -85,4 +85,13 @@ t('guided wording changes each time through; timing stays the same', () => {
   const s = K.defaults(); K.record(s, 'body', 8); K.record(s, 'body', 8); K.record(s, 'slow', 5);
   assert.strictEqual(K.timesDone(s, 'body'), 2);
 });
+t('2-day rotation uses local dates (a session 3 evenings ago no longer counts as recent, in any time zone)', () => {
+  const s = K.defaults();
+  K.record(s, 'body', 8, 3, 2, new Date(2026, 10, 17, 21, 0)); // 9 pm local, three days ago
+  const r = K.suggest(s, new Date(2026, 10, 20, 21, 30), { score: { body: 5 } });
+  assert.strictEqual(r, 'body', 'liked and not recent: suggested (was skipped west of UTC)');
+  const m = K.defaults();
+  K.record(m, 'body', 8, 3, 2, new Date(2026, 10, 18, 7, 0)); // 7 am two days ago: still recent
+  assert.notStrictEqual(K.suggest(m, new Date(2026, 10, 20, 21, 30), { score: { body: 2 } }), 'body');
+});
 console.log(n + ' calm unit tests passed');

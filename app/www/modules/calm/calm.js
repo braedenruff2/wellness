@@ -151,19 +151,24 @@
       }
     };
     $('#c-save').onclick = function () {
-      if (run && run.done) { if (after) run.rec.after = after; save(); WL.toast('Saved. ' + Math.max(1, Math.round(run.mins)) + ' min.'); }
+      if (run && run.done) { if (after) { run.rec.after = after; run.rec.rated = new Date().toISOString(); } save(); WL.toast('Saved. ' + Math.max(1, Math.round(run.mins)) + ' min.'); }
       stopRun(); location.hash = '#calm';
     };
-    $('#c-end').onclick = function () {
-      // ending early still counts the minutes you did (if at least half a minute)
-      if (run && !run.done && run.start && elapsed() >= 30) { K.record(S, p.id, elapsed() / 60, run.before, null, WL.logNow ? WL.logNow() : null); save(); WL.toast('Saved ' + Math.max(1, Math.round(elapsed() / 60)) + ' min'); }
-      stopRun(); location.hash = '#calm';
-    };
+    $('#c-end').onclick = function () { saveEarly(); stopRun(); location.hash = '#calm'; };
   }
+
+  // ending early (✕, Android back, another tab) still counts the minutes you did, if at least half a minute
+  function saveEarly() {
+    if (run && !run.done && run.start && elapsed() >= 30) {
+      K.record(S, run.p.id, elapsed() / 60, run.before, null, WL.logNow ? WL.logNow() : null); save();
+      WL.toast('Saved ' + Math.max(1, Math.round(elapsed() / 60)) + ' min');
+    }
+  }
+  function leave() { saveEarly(); stopRun(); }
 
   function route(parts, v) {
     if (v) view = v;
-    stopRun();
+    leave();
     if (parts && parts[0] === 's' && practice(parts[1])) { var p = practice(parts[1]); view.innerHTML = sessionHtml(p); wireSession(p); return; }
     view.innerHTML = list();
     $$('[data-min]').forEach(function (b) { b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route([]); }; });
@@ -180,7 +185,7 @@
 
   WL.register({
     id: 'calm', title: 'Calm', short: 'Calm', icon: '○', nav: true, storageKeys: [store.key],
-    route: route, leave: stopRun, card: card,
+    route: route, leave: leave, card: card,
     pause: function () { var b = $('#c-pp'); if (b && b.dataset.state === 'playing') b.click(); },
     validate: function (k, raw) { try { var s = K.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); }

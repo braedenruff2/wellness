@@ -278,6 +278,11 @@ req("POST", "/v1/activity", {"events": [
     {"id": "todo/done/t1/e300", "at": today + "T10:20:00-04:00", "part": "todo", "kind": "done", "text": "x"}]}, token=token)
 ends = [e for e in W.recent_events(7) if e["id"].startswith("workout/end/s9")]
 check("finished again: only the newest end counts", [e["data"]["sets"] for e in ends] == [12], ends)
+req("POST", "/v1/activity", {"events": [
+    {"id": "calm/" + today + "T12:00:00.000Z/body", "at": today + "T12:00:00.000Z", "part": "calm", "kind": "session", "data": {"practice": "body", "mins": 8, "before": 4, "after": None}},
+    {"id": "calm/" + today + "T12:00:00.000Z/body/e500", "at": today + "T12:00:00.000Z", "part": "calm", "kind": "session", "data": {"practice": "body", "mins": 8, "before": 4, "after": 2}}]}, token=token)
+cs = [e for e in W.recent_events(7) if e["id"].startswith("calm/" + today + "T12:00:00.000Z/body")]
+check("a calm session rated after it was sent: counted once, with the rating", [e["data"]["after"] for e in cs] == [2], cs)
 check("a to-do ticked again: counted once", len([e for e in W.recent_events(7) if e["id"].startswith("todo/done/t1")]) == 1)
 # the phone sends UTC ("Z"): 22:30 in Halifax is already tomorrow in UTC, but it's today's activity
 late = (datetime.datetime.combine(datetime.date.today(), datetime.time(22, 30)).astimezone().astimezone(datetime.timezone.utc)).strftime("%Y-%m-%dT%H:%M:%S.000Z")

@@ -49,7 +49,8 @@
     (s.sessions || []).forEach(function (x) {
       if (!x) return;
       var at = okDate(x.at) ? x.at : okDate(x.date) ? localNoon(x.date) : null; if (!at) return;
-      out.push({ id: 'calm/' + at + '/' + x.id, at: at, part: 'calm', kind: 'session', text: x.id, data: { practice: x.id, mins: x.mins, before: x.before || null, after: x.after || null } });
+      // an after-rating added later gets a new id ending /e<ms> (the session may already have been sent): newest wins
+      out.push({ id: 'calm/' + at + '/' + x.id + (x.after && okDate(x.rated) ? '/e' + Date.parse(x.rated) : ''), at: at, part: 'calm', kind: 'session', text: x.id, data: { practice: x.id, mins: x.mins, before: x.before || null, after: x.after || null } });
     });
   };
 

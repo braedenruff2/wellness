@@ -24,6 +24,7 @@ const FAKE_PC = `
         else if (op === 'forget') { pc.paired = false; out = '{}'; }
         else if (op === 'post' && a === '/v1/activity') { var o = JSON.parse(b); pc.posts.push(o); out = JSON.stringify({ saved: o.events.length, got: o.events.length }); }
         else if (op === 'post' && a === '/v1/ask') { pc.asks.push(JSON.parse(b)); out = JSON.stringify({ job: 'j' + pc.asks.length }); }
+        else if (op === 'get' && a.indexOf('/v1/job') === 0 && window.__failPoll) { window.__failPoll--; ok = false; out = 'could not reach the PC'; }
         else if (op === 'get' && a.indexOf('/v1/job') === 0) { var k = pc.asks[+a.split('=j')[1] - 1]; k.polls = (k.polls || 0) + 1; out = JSON.stringify(k.polls < 2 ? { state: 'running' } : { state: 'done', answer: ANSWERS[k.task] }); }
         else if (op === 'get' && a === '/v1/health') out = '{"app":"wellness","claude":true}';
         else { ok = false; out = 'not found'; }
@@ -237,6 +238,18 @@ const FAKE_PC = `
     await page.click('#wl-hear-tl');
     const said = await page.evaluate(() => window.__spoken);
     assert.ok(said.some((s) => s.lang === 'fil-PH' && /Magandang umaga/.test(s.text)), JSON.stringify(said));
+  });
+  await t.step('advice: a double-tap starts one Claude job; a failed status check doesn\'t lose the answer', async () => {
+    await page.goto(base + '#home');
+    const n0 = (await fake()).asks.length;
+    await page.evaluate(() => { window.__failPoll = 1; });
+    await page.locator('.home-card[data-module="link"] [data-advice]').dblclick();
+    await page.clock.runFor(100);
+    assert.ok(await page.locator('.home-card[data-module="link"] [data-advice]').isDisabled(), 'button off while Claude thinks');
+    for (let k = 0; k < 4; k++) await page.clock.runFor(3100);
+    await page.waitForSelector('.home-card[data-module="link"] >> text=A steady week.');
+    assert.strictEqual((await fake()).asks.length, n0 + 1, 'one job');
+    assert.ok(!(await page.locator('.home-card[data-module="link"] [data-advice]').isDisabled()));
   });
   await t.step('unpair needs two taps', async () => {
     await page.goto(base + '#link');

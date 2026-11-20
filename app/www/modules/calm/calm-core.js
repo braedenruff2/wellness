@@ -240,8 +240,11 @@
     if (!pool.length) return base[0];
     var ok = pool.filter(function (id) { return (sc[id] || 0) > -2; });
     if (ok.length) pool = ok;
-    var last = {};
-    state.sessions.forEach(function (s) { if (!last[s.id] || s.at > last[s.id]) last[s.id] = s.at || s.date; });
+    var last = {}, lastDay = {}; // last: newest time (tie-break); lastDay: its local date (2-day rule)
+    state.sessions.forEach(function (s) {
+      if (!last[s.id] || (s.at || s.date) > last[s.id]) last[s.id] = s.at || s.date;
+      if (s.date && (!lastDay[s.id] || s.date > lastDay[s.id])) lastDay[s.id] = s.date;
+    });
     function rank(id) {
       var r = (sc[id] || 0) + (pref.indexOf(id) >= 0 ? 3 : 0) - (long[id] ? 1 : 0);
       if (opts.rough && ['sigh', 'slow', 'ground'].indexOf(id) >= 0) r += 4;
@@ -249,7 +252,7 @@
     }
     // liked (or planned) ones lead, but not every day: a practice done in the last 2 days drops behind fresh ones
     var day2 = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2));
-    function key(id) { return rank(id) - ((last[id] || '').slice(0, 10) >= day2 ? 2.5 : 0); }
+    function key(id) { return rank(id) - ((lastDay[id] || '') >= day2 ? 2.5 : 0); }
     var best = pool[0];
     pool.forEach(function (id) {
       var a = key(id), b = key(best);
@@ -273,7 +276,8 @@
     s.sessions.forEach(function (x) {
       if (x && ids.indexOf(x.id) >= 0 && /^\d{4}-\d\d-\d\d$/.test(x.date) && typeof x.mins === 'number')
         d.sessions.push({ id: x.id, date: x.date, at: String(x.at || ''), mins: Math.max(0, Math.min(240, x.mins)),
-          before: [1, 2, 3, 4, 5].indexOf(x.before) >= 0 ? x.before : null, after: [1, 2, 3, 4, 5].indexOf(x.after) >= 0 ? x.after : null });
+          before: [1, 2, 3, 4, 5].indexOf(x.before) >= 0 ? x.before : null, after: [1, 2, 3, 4, 5].indexOf(x.after) >= 0 ? x.after : null,
+          rated: typeof x.rated === 'string' && !isNaN(Date.parse(x.rated)) ? x.rated : undefined });
     });
     var st = s.settings || {};
     if (typeof st.voice === 'boolean') d.settings.voice = st.voice;

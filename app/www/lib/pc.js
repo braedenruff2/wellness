@@ -90,7 +90,12 @@
           if (Date.now() - t0 > 9 * 60000) return rej(new Error('Claude is taking too long. Try again later.'));
           if (onWait) try { onWait(Math.round((Date.now() - t0) / 1000)); } catch (e) {}
           setTimeout(tick, 3000);
-        }, rej);
+        }, function (e) {
+          // one failed check (Wi-Fi blip, screen off) doesn't abandon the job: it keeps running on the PC
+          if (e && /no such request/.test(e.message || "")) return rej(e); // the PC restarted: the job is gone
+          if (Date.now() - t0 > 9 * 60000) return rej(e);
+          setTimeout(tick, 3000);
+        });
       })();
     });
   }

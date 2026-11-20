@@ -71,6 +71,17 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(spoken.length && !spoken[0].startsWith('Get comfortable'), spoken.join('|'));
     await page.click('#c-end');
   });
+  await t.step('leaving mid-session with the back gesture still saves the minutes (it used to drop them)', async () => {
+    const n0 = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions.length);
+    await page.goto(base + '#calm'); await page.goto(base + '#calm/s/body');
+    await page.click('#c-pp'); await page.clock.runFor(3 * 60000);
+    await page.goBack(); await page.waitForSelector('.list');
+    const ss = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions);
+    assert.strictEqual(ss.length, n0 + 1); assert.ok(ss[ss.length - 1].mins >= 2.9, JSON.stringify(ss[ss.length - 1]));
+    await page.goto(base + '#calm/s/body'); await page.click('#c-pp'); await page.clock.runFor(10000);
+    await page.goto(base + '#home');
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions.length), n0 + 1, 'under 30 s: not counted');
+  });
   await t.step('Home card, no overflow, no errors', async () => {
     await page.goto(base + '#home');
     assert.ok((await page.textContent('.home-card[data-module="calm"]')).length > 10);

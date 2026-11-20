@@ -343,16 +343,16 @@ def recent_events(days, today=None):
     out = [e for e in out if not (isinstance(e.get("id"), str) and e["id"] + "/t" in ids)]
     # Workout sets fixed on the phone come again as <id>/e<ms> (newest wins); removed ones as <id>/x (all dropped).
     # A finished workout and a ticked to-do carry their time the same way (finished again after "Carry on": newest wins),
-    # and so do a changed check-in (checkin/<day>/e<ms>) and a changed quick answer (fb/<id>/e<ms>).
+    # and so do a changed check-in (checkin/<day>/e<ms>) a changed quick answer (fb/<id>/e<ms>) and a calm session rated afterwards (calm/<at>/<id>/e<ms>).
     newest, gone = {}, set()
     for e in out:
-        m = re.match(r"^((?:workout|todo|checkin|fb)/.+)/(e(\d+)|x)$", str(e.get("id", "")))
+        m = re.match(r"^((?:workout|todo|checkin|fb|calm)/.+)/(e(\d+)|x)$", str(e.get("id", "")))
         if not m: continue
         if m.group(2) == "x": gone.add(m.group(1))
         elif int(m.group(3)) > newest.get(m.group(1), -1): newest[m.group(1)] = int(m.group(3))
     def keep(e):
         i = str(e.get("id", ""))
-        m = re.match(r"^((?:workout|todo|checkin|fb)/.+)/(e(\d+)|x)$", i)
+        m = re.match(r"^((?:workout|todo|checkin|fb|calm)/.+)/(e(\d+)|x)$", i)
         base = m.group(1) if m else i
         if base in gone: return False
         if base in newest: return bool(m) and m.group(2) != "x" and int(m.group(3)) == newest[base]

@@ -63,7 +63,7 @@
     if (!b) return;
     if (b.dataset.meFit) { fitSheet(b); return; }
     if (b.dataset.meA) {
-      var box = b.closest('.me-ask'), f = K.answer(S, box.dataset.part, box.dataset.about, b.dataset.k, b.dataset.v, now());
+      var box = b.closest('.me-ask'), f = K.answer(S, box.dataset.part, box.dataset.about, b.dataset.k, b.dataset.v, now(), new Date());
       if (!f) return; save();
       $$('[data-me-a][data-k="' + b.dataset.k + '"]', box).forEach(function (x) {
         var cur = f.a[b.dataset.k]; x.setAttribute('aria-pressed', Array.isArray(cur) ? cur.indexOf(x.dataset.v) >= 0 : cur === x.dataset.v);
@@ -104,10 +104,17 @@
     return h;
   }
 
+  /* The plan arrived: redraw the "About you" card on Home if it's showing, but never under his fingers (a note being
+     typed or the "Not for me?" sheet open: then it shows next time Home is drawn). */
+  function redrawCard() {
+    var el = document.querySelector('.home-card[data-module="me"]');
+    if (!el || $('#me-sheet') || (document.activeElement && document.activeElement.id === 'me-ck-note')) return;
+    el.innerHTML = cardHtml(); wireCard(el);
+  }
   function wireCard(el) {
     var sk = $('#me-skip', el); if (sk) sk.onclick = function () { S.skipped[today()] = 1; save(); el.innerHTML = cardHtml(); wireCard(el); };
     var n = $('#me-ck-note', el); if (n) n.onchange = function () { K.checkinNote(S, today(), n.value, new Date()); save(); };
-    var pb = $('#me-plan', el); if (pb) pb.onclick = function () { makePlan(function () { el.innerHTML = cardHtml(); wireCard(el); }); el.innerHTML = cardHtml(); wireCard(el); };
+    var pb = $('#me-plan', el); if (pb) pb.onclick = function () { makePlan(redrawCard); el.innerHTML = cardHtml(); wireCard(el); };
   }
 
   /* quiet: the automatic try (no toasts). The day's try counts as used only when the PC answered (Claude's plan or
@@ -177,7 +184,7 @@
   // is there too): shortly after the app opens, whenever it comes back to the front, and every 15 minutes.
   function autoPlan() {
     if (WL.pc && WL.pc.ready() && K.planDue(S, new Date()) && S.planTried !== today() && !document.hidden && (S.feedback.length || Object.keys(S.checkins).length))
-      makePlan(function () { if (location.hash === '' || location.hash === '#home') WL.route(); }, true);
+      makePlan(redrawCard, true);
   }
   setTimeout(autoPlan, 20000);
   setInterval(autoPlan, 15 * 60000);

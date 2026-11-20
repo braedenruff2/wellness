@@ -53,7 +53,9 @@
 
   /* One tap on an "after" question. A multi question toggles the option ("Nothing" clears the others and the
      others clear "Nothing"); a single one replaces it (tapping the chosen one again clears it). Returns the entry. */
-  function answer(state, part, about, k, v, now) {
+  /* now: when it counts for (the "log for an earlier day" day); real: the real time of the tap (default now), which
+     goes in `edited` so the PC keeps the newest change even when an earlier day is being logged. */
+  function answer(state, part, about, k, v, now, real) {
     var q = qFor(questions(part), k);
     if (!q || q.opts.indexOf(v) < 0 || !about) return null;
     now = now || new Date();
@@ -67,7 +69,7 @@
       if (cur.length) f.a[k] = cur; else delete f.a[k];
     } else if (f.a[k] === v) delete f.a[k];
     else f.a[k] = v;
-    f.edited = now.toISOString();
+    f.edited = (real || now).toISOString();
     trim(state);
     return f;
   }

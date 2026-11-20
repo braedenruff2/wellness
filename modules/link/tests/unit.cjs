@@ -106,4 +106,12 @@ t('faith: guided sessions survive a backup round trip; tagalog keeps reviews and
   const bad = TG.validate({ cards: {}, reviews: [{ at: 'x', tl: 'a' }, { at: now.toISOString(), tl: 5 }] });
   assert.strictEqual(bad.reviews.length, 0);
 });
+t('a calm session rated after it was sent gets a new id (/e<ms>), so the rating reaches the PC', () => {
+  const st = states(); const c = st['wl.calm.v1'];
+  const id0 = A.collect(st, {}, now).find((e) => e.kind === 'session').id;
+  c.sessions[0].rated = new Date(2026, 10, 19, 19, 0).toISOString();
+  const id1 = A.collect(st, {}, now).find((e) => e.kind === 'session').id;
+  assert.ok(id1 === id0 + '/e' + Date.parse(c.sessions[0].rated), id1);
+  assert.strictEqual(CK.validate(c).sessions[0].rated, c.sessions[0].rated, 'kept through a backup');
+});
 console.log(n + ' activity tests passed');

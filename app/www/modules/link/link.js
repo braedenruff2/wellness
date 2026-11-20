@@ -124,12 +124,15 @@
     Array.prototype.forEach.call(document.querySelectorAll('[data-host]'), function (b) { b.onclick = function () { $('#lk-host').value = b.dataset.host; $('#lk-code').focus(); }; });
   }
 
+  var adviceBusy = false;
   function askAdvice(q) {
+    if (adviceBusy) return; // a second tap would start another Claude job on the PC
+    adviceBusy = true;
     advice = { waiting: 0 }; draw();
     // send the latest first, so Claude sees today
     pc.sync().catch(function () {}).then(function () {
       return pc.ask('advice', { question: String(q).slice(0, 1000) }, function (s) { if (advice && advice.waiting != null) { advice.waiting = s; draw(); } });
-    }).then(function (a) { advice = { answer: a, at: new Date().toISOString() }; keep(); draw(); }, function (e) { advice = { error: e.message }; draw(); });
+    }).then(function (a) { adviceBusy = false; advice = { answer: a, at: new Date().toISOString() }; keep(); draw(); }, function (e) { adviceBusy = false; advice = { error: e.message }; draw(); });
   }
   function keep() { var P = pc.settings(); P.advice = advice; pc.save(); }
   function draw() {
@@ -141,7 +144,7 @@
     if (!pc.ready()) return '';
     advice = advice || pc.settings().advice || null;
     return '<div class="meta ui">Claude on your PC</div><h3>Advice for this week</h3>' + adviceHtml() +
-      '<div class="row ui"><button class="primary" data-advice="1">' + (advice && advice.answer ? 'Ask again' : 'Ask for advice') + '</button><a class="btn" href="#link">PC link</a></div>';
+      '<div class="row ui"><button class="primary" data-advice="1"' + (adviceBusy ? ' disabled' : '') + '>' + (advice && advice.answer ? 'Ask again' : 'Ask for advice') + '</button><a class="btn" href="#link">PC link</a></div>';
   }
 
   WL.register({
