@@ -5,6 +5,8 @@ The events go into <work>/progress (the PC's own activity-log format) so advice/
 import json, os, sys
 
 def main():
+    if hasattr(sys.stdin, "reconfigure"): sys.stdin.reconfigure(encoding="utf-8")
+    if hasattr(sys.stdout, "reconfigure"): sys.stdout.reconfigure(encoding="utf-8")
     req = json.load(sys.stdin)
     work = req["work"]
     os.environ["WELLNESS_PROGRESS"] = os.path.join(work, "progress")

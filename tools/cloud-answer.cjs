@@ -2,8 +2,8 @@
 /* Cloud runs answering the phone's queued Claude requests (cloud-plan.md task B / 34; pc/prompts/README.md).
    Work in a private scratch dir OUTSIDE the repo: the sync file and answers are his data.
 
-   1. node tools/cloud-answer.cjs prepare <wellness-sync.json> <work>
-      Lists the requests not yet acked; writes <work>/<id>.prompt.md (the same prompt the PC link would run,
+   1. node tools/cloud-answer.cjs prepare <wellness-sync.json> <work> [<sheet-export.csv>]
+      Lists the requests not yet acked (and not already answered in the sheet); writes <work>/<id>.prompt.md (the same prompt the PC link would run,
       advice/weekly-plan with the same 14-day summary, made from the synced data) and <work>/requests.json.
    2. Answer each prompt as it says (one JSON object) into <work>/answers/<id>.json, or {"error": "..."}.
    3. node tools/cloud-answer.cjs rows <wellness-sync.json> <work> [<sheet-export.csv>]
@@ -29,13 +29,21 @@ function states(sync) {
   for (const k of Object.keys(sync.stores || {})) { try { out[k] = JSON.parse(sync.stores[k]); } catch (e) { /* skip odd */ } }
   return out;
 }
-function pending(sync) {
+function answeredIds(csvFile) {
+  if (!csvFile || !fs.existsSync(csvFile)) return new Set();
+  const ans = C.rowsToAnswers(C.parseCsv(fs.readFileSync(csvFile, 'utf8')));
+  return new Set(Object.keys(ans));
+}
+function pending(sync, csvFile) {
   const acked = new Set(Array.isArray(sync.acked) ? sync.acked : []);
-  return (Array.isArray(sync.requests) ? sync.requests : []).filter((r) => r && r.id && r.task && !acked.has(r.id));
+  const already = answeredIds(csvFile);
+  return (Array.isArray(sync.requests) ? sync.requests : []).filter((r) => r && r.id && r.task && !acked.has(r.id) && !already.has(r.id));
 }
 
-function prepare(syncFile, work, now) {
-  const sync = readSync(syncFile), st = states(sync), reqs = pending(sync);
+function prepare(syncFile, work, csvOrNow, maybeNow) {
+  const csvFile = csvOrNow instanceof Date ? null : csvOrNow;
+  const now = csvOrNow instanceof Date ? csvOrNow : maybeNow;
+  const sync = readSync(syncFile), st = states(sync), reqs = pending(sync, csvFile);
   fs.mkdirSync(path.join(work, 'answers'), { recursive: true });
   const journalText = !!(st['wl.pc.v1'] && st['wl.pc.v1'].journalText);
   const events = A.collect(st, { journalText }, now || new Date());
@@ -87,7 +95,7 @@ module.exports = { prepare, rows, pending, HEADER };
 if (require.main === module) {
   const [cmd, syncFile, work, csv] = process.argv.slice(2);
   if (cmd === 'prepare' && syncFile && work) {
-    const l = prepare(syncFile, work);
+    const l = prepare(syncFile, work, csv);
     if (!l.length) console.log('No requests waiting.');
     for (const x of l) console.log(x.id + '  ' + x.task + '  ' + (x.error ? 'ERROR ' + x.error : path.join(work, x.prompt)) + (x.tools ? '  (web: ' + x.tools + ')' : ''));
   } else if (cmd === 'rows' && syncFile && work) {
@@ -96,7 +104,7 @@ if (require.main === module) {
     for (const p of r.problems) console.log('PROBLEM ' + p);
     if (r.problems.length) process.exitCode = 1;
   } else {
-    console.log('usage: node tools/cloud-answer.cjs prepare <wellness-sync.json> <work>\n       node tools/cloud-answer.cjs rows <wellness-sync.json> <work> [<sheet.csv>]');
+    console.log('usage: node tools/cloud-answer.cjs prepare <wellness-sync.json> <work> [<sheet.csv>]\n       node tools/cloud-answer.cjs rows <wellness-sync.json> <work> [<sheet.csv>]');
     process.exitCode = 2;
   }
 }

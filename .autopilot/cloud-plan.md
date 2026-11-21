@@ -21,7 +21,7 @@ Browser tests block the internet (tests/lib/web.cjs).
 
 ## Answering the phone's queued requests (each run, when Drive has wellness-sync.json)
 Scratch dir OUTSIDE the repo (his data). Download wellness-sync.json and the `wellness-answers` sheet as text/csv, then:
-`TZ=America/Halifax node tools/cloud-answer.cjs prepare <sync.json> <work>` -> one <id>.prompt.md per unacked request
+`TZ=America/Halifax node tools/cloud-answer.cjs prepare <sync.json> <work> <sheet.csv>` -> one <id>.prompt.md per unacked, unanswered request
 (same prompt the PC runs); answer each as it says into <work>/answers/<id>.json (one JSON object, or {"error": "..."});
 `node tools/cloud-answer.cjs rows <sync.json> <work> <sheet.csv>` -> <work>/rows.json; write it with Sheets update_values
 on `Sheet1!A1:D<n>` (it prunes acked rows and blanks old ones). No PROBLEM lines allowed.

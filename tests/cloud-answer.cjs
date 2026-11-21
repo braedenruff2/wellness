@@ -84,5 +84,21 @@ test('no requests: nothing to do', () => {
   fs.writeFileSync(f2, JSON.stringify(Object.assign({}, sync, { requests: [] })));
   assert.deepStrictEqual(T.prepare(f2, path.join(work, 'e'), now), []);
 });
+
+test('prepare with sheet CSV skips already-answered ids (still includes missing or invalid rows) and handles Unicode', () => {
+  const csv = path.join(work, 'already.csv');
+  fs.writeFileSync(csv, 'id,task,answer-json,at\n' +
+    'r1,advice,"{""task"":""advice"",""answer"":{""headline"":""Already answered""}}",2026-11-21T13:00:00Z\n' +
+    'r2,tagalog-check,"not-json",2026-11-21T13:00:00Z\n');
+  const w2 = path.join(work, 'w2');
+  const f3 = path.join(work, 'uni.json');
+  const uniSync = JSON.parse(JSON.stringify(sync));
+  uniSync.requests[2].input.can = 'waves ✓ and smiles 😊';
+  fs.writeFileSync(f3, JSON.stringify(uniSync));
+  const l = T.prepare(f3, w2, csv, now);
+  assert.deepStrictEqual(l.map((x) => x.id), ['r2', 'r3', 'r4'], 'r1 already validly answered in sheet is skipped; invalid r2 is kept');
+  assert.ok(!fs.existsSync(path.join(w2, 'r1.prompt.md')));
+  assert.ok(fs.readFileSync(path.join(w2, 'r3.prompt.md'), 'utf8').includes('waves ✓ and smiles 😊'));
+});
 fs.rmSync(work, { recursive: true, force: true });
 console.log(n + ' cloud-answer tests passed');
