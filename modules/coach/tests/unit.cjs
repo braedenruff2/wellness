@@ -71,9 +71,9 @@ t('a real situation: advice kept (no score), practised as a scenario, kept throu
   assert.strictEqual(v.history[0].kind, 'real'); assert.deepStrictEqual(v.history[0].advice.steps, ['a', 'b']);
 });
 t('what she can do now: chips toggle in list order, a note, sent with scenario requests, kept by a restore', () => {
-  const s = K.defaults(); s.child.birth = '2025-11-22';
+  const s = K.defaults(); s.child.birth = '2025-06-10';
   assert.strictEqual(K.canText(s), '');
-  assert.strictEqual(K.scenarioInput(s, null, new Date(2026, 10, 22)).can, '');
+  assert.strictEqual(K.scenarioInput(s, null, new Date(2026, 5, 10)).can, '');
   K.toggleCan(s, 'Climbs'); K.toggleCan(s, 'Walks'); K.toggleCan(s, 'Gets down by herself');
   assert.deepStrictEqual(s.child.can, ['Walks', 'Gets down by herself', 'Climbs'], 'list order');
   K.toggleCan(s, 'Climbs');
@@ -81,13 +81,13 @@ t('what she can do now: chips toggle in list order, a note, sent with scenario r
   assert.strictEqual(K.toggleCan(s, 'Flies'), null, 'unknown chip');
   K.setCanNote(s, '  says mama and dada  ');
   assert.strictEqual(K.canText(s), 'walks; gets down by herself. Also: says mama and dada');
-  assert.strictEqual(K.scenarioInput(s, 'Sleep', new Date(2026, 10, 22)).can, 'walks; gets down by herself. Also: says mama and dada');
+  assert.strictEqual(K.scenarioInput(s, 'Sleep', new Date(2026, 5, 10)).can, 'walks; gets down by herself. Also: says mama and dada');
   K.setCanNote(s, ''); assert.strictEqual(s.child.canNote, undefined);
   K.setCanNote(s, 'x'.repeat(500)); assert.strictEqual(s.child.canNote.length, 300);
-  const v = K.validate({ child: { name: 'K', birth: '2025-11-22', can: ['Points', 'Walks', 'Walks', 'Hacks', 5], canNote: 'only note' }, history: [] });
+  const v = K.validate({ child: { name: 'K', birth: '2025-06-10', can: ['Points', 'Walks', 'Walks', 'Hacks', 5], canNote: 'only note' }, history: [] });
   assert.deepStrictEqual(v.child.can, ['Walks', 'Points']);
   assert.strictEqual(v.child.canNote, 'only note');
-  const w = K.validate({ child: { name: 'K', birth: '2025-11-22' }, history: [] });
+  const w = K.validate({ child: { name: 'K', birth: '2025-06-10' }, history: [] });
   assert.strictEqual(w.child.can, undefined); assert.strictEqual(K.canText(w), '');
 });
 
