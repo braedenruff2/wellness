@@ -25,3 +25,4 @@ The phone's `wellness-sync.json` has `requests: [{id, task, input, at}]`. For ea
 task's prompt with its input, answer it as the prompt says (one JSON object), and add it to the file's `answers`:
 `"answers": {"<id>": {"task": "<task>", "answer": {...}}}` (or `{"task": ..., "error": "why it couldn't be answered"}`).
 Keep everything else in the file as it is. The phone shows the answer through the same code as a PC answer.
+(The Drive connector can't edit that file's content in place yet: see .autopilot/cloud-plan.md task 32.)

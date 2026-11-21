@@ -6,7 +6,8 @@
 - Done B (phone): when the PC can't be reached and Drive sync is on, coach scenario/grade/advice, Home advice, weekly plan and Tagalog checks go into the sync file's queue with "Your PC isn't answering, so this will be answered by the next cloud run (within about 5 hours)". Cloud answers ({task, answer} or {task, error} under answers[id]) show through the same code as PC answers; Tagalog checks land in a "Claude checked your answers" card on the Tagalog page. One waiting scenario/plan/advice at a time. Without Drive sync the error says to turn it on.
 - Tested: full suite, all 47 suites pass, none skipped (new tests/e2e-cloud.cjs). APK 0.1.20261121.0533 built with the real key (cert SHA-256 6795e499...).
 - Check on the phone: Settings > Sync with Google Drive (pick the Drive folder); with the PC off, Parenting > New scenario shows the cloud note and the request appears in wellness-sync.json.
-- Next: the next run answers any queued requests in wellness-sync.json (plan task B); tasks 30-31.
+- Found: the Drive connector can't write content into an existing file, so cloud runs can't put `answers` into wellness-sync.json. Added task 32 (answers through a Google Sheet the phone reads); noted what task 30 really needs.
+- Next: task 32 (unblocks cloud answers), then 30-31.
 
 ## 2026-11-21 00:50 AST (same run, continued)
 - Done 28: to-do repeats "every 2 months" / "every other month", "every 3 months" / "quarterly", "every year" / "yearly" / "annually" (repeat month2 / month3 / yearly; month ends and Feb 29 like monthly); edit sheet chips; README.

@@ -46,7 +46,10 @@ B. (done 21 Nov 01:50, Claude: pc/prompts/*.md + prompt_values/fill; lib/pc.js o
    read wellness-sync.json from Drive; for each `requests` item without an answer, fill pc/prompts/<task>.md with its
    input as pc/prompts/README.md says (for advice/weekly-plan write {{summary}} from the synced stores), answer as the
    prompt says, and set `answers[id] = {"task": ..., "answer": {...}}` (or `{"task": ..., "error": "..."}`); keep
-   everything else in the file; save it back with the Drive connector. Never copy any of it into this repo.
+   everything else in the file. Never copy any of it into this repo.
+   BLOCKER (found 21 Nov 01:55): the Drive connector cannot change a file's content in place (update_file is metadata
+   only; create_file makes a new file the phone's SAF grant doesn't cover), so a cloud run can't write `answers` into
+   the phone's wellness-sync.json yet. See task 32. Until then queued requests wait (the phone shows they're waiting).
    Original task: Request queue for the Claude features when the PC link fails (coach-scenario, coach-grade, coach-advice,
    tagalog-check, advice, weekly-plan): queue {id, task, input, at} (input = exactly what the PC task gets), show
    "Your PC isn't answering, so this will be answered by the next cloud run (within about 5 hours)", and render the
@@ -119,4 +122,14 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 28. (done 21 Nov 00:50, Claude: month2/month3/yearly, MONTH_STEP) To-do: "every 2 months" / "every 3 months" / "every year" repeats (month-end and Feb 29 rules like monthly); tests.
 29. (done 21 Nov 00:50, Claude: exercise field poOptional, T.missedPo note) Tagalog: typed answers: accept a missing "po"/"ho" only where the lesson marks it optional (pack field), never by default; tests.
 30. [any] Drive sync restore: in Settings > "Sync with Google Drive", add a "Restore from Drive" action (with confirm, using WL.restoreText) so recovering data on a phone takes one tap; tests.
+32. [any] Answer channel from the cloud to the phone (blocks B's [drive] part). The cloud can only create files and
+    edit Google Docs/Sheets in place (Sheets connector update_values). Proposal: a Google Sheet "wellness-answers" in
+    the private folder, rows `id | task | answer-json | at`, edited in place by cloud runs. Phone: Settings > Sync with
+    Google Drive > "Choose answers sheet" (ACTION_OPEN_DOCUMENT; Drive serves Google Sheets as virtual documents:
+    ContentResolver.getStreamTypes + openTypedAssetFileDescriptor("text/csv"), persistable read grant); on each sync
+    read it, feed rows to the same `answers` path (WLSyncCore.mergeRemote), ack as now. Java unit test for CSV parsing;
+    must be checked on the phone (virtual-file export from Drive). If Drive refuses, fall back: say so in Settings.
+30. (note 21 Nov, Claude) "Restore from Drive" from the configured file mostly mirrors the phone itself; on a new phone
+    the picker is ACTION_CREATE_DOCUMENT, which makes a new file. Real restore needs ACTION_OPEN_DOCUMENT of the
+    existing wellness-sync.json first (then the normal restore path). Do it together with 32's picker.
 31. [any] Accessibility: raise .chip and action tap targets in style.css to >= 44 px and tighten tests/e2e-a11y.cjs minimum height from 40 px to 44 px across every screen.
