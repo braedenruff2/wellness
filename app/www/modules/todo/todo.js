@@ -28,9 +28,12 @@
   }
   var REP = { daily: 'every day', weekdays: 'weekdays', weekly: 'every week', biweekly: 'every 2 weeks', monthly: 'every month' };
   var WDN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  /* "every Thursday" rather than "every week" when the task has a date (weekly tasks keep their weekday). */
+  /* "every Thursday" / "every other Friday" rather than "every week" when the task has a date (they keep their weekday). */
   function repLabel(t) {
-    if (t.repeat === 'weekly' && /^\d{4}-\d\d-\d\d$/.test(t.due || '')) { var p = t.due.split('-'); return 'every ' + WDN[new Date(+p[0], +p[1] - 1, +p[2]).getDay()]; }
+    if ((t.repeat === 'weekly' || t.repeat === 'biweekly') && /^\d{4}-\d\d-\d\d$/.test(t.due || '')) {
+      var p = t.due.split('-');
+      return (t.repeat === 'weekly' ? 'every ' : 'every other ') + WDN[new Date(+p[0], +p[1] - 1, +p[2]).getDay()];
+    }
     return REP[t.repeat] || '';
   }
 

@@ -62,3 +62,7 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
     tests (text escaped, nothing when the list is empty).
 25. (done 20 Nov cloud: .c-bars, skillStats().scores) Parenting progress: per skill, a small score-over-time row (like #me's 14-day bars); tests.
 26. (done 20 Nov cloud: practicesThisWeek) Faith Pray list: practices done this week get a tick and a count ("2× this week"); tests.
+27. (done 20 Nov 20:45, cloud) To-do quick add: real weekday names only ("call friend"), "every <day>", "every other <day>", "in N days",
+    "next week", "this weekend", month names, "tonight at 7" = pm. Tagalog typed answers: accents and hyphens forgiven.
+28. To-do: "every 2 months" / "every 3 months" / "every year" repeats (month-end and Feb 29 rules like monthly); tests.
+29. Tagalog: typed answers: accept a missing "po"/"ho" only where the lesson marks it optional (pack field), never by default; tests.

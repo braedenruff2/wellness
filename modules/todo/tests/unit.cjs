@@ -32,6 +32,9 @@ t('quickParse: "every monday" repeats weekly from the next one (today counts)', 
   assert.deepStrictEqual(T.quickParse('call Mom every sunday at 7pm', wed), { text: 'call Mom', due: '2026-11-22', repeat: 'weekly', at: '19:00' });
   assert.deepStrictEqual(T.quickParse('call Mom at 7pm every sunday', wed), { text: 'call Mom', due: '2026-11-22', repeat: 'weekly', at: '19:00' });
   assert.strictEqual(T.quickParse('gym every mondays', wed).repeat, 'weekly');
+  assert.deepStrictEqual(T.quickParse('recycling every other friday', wed), { text: 'recycling', due: '2026-11-20', repeat: 'biweekly', at: null });
+  assert.strictEqual(T.quickParse('x every 2nd tuesday', wed).due, '2026-11-24');
+  assert.strictEqual(T.quickParse('x every other week', wed).repeat, 'biweekly', 'still works');
   assert.strictEqual(T.quickParse('rent every month', wed).repeat, 'monthly', '"month" is not Monday');
   const s = T.defaults(), b = T.add(s, 'bins every thursday', null, wed);
   T.complete(s, b.id, new Date(2026, 10, 19, 8));

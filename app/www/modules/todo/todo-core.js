@@ -49,6 +49,9 @@
     if ((m = /\s+(every week|weekly)$/i.exec(t))) return { repeat: 'weekly', due: today, rest: t.slice(0, m.index) };
     if ((m = /\s+(every (?:2|two|other) weeks?|every other week|fortnightly|biweekly)$/i.exec(t))) return { repeat: 'biweekly', due: today, rest: t.slice(0, m.index) };
     if ((m = /\s+(every month|monthly)$/i.exec(t))) return { repeat: 'monthly', due: today, rest: t.slice(0, m.index) };
+    if ((m = new RegExp('\\s+every (?:other|2nd|second|2) ' + WD + 's?$', 'i').exec(t))) {   // "recycling every other friday"
+      return { repeat: 'biweekly', due: addDays(today, (wdIndex(m[1]) - now.getDay() + 7) % 7), rest: t.slice(0, m.index) };
+    }
     if ((m = new RegExp('\\s+every ' + WD + 's?$', 'i').exec(t))) {   // "bins every thursday": weekly from the next one (today counts)
       return { repeat: 'weekly', due: addDays(today, (wdIndex(m[1]) - now.getDay() + 7) % 7), rest: t.slice(0, m.index) };
     }
