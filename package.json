@@ -1,0 +1,6 @@
+{
+  "name": "wellness",
+  "private": true,
+  "description": "Personal wellness phone app (Android WebView). No npm dependencies: this file only marks the repo root, so Node stops looking for package.json here (sandboxed agents can't read the folders above).",
+  "type": "commonjs"
+}

@@ -15,6 +15,8 @@ Tasks in cloud-plan.md are tagged `[any]` unless they need the private folder (`
 - Each agent has its own claims file: `.autopilot/claims-claude.md`, `.autopilot/claims-gemini.md`. Never edit the other's.
 - Before starting a task: add `- <task id> | <ISO time>` to your file, commit, push. Then check the other agent's file:
   if they claimed the same task earlier, drop yours.
+- Claim only what you are starting now: at most ONE open claim at a time (claim the next task when this one is done),
+  so the other agent always has work.
 - A claim older than 8 hours is void. Remove your own claim when the task is done (mark it done in cloud-plan.md).
 
 ## Logs
