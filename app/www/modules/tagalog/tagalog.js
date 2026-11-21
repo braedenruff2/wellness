@@ -101,6 +101,7 @@
         T.recordAnswer(S, pk, l, ex, ok, null, given); save();
         var askable = !ok && ex.type === 'type' && String(given || '').trim() && WL.pc && WL.pc.ready();
         $('#tl-fb').innerHTML = '<p class="' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ Right!' : '✗ Answer: <b>' + esc(ex.answer) + '</b>') + '</p>' +
+          (ok && T.missedPo(ex, given) ? '<p class="meta" id="tl-po">With an elder, add “po”: <b>' + esc(ex.answer) + '</b></p>' : '') +
           '<div class="row"><button class="primary" id="tl-next">Next</button>' + (askable ? '<button id="tl-ask">Ask Claude about my answer</button>' : '') + '</div><div id="tl-claude" aria-live="polite"></div>';
         if (askable) $('#tl-ask').onclick = function () {
           var b = this; b.disabled = true;

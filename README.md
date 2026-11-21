@@ -85,6 +85,8 @@ reads anything they can't (before the downloads, or if something fails).
   family tip, 4 exercise types), spaced review of every word (two-way: once a word is recognised, it comes back
   English first so you practise saying it; a miss sends it back to meaning first), mixed practice (8 exercises from
   finished lessons, most-missed first: something to do while waiting for Wednesday), progress, "Send my week".
+  Typed answers forgive case, punctuation, keyboard accents and ho/po; a missing "po" counts only on exercises with
+  `"poOptional": true` (then a gentle "with an elder, add po" note).
 - **Parenting** (`modules/coach`): scenarios for your daughter's exact age, you answer, Claude grades against current
   guidance (what went well, what to change, what an expert would do and why, sources), progress per skill. "Something
   happening with her?": describe a real situation, Claude (web search on) gives steps, words to say, what to avoid, why,

@@ -106,6 +106,24 @@ t('restore keeps the slow-voice setting and drops only a damaged answer', () => 
   assert.strictEqual(v.answers.length, 1); assert.strictEqual(v.answers[0].given, 'kumusta');
   assert.strictEqual(T.validate({ cards: {} }).settings.slow, true, 'default stays slow');
 });
+t('typed answers: a missing "po" is accepted only where the exercise marks it optional (poOptional)', () => {
+  const strict = { type: 'type', prompt: 'Thank you, Lola.', answer: 'Salamat po, Lola.', accept: ['salamat po lola'] };
+  assert.ok(T.check(strict, 'salamat po lola') && T.check(strict, 'Salamat ho, Lola'));
+  assert.ok(!T.check(strict, 'salamat lola'), 'never by default');
+  const opt = Object.assign({}, strict, { prompt: 'Thanks, Lola (po optional here)', poOptional: true });
+  assert.ok(T.check(opt, 'Salamat, Lola!'), 'optional: accepted without po');
+  assert.ok(T.missedPo(opt, 'salamat lola') && !T.missedPo(opt, 'salamat po lola') && !T.missedPo(opt, 'salamat ho lola'));
+  assert.ok(!T.missedPo(strict, 'salamat po lola'));
+  assert.ok(!T.check(opt, 'salamat tita'), 'other words still matter');
+  assert.ok(!T.check({ type: 'type', prompt: 'p', answer: 'Opo', poOptional: true }, ''), 'empty never right');
+  const pk = (ex) => ({ id: '2026-11-25', title: 't', lessons: [{ day: 1, title: 'a', intro: 'b', words: [{ tl: 'a', en: 'a' }, { tl: 'b', en: 'b' }, { tl: 'c', en: 'c' }],
+    exercises: [ex, { type: 'mc', prompt: 'p', answer: 'a', options: ['a', 'b'] }, { type: 'mc', prompt: 'p', answer: 'a', options: ['a', 'b'] }] }] });
+  assert.deepStrictEqual(T.checkPack(pk(opt)), []);
+  assert.strictEqual(T.checkPack(pk(Object.assign({}, opt, { answer: 'Salamat, Lola.' }))).length, 1, 'answer without po');
+  assert.strictEqual(T.checkPack(pk(Object.assign({}, opt, { poOptional: 'yes' }))).length, 1, 'only true');
+  assert.strictEqual(T.checkPack(pk({ type: 'mc', prompt: 'p', answer: 'Salamat po', options: ['Salamat po', 'x'], poOptional: true })).length, 1, 'type exercises only');
+});
+
 t('typed answers: accents from the keyboard and hyphen/space don\'t matter; letters still do', () => {
   const ex = { type: 'type', answer: 'Araw-araw po', accept: ['Kumusta ka'] };
   for (const g of ['araw-araw po', 'araw araw po', 'Araw–araw po…', 'áraw-áraw pó', 'araw - araw po']) assert.ok(T.check(ex, g), g);

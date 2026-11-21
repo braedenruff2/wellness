@@ -36,6 +36,7 @@
         if (x.type === 'listen' && !x.say) e.push(v + 'listen needs say');
         if (x.type === 'build' && (!Array.isArray(x.words) || norm(x.words.slice().sort().join(' ')) !== norm(x.answer.split(/\s+/).sort().join(' ')))) e.push(v + 'build words must be exactly the answer’s words');
         if (x.type !== 'listen' && !x.prompt) e.push(v + 'prompt missing');
+        if (x.poOptional !== undefined && (x.poOptional !== true || x.type !== 'type' || !/\b(po|ho)\b/.test(norm(x.answer)))) e.push(v + 'poOptional: only true, on a type exercise whose answer has po');
       });
     });
     return e;
@@ -52,7 +53,15 @@
     var g = norm(given);
     if (!g) return false;
     var ok = [ex.answer].concat(ex.accept || []).map(norm);
-    return ok.indexOf(g) >= 0 || ok.indexOf(g.replace(/\bho\b/g, 'po')) >= 0;
+    if (ok.indexOf(g) >= 0 || ok.indexOf(g.replace(/\bho\b/g, 'po')) >= 0) return true;
+    // a missing "po"/"ho" only where the lesson marks it optional (poOptional), never by default
+    return !!ex.poOptional && ok.map(noPo).indexOf(noPo(g)) >= 0;
+  }
+  function noPo(s) { return s.replace(/\b(po|ho)\b/g, ' ').replace(/\s+/g, ' ').trim(); }
+  /* Right, but without the "po" the answer has: a gentle note (only on poOptional exercises). */
+  function missedPo(ex, given) {
+    var g = norm(given);
+    return !!ex.poOptional && check(ex, given) && !/\b(po|ho)\b/.test(g);
   }
 
   function allPacks(state, bundled) {
@@ -200,7 +209,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, checkPack: checkPack, norm: norm, check: check, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;
