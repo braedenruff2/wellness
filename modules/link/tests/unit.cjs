@@ -114,4 +114,18 @@ t('a calm session rated after it was sent gets a new id (/e<ms>), so the rating 
   assert.ok(id1 === id0 + '/e' + Date.parse(c.sessions[0].rated), id1);
   assert.strictEqual(CK.validate(c).sessions[0].rated, c.sessions[0].rated, 'kept through a backup');
 });
+t('faith: days finished earlier in the week stay in activity log with the same ids after walkAgain', () => {
+  const f = FC.defaults();
+  FC.finishDay(f, 119, new Date(2026, 10, 17, 12));
+  FC.finishDay(f, 120, new Date(2026, 10, 18, 12));
+  const before = A.collect({ 'fc.v1': f }, {}, now).filter((e) => e.kind === 'day-done');
+  assert.deepStrictEqual(before.map((e) => e.id), ['faith/day/1/119', 'faith/day/1/120']);
+  FC.walkAgain(f, new Date(2026, 10, 19, 8));
+  FC.finishDay(f, 1, new Date(2026, 10, 19, 9));
+  f.pastRounds.push(null, { done: null }); // odd entries skipped safely
+  const after = A.collect({ 'fc.v1': f }, {}, now).filter((e) => e.kind === 'day-done');
+  assert.deepStrictEqual(after.map((e) => e.id), ['faith/day/1/119', 'faith/day/1/120', 'faith/day/2/1']);
+  assert.strictEqual(after[0].data.round, 1);
+  assert.strictEqual(after[2].data.round, 2);
+});
 console.log(n + ' activity tests passed');

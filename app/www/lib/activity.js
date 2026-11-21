@@ -17,10 +17,14 @@
   /* Faith (fc.v1): days finished, guided prayers and practices, journal / awe / gratitude, prayers and answers. */
   X['fc.v1'] = function (s, o, out) {
     var round = s.round || 1;
-    Object.keys(s.done || {}).forEach(function (n) {
-      var d = s.done[n]; if (!okDate(d)) return;
-      out.push({ id: 'faith/day/' + round + '/' + n, at: d.length === 10 ? localNoon(d) : d, part: 'faith', kind: 'day-done', text: 'Day ' + n, data: { day: +n, round: round } });
-    });
+    function pushDone(done, r) {
+      Object.keys(done || {}).forEach(function (n) {
+        var d = done[n]; if (!okDate(d)) return;
+        out.push({ id: 'faith/day/' + r + '/' + n, at: d.length === 10 ? localNoon(d) : d, part: 'faith', kind: 'day-done', text: 'Day ' + n, data: { day: +n, round: r } });
+      });
+    }
+    (s.pastRounds || []).forEach(function (pr, idx) { if (pr && pr.done) pushDone(pr.done, pr.round || (idx + 1)); });
+    pushDone(s.done, round);
     (s.sessions || []).forEach(function (x) {
       if (!x || !okDate(x.at)) return;
       out.push({ id: 'faith/s/' + x.at, at: x.at, part: 'faith', kind: x.kind === 'day' ? 'guided-prayer' : 'practice', text: cut(x.title, 80), data: { id: x.id, mins: x.mins } });

@@ -147,14 +147,15 @@
 
   function stats(state, now) {
     now = now || new Date();
+    var today = iso(now);
     var from = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
     var keys = Object.keys(state.cards);
     var known = keys.filter(function (k) { return state.cards[k].box >= 3; }).length;
-    var weekAns = state.answers.filter(function (a) { return iso(new Date(a.at)) >= from; }); // local days, like the rest
-    var days = {}; Object.keys(state.done).forEach(function (k) { var d = iso(new Date(state.done[k])); if (d >= from) days[d] = 1; });
+    var weekAns = state.answers.filter(function (a) { var d = iso(new Date(a.at)); return d >= from && d <= today; }); // local days, like the rest
+    var days = {}; Object.keys(state.done).forEach(function (k) { var d = iso(new Date(state.done[k])); if (d >= from && d <= today) days[d] = 1; });
     weekAns.forEach(function (a) { days[iso(new Date(a.at))] = 1; });
     return { words: keys.length, known: known, due: dueCards(state, now).length, lessonsDone: Object.keys(state.done).length,
-      weekLessons: Object.keys(state.done).filter(function (k) { return iso(new Date(state.done[k])) >= from; }).length,
+      weekLessons: Object.keys(state.done).filter(function (k) { var d = iso(new Date(state.done[k])); return d >= from && d <= today; }).length,
       weekDays: Object.keys(days).length, weekAccuracy: weekAns.length ? weekAns.filter(function (a) { return a.ok; }).length / weekAns.length : null };
   }
 

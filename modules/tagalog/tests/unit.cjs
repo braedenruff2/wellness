@@ -144,4 +144,23 @@ t('cloud checks: kept through validate (last 20, text only), damaged ones droppe
   assert.strictEqual(T.validate(T.defaults()).checks, undefined, 'no checks, no field');
 });
 
+t('stats: weekly counts and accuracy are bounded at now so earlier-day lookups ignore future lessons/answers', () => {
+  const s = T.defaults();
+  const pack = { id: '2026-11-18' };
+  const l1 = { day: 1, words: [{ tl: 'tubig', en: 'water' }] };
+  const l2 = { day: 2, words: [{ tl: 'kain', en: 'eat' }] };
+  T.finishLesson(s, pack, l1, new Date(2026, 10, 18, 12));
+  T.recordAnswer(s, pack, l1, { prompt: 'water', type: 'type' }, true, new Date(2026, 10, 18, 12));
+  T.finishLesson(s, pack, l2, new Date(2026, 10, 21, 12));
+  T.recordAnswer(s, pack, l2, { prompt: 'eat', type: 'type' }, false, new Date(2026, 10, 21, 12));
+  const past = T.stats(s, new Date(2026, 10, 19, 12));
+  assert.strictEqual(past.weekLessons, 1);
+  assert.strictEqual(past.weekDays, 1);
+  assert.strictEqual(past.weekAccuracy, 1);
+  const nowSt = T.stats(s, new Date(2026, 10, 21, 20));
+  assert.strictEqual(nowSt.weekLessons, 2);
+  assert.strictEqual(nowSt.weekDays, 2);
+  assert.strictEqual(nowSt.weekAccuracy, 0.5);
+});
+
 console.log(n + ' tagalog unit tests passed');
