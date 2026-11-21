@@ -402,6 +402,23 @@ try: code = proc.wait(timeout=15)
 except sp.TimeoutExpired: proc.kill(); code = None
 check("an update restarts the server (exit 3)", code == 3, code)
 
+# Advice summary counts active days from the first day there is any data, not a fixed window
+_old = W.PROGRESS
+W.PROGRESS = tempfile.mkdtemp(prefix="wpc-first-")
+check("no data: no first day", W.first_day() is None, W.first_day())
+W.append_lines(W.day_file("2026-11-19"), [{"id": "a1", "at": "2026-11-19T15:00:00Z", "part": "calm", "kind": "session", "data": {"mins": 5}}])
+W.append_lines(W.day_file("2026-11-20"), [{"id": "a2", "at": "2026-11-20T15:00:00Z", "part": "faith", "kind": "awe"}])
+check("first day is the earliest event", W.first_day() == "2026-11-19", W.first_day())
+sm = W.summarize(14, datetime.date(2026, 11, 20))
+check("2-day-old app: active 2 of 2 days", "Active on 2 of 2 days (the log starts 2026-11-19)." in sm, sm)
+W.append_lines(W.day_file("2026-11-30"), [{"id": "a3", "at": "2026-11-30T15:00:00Z", "part": "faith", "kind": "awe"}])
+sm = W.summarize(7, datetime.date(2026, 12, 1))
+check("old enough: the full window", "Active on 1 of 7 days." in sm and "log starts" not in sm, sm)
+# an evening event filed under the next UTC day (old-style file name) still counts from its local day
+W.append_lines(W.day_file("2026-11-18"), [{"id": "a0", "at": "2026-11-18T01:30:00Z", "part": "faith", "kind": "awe"}])
+check("old-style file: local day wins", W.first_day() == "2026-11-17", W.first_day())
+W.PROGRESS = _old
+
 # forget
 W.main(["x", "forget"])
 st, o, _ = req("GET", "/v1/health", token=token)

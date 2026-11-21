@@ -363,6 +363,16 @@ def recent_events(days, today=None):
     return [e for e in out if keep(e)]
 
 
+def first_day():
+    """The PC's local date of the first event it ever got (None before any). Older files were named by the UTC date,
+    so the earliest two files are read and the earliest local date in them wins."""
+    try: names = sorted(f[:-6] for f in os.listdir(os.path.join(PROGRESS, "activity"))
+                        if re.match(r"^\d{4}-\d\d-\d\d\.jsonl$", f))
+    except OSError: return None
+    days = [local_day(e["at"]) for n in names[:2] for e in read_day(n) if e.get("at")]
+    return min(days) if days else None
+
+
 def summarize(days=7, today=None):
     """Plain-words trends for the last `days` days: what Claude reads to choose next steps."""
     today = today or datetime.date.today()
@@ -372,7 +382,13 @@ def summarize(days=7, today=None):
         lines.append("Nothing logged yet (the phone sends its log when it is on home Wi-Fi with the PC link paired).")
         return "\n".join(lines)
     active_days = sorted({local_day(e["at"]) for e in ev})
-    lines.append(f"Active on {len(active_days)} of {days} days.")
+    # count from the first day there is any data: a 2-day-old app is "active 2 of 2 days", not "2 of 14"
+    span, first = days, first_day()
+    if first:
+        try: span = max(1, min(days, (today - datetime.date.fromisoformat(first)).days + 1))
+        except ValueError: pass
+    span = max(span, len(active_days))
+    lines.append(f"Active on {len(active_days)} of {span} days" + (f" (the log starts {first})." if span < days else "."))
     per = {}
     for e in ev: per.setdefault(e["part"], []).append(e)
 
