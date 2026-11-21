@@ -1,5 +1,5 @@
 /* To-do logic (no DOM). Tasks: {id, text, due: 'YYYY-MM-DD'|null, at: 'HH:MM'|null (a reminder at that time on the due
-   day), done: ISO|null, created: ISO, repeat: null|'daily'|'weekdays'|'weekly'|'biweekly'|'monthly', mday (monthly: its day of the month)}.
+   day), done: ISO|null, created: ISO, repeat: null|'daily'|'weekdays'|'weekly'|'biweekly'|'monthly'|'month2'|'month3'|'yearly', mday (month-based: its day of the month)}.
    Storage key 'wl.todo.v1'. Used by todo.js and by modules/todo/tests. */
 (function (root) {
   'use strict';
@@ -49,6 +49,9 @@
     if ((m = /\s+(every week|weekly)$/i.exec(t))) return { repeat: 'weekly', due: today, rest: t.slice(0, m.index) };
     if ((m = /\s+(every (?:2|two|other) weeks?|every other week|fortnightly|biweekly)$/i.exec(t))) return { repeat: 'biweekly', due: today, rest: t.slice(0, m.index) };
     if ((m = /\s+(every month|monthly)$/i.exec(t))) return { repeat: 'monthly', due: today, rest: t.slice(0, m.index) };
+    if ((m = /\s+(every (?:2|two|other) months?|every other month|bimonthly)$/i.exec(t))) return { repeat: 'month2', due: today, rest: t.slice(0, m.index) };
+    if ((m = /\s+(every (?:3|three) months?|quarterly)$/i.exec(t))) return { repeat: 'month3', due: today, rest: t.slice(0, m.index) };
+    if ((m = /\s+(every year|yearly|annually)$/i.exec(t))) return { repeat: 'yearly', due: today, rest: t.slice(0, m.index) };
     if ((m = new RegExp('\\s+every (?:other|2nd|second|2) ' + WD + 's?$', 'i').exec(t))) {   // "recycling every other friday"
       return { repeat: 'biweekly', due: addDays(today, (wdIndex(m[1]) - now.getDay() + 7) % 7), rest: t.slice(0, m.index) };
     }
@@ -115,20 +118,23 @@
     var task = { id: id(now), text: q.text, due: opts.due !== undefined ? opts.due : q.due, done: null,
       created: (now || new Date()).toISOString(), repeat: opts.repeat || q.repeat || null, at: opts.at !== undefined ? opts.at : q.at };
     task.due = firstDue(task);
-    if (task.repeat === 'monthly' && task.due) task.mday = +task.due.slice(8, 10);
+    if (MONTH_STEP[task.repeat] && task.due) task.mday = +task.due.slice(8, 10);
     state.tasks.push(task);
     return task;
   }
 
+  /* Repeats counted in months: how many months each step is. */
+  var MONTH_STEP = { monthly: 1, month2: 2, month3: 3, yearly: 12 };
   function nextDue(task, today) {
     var base = task.due && task.due > today ? task.due : today, d;
     if (task.repeat === 'daily') return addDays(base, 1);
     if (task.repeat === 'weekly') { d = addDays(task.due || today, 7); while (d <= today) d = addDays(d, 7); return d; }
     if (task.repeat === 'biweekly') { d = addDays(task.due || today, 14); while (d <= today) d = addDays(d, 14); return d; }
-    if (task.repeat === 'monthly') {
-      // the same day each month (the 31st falls on the last day of shorter months, then back to the 31st)
-      var from = task.due || today, md = task.mday || +from.slice(8, 10), y = +from.slice(0, 4), mo = +from.slice(5, 7) - 1, guard = 0;
-      do { mo++; if (mo > 11) { mo = 0; y++; } d = iso(new Date(y, mo, Math.min(md, new Date(y, mo + 1, 0).getDate()))); } while (d <= today && guard++ < 1200);
+    if (MONTH_STEP[task.repeat]) {
+      // the same day each month (or every 2 / 3 / 12 months): the 31st falls on the last day of shorter months, then
+      // back to the 31st; a yearly Feb 29 is Feb 28 in other years
+      var from = task.due || today, md = task.mday || +from.slice(8, 10), y = +from.slice(0, 4), mo = +from.slice(5, 7) - 1, guard = 0, step = MONTH_STEP[task.repeat];
+      do { mo += step; while (mo > 11) { mo -= 12; y++; } d = iso(new Date(y, mo, Math.min(md, new Date(y, mo + 1, 0).getDate()))); } while (d <= today && guard++ < 1200);
       return d;
     }
     if (task.repeat === 'weekdays') { d = addDays(base, 1); while ([0, 6].indexOf(parse(d).getDay()) >= 0) d = addDays(d, 1); return d; }
@@ -278,14 +284,14 @@
       return { id: String(t.id || id()), text: t.text, due: dateRe.test(t.due) ? t.due : null,
         done: t.done && !isNaN(new Date(t.done).getTime()) ? new Date(t.done).toISOString() : null,
         created: t.created && !isNaN(new Date(t.created).getTime()) ? new Date(t.created).toISOString() : new Date().toISOString(),
-        repeat: ['daily', 'weekdays', 'weekly', 'biweekly', 'monthly'].indexOf(t.repeat) >= 0 ? t.repeat : null,
+        repeat: ['daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'month2', 'month3', 'yearly'].indexOf(t.repeat) >= 0 ? t.repeat : null,
         mday: t.mday >= 1 && t.mday <= 31 ? Math.floor(t.mday) : undefined,
         fromRepeat: typeof t.fromRepeat === 'string' ? t.fromRepeat : undefined,
         at: /^([01]\d|2[0-3]):[0-5]\d$/.test(t.at) ? t.at : null };
     }) };
   }
 
-  var api = { defaults: defaults, quickParse: quickParse, add: add, complete: complete, applyTicked: applyTicked, uncomplete: uncomplete, remove: remove,
+  var api = { MONTH_STEP: MONTH_STEP, defaults: defaults, quickParse: quickParse, add: add, complete: complete, applyTicked: applyTicked, uncomplete: uncomplete, remove: remove,
     find: find, groups: groups, moveOverdueToToday: moveOverdueToToday, tidy: tidy, doneInLast: doneInLast, advice: advice,
     nextDue: nextDue, validate: validate, iso: iso, addDays: addDays, reminders: reminders, alarmLines: alarmLines, openTimed: openTimed, firstDue: firstDue, remindIn: remindIn, fmtTime: fmtTime };
   root.TodoCore = api;

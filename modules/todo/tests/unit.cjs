@@ -287,4 +287,34 @@ t('every 2 weeks and every month (the 31st -> last day of shorter months, then t
   const r = T.defaults(); T.add(r, 'pay at 9am', { due: '2026-11-30', repeat: 'monthly' }, wed);
   assert.ok(T.reminders(r, wed, 45).some((x) => x.id.endsWith('@2026-12-30')));
 });
+t('every 2 months / every 3 months / every year (month ends and Feb 29 like monthly)', () => {
+  const q = (x) => T.quickParse(x, wed);
+  assert.deepStrictEqual([q('haircut every 2 months').repeat, q('haircut every two months').repeat, q('haircut every other month').repeat, q('x bimonthly').repeat], ['month2', 'month2', 'month2', 'month2']);
+  assert.deepStrictEqual([q('furnace filter every 3 months').repeat, q('taxes quarterly').repeat], ['month3', 'month3']);
+  assert.deepStrictEqual([q('car insurance every year').repeat, q('x yearly').repeat, q('x annually').repeat], ['yearly', 'yearly', 'yearly']);
+  assert.strictEqual(q('furnace filter every 3 months').text, 'furnace filter');
+  assert.strictEqual(q('rent every month').repeat, 'monthly', 'monthly unchanged');
+  const s = T.defaults();
+  const two = T.add(s, 'b', { due: '2026-12-31', repeat: 'month2' }, wed);
+  const seq = [];
+  for (let i = 0; i < 4; i++) { T.complete(s, two.id, new Date(two.due.slice(0, 4), +two.due.slice(5, 7) - 1, +two.due.slice(8), 12)); seq.push(two.due); }
+  assert.deepStrictEqual(seq, ['2027-02-28', '2027-04-30', '2027-06-30', '2027-08-31'], 'the 31st, every 2 months, across a year end');
+  const three = T.add(s, 'c', { due: '2026-11-30', repeat: 'month3' }, wed);
+  T.complete(s, three.id, new Date(2026, 10, 30, 12)); assert.strictEqual(three.due, '2027-02-28');
+  T.complete(s, three.id, new Date(2027, 1, 28, 12)); assert.strictEqual(three.due, '2027-05-30', 'back to the 30th');
+  const y = T.add(s, 'leap', { due: '2028-02-29', repeat: 'yearly' }, new Date(2028, 0, 2));
+  const ys = [];
+  for (let i = 0; i < 4; i++) { T.complete(s, y.id, new Date(y.due.slice(0, 4), +y.due.slice(5, 7) - 1, +y.due.slice(8), 12)); ys.push(y.due); }
+  assert.deepStrictEqual(ys, ['2029-02-28', '2030-02-28', '2031-02-28', '2032-02-29'], 'Feb 29 yearly');
+  const late = T.add(s, 'late', { due: '2025-06-10', repeat: 'yearly' }, new Date(2025, 5, 1));
+  T.complete(s, late.id, wed); assert.strictEqual(late.due, '2027-06-10', 'ticked late: next one after today');
+  const added = T.add(s, 'filter every 3 months', null, wed);
+  assert.strictEqual(added.mday, 18); assert.strictEqual(added.due, '2026-11-18');
+  const v = T.validate(JSON.parse(JSON.stringify(s)));
+  assert.deepStrictEqual(['month2', 'month3', 'yearly'].map((r) => v.tasks.filter((x) => x.repeat === r).length > 0), [true, true, true]);
+  assert.strictEqual(v.tasks.find((x) => x.id === y.id).mday, 29);
+  const r = T.defaults(); T.add(r, 'pay at 9am', { due: '2026-11-20', repeat: 'yearly' }, wed);
+  const rem = T.reminders(r, wed, 400).map((x) => x.id.split('@')[1]);
+  assert.ok(rem.includes('2026-11-20') && rem.includes('2027-11-20') && rem.length === 2, rem.join(','));
+});
 console.log(n + ' to-do unit tests passed');
