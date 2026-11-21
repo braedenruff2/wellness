@@ -91,6 +91,15 @@ for _t in ("coach-scenario", "coach-grade", "coach-advice"):
     _p = W.prompt_for(_t, {"can": "walks; gets down by herself", "age": "12 months old"})[0]
     check(_t + ": what she can do now is in the prompt", "walks; gets down by herself" in _p and "can and can't do yet" in _p, _p[:600])
     check(_t + ": nothing said, no can-do line", "can already do" not in W.prompt_for(_t, {"age": "12 months old"})[0])
+_tn = [{"tip": "Pause one beat after a wobble", "notForMe": True, "reasons": ["I know this already"], "note": "She already does this"},
+       {"tip": "Same bedtime song", "tried": "Didn\u2019t work"}, {"tip": "  "}, "x", {"tip": "No answer"}]
+for _t in ("coach-scenario", "coach-grade", "coach-advice"):
+    _p = W.prompt_for(_t, {"age": "12 months old", "tipNotes": _tn})[0]
+    check(_t + ": his tip answers are in the prompt", "She already does this" in _p and "Same bedtime song" in _p
+          and "Don't suggest again" in _p and "No answer" not in _p, _p[:900])
+    check(_t + ": no tip answers, no tip line", "try this week\" tips" not in W.prompt_for(_t, {"age": "1", "tipNotes": "x"})[0])
+check("tip notes keep the last 6", W.tip_notes({"tipNotes": [{"tip": "t%d" % i, "tried": "It worked"} for i in range(9)]}).count("It worked") == 6)
+check("tip notes are not sent to the other tasks", "try this week" not in W.prompt_for("advice", {"summary": "S", "tipNotes": _tn})[0])
 check("real-situation prompt carries his words and the age", "car seat" in W.prompt_for("coach-advice", {"situation": "car seat", "age": "11 months old"})[0]
       and "11 months old" in W.prompt_for("coach-advice", {"situation": "car seat", "age": "11 months old"})[0])
 

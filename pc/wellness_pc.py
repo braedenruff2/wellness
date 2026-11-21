@@ -481,6 +481,27 @@ def can_do(inp):
             "now (not new or worrying), and don't have her do things a child her age usually can't. ")
 
 
+def tip_notes(inp):
+    """His answers on earlier "try this week" tips (tried it / not for me + his note), from the phone's tipNotes."""
+    t = inp.get("tipNotes")
+    if not isinstance(t, list): return ""
+    out = []
+    for x in t[-6:]:
+        if not isinstance(x, dict) or not isinstance(x.get("tip"), str) or not x["tip"].strip(): continue
+        o = {"tip": x["tip"].strip()[:300]}
+        if isinstance(x.get("tried"), str) and x["tried"].strip(): o["tried it"] = x["tried"].strip()[:40]
+        if x.get("notForMe"):
+            o["not for me"] = True
+            rs = [str(r)[:40] for r in x.get("reasons") or [] if isinstance(r, str)][:5] if isinstance(x.get("reasons"), list) else []
+            if rs: o["reasons"] = rs
+        if isinstance(x.get("note"), str) and x["note"].strip(): o["his note"] = x["note"].strip()[:600]
+        if len(o) > 1: out.append(o)
+    if not out: return ""
+    return (f"His answers on earlier \"try this week\" tips, newest last: {j(out)}. Don't suggest again anything he says "
+            "he already does, she already does, or that didn't fit; build on what worked, and where something didn't work "
+            "try a different angle. ")
+
+
 PROMPTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts")
 # the tools each task may use (the rest get none); cloud runs answering queued requests use the same prompts
 TOOLS = {"coach-grade": "WebSearch,WebFetch", "coach-advice": "WebSearch,WebFetch"}
@@ -499,7 +520,7 @@ def prompt_values(task, inp):
     v["recent"] = j(inp.get("recent") or []); v["avoid"] = j(inp.get("avoid") or [])
     v["summary"] = str(inp.get("summary") or "")
     v["phone"] = j({"checkins": inp.get("checkins"), "feedback": inp.get("feedback")})[:20000]
-    v["can"] = can_do(inp); v["skills"] = j(SKILLS); v["rules"] = read_prompt("rules")
+    v["can"] = can_do(inp); v["tips"] = tip_notes(inp); v["skills"] = j(SKILLS); v["rules"] = read_prompt("rules")
     return v
 
 

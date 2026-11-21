@@ -136,4 +136,29 @@ t('a grade that comes back after he moved on is saved for the scenario he answer
   const h = K.grade(s, 'my answer to X, long enough', { score: 7, verdict: 'ok' }, null, x);
   assert.strictEqual(h.title, 'X'); assert.strictEqual(s.current.title, 'Y', 'the new scenario stays');
 });
+t('tipNotes: his "Did you try it?" and "Not for me?" answers on tips, newest last, with the tip text', () => {
+  const s = K.defaults(); s.child = { name: 'Kid', birth: '2025-11-24' };
+  K.setScenario(s, { scenario: 'x', skill: 'Safety' }, new Date(2026, 10, 18));
+  const h = K.grade(s, 'my answer', { score: 7, practice: 'Pause one beat after a wobble' }, new Date(2026, 10, 18, 12));
+  K.setScenario(s, { scenario: 'y', skill: 'Sleep' }, new Date(2026, 10, 19));
+  const h2 = K.grade(s, 'my answer', { score: 6, practice: 'Same bedtime song' }, new Date(2026, 10, 19, 12));
+  const me = { feedback: [
+    { part: 'coach', kind: 'after', about: 'tip:' + h2.id, a: { tried: 'Didn’t work' } },
+    { part: 'coach', kind: 'after', about: 'tip:' + h.id, a: { tried: 'Not yet' } },
+    { part: 'calm', kind: 'notfit', about: 'tip:' + h.id, a: { reasons: ['Too long'] } },
+    { part: 'coach', kind: 'notfit', about: 'tip:' + h.id, a: { reasons: ['I know this already', 5] }, shown: 'Pause one beat after a wobble', note: ' She already does this ' },
+    { part: 'coach', kind: 'notfit', about: 'tip:gone', a: { reasons: [] }, shown: 'An old tip', note: '' },
+    { part: 'coach', kind: 'notfit', about: 'tip:gone2', a: { reasons: [] } },
+    { part: 'coach', kind: 'notfit', about: 'advice:x', a: { reasons: [] }, shown: 'not a tip' }
+  ] };
+  assert.deepStrictEqual(K.tipNotes(s, me), [
+    { tip: 'Same bedtime song', skill: 'Sleep', tried: 'Didn’t work' },
+    { tip: 'Pause one beat after a wobble', skill: 'Safety', notForMe: true, reasons: ['I know this already'], note: 'She already does this' },
+    { tip: 'An old tip', notForMe: true }
+  ]);
+  assert.strictEqual(K.tipNotes(s, me, 1).length, 1);
+  assert.strictEqual(K.tipNotes(s, me, 1)[0].tip, 'An old tip', 'keeps the newest');
+  assert.deepStrictEqual(K.tipNotes(s, null), []);
+  assert.deepStrictEqual(K.tipNotes(s, { feedback: 'x' }), []);
+});
 console.log(n + ' coach tests passed');

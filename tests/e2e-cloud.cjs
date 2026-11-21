@@ -59,6 +59,7 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     assert.strictEqual(r.length, 1, JSON.stringify(r));
     assert.strictEqual(r[0].input.child, 'Test');
     assert.ok(r[0].input.age, 'the same input the PC gets');
+    assert.strictEqual(r[0].input.tipNotes, undefined, 'no tip answers yet, none sent');
   });
   let scnId;
   await t.step('the cloud answer shows as the scenario, and the request is acked', async () => {
@@ -85,11 +86,15 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     assert.ok(!(await page.$('#co-queued')));
   });
   await t.step('real-situation advice goes to the cloud and comes back in Past practice', async () => {
+    // his "Not for me?" on last week's tip goes with the request, so Claude doesn't suggest it again
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      WLMe.state().feedback.push({ id: 'coach/notfit/x', at: new Date().toISOString(), part: 'coach', about: 'tip:' + c.history[0].id, kind: 'notfit', a: { reasons: [] }, shown: 'p', note: 'She already does this' }); });
     await page.fill('#co-real', 'She screams in the car seat every time since last week. I have tried songs.');
     await page.click('#co-real-go');
     await page.waitForSelector('#co-queued');
     assert.ok((await page.textContent('#co-queued')).includes('Advice: “She screams in the car seat'));
     const r = await reqs('coach-advice');
+    assert.deepStrictEqual(r[0].input.tipNotes, [{ tip: 'p', skill: 'Safety', notForMe: true, note: 'She already does this' }]);
     await cloudAnswers({ [r[0].id]: { task: 'coach-advice', answer: { title: 'Car seat protests', skill: 'Crying and comfort', summary: 's', steps: ['one', 'two', 'three'], say: [], avoid: [], why: 'w', watch: '', sources: [] } } });
     await page.waitForFunction(() => JSON.parse(localStorage.getItem('wl.coach.v1')).history.length === 2);
     assert.ok((await page.textContent('#view')).includes('Car seat protests'));

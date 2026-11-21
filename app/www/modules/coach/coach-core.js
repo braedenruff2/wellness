@@ -138,6 +138,31 @@
     return out;
   }
 
+  /* His answers on earlier "This week, try" tips (About you: "Did you try it with her?" and "Not for me?"), newest
+     last, sent with scenario / grade / advice requests so Claude doesn't suggest again what he says he already does
+     or she already does, and changes tack on what didn't work. me: the wl.me.v1 state (or null). */
+  function tipNotes(state, me, max) {
+    if (!me || !Array.isArray(me.feedback)) return [];
+    var byId = {}, out = [];
+    state.history.forEach(function (h) { if (h && h.id) byId[h.id] = h; });
+    me.feedback.forEach(function (f) {
+      if (!f || f.part !== 'coach' || !/^tip:/.test(String(f.about || ''))) return;
+      var h = byId[String(f.about).slice(4)], tip = String(f.shown || (h && h.result && h.result.practice) || '').trim();
+      if (!tip) return;
+      var o = { tip: tip.slice(0, 300) };
+      if (h && h.skill) o.skill = h.skill;
+      if (f.kind === 'notfit') {
+        o.notForMe = true;
+        var rs = f.a && Array.isArray(f.a.reasons) ? f.a.reasons.filter(function (r) { return typeof r === 'string'; }).slice(0, 5) : [];
+        if (rs.length) o.reasons = rs;
+        if (typeof f.note === 'string' && f.note.trim()) o.note = f.note.trim().slice(0, 600);
+      } else if (f.kind === 'after' && f.a && typeof f.a.tried === 'string' && f.a.tried !== 'Not yet') o.tried = f.a.tried;
+      else return;
+      out.push(o);
+    });
+    return out.slice(-(max || 6));
+  }
+
   /* The graded current scenario goes into the history. */
   /* scn: the scenario that was answered (the request may come back after he moved on to another one). */
   function grade(state, answer, a, now, scn) {
@@ -178,7 +203,7 @@
   }
 
   var api = { SKILLS: SKILLS, CAN: CAN, toggleCan: toggleCan, setCanNote: setCanNote, canText: canText, defaults: defaults, ageMonths: ageMonths, ageText: ageText, skillStats: skillStats, suggestSkill: suggestSkill,
-    scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, practiseReal: practiseReal, tips: tips, cleanResult: cleanResult, validate: validate };
+    scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, practiseReal: practiseReal, tips: tips, tipNotes: tipNotes, cleanResult: cleanResult, validate: validate };
   root.CoachCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

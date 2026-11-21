@@ -57,6 +57,12 @@
     }).join('') + '</ul>' + (st.some(function (s) { return s.scores.length >= 2; }) ? '<p class="meta">Bars: your last scores per skill, oldest on the left.</p>' : '') + '</div>';
   }
 
+  /* his earlier tip answers, sent with every coach request (only when there are some) */
+  function withNotes(input) {
+    var n = K.tipNotes(S, window.WLMe && WLMe.state ? WLMe.state() : null);
+    if (n.length) input.tipNotes = n;
+    return input;
+  }
   function askable() { return pc.canAsk ? pc.canAsk() : pc.ready(); }
   function mainHtml() {
     var can = K.canText(S);
@@ -138,7 +144,7 @@
 
   function newScenario() {
     err = null; waiting = { kind: 'scenario', secs: 0 }; render([]);
-    var input = K.scenarioInput(S, pickSkill || null);
+    var input = withNotes(K.scenarioInput(S, pickSkill || null));
     start('coach-scenario', input, function (a) { K.setScenario(S, a); save(); });
   }
   function gradeIt(answer) {
@@ -146,7 +152,7 @@
     if (answer.length < 15) { WL.toast('Write a little more: what would you do and say?'); return; }
     var c = S.current; c.answer = answer; save();
     err = null; waiting = { kind: 'grade', secs: 0 }; render([]);
-    start('coach-grade', { child: S.child.name, age: c.age, can: K.canText(S), scenario: c.scenario, question: c.question, answer: answer }, function (a) {
+    start('coach-grade', withNotes({ child: S.child.name, age: c.age, can: K.canText(S), scenario: c.scenario, question: c.question, answer: answer }), function (a) {
       var h = K.grade(S, answer, a, null, c); save();
       if (h && here()) location.hash = '#coach/h/' + h.id;
       pc.sync().catch(function () {});
@@ -156,7 +162,7 @@
     text = String(text || '').trim();
     if (text.length < 20) { WL.toast('Tell Claude a bit more: what happens, when, what you’ve tried'); return; }
     err = null; waiting = { kind: 'real', secs: 0 }; render([]);
-    start('coach-advice', { child: S.child.name, age: K.ageText(S.child.birth), can: K.canText(S), situation: text.slice(0, 3000) }, function (a) {
+    start('coach-advice', withNotes({ child: S.child.name, age: K.ageText(S.child.birth), can: K.canText(S), situation: text.slice(0, 3000) }), function (a) {
       var h = K.addReal(S, text, a); S.realDraft = ''; save();
       if (here()) location.hash = '#coach/h/' + h.id;
       pc.sync().catch(function () {});

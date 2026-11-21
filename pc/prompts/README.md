@@ -14,6 +14,8 @@ with exactly the same text, so both paths give the same JSON shape.
 - `{{recent}}`, `{{avoid}}`: JSON lists (`[]` when missing).
 - `{{phone}}`: `{"checkins": ..., "feedback": ...}` from the input, as JSON, cut at 20000 characters.
 - `{{can}}`: the "what she can already do" sentence (`can_do()` in wellness_pc.py), empty when the input has no `can`.
+- `{{tips}}` (coach prompts): his answers on earlier "try this week" tips (`tipNotes` from the phone: tip, tried it,
+  not for me + reasons + his note; last 6) as one sentence (`tip_notes()`), empty when there are none.
 - `{{skills}}`: the parenting skill names as a JSON list; `{{rules}}`: the text of `rules.md`.
 - `{{summary}}` for `advice` and `weekly-plan` is made by the PC from its activity log (`summarize(14)`); a cloud run
   writes the same kind of summary from the synced data instead.
