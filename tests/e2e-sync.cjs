@@ -247,7 +247,7 @@ const FAKE_DRIVE = `
     const small = await page.evaluate(() => Array.from(document.querySelectorAll('#wl-sync button'))
       .filter((e) => e.offsetParent !== null && !e.classList.contains('link'))
       .map((e) => ({ t: e.textContent.trim(), h: Math.round(e.getBoundingClientRect().height) }))
-      .filter((x) => x.h < 40));
+      .filter((x) => x.h < 44));
     assert.deepStrictEqual(small, []);
   });
 
