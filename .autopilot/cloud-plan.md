@@ -6,6 +6,7 @@ branch: main (since 21 Nov 2026 cloud runs commit to main after the FULL test su
 
 ## Test in a Linux container
 Needs Node 20+, Java 17+ (javac), Python 3.11+, and Playwright with Chromium: npm install -g playwright && npx playwright install --with-deps chromium.
+ANDROID_JAR=<dir>/android-35/android.jar for the Java suite (same download as the APK build below; it fails without it).
 npm install -g as needed, then: NODE_PATH=$(npm root -g) node tests/run-all.cjs (every suite must pass before a push).
 Browser tests block the internet (tests/lib/web.cjs).
 
