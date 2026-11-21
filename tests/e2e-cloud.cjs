@@ -12,7 +12,7 @@ const FAKE = `
     var d = window.__drive = { configured: ls('test.drive.off') !== '1', content: ls('test.drive.content') || '', writes: 0 };
     var pc = window.__pc = { asks: 0 };
     window.FCAndroid = {
-      pcStatus: function () { return '{"paired":true,"host":"192.168.1.20","name":"PC"}'; },
+      pcStatus: function () { return ls('test.pc.unpaired') === '1' ? '{"paired":false}' : '{"paired":true,"host":"192.168.1.20","name":"PC"}'; },
       pcRequest: function (id, op, a) {
         if (op === 'post' && a === '/v1/ask') pc.asks++;
         Promise.resolve().then(function () { window.FCPcDone(id, false, "couldn't reach the PC at 192.168.1.20. Is the PC link running there, and the phone on the same Wi-Fi?"); });
@@ -24,6 +24,7 @@ const FAKE = `
   })();
 `;
 const QUEUED = 'Your PC isn’t answering, so this will be answered by the next cloud run (within about 5 hours).';
+const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 5 hours).';
 
 (async () => {
   const t = await W.open({ time: new Date(2026, 10, 21, 10, 0) });
@@ -132,6 +133,72 @@ const QUEUED = 'Your PC isn’t answering, so this will be answered by the next 
     assert.ok(txt.includes('ako umiinom tubig') && txt.includes('Umiinom ako ng tubig') && !txt.includes('waiting'), txt);
     await page.click('#tl-checks-clear');
     assert.ok(!(await page.$('#tl-checks')));
+  });
+  await t.step('no PC paired, Drive sync on: parenting, Home advice, the weekly plan and Tagalog checks go straight to the cloud', async () => {
+    await page.evaluate(() => {
+      localStorage.setItem('test.pc.unpaired', '1');
+      const f = JSON.parse(window.__drive.content); f.requests = []; localStorage.setItem('test.drive.content', JSON.stringify(f));
+      const me = JSON.parse(localStorage.getItem('wl.me.v1')); me.plan = null; me.planTried = null; localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.reload();
+    await page.goto(base + '#coach');
+    assert.ok((await page.textContent('#co-cloud')).includes('next cloud run'));
+    assert.ok(!(await page.$eval('#co-new', (b) => b.disabled)), 'New scenario works without a PC');
+    assert.ok(!(await page.$eval('#co-real-go', (b) => b.disabled)), 'Get advice works without a PC');
+    const asks = await page.evaluate(() => window.__pc.asks);
+    await page.click('#co-new');
+    await page.waitForSelector('#co-queued');
+    const txt = await page.textContent('#co-queued');
+    assert.ok(txt.includes(QUEUED_CLOUD) && !txt.includes('PC isn’t answering'), txt);
+    assert.ok(!(await page.$('#co-offline')) && !(await page.$('.no')), 'no error shown');
+    assert.strictEqual(await page.evaluate(() => window.__pc.asks), asks, 'the PC is not asked');
+    assert.strictEqual((await reqs('coach-scenario')).length, 1);
+    await page.goto(base + '#home');
+    const card = await page.textContent('.home-card[data-module="link"]');
+    assert.ok(card.includes('answers from the cloud run') && !card.includes('PC link'), card);
+    await page.click('[data-advice]');
+    await page.waitForSelector('#lk-queued');
+    assert.ok((await page.textContent('#lk-queued')).includes(QUEUED_CLOUD));
+    await page.click('#me-plan');
+    await page.waitForSelector('#me-plan-queued');
+    assert.ok((await page.textContent('#me-plan-queued')).includes(QUEUED_CLOUD));
+    assert.strictEqual((await reqs('advice')).length, 1); assert.strictEqual((await reqs('weekly-plan')).length, 1);
+    const q = await page.evaluate(() => { const i = { task: 'Say: water', expected: 'tubig', answer: 'tubeg' }; return WL.pc.ask('tagalog-check', i, null, i).then(() => 'answered', (e) => e.queued ? 'queued' : e.message); });
+    assert.strictEqual(q, 'queued');
+    assert.strictEqual((await reqs('tagalog-check')).length, 1);
+    await page.goto(base + '#me');
+    assert.ok(await page.$('#me-plan-queued'));
+    // the cloud answers them all; they show the same way as with a PC
+    const ids = {}; for (const k of ['coach-scenario', 'advice', 'weekly-plan', 'tagalog-check']) ids[k] = (await reqs(k))[0].id;
+    await cloudAnswers({
+      [ids['coach-scenario']]: { task: 'coach-scenario', error: 'Cloud says: try another skill.' },
+      [ids.advice]: { task: 'advice', answer: { headline: 'Cloud advice', points: ['a', 'b', 'c'], next: 'n' } },
+      [ids['weekly-plan']]: { task: 'weekly-plan', answer: { headline: 'Cloud plan', parts: { home: { focus: 'f', why: 'w' } }, check: 'c' } },
+      [ids['tagalog-check']]: { task: 'tagalog-check', answer: { ok: false, corrected: 'tubig', meaning: 'water', explain: 'i, not e', tip: '' } }
+    });
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('wl.me.v1')).plan);
+    assert.strictEqual(await page.evaluate(() => WL.pc.queued().length), 0);
+    await page.goto(base + '#home');
+    assert.ok((await page.textContent('.home-card[data-module="link"]')).includes('Cloud advice'));
+  });
+  await t.step('an old answer the phone is not waiting for is dropped, not shown again', async () => {
+    await cloudAnswers({ 'r-old-1': { task: 'advice', answer: { headline: 'Stale advice', points: ['x'], next: 'y' }, at: '2026-11-01T10:00:00Z' } });
+    await page.waitForTimeout(100);
+    assert.ok(!(await page.textContent('.home-card[data-module="link"]')).includes('Stale advice'));
+    assert.strictEqual(await page.evaluate(() => Object.keys(WL.driveSync.answers()).length), 0);
+  });
+  await t.step('no PC and no Drive sync: buttons are off and the note says both ways to get answers', async () => {
+    await page.evaluate(() => localStorage.setItem('test.drive.off', '1'));
+    await page.reload();
+    await page.goto(base + '#coach');
+    const txt = await page.textContent('#view');
+    assert.ok(txt.includes('Pair the PC link') && txt.includes('Sync with Google Drive'), txt);
+    assert.ok(await page.$eval('#co-new', (b) => b.disabled));
+    await page.goto(base + '#home');
+    assert.ok(!(await page.$('.home-card[data-module="link"]')), 'no advice card without a way to answer');
+    const e = await page.evaluate(() => WL.pc.ask('advice', {}).then(() => '', (x) => (x.queued ? 'queued: ' : '') + x.message));
+    assert.ok(/Pair the PC link first/.test(e) && !/queued/.test(e), e);
+    await page.evaluate(() => { localStorage.removeItem('test.pc.unpaired'); localStorage.removeItem('test.drive.off'); });
   });
   await t.step('without Drive sync nothing is queued and the error says how to let the cloud answer', async () => {
     await page.evaluate(() => { localStorage.setItem('test.drive.off', '1'); const f = JSON.parse(window.__drive.content); f.requests = []; localStorage.setItem('test.drive.content', JSON.stringify(f)); });

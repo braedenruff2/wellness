@@ -57,12 +57,15 @@
     }).join('') + '</ul>' + (st.some(function (s) { return s.scores.length >= 2; }) ? '<p class="meta">Bars: your last scores per skill, oldest on the left.</p>' : '') + '</div>';
   }
 
+  function askable() { return pc.canAsk ? pc.canAsk() : pc.ready(); }
   function mainHtml() {
     var can = K.canText(S);
     var h = '<h1>Parenting practice</h1><p class="ui meta">' + esc(S.child.name || 'Your daughter') + ' is ' + esc(K.ageText(S.child.birth)) + '.' +
       (can ? ' She can: ' + esc(can) + '.' : '') + ' <a href="#coach/setup">Change</a></p>';
     if (!can) h += '<p class="ui meta" id="co-can-nudge"><a href="#coach/setup">Tell the app what she can do now</a> (walks, climbs, first words…) so scenarios fit her, not a typical child her age.</p>';
-    if (!pc.ready()) h += '<div class="card ui"><p>Scenarios and feedback come from Claude on your PC. <a href="#link">Pair the PC link</a> first (home Wi-Fi).</p></div>';
+    if (!pc.ready()) h += pc.canAsk && pc.canAsk()
+      ? '<p class="meta ui" id="co-cloud">Scenarios and feedback come from the next cloud run (within about 5 hours). <a href="#link">Pair the PC link</a> for answers in a minute or two at home.</p>'
+      : '<div class="card ui"><p>Scenarios and feedback come from Claude on your PC. <a href="#link">Pair the PC link</a> first (home Wi-Fi), or turn on Settings › Sync with Google Drive for answers from the cloud.</p></div>';
     if (err) h += '<p class="no ui">' + esc(err) + '</p>' + (/reach|time|connect|fail|network|wi-?fi|answer/i.test(err) && !/Claude didn/i.test(err)
       ? '<p class="meta ui" id="co-offline">Your PC isn’t answering (away from home Wi-Fi, or it’s asleep). The tips and past advice below still work; try again at home.</p>' : '');
     h += queuedHtml();
@@ -77,7 +80,7 @@
       var sug = K.suggestSkill(S);
       h += '<div class="card ui"><h3>Practise a moment</h3><p class="meta">Pick a skill, or let it choose (suggested: ' + esc(sug) + ').</p><div class="chips">' +
         [''].concat(K.SKILLS).map(function (s) { return '<button class="chip" data-skill="' + esc(s) + '" aria-pressed="' + (pickSkill === s) + '">' + esc(s || 'Suggested') + '</button>'; }).join('') +
-        '</div><div class="row" style="margin-top:10px"><button class="primary" id="co-new"' + (pc.ready() ? '' : ' disabled') + '>New scenario</button></div></div>';
+        '</div><div class="row" style="margin-top:10px"><button class="primary" id="co-new"' + (askable() ? '' : ' disabled') + '>New scenario</button></div></div>';
     }
     if (window.WLMe) h += WLMe.planLine('coach');
     var tips = K.tips(S);
@@ -87,7 +90,7 @@
     }).join('') + '</ul></div>';
     if (!waiting) h += '<div class="card ui"><h3>Something happening with ' + esc(S.child.name || 'her') + '?</h3><p class="meta">Describe a real situation you’re dealing with: what she does, when, what you’ve tried. Claude checks current guidance for her age and gives you steps, words to say, and why.</p>' +
       '<label class="sr" for="co-real">Your situation</label><textarea id="co-real" rows="5" placeholder="e.g. She screams when I put her in the car seat, every time, since last week. I’ve tried…">' + esc(S.realDraft || '') + '</textarea>' +
-      '<div class="row" style="margin-top:8px"><button class="primary" id="co-real-go"' + (pc.ready() ? '' : ' disabled') + '>Get advice</button></div></div>';
+      '<div class="row" style="margin-top:8px"><button class="primary" id="co-real-go"' + (askable() ? '' : ' disabled') + '>Get advice</button></div></div>';
     var last = S.history.slice().reverse();
     if (last.length) {
       h += '<div class="card ui"><h3>Past practice</h3><ul class="list">' + last.slice(0, 20).map(function (x) {
@@ -163,6 +166,11 @@
   function start(task, input, onAnswer) {
     var meta = task === 'coach-grade' ? { answer: input.answer, scn: S.current ? JSON.parse(JSON.stringify(S.current)) : null }
       : task === 'coach-advice' ? { answer: input.situation } : null;
+    if (!pc.ready() && pc.orQueue) {
+      // no PC paired: straight to the cloud queue when Drive sync is on (shown in the queued card), else say why
+      var q = pc.orQueue(new Error('Pair the PC link first (Settings › PC link).'), task, input, meta);
+      err = q.queued ? null : q.message; finish(); return;
+    }
     pc.post('/v1/ask', { task: task, input: input }).then(null, function (e) { throw pc.orQueue ? pc.orQueue(e, task, input, meta) : e; }).then(function (r) {
       S.pending = { job: r.job, task: task, at: Date.now(), answer: input.answer || input.situation || '' };
       if (task === 'coach-grade' && S.current) S.pending.scn = JSON.parse(JSON.stringify(S.current)); // graded against this one
@@ -195,7 +203,7 @@
   function queuedHtml() {
     var q = pc.queued ? pc.queued().filter(function (x) { return /^coach-/.test(x.task); }) : [];
     if (!q.length) return '';
-    return '<div class="card ui" id="co-queued"><p>' + esc(pc.QUEUED) + '</p><ul class="list">' + q.map(function (x) {
+    return '<div class="card ui" id="co-queued"><p>' + esc(pc.queuedText ? pc.queuedText() : pc.QUEUED) + '</p><ul class="list">' + q.map(function (x) {
       var m = x.meta || {}, what = x.task === 'coach-grade' ? 'Feedback on “' + ((m.scn && m.scn.title) || 'your answer') + '”'
         : x.task === 'coach-advice' ? 'Advice: “' + String(m.answer || '').slice(0, 60) + (String(m.answer || '').length > 60 ? '…' : '') + '”' : 'A new scenario';
       return '<li><span class="grow">' + esc(what) + '</span><span class="meta">asked ' + esc(new Date(x.at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })) + '</span></li>';
@@ -215,7 +223,7 @@
   }
 
   function card() {
-    if (!S.child.birth && !pc.ready()) return '';
+    if (!S.child.birth && !askable()) return '';
     var st = K.skillStats(S).filter(function (s) { return s.n; }), last = S.history[S.history.length - 1];
     return '<div class="meta ui">Parenting practice</div><h3>' + (S.current ? esc(S.current.title) : waiting ? 'Claude is on it…' : 'Practise a moment with ' + esc(S.child.name || 'her')) + '</h3>' +
       (last && last.result && last.result.score != null ? '<p class="meta ui">Last: ' + last.result.score + '/10 in ' + esc(last.skill) + ' · ' + st.length + ' skill' + (st.length === 1 ? '' : 's') + ' practised</p>' : '') +

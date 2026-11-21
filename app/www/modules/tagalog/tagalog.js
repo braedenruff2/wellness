@@ -44,7 +44,7 @@
     var c = S.checks || [], q = WL.pc && WL.pc.queued ? WL.pc.queued('tagalog-check') : [];
     if (!c.length && !q.length) return '';
     return '<div class="card ui" id="tl-checks"><h2>Claude checked your answers</h2>' +
-      (q.length ? '<p class="meta">' + q.length + ' answer' + (q.length === 1 ? '' : 's') + ' waiting: ' + esc(WL.pc.QUEUED) + '</p>' : '') +
+      (q.length ? '<p class="meta">' + q.length + ' answer' + (q.length === 1 ? '' : 's') + ' waiting: ' + esc(WL.pc.queuedText ? WL.pc.queuedText() : WL.pc.QUEUED) + '</p>' : '') +
       c.slice().reverse().map(function (x) {
         return '<p class="meta" style="margin-bottom:0">' + esc(x.prompt) + '</p><p style="margin:.2em 0">You wrote: <span lang="tl">' + esc(x.given) + '</span></p>' + checkHtml(x.a);
       }).join('') + (c.length ? '<div class="row"><button class="link" id="tl-checks-clear">Done, clear these</button></div>' : '') + '</div>';
@@ -124,13 +124,13 @@
         var ok = T.check(ex, given);
         if (ok) right++;
         T.recordAnswer(S, pk, l, ex, ok, null, given); save();
-        var askable = !ok && ex.type === 'type' && String(given || '').trim() && WL.pc && WL.pc.ready();
+        var askable = !ok && ex.type === 'type' && String(given || '').trim() && WL.pc && (WL.pc.canAsk ? WL.pc.canAsk() : WL.pc.ready());
         $('#tl-fb').innerHTML = '<p class="' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ Right!' : '✗ Answer: <b>' + esc(ex.answer) + '</b>') + '</p>' +
           (ok && T.missedPo(ex, given) ? '<p class="meta" id="tl-po">With an elder, add “po”: <b>' + esc(ex.answer) + '</b></p>' : '') +
           '<div class="row"><button class="primary" id="tl-next">Next</button>' + (askable ? '<button id="tl-ask">Ask Claude about my answer</button>' : '') + '</div><div id="tl-claude" aria-live="polite"></div>';
         if (askable) $('#tl-ask').onclick = function () {
           var b = this; b.disabled = true;
-          var out = $('#tl-claude'); out.innerHTML = '<p class="meta">Asking Claude on your PC…</p>';
+          var out = $('#tl-claude'); out.innerHTML = '<p class="meta">' + (WL.pc.ready() ? 'Asking Claude on your PC…' : 'Asking Claude…') + '</p>';
           var input = { task: ex.prompt, expected: ex.answer, answer: String(given) };
           WL.pc.ask('tagalog-check', input, null, input).then(function (a) {
             if (!out.isConnected) return;

@@ -50,7 +50,7 @@
   }
 
   function adviceHtml() {
-    var q = pc.queued && pc.queued('advice').length && !(advice && advice.waiting != null) ? '<p class="meta" id="lk-queued">' + esc(pc.QUEUED) + '</p>' : '';
+    var q = pc.queued && pc.queued('advice').length && !(advice && advice.waiting != null) ? '<p class="meta" id="lk-queued">' + esc(pc.queuedText ? pc.queuedText() : pc.QUEUED) + '</p>' : '';
     return q + adviceBody();
   }
   function adviceBody() {
@@ -152,10 +152,11 @@
   }
 
   function card() {
-    if (!pc.ready()) return '';
+    var paired = pc.ready();
+    if (!paired && !(pc.canAsk && pc.canAsk())) return '';
     advice = advice || pc.settings().advice || null;
-    return '<div class="meta ui">Claude on your PC</div><h3>Advice for this week</h3>' + adviceHtml() +
-      '<div class="row ui"><button class="primary" data-advice="1"' + (adviceBusy ? ' disabled' : '') + '>' + (advice && advice.answer ? 'Ask again' : 'Ask for advice') + '</button><a class="btn" href="#link">PC link</a></div>';
+    return '<div class="meta ui">' + (paired ? 'Claude on your PC' : 'Claude (answers from the cloud run)') + '</div><h3>Advice for this week</h3>' + adviceHtml() +
+      '<div class="row ui"><button class="primary" data-advice="1"' + (adviceBusy ? ' disabled' : '') + '>' + (advice && advice.answer ? 'Ask again' : 'Ask for advice') + '</button>' + (paired ? '<a class="btn" href="#link">PC link</a>' : '') + '</div>';
   }
 
   WL.register({

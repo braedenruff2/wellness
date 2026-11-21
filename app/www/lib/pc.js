@@ -77,7 +77,8 @@
   /* Claude on the PC: starts the request, then checks every few seconds (it takes 10 s to a few minutes).
      onWait(seconds) is called while waiting. Resolves to Claude's answer object. */
   function ask(task, input, onWait, meta) {
-    if (!ready()) return Promise.reject(new Error('Pair the PC link first (Settings > PC link).'));
+    // not paired: with Drive sync on, it goes straight to the cloud queue (e.queued), else "pair first"
+    if (!ready()) return Promise.reject(orQueue(new Error('Pair the PC link first (Settings › PC link).'), task, input, meta));
     var t0 = Date.now();
     return post('/v1/ask', { task: task, input: input }).then(function (r) { return poll(r.job, t0, onWait); }, function (e) {
       throw orQueue(e, task, input, meta);
@@ -107,6 +108,11 @@
      Each module registers how to show an answer (onCloudAnswer), the same code it uses for a PC answer.
      P.cloud keeps, per queued id, the task and what the module needs to show the answer later (meta). */
   var QUEUED = 'Your PC isn’t answering, so this will be answered by the next cloud run (within about 5 hours).';
+  var QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 5 hours).';
+  /* What a waiting request says: "PC isn't answering" only when there is a PC to answer. */
+  function queuedText() { return ready() ? QUEUED : QUEUED_CLOUD; }
+  /* Claude can be asked at all: the PC link is paired, or Drive sync is on (the cloud run answers). */
+  function canAsk() { return ready() || cloudOn(); }
   var handlers = {};
   function cloud() { if (!P.cloud || typeof P.cloud !== 'object') P.cloud = {}; return P.cloud; }
   function unreachable(e) {
@@ -143,14 +149,11 @@
       var x = new Error(String((e && e.message) || e) + (WL.driveSync && WL.driveSync.available() ? ' Turn on Settings › Sync with Google Drive and the next cloud run can answer instead.' : ''));
       return x;
     }
-    var q = new Error(QUEUED); q.queued = r; return q;
+    var q = new Error(queuedText()); q.queued = r; return q;
   }
   /* Asks the PC; if it can't be reached, queues for the cloud. Resolves to the answer, or rejects (e.queued set
      when it went to the cloud). Used where the PC must be reached first (sync) before asking. */
-  function askOrQueue(task, input, onWait, meta) {
-    if (!ready()) return Promise.reject(orQueue(new Error('Pair the PC link first (Settings › PC link).'), task, input, meta));
-    return ask(task, input, onWait, meta);
-  }
+  function askOrQueue(task, input, onWait, meta) { return ask(task, input, onWait, meta); }
   function onCloudAnswer(task, fn) { handlers[task] = fn; setTimeout(deliver, 0); }
   /* Hands every cloud answer that has arrived to its module (once). A cloud answer is {task, answer} or
      {task, error}; a bare answer object works too. */
@@ -161,6 +164,9 @@
     Object.keys(all).forEach(function (id) {
       var c = cloud()[id], a = all[id] || {};
       var task = (c && c.task) || (typeof a.task === 'string' ? a.task : '');
+      // an answer this phone isn't waiting for and that is over a week old (a sheet row seen again after a restore
+      // or once its id left the acked list) is dropped, not shown again
+      if (!c && a.at && Date.parse(a.at) < old) { d.takeAnswer(id); return; }
       var h = handlers[task]; if (!h || (!c && !a.task)) return;
       d.takeAnswer(id); delete cloud()[id]; store.save(P); n++;
       var ans = a && typeof a === 'object' && a.answer && typeof a.answer === 'object' ? a.answer : (a.error ? null : a);
@@ -180,7 +186,7 @@
   WL.pc = {
     status: status, ready: ready, request: request, get: get, post: post, sync: sync, ask: ask, poll: poll, events: events,
     askOrQueue: askOrQueue, orQueue: orQueue, queue: queue, queued: queued, onCloudAnswer: onCloudAnswer, deliver: deliver, cloudOn: cloudOn,
-    unreachable: unreachable, QUEUED: QUEUED,
+    unreachable: unreachable, QUEUED: QUEUED, QUEUED_CLOUD: QUEUED_CLOUD, queuedText: queuedText, canAsk: canAsk,
     settings: function () { return P; }, save: function () { store.save(P); }, storeKey: store.key, reload: function () { P = store.load(); },
     reset: function () { P.sent = {}; P.lastSync = null; P.weekSent = null; store.save(P); }
   };

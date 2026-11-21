@@ -84,14 +84,15 @@
       (full ? '' : '<div class="row" style="margin-top:8px"><span class="grow meta">Takes 20 seconds. Only on your phone and your PC.</span><button class="link" id="me-skip">Skip today</button></div>') + '</div>';
   }
 
+  function askable() { var pc = WL.pc; return !!pc && (pc.canAsk ? pc.canAsk() : pc.ready()); }
   function planHtml() {
     var p = S.plan, due = K.planDue(S, new Date()), pc = WL.pc;
     var h = '';
     if (p && !due) h += '<p><b>This week:</b> ' + esc(p.headline) + '</p>' + (K.planFor(S, 'home', new Date()) ? '<p class="meta">' + esc(K.planFor(S, 'home', new Date()).focus) + '</p>' : '');
     if (due && !planBusy && planQueued()) h += queuedLine();
     else if (due && !planBusy && K.planFailed(S, new Date())) h += '<div class="row" id="me-plan-failed"><span class="grow meta">Couldn’t make your plan this time.' +
-      (pc && pc.ready() ? '</span><button id="me-plan">Try again</button></div>' : ' It tries again when your PC answers.</span></div>');
-    else if (due && pc && pc.ready()) h += '<div class="row"><span class="grow meta">' + (p ? 'Time for a new weekly plan.' : 'Claude can make you a plan for the week from your check-ins and answers.') + '</span>' +
+      (askable() ? '</span><button id="me-plan">Try again</button></div>' : ' It tries again when your PC answers.</span></div>');
+    else if (due && askable()) h += '<div class="row"><span class="grow meta">' + (p ? 'Time for a new weekly plan.' : 'Claude can make you a plan for the week from your check-ins and answers.') + '</span>' +
       '<button id="me-plan"' + (planBusy ? ' disabled' : '') + '>' + (planBusy ? 'Claude is on it…' : 'Make this week’s plan') + '</button></div>';
     return h;
   }
@@ -123,7 +124,7 @@
   /* quiet: the automatic try (no toasts). The day's try counts as used only when the PC answered (Claude's plan or
      Claude's error); away from home Wi-Fi it simply tries again later. */
   function makePlan(done, quiet) {
-    var pc = WL.pc; if (!pc || !pc.ready() || planBusy) return;
+    var pc = WL.pc; if (!askable() || planBusy) return;
     planBusy = true;
     var input = K.forPlan(S, new Date());
     try { var co = JSON.parse(localStorage.getItem('wl.coach.v1') || 'null'); if (window.CoachCore && co && co.child && co.child.birth) input.age = CoachCore.ageText(co.child.birth); } catch (e) {}
@@ -143,7 +144,7 @@
     });
   }
   function planQueued() { return !!(WL.pc && WL.pc.queued && WL.pc.queued('weekly-plan').length); }
-  function queuedLine() { return '<p class="meta" id="me-plan-queued">' + esc(WL.pc.QUEUED) + '</p>'; }
+  function queuedLine() { return '<p class="meta" id="me-plan-queued">' + esc(WL.pc.queuedText ? WL.pc.queuedText() : WL.pc.QUEUED) + '</p>'; }
   if (WL.pc && WL.pc.onCloudAnswer) WL.pc.onCloudAnswer('weekly-plan', function (e, a) {
     var p = e ? null : K.cleanPlan(a, new Date());
     S.planTried = today();
@@ -173,9 +174,9 @@
     } else h += '<p class="meta">No plan yet.</p>';
     var failed = !planBusy && K.planFailed(S, new Date());
     if (!planBusy && planQueued()) { h += queuedLine(); failed = false; }
-    else if (failed) h += '<p class="meta" id="me-plan-failed">Couldn’t make your plan this time.' + (WL.pc && WL.pc.ready() ? '' : ' It tries again when your PC answers.') + '</p>';
-    h += WL.pc && WL.pc.ready() ? '<button id="me-plan"' + (planBusy ? ' disabled' : '') + '>' + (planBusy ? 'Claude is on it…' : failed ? 'Try again' : (S.plan ? 'Make a new plan now' : 'Make this week’s plan')) + '</button>'
-      : '<p class="meta">The weekly plan needs the PC link (Settings › PC link).</p>';
+    else if (failed) h += '<p class="meta" id="me-plan-failed">Couldn’t make your plan this time.' + (askable() ? '' : ' It tries again when your PC answers.') + '</p>';
+    h += askable() ? '<button id="me-plan"' + (planBusy ? ' disabled' : '') + '>' + (planBusy ? 'Claude is on it…' : failed ? 'Try again' : (S.plan ? 'Make a new plan now' : 'Make this week’s plan')) + '</button>'
+      : '<p class="meta">The weekly plan needs the PC link (Settings › PC link) or Settings › Sync with Google Drive.</p>';
     h += '</div>';
     var tr = K.trend(S, new Date(), 14);
     if (tr.n >= 2) {
@@ -211,7 +212,7 @@
   // The weekly plan makes itself when one is due and the PC link answers (at most one answered try a day; the button
   // is there too): shortly after the app opens, whenever it comes back to the front, and every 15 minutes.
   function autoPlan() {
-    if (WL.pc && WL.pc.ready() && K.planDue(S, new Date()) && S.planTried !== today() && !document.hidden && !planQueued() && (S.feedback.length || Object.keys(S.checkins).length))
+    if (askable() && K.planDue(S, new Date()) && S.planTried !== today() && !document.hidden && !planQueued() && (S.feedback.length || Object.keys(S.checkins).length))
       makePlan(redrawCard, true);
   }
   setTimeout(autoPlan, 20000);
