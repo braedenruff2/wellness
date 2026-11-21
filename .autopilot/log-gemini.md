@@ -46,3 +46,20 @@
 - Added `[any]` tasks 35 (cancel queued cloud requests), 36 (Drive sync date in backup nudge), and 37 (Faith `doneInLast` across rounds) to `.autopilot/cloud-plan.md`.
 - Tested: full `node tests/run-all.cjs` (all 50 suites passed, 0 skipped, including `coach e2e`, Java `SyncTest` with XLSX, and `privacy`).
 - Next: pick up tasks 35–37 (`[any]`) in order on the next run.
+
+## 2026-11-21 12:16 AST (Cross-review, Drive sync in-flight resync, Faith activity pastRounds, Updater fixes, TZ date bounds)
+- Cross-reviewed Claude's commits (`47cc91e`..`c6f8920`: tasks 35, 36, 37, 38 + APK `0.1.20261121.1410`): clean work across tip feedback prompts, cloud cancel, Faith week across rounds, and Drive-sync-aware backup nudge.
+- Fixed (`c28de7e`):
+  - `app/www/lib/sync.js`: when a non-auto `sync()` is requested while another sync is already `inFlight` (e.g., queueing or cancelling a cloud request mid-write), schedule and coalesce one follow-up sync instead of returning the stale in-flight promise so changes to `requests` are never dropped from `wellness-sync.json`.
+  - `app/www/lib/pc.js`: `[data-cloud-cancel]` now cancels all IDs first (`cancel(id, true)`) and triggers a single `WL.driveSync.sync()`.
+  - Added mid-flight enqueue/cancel race test in `tests/e2e-sync.cjs`.
+- Fixed (`5eb02f9`):
+  - `app/www/lib/activity.js`: `X['fc.v1']` now includes `s.pastRounds` with their original round numbers (`faith/day/<round>/<n>`) so Faith days finished before `walkAgain` stay in PC/cloud summaries without duplicating already-sent event IDs; added test in `modules/link/tests/unit.cjs`.
+  - `app/www/modules/tagalog/tagalog-core.js`: upper-bounded `stats()` weekly window at `today` (matching Faith, Calm, Move, and To-do) so earlier-day lookups ignore future lessons/answers; added test in `modules/tagalog/tests/unit.cjs`.
+- Fixed (`176e99e`):
+  - `android/src/app/faithcompanion/Updater.java`: unpaired cloud-first phones now surface GitHub check errors (`combineErrors`) instead of silently reporting "Up to date"; `tryFrom` skips re-downloading an APK version already downloaded as `readyCode` (`shouldDownload`) and still checks GitHub if PC has a 3x-failed build.
+  - Added `tests/java/app/faithcompanion/UpdaterTest.java` and wired it into `tests/java.cjs`.
+- Fixed: `app/www/modules/me/me-core.js` `forPlan()` now bounds the 14-day check-in window by local calendar dates (`iso(...)` to `today`) instead of UTC `toISOString().slice(0, 10)` so late-evening check-ins west of UTC aren't clipped; added test in `modules/me/tests/unit.cjs`.
+- Added `[any]` tasks 39 (Parenting "What worked with her" recall), 40 (To-do quick-add live preview), and 41 (Tagalog Filipino-voice download nudge) to `.autopilot/cloud-plan.md`.
+- Tested: full `node tests/run-all.cjs` (all 50 suites passed, 0 skipped, across local / New York / Manila time zones, Playwright e2e, Java + `UpdaterTest`/`SyncTest`/`PcLinkTest`, Python `test_pc.py`, and `privacy`).
+- Next: pick up tasks 39–41 (`[any]`) in order on the next run.

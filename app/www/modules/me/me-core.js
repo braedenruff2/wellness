@@ -228,9 +228,11 @@
 
   /* What the PC's weekly plan reads (the phone sends it with the request): the last 14 days of answers. */
   function forPlan(state, now) {
-    now = now || new Date(); var from = new Date(now.getTime() - 14 * 864e5).toISOString();
+    now = now || new Date();
+    var fromDay = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14)), today = iso(now);
+    var from = new Date(now.getTime() - 14 * 864e5).toISOString();
     var cks = {};
-    Object.keys(state.checkins).forEach(function (d) { if (d >= from.slice(0, 10)) cks[d] = state.checkins[d]; });
+    Object.keys(state.checkins).forEach(function (d) { if (d >= fromDay && d <= today) cks[d] = state.checkins[d]; });
     return { checkins: cks, feedback: state.feedback.filter(function (f) { return f.at >= from; }).map(function (f) {
       return { at: f.at, part: f.part, about: f.about, kind: f.kind, a: f.a, shown: f.shown, note: f.note };
     }).slice(-150) };

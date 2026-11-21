@@ -254,4 +254,13 @@ t('broken nights (2+ wakes on 3 of the last 5 check-ins) get their own line', ()
   K.checkin(s, '2026-11-20', 'wakes', '2');
   assert.ok(K.guidance(s, D(20), 9).some((g) => g.key === 'brokennights' && /3 of the last 3/.test(g.text)));
 });
+t('forPlan: check-in window uses local calendar dates (late evening west of UTC keeps day -14, ignores future)', () => {
+  const s = K.defaults();
+  K.checkin(s, '2026-11-05', 'sleep', '7 h+'); // 15 days before Nov 20: excluded
+  K.checkin(s, '2026-11-06', 'sleep', '5–6 h'); // exactly 14 local days before Nov 20: included even at 23:30 AST/EST
+  K.checkin(s, '2026-11-20', 'sleep', '6–7 h'); // today: included
+  K.checkin(s, '2026-11-22', 'sleep', '7 h+'); // future relative to Nov 20: excluded
+  const f = K.forPlan(s, new Date(2026, 10, 20, 23, 30));
+  assert.deepStrictEqual(Object.keys(f.checkins).sort(), ['2026-11-06', '2026-11-20']);
+});
 console.log(n + ' me unit tests passed');
