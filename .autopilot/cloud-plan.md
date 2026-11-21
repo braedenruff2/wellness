@@ -110,5 +110,5 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 26. (done 20 Nov cloud: practicesThisWeek) Faith Pray list: practices done this week get a tick and a count ("2× this week"); tests.
 27. (done 20 Nov 20:45, cloud) To-do quick add: real weekday names only ("call friend"), "every <day>", "every other <day>", "in N days",
     "next week", "this weekend", month names, "tonight at 7" = pm. Tagalog typed answers: accents and hyphens forgiven.
-28. [any] To-do: "every 2 months" / "every 3 months" / "every year" repeats (month-end and Feb 29 rules like monthly); tests.
-29. [any] Tagalog: typed answers: accept a missing "po"/"ho" only where the lesson marks it optional (pack field), never by default; tests.
+28. (done 21 Nov 00:50, Claude: month2/month3/yearly, MONTH_STEP) To-do: "every 2 months" / "every 3 months" / "every year" repeats (month-end and Feb 29 rules like monthly); tests.
+29. (done 21 Nov 00:50, Claude: exercise field poOptional, T.missedPo note) Tagalog: typed answers: accept a missing "po"/"ho" only where the lesson marks it optional (pack field), never by default; tests.
