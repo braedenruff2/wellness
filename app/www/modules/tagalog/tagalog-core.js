@@ -5,12 +5,13 @@
                               answers:[{at, pack, day, ok, prompt}], source, lastCheck } */
 (function (root) {
   'use strict';
+  var WLD = root.WLDates || require('../../lib/dates.js');
   var INTERVALS = [0, 1, 2, 4, 8, 16, 32]; // days until the next review, by box
   // where new weeks come from (the PC pushes the wellness folder to this GitHub repo; changeable in the app)
   var DEFAULT_SOURCE = 'https://raw.githubusercontent.com/braedenruff2/wellness/main/modules/tagalog/packs/';
   function defaults() { return { packs: {}, done: {}, cards: {}, answers: [], reviews: [], source: DEFAULT_SOURCE, lastCheck: null, settings: { slow: true } }; }
-  function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
-  function addDays(s, n) { var p = s.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2] + n); return iso(d); }
+  var iso = WLD.iso;
+  var addDays = WLD.addDays;
 
   /* Pack format check (used by the build tool, the tests, and before accepting a downloaded pack). */
   function checkPack(p) {
@@ -40,8 +41,13 @@
     return e;
   }
 
-  /* Compare typed answers kindly: case, punctuation, extra spaces and the ho/po variant don't matter. */
-  function norm(s) { return String(s || '').toLowerCase().replace(/[’']/g, "'").replace(/[.,!?;:"“”]/g, '').replace(/\s+/g, ' ').trim(); }
+  /* Compare typed answers kindly: case, punctuation, extra spaces, accents a keyboard adds (é, ñ), a hyphen or a space
+     ("araw-araw" / "araw araw") and the ho/po variant don't matter. */
+  function norm(s) {
+    s = String(s || '').toLowerCase();
+    if (s.normalize) s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return s.replace(/[’‘`´']/g, "'").replace(/[-‐‑–—_/]/g, ' ').replace(/[.,!?;:"“”…()¿¡]/g, '').replace(/\s+/g, ' ').trim();
+  }
   function check(ex, given) {
     var g = norm(given);
     if (!g) return false;

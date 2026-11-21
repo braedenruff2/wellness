@@ -45,6 +45,13 @@ t('scenario, grade, skills and what to practise next', () => {
   const low = st.slice().sort((a, b) => a.avg - b.avg)[0].skill;
   assert.strictEqual(K.suggestSkill(s), low, 'then the weakest');
   assert.strictEqual(K.scenarioInput(s, 'Sleep', now).recent.length, 10);
+  { // scores over time, oldest first, the last 10 kept
+    const q = K.defaults();
+    for (let i = 1; i <= 12; i++) { K.setScenario(q, { skill: 'Sleep', scenario: 'S' }, now); K.grade(q, 'answer here', { score: (i % 10) + 1 }, now); }
+    const sl = K.skillStats(q).find((x) => x.skill === 'Sleep');
+    assert.strictEqual(sl.n, 12); assert.deepStrictEqual(sl.scores, [4, 5, 6, 7, 8, 9, 10, 1, 2, 3]);
+    assert.ok(K.skillStats(q).filter((x) => x.skill !== 'Sleep').every((x) => Array.isArray(x.scores) && !x.scores.length));
+  }
   assert.strictEqual(K.grade(K.defaults(), 'x', {}), null, 'nothing to grade');
   const bad = K.cleanResult({ score: 42 });
   assert.strictEqual(bad.score, null);

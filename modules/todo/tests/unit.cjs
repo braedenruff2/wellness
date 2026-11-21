@@ -18,6 +18,66 @@ t('quickParse: dates and repeats at the end of the line', () => {
   assert.strictEqual(T.quickParse('read Monday notes', wed).due, null, 'only at the end');
 });
 
+t('quickParse: weekday words only match real day names', () => {
+  for (const s of ['call friend', 'go to the wedding', 'plan the month', 'fix the sundeck', 'buy satellite dish', 'wash the satin'])
+    assert.deepStrictEqual(T.quickParse(s, wed), { text: s, due: null, repeat: null, at: null }, s);
+  assert.strictEqual(T.quickParse('x tues', wed).due, '2026-11-24');
+  assert.strictEqual(T.quickParse('x thurs', wed).due, '2026-11-19');
+  assert.strictEqual(T.quickParse('x this friday', wed).due, '2026-11-20');
+});
+
+t('quickParse: "every monday" repeats weekly from the next one (today counts)', () => {
+  assert.deepStrictEqual(T.quickParse('bins every thursday', wed), { text: 'bins', due: '2026-11-19', repeat: 'weekly', at: null });
+  assert.deepStrictEqual(T.quickParse('laundry every wednesday', wed), { text: 'laundry', due: '2026-11-18', repeat: 'weekly', at: null });
+  assert.deepStrictEqual(T.quickParse('call Mom every sunday at 7pm', wed), { text: 'call Mom', due: '2026-11-22', repeat: 'weekly', at: '19:00' });
+  assert.deepStrictEqual(T.quickParse('call Mom at 7pm every sunday', wed), { text: 'call Mom', due: '2026-11-22', repeat: 'weekly', at: '19:00' });
+  assert.strictEqual(T.quickParse('gym every mondays', wed).repeat, 'weekly');
+  assert.deepStrictEqual(T.quickParse('recycling every other friday', wed), { text: 'recycling', due: '2026-11-20', repeat: 'biweekly', at: null });
+  assert.strictEqual(T.quickParse('x every 2nd tuesday', wed).due, '2026-11-24');
+  assert.strictEqual(T.quickParse('x every other week', wed).repeat, 'biweekly', 'still works');
+  assert.strictEqual(T.quickParse('rent every month', wed).repeat, 'monthly', '"month" is not Monday');
+  const s = T.defaults(), b = T.add(s, 'bins every thursday', null, wed);
+  T.complete(s, b.id, new Date(2026, 10, 19, 8));
+  assert.strictEqual(b.due, '2026-11-26', 'stays on Thursdays');
+});
+
+t('quickParse: "in 3 days", "next week", "this weekend", month names', () => {
+  assert.deepStrictEqual(T.quickParse('water plants in 3 days', wed), { text: 'water plants', due: '2026-11-21', repeat: null, at: null });
+  assert.strictEqual(T.quickParse('plant in 2 weeks', wed).due, '2026-12-02');
+  assert.strictEqual(T.quickParse('x in a week', wed).due, '2026-11-25');
+  assert.strictEqual(T.quickParse('x in two days', wed).due, '2026-11-20');
+  assert.strictEqual(T.quickParse('x in 0 days', wed).due, null, '0 is left as text');
+  assert.strictEqual(T.quickParse('x in 900 days', wed).due, null, 'more than a year is left as text');
+  assert.strictEqual(T.quickParse('dentist next week', wed).due, '2026-11-23', 'next Monday');
+  assert.strictEqual(T.quickParse('dentist next week', new Date(2026, 10, 22, 9)).due, '2026-11-23', 'from Sunday: the next day');
+  assert.strictEqual(T.quickParse('dentist next week', new Date(2026, 10, 23, 9)).due, '2026-11-30', 'from Monday: a week on');
+  assert.strictEqual(T.quickParse('garage this weekend', wed).due, '2026-11-21');
+  assert.strictEqual(T.quickParse('garage on the weekend', new Date(2026, 10, 22, 9)).due, '2026-11-22', 'on a Sunday: today');
+  assert.strictEqual(T.quickParse('plan weekend', wed).due, null, 'a bare "weekend" is part of the task');
+  assert.deepStrictEqual(T.quickParse('pay rent dec 1', wed), { text: 'pay rent', due: '2026-12-01', repeat: null, at: null });
+  assert.strictEqual(T.quickParse('party 3 december', wed).due, '2026-12-03');
+  assert.strictEqual(T.quickParse('book flights jan 15th', wed).due, '2027-01-15', 'a past month means next year');
+  assert.strictEqual(T.quickParse('x the 24th of december', wed).due, '2026-12-24');
+  assert.strictEqual(T.quickParse('x on Sept 2', wed).due, '2027-09-02');
+  assert.strictEqual(T.quickParse('x feb 30', wed).due, null, 'impossible date is left as text');
+  assert.strictEqual(T.quickParse('chapter 3', wed).due, null);
+  assert.deepStrictEqual(T.quickParse('call at 3pm next week', wed), { text: 'call', due: '2026-11-23', repeat: null, at: '15:00' });
+  assert.strictEqual(T.quickParse('next week', wed).text, 'next week', 'a lone phrase stays the task');
+});
+
+t('quickParse: "tonight at 7" is 7 pm; a stated am or a 24-hour time is kept', () => {
+  const at = (s) => T.quickParse(s, wed).at;
+  assert.strictEqual(at('dinner tonight at 7'), '19:00');
+  assert.strictEqual(at('call at 8 tonight'), '20:00');
+  assert.strictEqual(at('bath at 7:30 tonight'), '19:30');
+  assert.deepStrictEqual(T.quickParse('x this evening at 6', wed), { text: 'x', due: '2026-11-18', repeat: null, at: '18:00' });
+  assert.strictEqual(at('meds tonight at 9am'), '09:00');
+  assert.strictEqual(at('x tonight at 07:00'), '07:00');
+  assert.strictEqual(at('x tonight at 22:00'), '22:00');
+  assert.strictEqual(at('x today at 7'), '07:00', 'only tonight / this evening move it');
+  assert.strictEqual(at('x at 7'), '07:00');
+});
+
 t('groups: overdue / today / upcoming / any time / done', () => {
   const s = T.defaults();
   T.add(s, 'a', { due: '2026-11-17' }, wed); T.add(s, 'b today', null, wed); T.add(s, 'c sat', null, wed); T.add(s, 'd', null, wed);

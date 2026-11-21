@@ -106,4 +106,13 @@ t('restore keeps the slow-voice setting and drops only a damaged answer', () => 
   assert.strictEqual(v.answers.length, 1); assert.strictEqual(v.answers[0].given, 'kumusta');
   assert.strictEqual(T.validate({ cards: {} }).settings.slow, true, 'default stays slow');
 });
+t('typed answers: accents from the keyboard and hyphen/space don\'t matter; letters still do', () => {
+  const ex = { type: 'type', answer: 'Araw-araw po', accept: ['Kumusta ka'] };
+  for (const g of ['araw-araw po', 'araw araw po', 'Araw–araw po…', 'áraw-áraw pó', 'araw - araw po']) assert.ok(T.check(ex, g), g);
+  for (const g of ['Kumustá ka?', '(kumusta ka)', 'kumusta ka!']) assert.ok(T.check(ex, g), g);
+  for (const g of ['arawaraw po', 'araw po', 'kumusta kayo']) assert.ok(!T.check(ex, g), g);
+  assert.ok(T.check({ answer: 'Señora' }, 'senora'), 'ñ typed as n');
+  assert.ok(T.check({ answer: 'Senora' }, 'señora'), 'n typed as ñ');
+});
+
 console.log(n + ' tagalog unit tests passed');

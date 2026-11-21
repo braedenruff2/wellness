@@ -12,6 +12,18 @@ Started 18 Nov 2026 as "Faith Companion"; became this app the same day at his re
   Settings > App updates also has "Check now" and "Update now". Everything you've entered is kept.
 - On the PC: open `app\www\index.html` in Chrome to try it.
 
+## Cloud-first (since 21 Nov 2026)
+The autopilot now works in the cloud and pushes to `main` here after the full test suite passes. The phone updates itself
+from `main` (app from `dist/`, lessons from `modules/tagalog/packs/`), so your PC doesn't need to be on.
+- Private things live in your Google Drive folder **Wellness (private)**, never in this public repo: the signing key
+  (`faith.keystore`, so cloud builds install over your app), your app data (a backup, later a daily sync file), and
+  `autopilot-notes.md` (your requests to the autopilot).
+- New lessons are written by the autopilot on Wednesdays from noon.
+- The PC is still used, when it's on, for instant Claude answers (Parenting, advice, "Ask Claude") and Loudbook's PC voice.
+  When it's off, those requests will wait for the next cloud run (being built).
+- `tools\publish.bat` (every 15 minutes on the PC) first takes what the cloud pushed, then sends any PC changes.
+- Two autopilots work here, Claude and Gemini: `.autopilot/agents.md` says how they share tasks (either can do any, by claiming it) and how they push.
+
 ## Weekly Tagalog lessons (one-time setup)
 Double-click **Turn on lesson updates.bat** once. It makes a public GitHub repo `wellness` and pushes this folder every
 15 minutes. Every Wednesday at noon (when your Claude usage resets) a scheduled Claude run writes next week's 7 lessons
@@ -81,14 +93,14 @@ reads anything they can't (before the downloads, or if something fails).
 - **Log for an earlier day** (Home, bottom): pick one of the last 7 days and use any part as usual: workout sets,
   faith days/journal, calm sessions and ticked to-dos are recorded on that day (WL.logNow()). A banner shows it on every
   screen; "Back to today" or 2 hours ends it.
-- **To do** (`modules/todo`, on Home): quick add with plain words ("call Mom tomorrow", "stretch every day", "rent every month", "recycling every 2 weeks"),
+- **To do** (`modules/todo`, on Home): quick add with plain words ("call Mom tomorrow", "dentist next week", "water plants in 3 days", "party dec 24", "bins every thursday", "recycling every other friday", "stretch every day", "rent every month", "recycling every 2 weeks"),
   repeating tasks, overdue nudges. Reminders: end a task with a time ("bins fri at 7pm", "meds 8:30 pm") or set
   one in its ⋯ sheet; the phone notifies at that time even when the app is closed (TodoAlarm.java, exact alarm,
   re-armed after a reboot/update; repeating tasks get each coming day's reminder). The notification has "Done"
   (ticks the task next time the app is open, or at once if it is) and "Snooze 1 hour".
 
 ## For Claude (how it's built)
-- `app/www/`: shell.js (router, Home, look, speech incl. `fil-PH`, backup of every part), lib/guided.js (voice-guided
+- `app/www/`: shell.js (router, Home, look, speech incl. `fil-PH`, backup of every part), lib/dates.js (shared `iso` / `addDays`, loaded first), lib/guided.js (voice-guided
   session engine), modules/<id>/ (each part's code; own storage key `fc.v1` / `wl.<id>.v1`).
 - `modules/<id>/`: each part's sources, tools and tests, kept separate. Faith content: `modules/faith/tools/build-content.cjs`.
   Tagalog packs: `modules/tagalog/packs/*.json` -> `node modules/tagalog/tools/build-packs.cjs` (checks the format).

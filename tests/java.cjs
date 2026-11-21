@@ -1,12 +1,15 @@
 /* Compiles the Android code and runs the plain-Java tests, if javac and an android.jar are around.
-   ANDROID_JAR=... (default: the cloud's /home/claude/sdk/android-35/android.jar). Skips (passes) otherwise. */
+   ANDROID_JAR=... (default: the cloud's /home/claude/sdk/android-35/android.jar). Skips only on Windows; elsewhere a missing javac or android.jar fails. */
 'use strict';
 const { execFileSync } = require('child_process');
 const fs = require('fs'); const path = require('path'); const os = require('os');
 const ROOT = path.join(__dirname, '..');
 const jar = process.env.ANDROID_JAR || '/home/claude/sdk/android-35/android.jar';
-try { execFileSync('javac', ['-version'], { stdio: 'ignore' }); } catch (e) { console.log('skipped: no javac'); process.exit(0); }
-if (!fs.existsSync(jar)) { console.log('skipped: no android.jar at ' + jar); process.exit(0); }
+// On his Windows PC this may skip; anywhere else (the cloud agents) a missing tool is a failure, so a skip can't pass as green.
+const skip = (why) => { if (process.platform === 'win32') { console.log('skipped: ' + why); process.exit(0); }
+  console.error('FAILED: ' + why + ' (get platform-35_r02.zip from https://dl.google.com/android/repository/ and set ANDROID_JAR; see .autopilot/cloud-plan.md)'); process.exit(1); };
+try { execFileSync('javac', ['-version'], { stdio: 'ignore' }); } catch (e) { skip('no javac'); }
+if (!fs.existsSync(jar)) skip('no android.jar at ' + jar);
 const out = fs.mkdtempSync(path.join(os.tmpdir(), 'fcj-'));
 const gen = path.join(out, 'gen', 'app', 'faithcompanion'); fs.mkdirSync(gen, { recursive: true });
 fs.writeFileSync(path.join(gen, 'R.java'), 'package app.faithcompanion; public final class R { public static final class drawable { public static final int ic_note = 1; } }');

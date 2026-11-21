@@ -194,11 +194,14 @@
     return fetch(base + 'index.json', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (idx) {
       var have = {}; packs().forEach(function (p) { have[p.id] = 1; });
       var hashes = idx.hashes && typeof idx.hashes === 'object' ? idx.hashes : {}, hs = S.packHash || (S.packHash = {}), isNew = {};
-      // new weeks, and downloaded weeks that were corrected since (their hash changed); weeks inside the app update with it
+      // new weeks, and weeks corrected since (their hash changed): downloaded ones, and ones inside the app (TL_PACK_HASH)
+      var inApp = window.TL_PACK_HASH || {};
       var want = (idx.packs || []).filter(function (id) {
         if (!/^\d{4}-\d\d-\d\d$/.test(id)) return false;
         if (!have[id]) return (isNew[id] = true);
-        return !!(S.packs[id] && typeof hashes[id] === 'string' && hs[id] !== hashes[id]);
+        if (typeof hashes[id] !== 'string') return false;
+        if (S.packs[id]) return hs[id] !== hashes[id];
+        return typeof inApp[id] === 'string' && inApp[id] !== hashes[id];
       });
       return Promise.all(want.map(function (id) {
         return fetch(base + id + '.json', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (p) {

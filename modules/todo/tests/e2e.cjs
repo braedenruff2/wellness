@@ -14,6 +14,18 @@ const W = require('../../../tests/lib/web.cjs');
     const names = await page.$$eval('.task-text', (els) => els.map((e) => e.textContent));
     assert.ok(names.includes('call Mom') && names.includes('stretch'), 'date words removed from the text: ' + names);
   });
+  await t.step('weekly on a named day shows that day; "call friend" stays as written', async () => {
+    for (const x of ['bins every thursday', 'call friend', 'recycling every other friday']) { await page.fill('#td-new', x); await page.press('#td-new', 'Enter'); }
+    const bins = await page.textContent('li:has-text("bins")');
+    assert.ok(/↻ every Thursday/.test(bins), bins);
+    assert.ok(/↻ every other Friday/.test(await page.textContent('li:has-text("recycling")')));
+    const names = await page.$$eval('.task-text', (els) => els.map((e) => e.textContent));
+    assert.ok(names.includes('call friend'), names);
+    for (const x of ['bins', 'call friend', 'recycling']) {
+      await page.click('li:has(.task-text:text-is("' + x + '")) [data-more]');
+      await page.click('#td-del'); await page.click('#td-del');
+    }
+  });
   await t.step('ticking a daily task moves it to tomorrow; ticking a one-off strikes it', async () => {
     await page.click('li:has-text("stretch") [data-tick]');
     assert.ok(/Coming up[\s\S]*stretch/.test(await page.textContent('main')));

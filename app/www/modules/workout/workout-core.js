@@ -8,6 +8,7 @@
                                   history:[...imported rows], next: {name: variation note he switched to} }. */
 (function (root) {
   'use strict';
+  var WLD = root.WLDates || require('../../lib/dates.js');
 
   /* track: reps | sec | min.  range = target per set.  hard = what to do once every set reaches the top with fixed weight.
      load: how much to add when the dumbbells can change (lb per dumbbell).  side: true = each side counts separately. */
@@ -63,7 +64,7 @@
   var TRANSITION = 20, WEEK_TARGET = 3, LATE_HOURS = 6;
 
   function defaults() { return { equipment: 'fixed10', weights: {}, sessions: [], history: [], next: {} }; }
-  function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
+  var iso = WLD.iso;
   var idn = 0;
   function newId(now) { return (now || new Date()).getTime().toString(36) + '-' + (++idn); }
 

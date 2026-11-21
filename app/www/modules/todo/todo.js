@@ -27,12 +27,21 @@
     return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
   var REP = { daily: 'every day', weekdays: 'weekdays', weekly: 'every week', biweekly: 'every 2 weeks', monthly: 'every month' };
+  var WDN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  /* "every Thursday" / "every other Friday" rather than "every week" when the task has a date (they keep their weekday). */
+  function repLabel(t) {
+    if ((t.repeat === 'weekly' || t.repeat === 'biweekly') && /^\d{4}-\d\d-\d\d$/.test(t.due || '')) {
+      var p = t.due.split('-');
+      return (t.repeat === 'weekly' ? 'every ' : 'every other ') + WDN[new Date(+p[0], +p[1] - 1, +p[2]).getDay()];
+    }
+    return REP[t.repeat] || '';
+  }
 
   function item(t, overdue) {
     return '<li class="task' + (t.done ? ' is-done' : '') + '" data-id="' + esc(t.id) + '">' +
       '<button class="tick-box" data-tick="' + esc(t.id) + '" aria-label="' + (t.done ? 'Not done' : 'Done') + ': ' + esc(t.text) + '">' + (t.done ? '✓' : '') + '</button>' +
       '<span class="grow"><span class="task-text">' + esc(t.text) + '</span>' +
-      ((t.due || t.repeat) && !t.done ? '<span class="meta ui' + (overdue ? ' late' : '') + '"> ' + esc(fmtDue(t.due)) + (t.at ? ' 🔔 ' + esc(T.fmtTime(t.at)) : '') + (t.repeat ? ' ↻ ' + REP[t.repeat] : '') + '</span>' : '') + '</span>' +
+      ((t.due || t.repeat) && !t.done ? '<span class="meta ui' + (overdue ? ' late' : '') + '"> ' + esc(fmtDue(t.due)) + (t.at ? ' 🔔 ' + esc(T.fmtTime(t.at)) : '') + (t.repeat ? ' ↻ ' + esc(repLabel(t)) : '') + '</span>' : '') + '</span>' +
       '<button class="link small" data-more="' + esc(t.id) + '" aria-label="Options for ' + esc(t.text) + '">⋯</button></li>';
   }
 
@@ -45,7 +54,7 @@
     T.tidy(S); save();
     var g = T.groups(S), adv = T.advice(S);
     var h = '<h1>To do</h1><div class="card ui"><form id="td-form" class="row"><input type="text" id="td-new" class="grow" placeholder="Add a task (e.g. call Mom tomorrow)" autocomplete="off" aria-label="New task"><button class="primary" type="submit">Add</button></form>' +
-      '<p class="meta" style="margin:.5em 0 0">Ends like “today”, “tomorrow”, “fri”, “24/12” or “every day” set the date; “at 3pm” adds a reminder.</p></div>';
+      '<p class="meta" style="margin:.5em 0 0">Ends like “tomorrow”, “fri”, “24/12”, “dec 24”, “in 3 days”, “next week”, “every day” or “every monday” set the date; “at 3pm” adds a reminder.</p></div>';
     if (adv) h += '<p class="gentle ui">' + esc(adv) + (g.overdue.length ? ' <button class="link" id="td-move">Move overdue to today</button>' : '') + '</p>';
     h += '<div class="card">' + (list('Overdue', g.overdue, true) + list('Today', g.today) + list('Coming up', g.upcoming) + list('Any time', g.someday) || '<p class="meta ui">Nothing to do. ✨</p>') + '</div>';
     var wk = T.doneInLast(S, 7);

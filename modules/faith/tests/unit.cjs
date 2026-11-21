@@ -348,4 +348,60 @@ t('walk it again: day 1 again, old answers kept and shown as "last time", new an
   assert.deepStrictEqual(junk.pastRounds, [{ done: { 2: '2026-11-18' }, ended: null }]);
 });
 
+t('practicesThisWeek: counts finished practices since Monday, local time', () => {
+  const s = C.defaults();
+  assert.deepStrictEqual(C.practicesThisWeek(s, new Date(2026, 10, 20, 12)), {});
+  C.logSession(s, 'practice', 'examen', 'Examen', 5, new Date(2026, 10, 16, 0, 5));   // Monday just after midnight
+  C.logSession(s, 'practice', 'examen', 'Examen', 5, new Date(2026, 10, 19, 21));    // Thursday
+  C.logSession(s, 'practice', 'breath', 'Breath prayer', 2, new Date(2026, 10, 15, 23, 50)); // Sunday before: last week
+  C.logSession(s, 'day', 3, 'Day 3', 5, new Date(2026, 10, 18));                      // a day's prayer is not a practice
+  assert.deepStrictEqual(C.practicesThisWeek(s, new Date(2026, 10, 20, 12)), { examen: 2 });
+  // on Sunday the whole week still counts; next Monday starts fresh
+  assert.deepStrictEqual(C.practicesThisWeek(s, new Date(2026, 10, 22, 23)), { examen: 2 });
+  assert.deepStrictEqual(C.practicesThisWeek(s, new Date(2026, 10, 23, 8)), {});
+  // DST week (US clocks change 1 Nov 2026) and junk entries
+  const d = C.defaults();
+  C.logSession(d, 'practice', 'lectio', 'Lectio', 5, new Date(2026, 10, 2, 7));
+  d.sessions.push(null, { kind: 'practice', at: 'nope', id: 'x' }, { kind: 'practice', at: new Date(2026, 10, 3).toISOString() });
+  assert.deepStrictEqual(C.practicesThisWeek(d, new Date(2026, 10, 8, 22)), { lectio: 1 });
+  assert.deepStrictEqual(C.practicesThisWeek({}, new Date()), {});
+});
+
+t('practice wordings: guiding lines vary, Scripture and the Lord’s Prayer never do, timing kept', () => {
+  global.window = global.window || {};
+  require('../../../app/www/modules/faith/content.js');
+  const P = global.window.FC_CONTENT.practices, ids = P.map((p) => p.id);
+  Object.keys(C.PRACTICE_LINES).forEach((id) => assert.ok(ids.includes(id), 'unknown practice ' + id));
+  assert.ok(!C.PRACTICE_LINES.lords, 'the Lord’s Prayer is always exact');
+  P.forEach((p) => {
+    const v = C.PRACTICE_LINES[p.id] || {};
+    Object.keys(v).forEach((i) => {
+      const st = p.steps[+i];
+      assert.ok(st, p.id + ' step ' + i + ' exists');
+      assert.ok(!/\(\d?\s?[A-Z][a-z]+ \d+:\d+/.test(st.say) && !/\{\{TODAY\}\}/.test(st.say), p.id + ' step ' + i + ' is Scripture: no variants');
+      v[i].forEach((alt) => {
+        assert.ok(alt && alt !== st.say, p.id + ' ' + i + ' differs');
+        assert.ok(!/\d+:\d+|\{\{/.test(alt), 'no Scripture references in a variant');
+        const a = alt.split(/\s+/).length, b = st.say.split(/\s+/).length;
+        assert.ok(a >= b * 0.6 && a <= b * 1.5 + 2, p.id + ' ' + i + ' about the same length: ' + a + ' vs ' + b);
+      });
+    });
+    const base = C.practiceScript(p, 0);
+    assert.deepStrictEqual(base, p.steps.map((x) => ({ say: x.say, wait: x.wait })), 'first time: the original words');
+    for (let n = 1; n < C.practiceVariants(p) + 2; n++) {
+      const sc = C.practiceScript(p, n);
+      assert.deepStrictEqual(sc.map((x) => x.wait), p.steps.map((x) => x.wait), p.id + ' same waits');
+      sc.forEach((x, i) => { if (!(C.PRACTICE_LINES[p.id] || {})[i]) assert.strictEqual(x.say, p.steps[i].say, p.id + ' unvaried step exact'); });
+      // scaled to 5 minutes, any wording comes out the same length
+      if (!p.fixed) assert.ok(Math.abs(C.scriptLength(C.scaleScript(sc, 5, 1)) - C.scriptLength(C.scaleScript(base, 5, 1))) <= 15, p.id + ' timing');
+    }
+    if (C.PRACTICE_LINES[p.id]) assert.notDeepStrictEqual(C.practiceScript(p, 1), base, p.id + ' second time sounds different');
+  });
+  const s = C.defaults();
+  assert.strictEqual(C.practiceTimes(s, 'examen'), 0);
+  C.logSession(s, 'practice', 'examen', 'Examen', 5); C.logSession(s, 'day', 'examen', 'x', 5);
+  assert.strictEqual(C.practiceTimes(s, 'examen'), 1);
+  assert.strictEqual(C.practiceTimes({}, 'examen'), 0);
+});
+
 console.log(n + ' unit tests passed');

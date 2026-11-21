@@ -80,7 +80,7 @@ final class Updater {
         new Thread(() -> {
             String err = "";
             try {
-                // the PC first (newest, and works without GitHub), then GitHub
+                // the PC first (fast at home, works without GitHub), then GitHub when the PC has nothing newer or fails
                 String[] errs = new String[2];
                 if (pc != null) try { if (tryFrom(app, pc, null)) return; } catch (Exception e) { errs[0] = "PC: " + e.getMessage(); }
                 try { if (tryFrom(app, null, GITHUB)) return; } catch (Exception e) { errs[1] = "GitHub: " + e.getMessage(); }
@@ -93,14 +93,15 @@ final class Updater {
         }, "wl-update").start();
     }
 
-    /** True when that source answered (newer version downloaded, or nothing newer there). */
+    /** True when that source had a newer version (downloaded now, or given up on after 3 failed installs). */
     private static boolean tryFrom(Context app, PcLink pc, String base) throws IOException {
         String v = pc != null ? pc.get("/v1/app/version", 8000) : text(base + "version.json");
         long[] code = parseCode(v);
         if (code == null) throw new IOException("no version information");
         String name = PcLink.str(v, "name");
         SharedPreferences p = prefs(app);
-        if (code[0] <= installedCode(app)) { p.edit().putString("from", pc != null ? "pc" : "github").apply(); return pc != null; }
+        // nothing newer here: not the end (the cloud now ships to GitHub, so a PC that is behind must not hide a newer build there)
+        if (code[0] <= installedCode(app)) { p.edit().putString("from", pc != null ? "pc" : "github").apply(); return false; }
         if (p.getInt("failed:" + code[0], 0) >= 3) return true;           // failed to install 3 times: wait for a newer one
         File f = apk(app, (int) code[0]), part = new File(f.getPath() + ".part");
         try (OutputStream out = new FileOutputStream(part)) {

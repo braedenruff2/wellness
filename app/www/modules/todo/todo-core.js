@@ -3,10 +3,11 @@
    Storage key 'wl.todo.v1'. Used by todo.js and by modules/todo/tests. */
 (function (root) {
   'use strict';
+  var WLD = root.WLDates || require('../../lib/dates.js');
   function defaults() { return { tasks: [] }; }
-  function iso(d) { var m = d.getMonth() + 1, x = d.getDate(); return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (x < 10 ? '0' : '') + x; }
+  var iso = WLD.iso;
   function parse(s) { var p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
-  function addDays(s, n) { var d = parse(s); d.setDate(d.getDate() + n); return iso(d); }
+  var addDays = WLD.addDays;
   var n = 0;
   function id(now) { return (now || new Date()).getTime().toString(36) + '-' + (++n); }
 
@@ -24,33 +25,83 @@
     if (mi > 59) return null;
     var rest = t.slice(0, m.index);
     if (/^\s*at\s*$/i.test(rest)) return null;
-    return { at: pad(h) + ':' + pad(mi), rest: rest };
+    return { at: pad(h) + ':' + pad(mi), rest: rest, bare: !!m[5] && m[5].charAt(0) !== '0' && h < 12 };  // bare: "at 7" (no am/pm)
+  }
+  /* Weekday names: only real spellings ("fri", "friday"), so "call friend" or "the wedding" stay plain text. */
+  var WD = '(sun(?:day)?|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?)';
+  var MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  var MON = '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+  var NUMW = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+  function wdIndex(w) { return DAYS.indexOf(w.slice(0, 3).toLowerCase()); }
+  /* A day and month this year, or next year if it has passed; null if impossible (31/2). */
+  function dayMonth(dd, mm, now, today) {
+    if (!(mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31)) return null;
+    var c = new Date(now.getFullYear(), mm - 1, dd);
+    if (c.getMonth() !== mm - 1) return null;
+    if (iso(c) < today) c = new Date(now.getFullYear() + 1, mm - 1, dd);
+    return c.getMonth() === mm - 1 ? iso(c) : null;   // 29/2 can be impossible next year
+  }
+  /* A repeat at the end ("every day", "every 2 weeks", "every monday"): {repeat, due, rest} or null. */
+  function takeRepeat(t, now, today) {
+    var m;
+    if ((m = /\s+(every day|daily)$/i.exec(t))) return { repeat: 'daily', due: today, rest: t.slice(0, m.index) };
+    if ((m = /\s+(every weekday|weekdays)$/i.exec(t))) return { repeat: 'weekdays', due: today, rest: t.slice(0, m.index) };
+    if ((m = /\s+(every week|weekly)$/i.exec(t))) return { repeat: 'weekly', due: today, rest: t.slice(0, m.index) };
+    if ((m = /\s+(every (?:2|two|other) weeks?|every other week|fortnightly|biweekly)$/i.exec(t))) return { repeat: 'biweekly', due: today, rest: t.slice(0, m.index) };
+    if ((m = /\s+(every month|monthly)$/i.exec(t))) return { repeat: 'monthly', due: today, rest: t.slice(0, m.index) };
+    if ((m = new RegExp('\\s+every (?:other|2nd|second|2) ' + WD + 's?$', 'i').exec(t))) {   // "recycling every other friday"
+      return { repeat: 'biweekly', due: addDays(today, (wdIndex(m[1]) - now.getDay() + 7) % 7), rest: t.slice(0, m.index) };
+    }
+    if ((m = new RegExp('\\s+every ' + WD + 's?$', 'i').exec(t))) {   // "bins every thursday": weekly from the next one (today counts)
+      return { repeat: 'weekly', due: addDays(today, (wdIndex(m[1]) - now.getDay() + 7) % 7), rest: t.slice(0, m.index) };
+    }
+    return null;
+  }
+  /* A date at the end ("tomorrow", "fri", "24/12", "dec 24", "in 3 days", "next week", "this weekend"): {due, rest} or null. */
+  function takeDay(t, now, today) {
+    var m, d;
+    if ((m = /\s+(today|tonight|this evening)$/i.exec(t))) return { due: today, rest: t.slice(0, m.index), evening: !/^today$/i.test(m[1]) };
+    if ((m = /\s+(tomorrow|tmrw)$/i.exec(t))) return { due: addDays(today, 1), rest: t.slice(0, m.index) };
+    if ((m = new RegExp('\\s+(?:on |next |this )?' + WD + '$', 'i').exec(t))) {
+      d = (wdIndex(m[1]) - now.getDay() + 7) % 7 || 7;
+      return { due: addDays(today, d), rest: t.slice(0, m.index) };
+    }
+    if ((m = /\s+(\d{1,2})\/(\d{1,2})$/.exec(t))) { // day/month, Canadian style
+      d = dayMonth(+m[1], +m[2], now, today);
+      return d ? { due: d, rest: t.slice(0, m.index) } : null;
+    }
+    if ((m = new RegExp('\\s+(?:on )?' + MON + '\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?$', 'i').exec(t)) ||
+        (m = new RegExp('\\s+(?:on )?(?:the )?()(\\d{1,2})(?:st|nd|rd|th)?(?: of)?\\s+' + MON + '$', 'i').exec(t))) {
+      var mon = m[1] || m[3], day = +m[2];                     // "dec 24", "december 24th", "24 dec", "the 24th of december"
+      d = dayMonth(day, MONTHS.indexOf(mon.slice(0, 3).toLowerCase()) + 1, now, today);
+      return d ? { due: d, rest: t.slice(0, m.index) } : null;
+    }
+    if ((m = /\s+in\s+(\d{1,3}|an?|one|two|three|four|five|six|seven|eight|nine|ten)\s+(days?|weeks?)$/i.exec(t))) {
+      var k = /^\d/.test(m[1]) ? +m[1] : NUMW[m[1].toLowerCase()], days = k * (/^w/i.test(m[2]) ? 7 : 1);
+      if (!(k >= 1) || days > 366) return null;
+      return { due: addDays(today, days), rest: t.slice(0, m.index) };
+    }
+    if ((m = /\s+next week$/i.exec(t))) return { due: addDays(today, (8 - now.getDay()) % 7 || 7), rest: t.slice(0, m.index) };  // next Monday
+    if ((m = /\s+(?:this|on the|at the) weekend$/i.exec(t))) {
+      var g = now.getDay();
+      return { due: g === 0 || g === 6 ? today : addDays(today, 6 - g), rest: t.slice(0, m.index) };          // Saturday, or today on a weekend
+    }
+    return null;
   }
   function quickParse(text, now) {
     now = now || new Date();
-    var t = String(text || '').trim(), today = iso(now), due = null, repeat = null, at = null, m, tm;
-    if ((tm = takeTime(t))) { at = tm.at; t = tm.rest; }
-    if ((m = /\s+(every day|daily)$/i.exec(t))) { repeat = 'daily'; due = today; t = t.slice(0, m.index); }
-    else if ((m = /\s+(every weekday|weekdays)$/i.exec(t))) { repeat = 'weekdays'; due = today; t = t.slice(0, m.index); }
-    else if ((m = /\s+(every week|weekly)$/i.exec(t))) { repeat = 'weekly'; due = today; t = t.slice(0, m.index); }
-    else if ((m = /\s+(every (?:2|two|other) weeks?|every other week|fortnightly|biweekly)$/i.exec(t))) { repeat = 'biweekly'; due = today; t = t.slice(0, m.index); }
-    else if ((m = /\s+(every month|monthly)$/i.exec(t))) { repeat = 'monthly'; due = today; t = t.slice(0, m.index); }
-    if ((m = /\s+(today|tonight)$/i.exec(t))) { due = today; t = t.slice(0, m.index); }
-    else if ((m = /\s+(tomorrow|tmrw)$/i.exec(t))) { due = addDays(today, 1); t = t.slice(0, m.index); }
-    else if ((m = /\s+(?:on |next )?(sun|mon|tue|tues|wed|thu|thur|thurs|fri|sat)[a-z]*$/i.exec(t))) {
-      var want = DAYS.indexOf(m[1].slice(0, 3).toLowerCase()), d = (want - now.getDay() + 7) % 7 || 7;
-      due = addDays(today, d); t = t.slice(0, m.index);
-    } else if ((m = /\s+(\d{1,2})\/(\d{1,2})$/.exec(t))) { // day/month, Canadian style
-      var dd = +m[1], mm = +m[2];
-      if (mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) {
-        var c = new Date(now.getFullYear(), mm - 1, dd);
-        if (c.getMonth() === mm - 1) { if (iso(c) < today) c.setFullYear(c.getFullYear() + 1); due = iso(c); t = t.slice(0, m.index); }
+    var t = String(text || '').trim(), today = iso(now), due = null, repeat = null, at = null, r, tm, bare = false, evening = false;
+    if ((tm = takeTime(t))) { at = tm.at; bare = tm.bare; t = tm.rest; }
+    if ((r = takeRepeat(t, now, today))) { repeat = r.repeat; due = r.due; t = r.rest; }
+    if ((r = takeDay(t, now, today))) { due = r.due; evening = !!r.evening; t = r.rest; }
+    if (!at && (tm = takeTime(t))) {                 // "call Mom at 3pm tomorrow": the time came before the date
+      at = tm.at; bare = tm.bare; t = tm.rest;
+      if (!due && !repeat) {
+        if ((r = takeRepeat(t, now, today))) { repeat = r.repeat; due = r.due; t = r.rest; }
+        if ((r = takeDay(t, now, today))) { due = r.due; evening = !!r.evening; t = r.rest; }
       }
     }
-    if (!at && (tm = takeTime(t))) {                 // "call Mom at 3pm tomorrow": the time came before the date
-      at = tm.at; t = tm.rest;
-      if (!due && !repeat && (m = /\s+(every day|daily)$/i.exec(t))) { repeat = 'daily'; due = today; t = t.slice(0, m.index); }
-    }
+    if (at && bare && evening) at = pad(+at.slice(0, 2) % 12 + 12) + at.slice(2);   // "tonight at 7" = 19:00
     if (at && !due) { due = today; if (!repeat && at <= hm(now)) due = addDays(today, 1); }  // "3pm" already gone: tomorrow
     if (!t.trim()) return { text: String(text || '').trim(), due: null, repeat: null, at: null };
     return { text: t.trim(), due: due, repeat: repeat, at: at };

@@ -82,6 +82,26 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#home');
     assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions.length), n0 + 1, 'under 30 s: not counted');
   });
+  await t.step('soft tick setting: off by default, remembered, ticks on each phase change (not the first)', async () => {
+    await page.goto(base + '#calm');
+    assert.strictEqual(await page.getAttribute('#ctk', 'aria-pressed'), 'false');
+    await page.evaluate(() => { window.__ticks = []; WL.tick = (p) => window.__ticks.push(p); });
+    await page.goto(base + '#calm/s/box'); await page.click('#c-pp'); await page.clock.runFor(17000);
+    assert.deepStrictEqual(await page.evaluate(() => window.__ticks), [], 'off: silent');
+    await page.click('#c-end');
+    await page.goto(base + '#calm'); await page.click('#ctk');
+    assert.strictEqual(await page.getAttribute('#ctk', 'aria-pressed'), 'true');
+    await page.reload(); await page.waitForSelector('#ctk');
+    assert.strictEqual(await page.getAttribute('#ctk', 'aria-pressed'), 'true', 'kept after reload');
+    await page.evaluate(() => { window.__ticks = []; WL.tick = (p) => window.__ticks.push(p); });
+    await page.goto(base + '#calm/s/box'); await page.click('#c-pp'); await page.clock.runFor(16500);
+    assert.deepStrictEqual(await page.evaluate(() => window.__ticks), ['hold', 'down', 'hold', 'up']);
+    await page.click('#c-pp'); await page.clock.runFor(8000);
+    assert.strictEqual((await page.evaluate(() => window.__ticks)).length, 4, 'paused: no ticks');
+    await page.click('#c-end');
+    await page.goto(base + '#calm'); await page.click('#ctk');
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).settings.tick), false);
+  });
   await t.step('Home card, no overflow, no errors', async () => {
     await page.goto(base + '#home');
     assert.ok((await page.textContent('.home-card[data-module="calm"]')).length > 10);

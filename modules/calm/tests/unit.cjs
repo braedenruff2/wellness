@@ -94,4 +94,15 @@ t('2-day rotation uses local dates (a session 3 evenings ago no longer counts as
   K.record(m, 'body', 8, 3, 2, new Date(2026, 10, 18, 7, 0)); // 7 am two days ago: still recent
   assert.notStrictEqual(K.suggest(m, new Date(2026, 10, 20, 21, 30), { score: { body: 2 } }), 'body');
 });
+t('pacer tick: off by default, kept by a backup, pitch follows the phase', () => {
+  assert.strictEqual(K.defaults().settings.tick, false);
+  assert.strictEqual(K.validate({ sessions: [], settings: { tick: true } }).settings.tick, true);
+  assert.strictEqual(K.validate({ sessions: [], settings: { tick: 'yes' } }).settings.tick, false);
+  assert.strictEqual(K.validate({ sessions: [] }).settings.tick, false);
+  assert.deepStrictEqual([0, 1, 2, 3].map(K.tickFor), ['up', 'hold', 'down', 'hold']);
+  // box: 4 phases a cycle; slow has no holds, so only in and out
+  const phases = (id, secs) => { const out = []; let last = -1; for (let t = 0; t < secs; t += 0.25) { const a = K.pacerAt(id, t); if (a.phase !== last) { out.push(a.phase); last = a.phase; } } return out; };
+  assert.deepStrictEqual(phases('box', 16), [0, 1, 2, 3]);
+  assert.deepStrictEqual(phases('slow', 22), [0, 2, 0, 2]);
+});
 console.log(n + ' calm unit tests passed');

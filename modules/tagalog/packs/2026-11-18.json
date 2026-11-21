@@ -3,7 +3,7 @@
  "week": 1,
  "title": "Family first",
  "level": "Understands some, speaks little",
- "made": "2026-11-18, written by Claude for Braeden's first week",
+ "made": "2026-11-18, written by Claude for Braeden's first week; lessons 4-7: more typed answers (20 Nov)",
  "focus": "Polite Tagalog for his wife's family, talking about the baby (and her first birthday), and the core sentence patterns he half-recognises from listening.",
  "lessons": [
   {
@@ -473,6 +473,10 @@
     {
      "tl": "ngayon",
      "en": "now, today"
+    },
+    {
+     "tl": "mamaya",
+     "en": "later (today)"
     }
    ],
    "dialogue": [
@@ -520,25 +524,23 @@
    "exercises": [
     {
      "type": "mc",
-     "prompt": "'kakain' means:",
+     "prompt": "Earlier today she drank milk: ___ siya ng gatas kanina.",
      "options": [
-      "will eat",
-      "ate",
-      "is eating",
-      "food"
-     ],
-     "answer": "will eat"
-    },
-    {
-     "type": "mc",
-     "prompt": "{child} is drinking milk: ___ ng gatas si {child}.",
-     "options": [
-      "Umiinom",
       "Uminom",
+      "Umiinom",
       "Iinom",
       "Inom"
      ],
-     "answer": "Umiinom"
+     "answer": "Uminom"
+    },
+    {
+     "type": "type",
+     "prompt": "I'm eating now.",
+     "answer": "Kumakain ako ngayon.",
+     "accept": [
+      "kumakain ako ngayon",
+      "ngayon kumakain ako"
+     ]
     },
     {
      "type": "type",
@@ -549,15 +551,13 @@
      ]
     },
     {
-     "type": "listen",
-     "say": "Kumain ka na ba?",
-     "options": [
-      "Have you eaten yet?",
-      "Are you eating now?",
-      "Will you eat?",
-      "Do you want food?"
-     ],
-     "answer": "Have you eaten yet?"
+     "type": "type",
+     "prompt": "Have you eaten yet? (to your wife)",
+     "answer": "Kumain ka na ba?",
+     "accept": [
+      "kumain ka na ba",
+      "kumain ka na"
+     ]
     },
     {
      "type": "build",
@@ -570,6 +570,41 @@
       "ako"
      ],
      "answer": "Hindi pa. Kakain ako mamaya."
+    },
+    {
+     "type": "build",
+     "prompt": "{child} drank milk earlier.",
+     "words": [
+      "kanina.",
+      "si",
+      "Uminom",
+      "gatas",
+      "{child}",
+      "ng"
+     ],
+     "answer": "Uminom ng gatas si {child} kanina."
+    },
+    {
+     "type": "type",
+     "prompt": "We will leave tomorrow.",
+     "answer": "Aalis tayo bukas.",
+     "accept": [
+      "aalis tayo bukas",
+      "aalis kami bukas",
+      "bukas aalis tayo",
+      "bukas aalis kami"
+     ]
+    },
+    {
+     "type": "listen",
+     "say": "Kumakanta si Nanay.",
+     "options": [
+      "Mom is singing.",
+      "Mom sang.",
+      "Mom will sing.",
+      "Mom is eating."
+     ],
+     "answer": "Mom is singing."
     }
    ]
   },
@@ -666,35 +701,34 @@
     },
     {
      "type": "listen",
-     "say": "Pakiabot po ng kanin.",
+     "say": "Busog na po ako, pero ang sarap talaga.",
      "options": [
-      "Please pass the rice.",
-      "The rice is delicious.",
-      "Who cooked the rice?",
-      "I want more rice."
+      "I'm full, but it's really delicious.",
+      "I'm still hungry, it's delicious.",
+      "It's delicious, I want more.",
+      "I'm full, it's not good."
      ],
-     "answer": "Please pass the rice."
+     "answer": "I'm full, but it's really delicious."
     },
     {
      "type": "type",
-     "prompt": "Delicious!",
-     "answer": "Masarap!",
+     "prompt": "The adobo is so good!",
+     "answer": "Ang sarap ng adobo!",
      "accept": [
-      "masarap",
-      "ang sarap",
-      "masarap!"
+      "ang sarap ng adobo",
+      "masarap ang adobo"
      ]
     },
     {
      "type": "mc",
-     "prompt": "'Hindi pa' means:",
+     "prompt": "I don't want any more.",
      "options": [
-      "not yet",
-      "not anymore",
-      "no thanks",
-      "not here"
+      "Ayoko na.",
+      "Ayoko pa.",
+      "Gusto ko pa.",
+      "Hindi pa."
      ],
-     "answer": "not yet"
+     "answer": "Ayoko na."
     },
     {
      "type": "build",
@@ -706,6 +740,25 @@
       "Pakihawak"
      ],
      "answer": "Pakihawak po si {child}."
+    },
+    {
+     "type": "type",
+     "prompt": "Please pass the rice. (to Tita)",
+     "answer": "Pakiabot po ng kanin.",
+     "accept": [
+      "pakiabot po ng kanin"
+     ]
+    },
+    {
+     "type": "build",
+     "prompt": "Who cooked? (politely)",
+     "words": [
+      "nagluto?",
+      "po",
+      "Sino",
+      "ang"
+     ],
+     "answer": "Sino po ang nagluto?"
     }
    ]
   },
@@ -829,10 +882,10 @@
     },
     {
      "type": "type",
-     "prompt": "When?",
-     "answer": "Kailan?",
+     "prompt": "Where is Lolo? (politely)",
+     "answer": "Nasaan po si Lolo?",
      "accept": [
-      "kailan"
+      "nasaan po si lolo"
      ]
     },
     {
@@ -844,6 +897,22 @@
       "Saan"
      ],
      "answer": "Saan tayo kakain?"
+    },
+    {
+     "type": "type",
+     "prompt": "Why is she crying?",
+     "answer": "Bakit siya umiiyak?",
+     "accept": [
+      "bakit siya umiiyak"
+     ]
+    },
+    {
+     "type": "type",
+     "prompt": "When are you going home to the Philippines? (to Tita)",
+     "answer": "Kailan po kayo uuwi sa Pilipinas?",
+     "accept": [
+      "kailan po kayo uuwi sa pilipinas"
+     ]
     }
    ]
   },
@@ -968,6 +1037,42 @@
       "{child}."
      ],
      "answer": "Mabait na bata si {child}."
+    },
+    {
+     "type": "type",
+     "prompt": "a big house",
+     "answer": "malaking bahay",
+     "accept": [
+      "malaking bahay"
+     ]
+    },
+    {
+     "type": "type",
+     "prompt": "a happy family",
+     "answer": "masayang pamilya",
+     "accept": [
+      "masayang pamilya"
+     ]
+    },
+    {
+     "type": "build",
+     "prompt": "Your baby is so good.",
+     "words": [
+      "mo.",
+      "bait",
+      "Ang",
+      "baby",
+      "ng"
+     ],
+     "answer": "Ang bait ng baby mo."
+    },
+    {
+     "type": "type",
+     "prompt": "Thank you, Lola.",
+     "answer": "Salamat po, Lola.",
+     "accept": [
+      "salamat po lola"
+     ]
     }
    ]
   }

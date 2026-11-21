@@ -148,8 +148,11 @@
       return '<button class="chip" data-min="' + m + '" aria-pressed="' + (S.settings.minutes === m) + '">' + m + ' min</button>';
     }).join('') + '</div></div><div class="row" style="margin-top:8px"><span class="grow">Read aloud</span>' +
       '<button class="chip" id="voice-toggle" aria-pressed="' + !!S.settings.voice + '">' + (S.settings.voice ? 'On' : 'Off') + '</button></div></div>';
+    var wk = C.practicesThisWeek(S);
     h += '<ul class="list">' + PRACTICES.map(function (p) {
-      return '<li><a href="#faith/session/p/' + p.id + '"><h3>' + esc(p.title) + '</h3><div class="meta ui">' + esc(p.when) + ' \u00b7 ' +
+      var c = wk[p.id] || 0;
+      return '<li><a href="#faith/session/p/' + p.id + '"><h3>' + esc(p.title) + (c ? ' <span class="tick done-week" style="font-size:.75em;font-weight:normal;white-space:nowrap">\u2713 ' + c + '\u00d7 this week</span>' : '') +
+        '</h3><div class="meta ui">' + esc(p.when) + ' \u00b7 ' +
         (p.fixed ? p.minutes + ' min' : 'about ' + (+S.settings.minutes) + ' min') + '</div><p style="margin:.3em 0 0">' + esc(p.blurb) + '</p></a></li>';
     }).join('') + '</ul>';
     return h;
@@ -164,7 +167,7 @@
     } else {
       var p = practice(id); if (!p) return null;
       var tv = day(C.currentDay(S, TOTAL)) || DAYS[DAYS.length - 1];
-      steps = p.steps.map(function (s) { return { say: s.say.replace(/\{\{TODAY\}\}/g, tv.keyVerse), wait: s.wait }; });
+      steps = C.practiceScript(p, C.practiceTimes(S, p.id)).map(function (s) { return { say: s.say.replace(/\{\{TODAY\}\}/g, tv.keyVerse), wait: s.wait }; });
       title = p.title; minutes = p.fixed ? null : S.settings.minutes;
     }
     if (minutes) steps = C.scaleScript(steps, minutes, S.settings.rate);

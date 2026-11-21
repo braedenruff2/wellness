@@ -4,7 +4,7 @@ const assert = require('assert'); const fs = require('fs'); const path = require
 const Wb = require('../../../tests/lib/web.cjs');
 const pack = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'packs', '2026-11-18.json'), 'utf8'));
 const next = JSON.parse(JSON.stringify(pack)); next.id = '2026-11-25'; next.week = 2; next.title = 'Week two test';
-const HASHES = {}, GOT = { n: 0 };
+const HASHES = {}, GOT = { n: 0 }, FIXED = { pack: null };
 const PACK0 = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'packs', '2026-11-18.json'), 'utf8'));
 const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalog/packs/';
 (async () => {
@@ -12,6 +12,7 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     const u = route.request().url();
     if (u.endsWith('index.json')) return route.fulfill({ json: { packs: ['2026-11-18', '2026-11-25', '../../x'], hashes: HASHES } });
     if (u.endsWith('2026-11-25.json')) { GOT.n++; return route.fulfill({ json: next }); }
+    if (u.endsWith('2026-11-18.json') && FIXED.pack) { GOT.n++; return route.fulfill({ json: FIXED.pack }); }
     return route.fulfill({ status: 404, body: '' });
   }]] });
   const { page, base } = t;
@@ -148,6 +149,20 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.strictEqual(GOT.n, n0 + 1);
     await page.click('#tl-fetch'); await page.clock.runFor(500);
     assert.strictEqual(GOT.n, n0 + 1, 'same hash: not fetched again');
+  });
+  await t.step('a week that shipped inside the app is downloaded again when corrected on GitHub; not while the hash matches', async () => {
+    const n0 = GOT.n;
+    const inApp = await page.evaluate(() => window.TL_PACK_HASH['2026-11-18']);
+    assert.ok(/^[0-9a-f]{12}$/.test(inApp));
+    HASHES['2026-11-18'] = inApp;
+    await page.click('#tl-fetch'); await page.clock.runFor(500);
+    assert.strictEqual(GOT.n, n0, 'same as the app: not fetched');
+    FIXED.pack = JSON.parse(JSON.stringify(PACK0)); FIXED.pack.title = 'Family first, corrected'; HASHES['2026-11-18'] = 'cccccccccccc';
+    await page.click('#tl-fetch');
+    await page.waitForFunction(() => { const s = JSON.parse(localStorage.getItem('wl.tagalog.v1')); return s.packs['2026-11-18'] && s.packs['2026-11-18'].title === 'Family first, corrected'; });
+    assert.strictEqual(GOT.n, n0 + 1);
+    await page.click('#tl-fetch'); await page.clock.runFor(500);
+    assert.strictEqual(GOT.n, n0 + 1, 'now downloaded with that hash: not fetched again');
   });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#tagalog/words', '#home']);
