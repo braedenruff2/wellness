@@ -210,7 +210,27 @@
     now = now || new Date();
     if (!SH.since) { SH.since = now.toISOString(); shellStore.save(SH); }
     var last = Date.parse(SH.lastBackup || SH.since);
+    // Drive sync writes the same backup to Drive, so a recent sync counts as a backup
+    var ds = driveState(), synced = ds && ds.configured && ds.lastSync ? Date.parse(ds.lastSync) : 0;
+    if (synced > last) last = synced;
     return !(now.getTime() - last < 14 * 864e5);
+  }
+  function driveState() {
+    var ds = window.WL && WL.driveSync; if (!ds || !ds.available()) return null;
+    try { return ds.status(); } catch (e) { return null; }
+  }
+  /* Until Drive sync and the answers sheet are set up (in the phone app), one card on Home says what it gives and
+     where to do it; "Not now" hides it for a week. */
+  function syncNudge(now) {
+    now = now || new Date();
+    var st = driveState(); if (!st) return '';
+    var step = !st.configured ? 'file' : st.answersSupported && !st.answersConfigured ? 'sheet' : '';
+    if (!step) return '';
+    if (SH.syncLater && now.getTime() - Date.parse(SH.syncLater) < 7 * 864e5 && now.getTime() >= Date.parse(SH.syncLater)) return '';
+    return '<div class="card ui" id="wl-sync-nudge"><p>' + (step === 'file'
+      ? 'Let Claude answer from the cloud when your PC isn’t around, and keep a live backup: turn on <b>Sync with Google Drive</b> and pick your private Wellness folder.'
+      : 'One more step for cloud answers: choose the <b>wellness-answers</b> sheet in Sync with Google Drive.') + '</p>' +
+      '<div class="row"><a class="btn primary" href="#settings/sync" id="wl-sync-nudge-go">Set it up</a><button class="link" id="wl-sync-later">Not now</button></div></div>';
   }
   function backupNudge(now) {
     now = now || new Date();
@@ -234,7 +254,7 @@
 
   function home() {
     var h = '<div class="meta ui">' + esc(greeting()) + ' · ' + esc(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>' +
-      '<h1>Today</h1>' + todayList() + weekCard() + backupNudge();
+      '<h1>Today</h1>' + todayList() + weekCard() + (syncNudge() || backupNudge());
     order.forEach(function (id) {
       var m = modules[id];
       if (!m.card) return;
@@ -447,6 +467,7 @@
       b.onclick = function () { var v = b.dataset.val; setLook(b.dataset.look, isNaN(+v) ? v : +v); route(); };
     });
     wireUpdate(); wireVoice(); wireSync();
+    var sl = $('#wl-sync-later'); if (sl) sl.onclick = function () { SH.syncLater = new Date().toISOString(); shellStore.save(SH); var c = $('#wl-sync-nudge'); if (c) c.remove(); };
     var ld = $('#wl-logday'); if (ld) ld.onchange = function () { setLogDay(ld.value || null); toast(ld.value ? 'Logging for ' + dayLabel(ld.value) : 'Logging for today'); };
     var ex = $('#wl-export'); if (ex) ex.onclick = function () { saveFile('wellness-backup-' + isoDate() + '.json', backupText()); SH.lastBackup = new Date().toISOString(); shellStore.save(SH); };
     var im = $('#wl-import');
@@ -485,6 +506,7 @@
     });
     drawLogDay();
     if (!m || !m.keepScroll) window.scrollTo(0, 0);
+    if (id === 'settings' && parts[1] === 'sync') { var sc = $('#wl-sync'); if (sc && sc.scrollIntoView) sc.scrollIntoView(); }
   }
 
   function start() {
