@@ -1,5 +1,13 @@
 # Cloud log
 
+## 2026-11-21 01:50 AST (cloud run; PC asleep/unreachable)
+- Cross-review: Gemini's A (Drive sync, WL.driveSync), date-window bounds and the Windows test fix read fine; B builds on A's enqueue/takeAnswer/onAnswers and e2e-cloud exercises them together.
+- Done B: PC prompts now live in pc/prompts/<task>.md + rules.md (README there says how each {{name}} is filled); prompt_for fills them and gives byte-identical prompts to before (checked on 1200 random inputs). Tests: every placeholder has a value, typed {{x}} stays as typed, missing file is a clear error.
+- Done B (phone): when the PC can't be reached and Drive sync is on, coach scenario/grade/advice, Home advice, weekly plan and Tagalog checks go into the sync file's queue with "Your PC isn't answering, so this will be answered by the next cloud run (within about 5 hours)". Cloud answers ({task, answer} or {task, error} under answers[id]) show through the same code as PC answers; Tagalog checks land in a "Claude checked your answers" card on the Tagalog page. One waiting scenario/plan/advice at a time. Without Drive sync the error says to turn it on.
+- Tested: full suite, all 47 suites pass, none skipped (new tests/e2e-cloud.cjs). APK 0.1.20261121.0533 built with the real key (cert SHA-256 6795e499...).
+- Check on the phone: Settings > Sync with Google Drive (pick the Drive folder); with the PC off, Parenting > New scenario shows the cloud note and the request appears in wellness-sync.json.
+- Next: the next run answers any queued requests in wellness-sync.json (plan task B); tasks 30-31.
+
 ## 2026-11-21 00:50 AST (same run, continued)
 - Done 28: to-do repeats "every 2 months" / "every other month", "every 3 months" / "quarterly", "every year" / "yearly" / "annually" (repeat month2 / month3 / yearly; month ends and Feb 29 like monthly); edit sheet chips; README.
 - Done 29: Tagalog type exercises may set `"poOptional": true`; only then a missing po/ho is accepted, with a meta note "With an elder, add po". checkPack rejects it elsewhere. No existing exercise uses it (all current po prompts ask for politeness).

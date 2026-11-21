@@ -41,7 +41,13 @@ A. (done 21 Nov 01:10, Gemini: Sync.java + MainActivity bridge, lib/sync-core.js
    `answers` (written by cloud runs, keyed by request id) and keeps them until shown; it writes `acked: [ids]`.
    Java: a small Sync class + JS bridge (like the backup one), fake bridge in browser tests, Java unit test like the
    others in tests/java.cjs. Show "last synced" and any error plainly. If Drive's provider refuses writes, say so.
-B. [any] Request queue for the Claude features when the PC link fails (coach-scenario, coach-grade, coach-advice,
+B. (done 21 Nov 01:50, Claude: pc/prompts/*.md + prompt_values/fill; lib/pc.js orQueue/queue/queued/onCloudAnswer/deliver
+   on top of WL.driveSync; coach, link advice, me weekly-plan, tagalog checks; tests/e2e-cloud.cjs) HOW A CLOUD RUN ANSWERS:
+   read wellness-sync.json from Drive; for each `requests` item without an answer, fill pc/prompts/<task>.md with its
+   input as pc/prompts/README.md says (for advice/weekly-plan write {{summary}} from the synced stores), answer as the
+   prompt says, and set `answers[id] = {"task": ..., "answer": {...}}` (or `{"task": ..., "error": "..."}`); keep
+   everything else in the file; save it back with the Drive connector. Never copy any of it into this repo.
+   Original task: Request queue for the Claude features when the PC link fails (coach-scenario, coach-grade, coach-advice,
    tagalog-check, advice, weekly-plan): queue {id, task, input, at} (input = exactly what the PC task gets), show
    "Your PC isn't answering, so this will be answered by the next cloud run (within about 5 hours)", and render the
    answer through the same code as a PC result when it arrives. Move each task's prompt text out of
@@ -55,7 +61,7 @@ D. (done 21 Nov 00:40, Claude: first_day()) Advice summary: count active days fr
    ("active 2 of 2 days", not "2 of 14"); pc/wellness_pc.py summarize + its test.
 E. (done 21 Nov 00:40, Claude: key mindracing) me-core guidance: a calm wind-down rated "Mind racing" -> next evening suggest writing it down first (journal)
    before the wind-down; stable key + unit test.
-F. (done 21 Nov 00:40, Claude: planFailed; queue part waits for B) Weekly plan: if a weekly-plan request fails, keep a visible "Couldn't make your plan - Try again" instead of nothing
+F. (done 21 Nov 00:40, Claude: planFailed; queue part done with B 01:50) Weekly plan: if a weekly-plan request fails, keep a visible "Couldn't make your plan - Try again" instead of nothing
    (planTried set, plan null); e2e with the fake PC failing; then it goes through the queue (B).
 G. Done 21 Nov: tools/publish.bat fetches and merges origin/main (GitHub wins on a clash) before pushing, because the
    cloud now pushes to main. The PC picks it up when it next takes main.
