@@ -105,4 +105,11 @@ t('pacer tick: off by default, kept by a backup, pitch follows the phase', () =>
   assert.deepStrictEqual(phases('box', 16), [0, 1, 2, 3]);
   assert.deepStrictEqual(phases('slow', 22), [0, 2, 0, 2]);
 });
+t('stats: logging for an earlier day ignores sessions on later dates', () => {
+  const s = K.defaults();
+  K.record(s, 'slow', 5, 4, 2, new Date(2026, 10, 20, 9));
+  K.record(s, 'box', 3, 3, 2, new Date(2026, 10, 22, 9)); // later date
+  const st = K.stats(s, new Date(2026, 10, 20, 18));
+  assert.strictEqual(st.weekMins, 5); assert.strictEqual(st.weekDays, 1);
+});
 console.log(n + ' calm unit tests passed');

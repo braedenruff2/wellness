@@ -245,11 +245,11 @@
   function weekStart(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
   function weekStats(state, now) {
     now = now || new Date();
-    var ws = iso(weekStart(now));
+    var wsDate = weekStart(now), ws = iso(wsDate), nextWs = iso(new Date(wsDate.getFullYear(), wsDate.getMonth(), wsDate.getDate() + 7));
     var days = {};
     sessionsWithSets(state).forEach(function (s) { days[s.date] = 1; });
     state.history.forEach(function (h) { days[h.date] = 1; });
-    var thisWeek = Object.keys(days).filter(function (d) { return d >= ws; }).length;
+    var thisWeek = Object.keys(days).filter(function (d) { return d >= ws && d < nextWs; }).length;
     // weeks in a row (before this one) with at least 2 workouts
     var streak = 0, w = weekStart(now);
     for (;;) {
@@ -271,12 +271,12 @@
   var AREAS = ['legs', 'push', 'pull', 'core'], AREA_TARGET = { legs: 6, push: 6, pull: 6, core: 3 };
   function weekVolume(state, now) {
     now = now || new Date();
-    var ws = weekStart(now), a = iso(ws), b = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7));
+    var ws = weekStart(now), a = iso(ws), nextWs = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + 7)), b = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7));
     var out = { thisWeek: {}, lastWeek: {} };
     AREAS.forEach(function (k) { out.thisWeek[k] = 0; out.lastWeek[k] = 0; });
     function add(date, ex, n) {
       var area = AREA[ex]; if (!area || !n) return;
-      if (date >= a) out.thisWeek[area] += n; else if (date >= b) out.lastWeek[area] += n;
+      if (date >= a && date < nextWs) out.thisWeek[area] += n; else if (date >= b && date < a) out.lastWeek[area] += n;
     }
     state.sessions.forEach(function (s) { (s.sets || []).forEach(function (x) { if (+x.val > 0) add(s.date, x.ex, 1); }); });
     state.history.forEach(function (h) { add(h.date, h.ex, h.sets.filter(function (v) { return +v > 0; }).length); });
@@ -297,9 +297,13 @@
   /* One sentence of coaching for the Home card. */
   function coach(state, now) {
     now = now || new Date();
-    var st = weekStats(state, now), dow = (now.getDay() + 6) % 7; // 0 = Monday
-    var done = sessionsWithSets(state), lastDate = done.length ? done[done.length - 1].date : (state.history.length ? state.history[state.history.length - 1].date : null);
-    var gap = lastDate ? Math.round((new Date(iso(now)) - new Date(lastDate)) / 864e5) : null;
+    var st = weekStats(state, now), dow = (now.getDay() + 6) % 7, todayIso = iso(now); // 0 = Monday
+    var done = sessionsWithSets(state).filter(function (s) { return s.date <= todayIso; });
+    var hist = state.history.filter(function (h) { return h.date <= todayIso; });
+    var lastSess = done.length ? done[done.length - 1].date : null;
+    var lastHist = hist.length ? hist[hist.length - 1].date : null;
+    var lastDate = lastSess && lastHist ? (lastSess > lastHist ? lastSess : lastHist) : (lastSess || lastHist);
+    var gap = lastDate ? Math.round((new Date(todayIso) - new Date(lastDate)) / 864e5) : null;
     var open = openSession(state, now);
     if (open) return 'In progress: ' + open.sets.length + ' set' + (open.sets.length === 1 ? '' : 's') + ' so far. Keep going.';
     if (lastDate === iso(now)) return 'Done for today. Rest is when the muscle actually grows.';

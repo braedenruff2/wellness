@@ -248,8 +248,8 @@
 
   function stats(state, now) {
     now = now || new Date();
-    var from = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
-    var week = state.sessions.filter(function (s) { return s.date >= from; });
+    var to = iso(now), from = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
+    var week = state.sessions.filter(function (s) { return s.date >= from && s.date <= to; });
     var mins = week.reduce(function (a, s) { return a + s.mins; }, 0);
     var days = {}; week.forEach(function (s) { days[s.date] = 1; });
     var rated = state.sessions.filter(function (s) { return s.before && s.after; }).slice(-20);

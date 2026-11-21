@@ -228,4 +228,16 @@ t('after Christmas: ask once about adjustable dumbbells, again a week after "Not
   assert.strictEqual(W.validate(JSON.parse(JSON.stringify(s))).dbAsked, '2026-12-26', 'kept through a backup');
   s.equipment = 'adjustable'; assert.ok(!W.askDumbbells(s, new Date(2027, 0, 9, 9)));
 });
+t('logging for an earlier week: weekStats, weekVolume and coach ignore sessions in later weeks', () => {
+  const s = W.defaults();
+  // Monday 23 Nov workout already logged; now looking at Sunday 22 Nov (previous week)
+  W.logSet(s, 'A', 0, 12, 10, at(23, 9)); W.endSession(s, at(23, 9, 30));
+  assert.strictEqual(W.weekStats(s, at(22, 18)).thisWeek, 0, 'Monday workout not counted in previous week');
+  assert.strictEqual(W.weekVolume(s, at(22, 18)).thisWeek.legs, 0, 'Monday sets not counted in previous week');
+  assert.ok(/0 of 3|busy week/.test(W.coach(s, at(22, 18))), 'coach does not treat future session as today');
+  // Imported history newer than last in-app session counts for coach()
+  W.logSet(s, 'A', 0, 12, 10, at(10, 9)); W.endSession(s, at(10, 9, 30));
+  s.history.push({ date: '2026-11-22', ex: 'Pushups', sets: [15, 15], w: null, from: 'sheet' });
+  assert.ok(/Done for today/.test(W.coach(s, at(22, 18))), 'newer imported history recognised');
+});
 console.log(n + ' workout unit tests passed');
