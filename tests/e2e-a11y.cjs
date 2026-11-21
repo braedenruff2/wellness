@@ -16,7 +16,7 @@ const SCREENS = ['#home', '#faith/today', '#faith/day/3', '#faith/pray', '#faith
     for (const h of SCREENS) {
       await page.goto(base + h); await page.waitForTimeout(50);
       const s = await page.evaluate(() => Array.from(document.querySelectorAll('#view button, #view .btn, #view .chip, #view .subnav a, #wl-today a'))
-        .filter((e) => e.offsetParent !== null && !e.classList.contains('link'))
+        .filter((e) => e.offsetParent !== null)
         .map((e) => ({ t: (e.textContent || e.getAttribute('aria-label') || '').trim().slice(0, 30), h: Math.round(e.getBoundingClientRect().height) }))
         .filter((x) => x.h > 0 && x.h < 44));
       s.forEach((x) => small.push(label + ' ' + h + ' "' + x.t + '" ' + x.h + 'px'));
@@ -24,8 +24,50 @@ const SCREENS = ['#home', '#faith/today', '#faith/day/3', '#faith/pray', '#faith
     assert.deepStrictEqual(small, []);
   }
 
-  await t.step('normal text size (1.0): tap targets at least 44 px tall', async () => {
+  await t.step('normal text size (1.0): tap targets at least 44 px tall (including link buttons)', async () => {
     await checkTargets('1.0');
+  });
+
+  await t.step('themes: Home done tick follows --good (not bright fallback in dark/night) and contrast meets AA', async () => {
+    // mark Faith day 1 done so Home shows a done item in #wl-today
+    await page.goto(base + '#faith/today');
+    await page.click('#finish');
+    await page.goto(base + '#home');
+    const checks = await page.evaluate(() => {
+      function parseRgb(s) { const m = s.match(/\d+/g); return m ? m.slice(0, 3).map(Number) : [0, 0, 0]; }
+      function lum(rgb) {
+        const c = rgb.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+      }
+      function ratio(a, b) { const l1 = lum(a), l2 = lum(b); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); }
+      const out = {};
+      for (const th of ['light', 'dark', 'night']) {
+        document.documentElement.dataset.theme = th;
+        const tk = document.querySelector('#wl-today li.done .tk');
+        const card = document.querySelector('#wl-today');
+        const meta = document.querySelector('#wl-today .meta') || document.querySelector('.meta');
+        const cardBg = parseRgb(getComputedStyle(card).backgroundColor);
+        const ink = parseRgb(getComputedStyle(document.body).color);
+        const soft = parseRgb(getComputedStyle(meta).color);
+        // resolve --good via a probe element
+        const probe = document.createElement('span'); probe.style.color = 'var(--good)'; document.body.appendChild(probe);
+        const good = getComputedStyle(probe).color; probe.remove();
+        out[th] = {
+          tkColor: tk ? getComputedStyle(tk).color : null,
+          goodColor: good,
+          inkContrast: +ratio(ink, cardBg).toFixed(2),
+          metaContrast: +ratio(soft, cardBg).toFixed(2)
+        };
+      }
+      return out;
+    });
+    for (const th of ['light', 'dark', 'night']) {
+      assert.strictEqual(checks[th].tkColor, checks[th].goodColor, th + ' done tick uses --good');
+      assert.ok(checks[th].inkContrast >= 4.5, th + ' body ink contrast ' + checks[th].inkContrast);
+    }
+    assert.ok(checks.light.metaContrast >= 4.5, 'light .meta contrast ' + checks.light.metaContrast);
+    assert.ok(checks.dark.metaContrast >= 4.5, 'dark .meta contrast ' + checks.dark.metaContrast);
+    assert.ok(checks.night.metaContrast >= 3.0, 'night .meta readable while dim at 3am: ' + checks.night.metaContrast);
   });
 
   await page.goto(base + '#home');
