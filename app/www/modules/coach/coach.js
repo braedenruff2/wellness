@@ -13,6 +13,9 @@
     return '<div class="card ui"><h3>About your little one</h3><p class="meta">So every scenario fits her exact age. This stays on your phone and goes only to your own PC when you ask for a scenario.</p>' +
       '<label for="co-name">Her name</label><input type="text" id="co-name" value="' + esc(S.child.name) + '" autocomplete="off">' +
       '<label for="co-birth">Her birthday</label><input type="date" id="co-birth" value="' + esc(S.child.birth) + '">' +
+      '<div class="meta" style="margin-top:12px">What she can do now (tap all that fit; scenarios stay within this)</div><div class="chips" id="co-can">' +
+      K.CAN.map(function (v) { return '<button class="chip" data-can="' + esc(v) + '" aria-pressed="' + ((S.child.can || []).indexOf(v) >= 0) + '">' + esc(v) + '</button>'; }).join('') + '</div>' +
+      '<label for="co-can-note">Anything else she does or doesn’t do yet</label><input type="text" id="co-can-note" maxlength="300" value="' + esc(S.child.canNote || '') + '" placeholder="e.g. says mama and dada, not climbing stairs yet">' +
       '<div class="row" style="margin-top:10px"><button class="primary" id="co-save">Save</button>' + (S.child.birth ? '<a class="btn" href="#coach">Cancel</a>' : '') + '</div></div>';
   }
 
@@ -55,7 +58,10 @@
   }
 
   function mainHtml() {
-    var h = '<h1>Parenting practice</h1><p class="ui meta">' + esc(S.child.name || 'Your daughter') + ' is ' + esc(K.ageText(S.child.birth)) + '. <a href="#coach/setup">Change</a></p>';
+    var can = K.canText(S);
+    var h = '<h1>Parenting practice</h1><p class="ui meta">' + esc(S.child.name || 'Your daughter') + ' is ' + esc(K.ageText(S.child.birth)) + '.' +
+      (can ? ' She can: ' + esc(can) + '.' : '') + ' <a href="#coach/setup">Change</a></p>';
+    if (!can) h += '<p class="ui meta" id="co-can-nudge"><a href="#coach/setup">Tell the app what she can do now</a> (walks, climbs, first words…) so scenarios fit her, not a typical child her age.</p>';
     if (!pc.ready()) h += '<div class="card ui"><p>Scenarios and feedback come from Claude on your PC. <a href="#link">Pair the PC link</a> first (home Wi-Fi).</p></div>';
     if (err) h += '<p class="no ui">' + esc(err) + '</p>' + (/reach|time|connect|fail|network|wi-?fi|answer/i.test(err) && !/Claude didn/i.test(err)
       ? '<p class="meta ui" id="co-offline">Your PC isn’t answering (away from home Wi-Fi, or it’s asleep). The tips and past advice below still work; try again at home.</p>' : '');
@@ -104,10 +110,11 @@
   }
 
   function wireSetup() {
+    $$('[data-can]').forEach(function (b) { b.onclick = function () { K.toggleCan(S, b.dataset.can); save(); b.setAttribute('aria-pressed', String(S.child.can.indexOf(b.dataset.can) >= 0)); }; });
     $('#co-save').onclick = function () {
       var b = $('#co-birth').value;
       if (!/^\d{4}-\d\d-\d\d$/.test(b) || K.ageMonths(b) == null || K.ageMonths(b) < 0) { WL.toast('Pick her birthday'); return; }
-      S.child.name = $('#co-name').value.trim().slice(0, 40); S.child.birth = b; save();
+      S.child.name = $('#co-name').value.trim().slice(0, 40); S.child.birth = b; K.setCanNote(S, $('#co-can-note').value); save();
       location.hash = '#coach'; render([]);
     };
   }
@@ -135,7 +142,7 @@
     if (answer.length < 15) { WL.toast('Write a little more: what would you do and say?'); return; }
     var c = S.current; c.answer = answer; save();
     err = null; waiting = { kind: 'grade', secs: 0 }; render([]);
-    start('coach-grade', { child: S.child.name, age: c.age, scenario: c.scenario, question: c.question, answer: answer }, function (a) {
+    start('coach-grade', { child: S.child.name, age: c.age, can: K.canText(S), scenario: c.scenario, question: c.question, answer: answer }, function (a) {
       var h = K.grade(S, answer, a, null, c); save();
       if (h && here()) location.hash = '#coach/h/' + h.id;
       pc.sync().catch(function () {});
@@ -145,7 +152,7 @@
     text = String(text || '').trim();
     if (text.length < 20) { WL.toast('Tell Claude a bit more: what happens, when, what you’ve tried'); return; }
     err = null; waiting = { kind: 'real', secs: 0 }; render([]);
-    start('coach-advice', { child: S.child.name, age: K.ageText(S.child.birth), situation: text.slice(0, 3000) }, function (a) {
+    start('coach-advice', { child: S.child.name, age: K.ageText(S.child.birth), can: K.canText(S), situation: text.slice(0, 3000) }, function (a) {
       var h = K.addReal(S, text, a); S.realDraft = ''; save();
       if (here()) location.hash = '#coach/h/' + h.id;
       pc.sync().catch(function () {});

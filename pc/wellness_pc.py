@@ -477,6 +477,15 @@ RULES = ("Rules: you are helping Braeden through his own Wellness app. Be warm, 
 def j(x): return json.dumps(x, ensure_ascii=False)
 
 
+def can_do(inp):
+    """What she can do now, from her dad's own setup on the phone: trusted over typical milestones."""
+    c = str(inp.get("can") or "").strip()[:500]
+    if not c: return ""
+    return (f"What she can already do, from her dad (trust this over typical milestones for her age): {j(c)}. "
+            "Keep everything within what she can and can't do yet: treat what's listed as things she does easily "
+            "now (not new or worrying), and don't have her do things a child her age usually can't. ")
+
+
 def prompt_for(task, inp):
     """(prompt, tools allowed) for a task. inp is the phone's checked input."""
     if task == "coach-scenario":
@@ -485,7 +494,7 @@ def prompt_for(task, inp):
             "parenting research). Write ONE realistic, specific scenario to practise, for a dad on parental leave caring "
             f"mostly alone for his daughter {inp.get('child') or 'his baby'}, who is {inp.get('age') or 'about one year old'} "
             "today. It must fit what a child exactly that age really does (development, sleep, feeding, mobility, "
-            "language, feelings). Make it a moment where his response matters. "
+            "language, feelings). Make it a moment where his response matters. " + can_do(inp) +
             f"Practise skill: {inp.get('skill') or 'pick the one he needs most from his recent scores'}. "
             f"His recent scores (skill: score/10): {j(inp.get('recent') or [])}. Recent scenario titles to avoid repeating: "
             f"{j(inp.get('avoid') or [])}. " + RULES +
@@ -496,7 +505,7 @@ def prompt_for(task, inp):
             "You are an expert, evidence-based parenting coach. Grade a dad's answer to a practice scenario about his "
             f"daughter {inp.get('child') or ''}, aged {inp.get('age') or 'about one'}. First check current guidance "
             "(use web search: AAP/HealthyChildren.org, CDC, Caring for Kids (Canadian Paediatric Society), Zero to Three, "
-            "or research) for what works best at this age, then grade kindly and honestly. "
+            "or research) for what works best at this age, then grade kindly and honestly. " + can_do(inp) +
             f"Scenario: {j(inp.get('scenario') or '')}\nQuestion: {j(inp.get('question') or '')}\nHis answer: {j(inp.get('answer') or '')}\n"
             + RULES +
             ' JSON: {"score": 1-10, "verdict": one encouraging sentence, "good": [what he did well, 1-3 items], '
@@ -510,7 +519,8 @@ def prompt_for(task, inp):
             f"alone for his daughter {inp.get('child') or ''}, aged {inp.get('age') or 'about one'}, describes something "
             "REAL that is happening with her and asks for advice. First check current guidance with web search for what "
             "works at exactly this age, then answer warmly and concretely. If anything he describes could be a health or "
-            "safety concern, say clearly what signs mean calling 811 (PEI health line), a doctor or 911, and don't diagnose.\n"
+            "safety concern, say clearly what signs mean calling 811 (PEI health line), a doctor or 911, and don't diagnose. "
+            + can_do(inp) + "\n"
             f"What's happening, in his words: {j(inp.get('situation') or '')}\n" + RULES +
             ' JSON: {"title": short title for this situation, "skill": one of ' + j(SKILLS) + ', "summary": "what is '
             'probably going on at her age, 1-3 sentences", "steps": [what to do, in order, 3-6 short items], "say": [1-3 '

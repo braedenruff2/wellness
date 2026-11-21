@@ -126,6 +126,15 @@ const FAKE_PC = `
     await page.click('nav#tabs a[data-tab="coach"]');
     await page.fill('#co-name', 'Kid'); await page.fill('#co-birth', '2025-11-24'); await page.click('#co-save');
     assert.ok((await page.textContent('main')).includes('Kid is 11 months old'));
+    assert.ok(await page.isVisible('#co-can-nudge'), 'asks what she can do now');
+    await page.click('#co-can-nudge a');
+    await page.click('[data-can="Walks"]'); await page.click('[data-can="Climbs"]'); await page.click('[data-can="Climbs"]'); await page.click('[data-can="Gets down by herself"]');
+    await page.fill('#co-can-note', 'rarely cries after a fall');
+    await page.click('#co-save');
+    assert.ok((await page.textContent('main')).includes('She can: walks; gets down by herself. Also: rarely cries after a fall.'));
+    assert.ok(!(await page.isVisible('#co-can-nudge')));
+    await page.reload(); await page.waitForSelector('[data-skill="Sleep"]');
+    assert.ok((await page.textContent('main')).includes('She can: walks'), 'kept');
     await page.click('[data-skill="Sleep"]');
     await page.click('#co-new');
     await page.waitForSelector('text=Claude is writing a scenario');
@@ -133,6 +142,7 @@ const FAKE_PC = `
     await page.waitForSelector('text=Teething at 3am');
     const ask = (await fake()).asks.slice(-1)[0];
     assert.deepStrictEqual([ask.task, ask.input.child, ask.input.age, ask.input.skill], ['coach-scenario', 'Kid', '11 months old', 'Sleep']);
+    assert.strictEqual(ask.input.can, 'walks; gets down by herself. Also: rarely cries after a fall');
     await page.fill('#co-answer', 'short'); await page.click('#co-grade');
     assert.strictEqual((await fake()).asks.length, 2, 'too short: not sent');
     await page.fill('#co-answer', 'I pick her up, stay calm and give her something cold to chew.');
@@ -140,6 +150,7 @@ const FAKE_PC = `
     assert.ok((await page.inputValue('#co-answer')).includes('stay calm'), 'answer draft kept');
     await page.click('#co-grade');
     await page.waitForSelector('text=Claude is checking');
+    assert.strictEqual((await fake()).asks.slice(-1)[0].input.can, 'walks; gets down by herself. Also: rarely cries after a fall', 'grading knows too');
     await page.clock.runFor(3500);
     await page.waitForSelector('text=What an expert would do');
     const txt = await page.textContent('main');
@@ -173,7 +184,7 @@ const FAKE_PC = `
     await page.waitForSelector('text=checking current guidance for your situation');
     const ask = (await fake()).asks.slice(-1)[0];
     assert.strictEqual((await fake()).asks.length, n + 1);
-    assert.deepStrictEqual([ask.task, ask.input.child, ask.input.age], ['coach-advice', 'Kid', '11 months old']);
+    assert.deepStrictEqual([ask.task, ask.input.child, ask.input.age, ask.input.can], ['coach-advice', 'Kid', '11 months old', 'walks; gets down by herself. Also: rarely cries after a fall']);
     assert.ok(ask.input.situation.includes('car seat'));
     await page.clock.runFor(3500);
     await page.waitForSelector('text=What to do');

@@ -87,6 +87,10 @@ for t in W.TASKS:
     check("prompt " + t + " asks for JSON", "JSON" in pr and "ONE JSON object" in pr)
 check("only grading and real-situation advice may search the web", W.prompt_for("coach-grade", {})[1] == "WebSearch,WebFetch"
       and W.prompt_for("coach-advice", {})[1] == "WebSearch,WebFetch" and W.prompt_for("advice", {})[1] == "" and W.prompt_for("coach-scenario", {})[1] == "")
+for _t in ("coach-scenario", "coach-grade", "coach-advice"):
+    _p = W.prompt_for(_t, {"can": "walks; gets down by herself", "age": "12 months old"})[0]
+    check(_t + ": what she can do now is in the prompt", "walks; gets down by herself" in _p and "can and can't do yet" in _p, _p[:600])
+    check(_t + ": nothing said, no can-do line", "can already do" not in W.prompt_for(_t, {"age": "12 months old"})[0])
 check("real-situation prompt carries his words and the age", "car seat" in W.prompt_for("coach-advice", {"situation": "car seat", "age": "11 months old"})[0]
       and "11 months old" in W.prompt_for("coach-advice", {"situation": "car seat", "age": "11 months old"})[0])
 

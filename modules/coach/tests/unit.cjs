@@ -70,6 +70,27 @@ t('a real situation: advice kept (no score), practised as a scenario, kept throu
   const v = K.validate(JSON.parse(JSON.stringify(s)));
   assert.strictEqual(v.history[0].kind, 'real'); assert.deepStrictEqual(v.history[0].advice.steps, ['a', 'b']);
 });
+t('what she can do now: chips toggle in list order, a note, sent with scenario requests, kept by a restore', () => {
+  const s = K.defaults(); s.child.birth = '2025-11-22';
+  assert.strictEqual(K.canText(s), '');
+  assert.strictEqual(K.scenarioInput(s, null, new Date(2026, 10, 22)).can, '');
+  K.toggleCan(s, 'Climbs'); K.toggleCan(s, 'Walks'); K.toggleCan(s, 'Gets down by herself');
+  assert.deepStrictEqual(s.child.can, ['Walks', 'Gets down by herself', 'Climbs'], 'list order');
+  K.toggleCan(s, 'Climbs');
+  assert.deepStrictEqual(s.child.can, ['Walks', 'Gets down by herself'], 'tap again: off');
+  assert.strictEqual(K.toggleCan(s, 'Flies'), null, 'unknown chip');
+  K.setCanNote(s, '  says mama and dada  ');
+  assert.strictEqual(K.canText(s), 'walks; gets down by herself. Also: says mama and dada');
+  assert.strictEqual(K.scenarioInput(s, 'Sleep', new Date(2026, 10, 22)).can, 'walks; gets down by herself. Also: says mama and dada');
+  K.setCanNote(s, ''); assert.strictEqual(s.child.canNote, undefined);
+  K.setCanNote(s, 'x'.repeat(500)); assert.strictEqual(s.child.canNote.length, 300);
+  const v = K.validate({ child: { name: 'K', birth: '2025-11-22', can: ['Points', 'Walks', 'Walks', 'Hacks', 5], canNote: 'only note' }, history: [] });
+  assert.deepStrictEqual(v.child.can, ['Walks', 'Points']);
+  assert.strictEqual(v.child.canNote, 'only note');
+  const w = K.validate({ child: { name: 'K', birth: '2025-11-22' }, history: [] });
+  assert.strictEqual(w.child.can, undefined); assert.strictEqual(K.canText(w), '');
+});
+
 t('validate: a damaged backup can not break it', () => {
   assert.strictEqual(K.validate(null), null);
   const v = K.validate({ child: { name: 'K'.repeat(100), birth: 'yesterday' }, history: [null, { at: 'x', scenario: 's' }, { at: '2026-11-19T10:00:00Z', scenario: 's', skill: 'Sleep', result: { score: 5 } }] });
