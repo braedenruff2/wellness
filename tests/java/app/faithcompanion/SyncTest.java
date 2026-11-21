@@ -99,6 +99,51 @@ public class SyncTest {
         try { Sync.answersFromCsv("%PDF-1.7"); } catch (IOException e) { badPdf = e.getMessage().contains("CSV"); }
         ok(badPdf, "rejects pdf binary");
 
+        // Google Drive exports a Google Sheet as XLSX (not CSV): read it directly
+        String sst = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"6\" uniqueCount=\"6\">"
+            + "<si><t>id</t></si><si><t>task</t></si><si><t>answer-json</t></si><si><t>at</t></si>"
+            + "<si><t>{&quot;task&quot;:&quot;advice&quot;,&quot;answer&quot;:{&quot;headline&quot;:&quot;Steady &amp; calm, ☀️&quot;}}</t></si>"
+            + "<si><r><t>r</t></r><r><rPr><b/></rPr><t xml:space=\"preserve\">1</t></r><rPh><t>x</t></rPh></si></sst>";
+        String sheet = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>"
+            + "<row r=\"1\"><c r=\"A1\" t=\"s\"><v>0</v></c><c r=\"B1\" t=\"s\"><v>1</v></c><c r=\"C1\" t=\"s\"><v>2</v></c><c r=\"D1\" t=\"s\"><v>3</v></c></row>"
+            + "<row r=\"2\"><c r=\"A2\" t=\"s\"><v>5</v></c><c r=\"B2\" t=\"inlineStr\"><is><t>advice</t></is></c><c r=\"C2\" t=\"s\"><v>4</v></c><c r=\"D2\" t=\"str\"><v>2026-11-21T12:00:00Z</v></c></row>"
+            + "<row r=\"3\"></row><row r=\"4\"><c r=\"A4\" t=\"inlineStr\"><is><t>r2</t></is></c><c r=\"C4\" t=\"inlineStr\"><is><t>{&quot;error&quot;:&quot;no&quot;}</t></is></c><c r=\"D4\"><v>46000.5</v></c></row>"
+            + "</sheetData></worksheet>";
+        String wb = "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets>"
+            + "<sheet name=\"Sheet1\" sheetId=\"1\" r:id=\"rId3\"/><sheet name=\"Other\" sheetId=\"2\" r:id=\"rId4\"/></sheets></workbook>";
+        String rels = "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
+            + "<Relationship Id=\"rId4\" Type=\"x\" Target=\"worksheets/sheet1.xml\"/><Relationship Id=\"rId3\" Type=\"x\" Target=\"worksheets/sheet2.xml\"/></Relationships>";
+        String other = "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData><row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>wrong sheet</t></is></c></row></sheetData></worksheet>";
+        java.io.ByteArrayOutputStream zb = new java.io.ByteArrayOutputStream();
+        try (java.util.zip.ZipOutputStream zo = new java.util.zip.ZipOutputStream(zb)) {
+            String[][] files = { { "[Content_Types].xml", "<Types/>" }, { "xl/workbook.xml", wb }, { "xl/_rels/workbook.xml.rels", rels },
+                { "xl/sharedStrings.xml", sst }, { "xl/worksheets/sheet2.xml", sheet }, { "xl/worksheets/sheet1.xml", other } };
+            for (String[] f : files) { zo.putNextEntry(new java.util.zip.ZipEntry(f[0])); zo.write(f[1].getBytes("UTF-8")); zo.closeEntry(); }
+        }
+        byte[] xlsx = zb.toByteArray();
+        List<List<String>> xr = Sync.parseXlsx(xlsx);
+        ok(xr.size() == 3, "xlsx: header + 2 rows (empty row skipped), got " + xr);
+        ok("id".equals(xr.get(0).get(0)) && "at".equals(xr.get(0).get(3)), "xlsx header from shared strings, workbook's first sheet");
+        ok("r1".equals(xr.get(1).get(0)), "rich text runs joined, phonetic run left out: " + xr.get(1).get(0));
+        ok("advice".equals(xr.get(1).get(1)) && xr.get(1).get(2).contains("Steady & calm, ☀️") && "2026-11-21T12:00:00Z".equals(xr.get(1).get(3)), "inline, entities, unicode, str: " + xr.get(1));
+        ok("r2".equals(xr.get(2).get(0)) && "".equals(xr.get(2).get(1)) && "46000.5".equals(xr.get(2).get(3)), "missing column kept empty, number: " + xr.get(2));
+        String xj = Sync.answersFromExport(Sync.XLSX, xlsx);
+        ok(xj.startsWith("{\"rows\":[") && xj.contains("\"id\":\"r1\"") && xj.contains("\"id\":\"r2\"") && !xj.contains("\"id\":\"id\""), "xlsx -> rows json: " + xj);
+        ok(Sync.answersFromExport("", xlsx).equals(xj), "xlsx recognised by its zip header too");
+        ok(Sync.answersFromExport("text/csv", csv.getBytes("UTF-8")).equals(Sync.answersFromCsv(csv)), "csv export unchanged");
+        boolean notSheet = false;
+        try { Sync.parseXlsx("PK\u0003\u0004junk".getBytes("UTF-8")); } catch (IOException e) { notSheet = e.getMessage().contains("spreadsheet"); }
+        ok(notSheet, "a broken zip says it isn't a spreadsheet");
+        ok(Sync.column("A1") == 0 && Sync.column("D7") == 3 && Sync.column("AA3") == 26 && Sync.column("") == -1, "column refs");
+        List<String> tries = Sync.answersTypes(new String[]{ "application/pdf", Sync.XLSX });
+        ok(tries.size() == 1 && Sync.XLSX.equals(tries.get(0)), "Drive offering only pdf + xlsx: xlsx tried " + tries);
+        tries = Sync.answersTypes(new String[]{ Sync.XLSX, "text/csv" });
+        ok(tries.size() == 2 && "text/csv".equals(tries.get(0)), "csv first when offered " + tries);
+        ok(Sync.answersTypes(null).isEmpty(), "nothing offered");
+        String ee = Sync.exportError(new String[]{ "application/pdf" }, new java.io.FileNotFoundException("x"));
+        ok(ee.contains("Drive offered: application/pdf") && ee.contains("Change answers sheet"), "export error names the offered types: " + ee);
+        ok(Sync.friendlyAnswersError(new IOException(ee)).equals(ee), "that message is shown as it is");
+
         String stAns = Sync.statusJson(true, "wellness-sync.json", 10L, "", false, true, "wellness-answers", "Drive refused");
         ok(stAns.contains("\"answersConfigured\":true") && stAns.contains("\"answersName\":\"wellness-answers\"")
             && stAns.contains("\"answersError\":\"Drive refused\""), "answers status fields: " + stAns);

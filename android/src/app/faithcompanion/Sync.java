@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -18,7 +19,21 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 /**
  * Google Drive sync through Android's Storage Access Framework (ACTION_CREATE_DOCUMENT):
@@ -32,6 +47,8 @@ final class Sync {
     static final String DEFAULT_NAME = "wellness-sync.json";
     static final String DEFAULT_ANSWERS_NAME = "wellness-answers";
     static final String MIME = "application/json";
+    /** Google Drive exports a Google Sheet (a virtual document) as Office/PDF types, not CSV; XLSX is read directly. */
+    static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
     static final int MAX_READ_BYTES = 16 * 1024 * 1024;
     static final long AUTO_EVERY_MS = 30 * 60 * 1000L;
     static volatile boolean busy;
@@ -150,15 +167,16 @@ final class Sync {
     static String friendlyAnswersError(Throwable t) {
         if (t == null) return "Could not read the answers sheet.";
         if (t instanceof SecurityException) {
-            return "Google Drive refused permission to read the answers sheet. Tap Change sheet to pick it again.";
+            return "Google Drive refused permission to read the answers sheet. Tap Change answers sheet to pick it again.";
         }
         if (t instanceof UnsupportedOperationException) {
             return "Google Drive refused to export the answers sheet as CSV. Try picking it again or use a different file.";
         }
         if (t instanceof FileNotFoundException) {
-            return "The answers sheet could not be opened (it may have been moved, deleted, or Drive refused CSV export). Tap Change sheet to pick it again.";
+            return "The answers sheet could not be opened (it may have been moved, deleted, or Drive refused CSV export). Tap Change answers sheet to pick it again.";
         }
         String raw = t.getMessage() == null ? "" : t.getMessage().trim();
+        if (raw.startsWith("Google Drive") || raw.startsWith("This file")) return raw.length() > 400 ? raw.substring(0, 400) : raw;
         if (raw.length() > 180) raw = raw.substring(0, 180);
         String low = raw.toLowerCase(java.util.Locale.ROOT);
         if (low.contains("virtual") || low.contains("not openable") || low.contains("cannot export")
@@ -169,7 +187,7 @@ final class Sync {
         }
         if (low.contains("permission") || low.contains("denied")) {
             return "Google Drive refused access to the answers sheet" + (raw.isEmpty() ? "." : " (" + raw + ").")
-                + " Tap Change sheet to pick it again.";
+                + " Tap Change answers sheet to pick it again.";
         }
         return raw.isEmpty() ? "Could not read the answers sheet." : "Could not read the answers sheet: " + raw;
     }
@@ -240,7 +258,11 @@ final class Sync {
         if (trimmed.isEmpty()) return "{\"rows\":[]}";
         if (trimmed.charAt(0) == '{') return trimmed;
 
-        List<List<String>> rows = parseCsv(s);
+        return rowsJson(parseCsv(s));
+    }
+
+    /** Sheet rows (id | task | answer-json | at; a header row is skipped) as the {"rows":[...]} JSON lib/sync-core.js reads. */
+    static String rowsJson(List<List<String>> rows) {
         StringBuilder out = new StringBuilder("{\"rows\":[");
         boolean first = true;
         for (int i = 0; i < rows.size(); i++) {
@@ -274,6 +296,138 @@ final class Sync {
             out.write(buf, 0, n);
         }
         return new String(out.toByteArray(), StandardCharsets.UTF_8);
+    }
+
+    /** Reads a stream fully with a size cap. */
+    static byte[] readBytes(InputStream in, int maxBytes) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buf = new byte[16384];
+        int total = 0, n;
+        while ((n = in.read(buf)) > 0) {
+            total += n;
+            if (total > maxBytes) throw new IOException("the answers sheet is too large");
+            out.write(buf, 0, n);
+        }
+        return out.toByteArray();
+    }
+
+    /** The first worksheet of an .xlsx file (what Google Drive exports a Google Sheet as) as rows of cell text:
+     *  shared strings, inline strings, formula strings and numbers; empty cells keep their column. */
+    static List<List<String>> parseXlsx(byte[] data) throws IOException {
+        Map<String, byte[]> parts = new HashMap<>();
+        try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(data))) {
+            ZipEntry e; int total = 0;
+            while ((e = z.getNextEntry()) != null) {
+                String name = e.getName();
+                if (e.isDirectory() || !name.startsWith("xl/")) continue;
+                if (!(name.equals("xl/sharedStrings.xml") || name.equals("xl/workbook.xml") || name.equals("xl/_rels/workbook.xml.rels")
+                        || name.startsWith("xl/worksheets/sheet"))) continue;
+                byte[] b = readBytes(z, MAX_READ_BYTES);
+                total += b.length;
+                if (total > 4 * MAX_READ_BYTES) throw new IOException("the answers sheet is too large");
+                parts.put(name, b);
+            }
+        }
+        String sheet = firstSheet(parts);
+        if (sheet == null) throw new IOException("This file could not be read as a spreadsheet (no worksheet in it).");
+        List<String> shared = new ArrayList<>();
+        if (parts.containsKey("xl/sharedStrings.xml")) {
+            NodeList si = xml(parts.get("xl/sharedStrings.xml")).getElementsByTagNameNS("*", "si");
+            for (int i = 0; i < si.getLength(); i++) shared.add(text((Element) si.item(i)));
+        }
+        List<List<String>> rows = new ArrayList<>();
+        NodeList rs = xml(parts.get(sheet)).getElementsByTagNameNS("*", "row");
+        for (int i = 0; i < rs.getLength(); i++) {
+            List<String> row = new ArrayList<>();
+            NodeList cs = ((Element) rs.item(i)).getElementsByTagNameNS("*", "c");
+            for (int k = 0; k < cs.getLength(); k++) {
+                Element c = (Element) cs.item(k);
+                int col = column(c.getAttribute("r"));
+                if (col < 0) col = row.size();
+                if (col > 50) continue;
+                while (row.size() < col) row.add("");
+                String t = c.getAttribute("t"), v = child(c, "v"), val;
+                if ("s".equals(t)) {
+                    int idx = -1; try { idx = Integer.parseInt(v.trim()); } catch (NumberFormatException ignored) { }
+                    val = idx >= 0 && idx < shared.size() ? shared.get(idx) : "";
+                } else if ("inlineStr".equals(t)) {
+                    NodeList is = c.getElementsByTagNameNS("*", "is");
+                    val = is.getLength() > 0 ? text((Element) is.item(0)) : "";
+                } else val = v;
+                if (row.size() == col) row.add(val); else row.set(col, val);
+            }
+            boolean any = false; for (String x : row) if (!x.isEmpty()) { any = true; break; }
+            if (any) rows.add(row);
+        }
+        return rows;
+    }
+
+    /** The worksheet the workbook lists first (its rels target), else the lowest-numbered sheetN.xml. */
+    private static String firstSheet(Map<String, byte[]> parts) {
+        try {
+            if (parts.containsKey("xl/workbook.xml") && parts.containsKey("xl/_rels/workbook.xml.rels")) {
+                NodeList sh = xml(parts.get("xl/workbook.xml")).getElementsByTagNameNS("*", "sheet");
+                if (sh.getLength() > 0) {
+                    Element first = (Element) sh.item(0);
+                    String rid = first.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships", "id");
+                    NodeList rel = xml(parts.get("xl/_rels/workbook.xml.rels")).getElementsByTagNameNS("*", "Relationship");
+                    for (int i = 0; i < rel.getLength(); i++) {
+                        Element r = (Element) rel.item(i);
+                        if (!rid.isEmpty() && rid.equals(r.getAttribute("Id"))) {
+                            String target = r.getAttribute("Target");
+                            String path = target.startsWith("/") ? target.substring(1) : "xl/" + target;
+                            if (parts.containsKey(path)) return path;
+                        }
+                    }
+                }
+            }
+        } catch (IOException ignored) { }
+        String best = null; int bestN = Integer.MAX_VALUE;
+        for (String k : parts.keySet()) {
+            if (!k.startsWith("xl/worksheets/sheet") || !k.endsWith(".xml")) continue;
+            int n; try { n = Integer.parseInt(k.substring("xl/worksheets/sheet".length(), k.length() - 4)); } catch (NumberFormatException e) { n = Integer.MAX_VALUE - 1; }
+            if (n < bestN) { bestN = n; best = k; }
+        }
+        return best;
+    }
+
+    private static Document xml(byte[] b) throws IOException {
+        try {
+            DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
+            f.setNamespaceAware(true);
+            f.setExpandEntityReferences(false);
+            try { f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true); } catch (Exception ignored) { }
+            DocumentBuilder d = f.newDocumentBuilder();
+            return d.parse(new ByteArrayInputStream(b));
+        } catch (Exception e) {
+            throw new IOException("This file could not be read as a spreadsheet.", e);
+        }
+    }
+
+    /** All <t> text under an element, except phonetic runs (<rPh>). */
+    private static String text(Element e) {
+        StringBuilder b = new StringBuilder();
+        NodeList ts = e.getElementsByTagNameNS("*", "t");
+        for (int i = 0; i < ts.getLength(); i++) {
+            Node n = ts.item(i), p = n.getParentNode();
+            boolean phonetic = false;
+            while (p != null && p != e) { if ("rPh".equals(p.getLocalName())) { phonetic = true; break; } p = p.getParentNode(); }
+            if (!phonetic) b.append(n.getTextContent());
+        }
+        return b.toString();
+    }
+
+    private static String child(Element e, String local) {
+        NodeList n = e.getElementsByTagNameNS("*", local);
+        return n.getLength() > 0 ? n.item(0).getTextContent() : "";
+    }
+
+    /** "C12" -> 2 (0-based column); -1 when there is no reference. */
+    static int column(String ref) {
+        if (ref == null) return -1;
+        int col = 0, i = 0;
+        while (i < ref.length() && Character.isLetter(ref.charAt(i))) { col = col * 26 + (Character.toUpperCase(ref.charAt(i)) - 'A' + 1); i++; }
+        return i == 0 ? -1 : col - 1;
     }
 
     /** Writes UTF-8 text to out and flushes. */
@@ -409,8 +563,7 @@ final class Sync {
         if (u == null) throw new IOException("No answers sheet chosen.");
         ContentResolver cr = c.getContentResolver();
         try {
-            String raw = readAnswersStream(cr, u);
-            String out = answersFromCsv(raw);
+            String out = readAnswersStream(cr, u);
             prefs(c).edit().putString("answersError", "").apply();
             return out;
         } catch (Throwable t) {
@@ -420,45 +573,59 @@ final class Sync {
         }
     }
 
+    /** Order to try a document's export types in: text (CSV, JSON, plain) first, then XLSX. */
+    static List<String> answersTypes(String[] offered) {
+        Set<String> out = new LinkedHashSet<>();
+        String text = chooseAnswersMime(offered);
+        if (text != null) out.add(text);
+        if (offered != null) for (String t : offered) if (t != null && XLSX.equalsIgnoreCase(t.trim())) out.add(XLSX);
+        return new ArrayList<>(out);
+    }
+
+    /** One export of the sheet as {"rows":[...]} (or JSON passed through). */
+    static String answersFromExport(String mime, byte[] data) throws IOException {
+        if (XLSX.equalsIgnoreCase(mime) || (data.length > 3 && data[0] == 'P' && data[1] == 'K' && data[2] == 3 && data[3] == 4)) {
+            return rowsJson(parseXlsx(data));
+        }
+        return answersFromCsv(new String(data, StandardCharsets.UTF_8));
+    }
+
+    /** Reads the answers sheet: a Google Sheet is a virtual document Drive exports (as XLSX/PDF, CSV only sometimes),
+     *  a plain CSV/JSON file opens directly. When nothing works, the error names what Drive offered. */
     private static String readAnswersStream(ContentResolver cr, Uri u) throws IOException {
-        String mime = chooseAnswersMime(cr.getStreamTypes(u, "text/csv"));
-        if (mime == null) mime = chooseAnswersMime(cr.getStreamTypes(u, "*/*"));
-        Throwable typedErr = null;
-        if (mime != null) {
+        String[] offered = null;
+        try { offered = cr.getStreamTypes(u, "*/*"); } catch (Exception ignored) { }
+        List<String> tries = answersTypes(offered);
+        if (tries.isEmpty()) tries.add("text/csv"); // some providers export CSV without listing it
+        Throwable last = null;
+        for (String mime : tries) {
             try (AssetFileDescriptor afd = cr.openTypedAssetFileDescriptor(u, mime, null)) {
                 if (afd != null) {
                     try (InputStream in = afd.createInputStream()) {
-                        return readStream(in, MAX_READ_BYTES);
+                        return answersFromExport(mime, readBytes(in, MAX_READ_BYTES));
                     }
                 }
-            } catch (FileNotFoundException | UnsupportedOperationException | IllegalArgumentException e) {
-                typedErr = e;
-            }
-        } else {
-            // Some Drive providers still export text/csv even when getStreamTypes returns null
-            try (AssetFileDescriptor afd = cr.openTypedAssetFileDescriptor(u, "text/csv", null)) {
-                if (afd != null) {
-                    try (InputStream in = afd.createInputStream()) {
-                        return readStream(in, MAX_READ_BYTES);
-                    }
-                }
-            } catch (FileNotFoundException | UnsupportedOperationException | IllegalArgumentException e) {
-                typedErr = e;
+            } catch (FileNotFoundException | UnsupportedOperationException | IllegalArgumentException | SecurityException e) {
+                last = e;
+            } catch (IOException e) {
+                last = e;
             }
         }
-        try {
-            InputStream in = cr.openInputStream(u);
-            if (in != null) {
-                try (InputStream s = in) {
-                    return readStream(s, MAX_READ_BYTES);
-                }
-            }
-        } catch (Throwable t) {
-            if (typedErr != null) throw new IOException(friendlyAnswersError(typedErr), typedErr);
-            throw t;
+        try (InputStream in = cr.openInputStream(u)) {
+            if (in != null) return answersFromExport("", readBytes(in, MAX_READ_BYTES));
+        } catch (Exception e) {
+            if (last == null) last = e;
         }
-        if (typedErr != null) throw new IOException(friendlyAnswersError(typedErr), typedErr);
-        throw new UnsupportedOperationException("Google Drive refused to export this answers sheet as CSV.");
+        throw new IOException(exportError(offered, last), last);
+    }
+
+    /** The message when no export of the answers sheet could be read: plain, with what Drive offered (to fix it). */
+    static String exportError(String[] offered, Throwable last) {
+        StringBuilder types = new StringBuilder();
+        if (offered != null) for (String t : offered) if (t != null && types.length() < 200) types.append(types.length() > 0 ? ", " : "").append(t.trim());
+        String why = last instanceof SecurityException ? "Google Drive refused permission to read the answers sheet."
+            : "Google Drive wouldn't give the answers sheet in a form the app can read.";
+        return why + " Drive offered: " + (types.length() > 0 ? types : "nothing") + ". Tap Change answers sheet to pick it again.";
     }
 
     /** Reads the whole sync file as UTF-8 text (empty string if the file is brand new / 0 bytes). */
