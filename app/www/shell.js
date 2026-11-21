@@ -238,7 +238,14 @@
     var today = isoDate(now);
     if (SH.nudged && SH.nudged !== today && now.getTime() - Date.parse(SH.nudged) < 7 * 864e5) return '';
     if (SH.nudged !== today) { SH.nudged = today; shellStore.save(SH); }
-    return '<div class="card ui" id="wl-backup"><p>' + (SH.lastBackup ? 'Your last backup was ' + Math.floor((now.getTime() - Date.parse(SH.lastBackup)) / 864e5) + ' days ago.' : 'You haven’t saved a backup yet.') +
+    // Drive sync worked before and has stopped: say when it last worked (newer than any backup file he saved)
+    var ds = driveState(), synced = ds && ds.configured && ds.lastSync ? Date.parse(ds.lastSync) : 0;
+    var days = function (t) { return Math.floor((now.getTime() - t) / 864e5); };
+    if (synced && synced > (Date.parse(SH.lastBackup) || 0)) {
+      return '<div class="card ui" id="wl-backup"><p>Drive sync last worked ' + days(synced) + ' days ago, so your newest days aren’t backed up.' +
+        ' <a href="#settings/sync">Check Sync with Google Drive</a>, or save a backup in <a href="#settings">Settings</a>.</p></div>';
+    }
+    return '<div class="card ui" id="wl-backup"><p>' + (SH.lastBackup ? 'Your last backup was ' + days(Date.parse(SH.lastBackup)) + ' days ago.' : 'You haven’t saved a backup yet.') +
       ' Everything lives only on this phone. <a href="#settings">Save one in Settings</a>.</p></div>';
   }
   /* Sunday from noon: one plain line about the week across parts (no streaks, no scores). */

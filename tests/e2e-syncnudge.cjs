@@ -146,6 +146,17 @@ const FAKE_DRIVE = `
     await page.evaluate(() => WL.driveSync.sync().catch(() => {}));
     await page.goto(base + '#settings'); await page.goto(base + '#home');
     assert.ok(await page.$('#wl-backup'), 'sync failing for 15 days: the backup nudge is back');
+    const txt = await page.textContent('#wl-backup');
+    assert.ok(txt.includes('Drive sync last worked 15 days ago') && !txt.includes('haven’t saved a backup'), txt);
+    await page.click('#wl-backup a[href="#settings/sync"]');
+    await page.waitForSelector('#wl-sync-pick');
+  });
+  await t.step('a backup file saved after the last Drive sync: the nudge counts from the backup', async () => {
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.shell.v1')); s.lastBackup = new Date(Date.now() - 14.5 * 864e5).toISOString(); s.nudged = null; localStorage.setItem('wl.shell.v1', JSON.stringify(s)); });
+    await page.reload();
+    await page.goto(base + '#home');
+    const txt = await page.textContent('#wl-backup');
+    assert.ok(txt.includes('Your last backup was 14 days ago') && !txt.includes('Drive sync last worked'), txt);
   });
   await t.step('no errors, nothing overflows', async () => { await t.noOverflow(['#home', '#settings']); assert.deepStrictEqual(t.errors, []); });
   await t.close('drive sync nudge browser');
