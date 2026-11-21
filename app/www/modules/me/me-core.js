@@ -158,6 +158,12 @@
     }
     var r5 = recentCheckins(state, now, 5), broken = r5.filter(function (c) { return c.wakes === '2' || c.wakes === '3+'; }).length;
     if (broken >= 3 && !out.some(function (g) { return g.key === 'shortsleep'; })) out.push({ key: 'brokennights', part: 'home', text: 'Broken nights on ' + broken + ' of the last ' + r5.length + ' check-ins. On these days a nap beats a workout, and Calm’s “Back to sleep” helps after a night feed.' });
+    // his last bedtime wind-down didn't help because his mind was racing: the next evening, write it down first
+    var wd = state.feedback.filter(function (x) { return x.part === 'calm' && x.kind === 'after' && /^(sleep|night)@/.test(String(x.about)); }).slice(-1)[0];
+    if (wd && now.getHours() >= 17 && Array.isArray(wd.a.block) && wd.a.block.indexOf('Mind racing') >= 0) {
+      var wdDay = iso(new Date(wd.at)), y = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+      if (wdDay === y || wdDay === iso(now)) out.push({ key: 'mindracing', part: 'calm', text: 'Your mind was racing at your last wind-down. Tonight, write down what’s on it first (a few lines in the Faith journal, or any paper), then do the wind-down.' });
+    }
     var w = lastN(state, 'workout', 'after', 3);
     var lw = w[w.length - 1];
     if (lw && lw.a.pain === 'Yes, I stopped') out.push({ key: 'wpain', part: 'workout', text: 'Last workout you stopped for pain. Next time skip or lighten that exercise, and if it keeps hurting, ask a doctor or physio.' });

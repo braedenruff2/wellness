@@ -109,6 +109,22 @@ t('guidance from his answers: rough night, low mood, workout pain / too hard / e
   assert.ok(K.guidance(s, D(20), 1).length === 1, 'max respected');
 });
 
+t('guidance: a wind-down rated "Mind racing" -> the next evening, write it down first', () => {
+  const keys = (s, now) => K.guidance(s, now, 20).map((g) => g.key);
+  const s = K.defaults();
+  K.answer(s, 'calm', 'sleep@a', 'block', 'Mind racing', D(19, 23));
+  assert.ok(keys(s, D(20, 19)).includes('mindracing'), 'next evening');
+  assert.ok(/write down what’s on it first/.test(K.guidance(s, D(20, 19), 20).find((g) => g.key === 'mindracing').text));
+  assert.ok(!keys(s, D(20, 10)).includes('mindracing'), 'not in the morning');
+  assert.ok(!keys(s, D(22, 19)).includes('mindracing'), 'stale after a day');
+  const b = K.defaults(); K.answer(b, 'calm', 'body@a', 'block', 'Mind racing', D(19, 23));
+  assert.ok(!keys(b, D(20, 19)).includes('mindracing'), 'only bedtime wind-downs (sleep, night)');
+  const n = K.defaults(); K.answer(n, 'calm', 'night@a', 'block', 'Mind racing', D(20, 3));
+  assert.ok(keys(n, D(20, 20)).includes('mindracing'), 'back-to-sleep after a night wake counts, same day');
+  K.answer(n, 'calm', 'sleep@b', 'helped', 'A lot', D(20, 22));
+  assert.ok(!keys(n, D(21, 20)).includes('mindracing'), 'a later wind-down that went fine replaces it');
+});
+
 t('more guidance: calm interrupted, low workout energy, tips that didn’t work, Tagalog level, what stood out in prayer', () => {
   const keys = (s) => K.guidance(s, D(20), 20).map((g) => g.key);
   const c = K.defaults();
