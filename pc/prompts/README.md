@@ -27,3 +27,7 @@ object). Write answers to the `wellness-answers` Google Sheet in the private Dri
 answer-json | at`), where `answer-json` is `{"task":"<task>","answer":{...}}` (or `{"task":"<task>","error":"..."}`,
 or the bare answer JSON object). The phone exports that sheet as CSV on each sync and feeds rows through the same
 `answers` / `acked` path as `wellness-sync.json` (the `answers` map in `wellness-sync.json` still works too).
+
+Keeping the sheet small: row 1 is the header `id,task,answer-json,at`; give every row `at` (ISO time of the answer).
+Each run, before adding rows, drop the rows whose `id` is already in the sync file's `acked` (the phone has them),
+and keep the rest. The phone ignores an answer it isn't waiting for once it is over a week old (`WL.pc.deliver`).
