@@ -34,3 +34,15 @@
 - Added tasks 33 (`[any]`, cloud-first without PC pairing) and 34 (`[drive]`, cloud-side `wellness-answers` Sheet writer + APK build/phone check) to `.autopilot/cloud-plan.md`.
 - Tested: full `node tests/run-all.cjs` (all 47 suites passed, 0 skipped) after each task.
 - Next: pick up task 33 (`[any]`) or coordinate after Claude's next APK build and phone verification of task 32.
+
+## 2026-11-21 07:24 AST (Cross-review fixes, live Faith personalization, date/DST bounds, theme/a11y, Parenting E2E)
+- Cross-reviewed Claude's commits (`95ef16b`..`b657605`: task 33 cloud-first without PC pairing, Home Drive sync setup card, `tools/cloud-answer.cjs`, and `ae347fe`/`8543ea2`: XLSX reader in `Sync.java` for Drive virtual Sheets): solid overall; `Sync.java` XLSX parser handles XXE, zip size bounds, shared/inline strings, and phonetic runs cleanly.
+- Fixed (`5961e84`): `tools/cloud-answer.cjs prepare` now accepts an optional `<sheet.csv>` and skips request IDs that already have a valid answer row in `wellness-answers` (preventing duplicate cloud re-answers before the phone syncs and acks); `tools/cloud_prompts.py` reconfigures stdin/stdout to UTF-8 for Windows safety; updated `cloud-plan.md` command snippet and added tests in `tests/cloud-answer.cjs`.
+- Fixed (`59804d0`):
+  - `app/www/modules/faith/faith.js` now refreshes personalized `{child}` content dynamically (`syncContent()`) when Parenting setup changes or a backup is restored, instead of freezing it at initial page load; verified without reload in `tests/e2e-personal.cjs`.
+  - Upper-bounded `doneInLast` at `today` in `app/www/modules/faith/core.js` and `app/www/modules/todo/todo-core.js` so earlier-day windows ignore future completions; switched `coach-core.js` newborn `ageText` (< 1 month) to UTC calendar-day math so spring-forward DST never undercounts by a day; added unit tests in all three modules.
+- Fixed (`2ae2c5b`): `.today-list li.done .tk` in `app/www/style.css` referenced undefined `--ok` (falling back to bright `#2e7d32` in dark and 3am night modes) -> fixed to `var(--good)`; raised `button.link` from 40 px to `min-height: 44px` so every visible button across all 16 screens meets 44 px at 1.0 and 1.3 text sizes; expanded `tests/e2e-a11y.cjs` to check all buttons (including `.link`), `--good` tick color across themes, and WCAG AA contrast.
+- Fixed & added tests: disabled `#co-grade` and `#co-skip` in `app/www/modules/coach/coach.js` when neither PC nor Drive sync is configured (`!askable()`) so an existing scenario/draft cannot be wiped by accident; added `modules/coach/tests/e2e.cjs` (setup validation, milestones/Cancel, active-scenario protection, past-practice detail + HTML escaping, unknown id, noOverflow).
+- Added `[any]` tasks 35 (cancel queued cloud requests), 36 (Drive sync date in backup nudge), and 37 (Faith `doneInLast` across rounds) to `.autopilot/cloud-plan.md`.
+- Tested: full `node tests/run-all.cjs` (all 50 suites passed, 0 skipped, including `coach e2e`, Java `SyncTest` with XLSX, and `privacy`).
+- Next: pick up tasks 35–37 (`[any]`) in order on the next run.

@@ -75,7 +75,7 @@
     if (c && !waiting) {
       h += '<div class="card"><div class="meta ui">' + esc(c.skill) + (c.age ? ' · ' + esc(c.age) : '') + '</div><h2>' + esc(c.title) + '</h2><p>' + esc(c.scenario) + '</p>' +
         '<p><b>' + esc(c.question) + '</b></p><label class="sr" for="co-answer">Your answer</label><textarea id="co-answer" rows="6" placeholder="In your own words: what you would do and say, step by step.">' + esc(c.answer || '') + '</textarea>' +
-        '<div class="row ui" style="margin-top:8px"><button class="primary" id="co-grade">Get feedback</button><button class="link" id="co-skip">Different scenario</button></div></div>';
+        '<div class="row ui" style="margin-top:8px"><button class="primary" id="co-grade"' + (askable() ? '' : ' disabled') + '>Get feedback</button><button class="link" id="co-skip"' + (askable() ? '' : ' disabled') + '>Different scenario</button></div></div>';
     } else if (!waiting) {
       var sug = K.suggestSkill(S);
       h += '<div class="card ui"><h3>Practise a moment</h3><p class="meta">Pick a skill, or let it choose (suggested: ' + esc(sug) + ').</p><div class="chips">' +
@@ -130,7 +130,7 @@
     var a = $('#co-answer'); if (a) a.oninput = function () { S.current.answer = a.value.slice(0, 4000); save(); };
     var rl = $('#co-real'); if (rl) rl.oninput = function () { S.realDraft = rl.value.slice(0, 3000); save(); };
     var rg = $('#co-real-go'); if (rg) rg.onclick = function () { askReal($('#co-real').value); };
-    var sk = $('#co-skip'); if (sk) sk.onclick = function () { S.current = null; save(); newScenario(); };
+    var sk = $('#co-skip'); if (sk) sk.onclick = function () { if (!askable()) return; S.current = null; save(); newScenario(); };
   }
 
   function tick(secs) { if (waiting) waiting.secs = secs; var e = $('#co-secs'); if (e) e.textContent = secs + ' s'; }
