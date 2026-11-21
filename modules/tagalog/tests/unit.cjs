@@ -133,4 +133,15 @@ t('typed answers: accents from the keyboard and hyphen/space don\'t matter; lett
   assert.ok(T.check({ answer: 'Senora' }, 'señora'), 'n typed as ñ');
 });
 
+t('cloud checks: kept through validate (last 20, text only), damaged ones dropped', () => {
+  const c = T.cleanCheck({ ok: 'yes', corrected: 'Umiinom ako ng tubig', explain: 'x'.repeat(2000), evil: '<b>', tip: 5 });
+  assert.deepStrictEqual(Object.keys(c).sort(), ['corrected', 'explain', 'ok']); assert.strictEqual(c.ok, false); assert.strictEqual(c.explain.length, 800);
+  const s = T.defaults(); s.checks = [];
+  for (let i = 0; i < 25; i++) s.checks.push({ at: new Date(2026, 10, 21, 10, i).toISOString(), prompt: 'p' + i, given: 'g', a: { ok: true } });
+  s.checks.push({ at: 'nope', prompt: 'bad' });
+  const v = T.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.checks.length, 19); assert.strictEqual(v.checks[18].prompt, 'p24'); assert.strictEqual(v.checks[0].a.ok, true);
+  assert.strictEqual(T.validate(T.defaults()).checks, undefined, 'no checks, no field');
+});
+
 console.log(n + ' tagalog unit tests passed');

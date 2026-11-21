@@ -88,7 +88,8 @@
     var p = S.plan, due = K.planDue(S, new Date()), pc = WL.pc;
     var h = '';
     if (p && !due) h += '<p><b>This week:</b> ' + esc(p.headline) + '</p>' + (K.planFor(S, 'home', new Date()) ? '<p class="meta">' + esc(K.planFor(S, 'home', new Date()).focus) + '</p>' : '');
-    if (due && !planBusy && K.planFailed(S, new Date())) h += '<div class="row" id="me-plan-failed"><span class="grow meta">Couldn’t make your plan this time.' +
+    if (due && !planBusy && planQueued()) h += queuedLine();
+    else if (due && !planBusy && K.planFailed(S, new Date())) h += '<div class="row" id="me-plan-failed"><span class="grow meta">Couldn’t make your plan this time.' +
       (pc && pc.ready() ? '</span><button id="me-plan">Try again</button></div>' : ' It tries again when your PC answers.</span></div>');
     else if (due && pc && pc.ready()) h += '<div class="row"><span class="grow meta">' + (p ? 'Time for a new weekly plan.' : 'Claude can make you a plan for the week from your check-ins and answers.') + '</span>' +
       '<button id="me-plan"' + (planBusy ? ' disabled' : '') + '>' + (planBusy ? 'Claude is on it…' : 'Make this week’s plan') + '</button></div>';
@@ -133,11 +134,23 @@
       S.plan = p; save(); WL.toast('Your plan for this week is ready'); if (done) done();
     }, function (e) {
       planBusy = false;
+      // the PC wasn't reachable: the next cloud run makes the plan (with Drive sync on), shown the same way
+      if (!e.queued && !reached && pc.orQueue) e = pc.orQueue(e, 'weekly-plan', input);
+      if (e.queued) { if (!quiet) WL.toast(e.message); if (done) done(); return; }
       if (reached) { S.planTried = today(); save(); }
       if (!quiet) WL.toast(e.message || 'Could not make the plan');
       if (done) done();
     });
   }
+  function planQueued() { return !!(WL.pc && WL.pc.queued && WL.pc.queued('weekly-plan').length); }
+  function queuedLine() { return '<p class="meta" id="me-plan-queued">' + esc(WL.pc.QUEUED) + '</p>'; }
+  if (WL.pc && WL.pc.onCloudAnswer) WL.pc.onCloudAnswer('weekly-plan', function (e, a) {
+    var p = e ? null : K.cleanPlan(a, new Date());
+    S.planTried = today();
+    if (p) { S.plan = p; WL.toast('Your plan for this week is ready'); }
+    save(); redrawCard();
+    if (view && location.hash.indexOf('#me') === 0) route([], view);
+  });
 
   /* One line of the weekly plan for a part's screen ('' if none). */
   function planLine(part) {
@@ -159,7 +172,8 @@
       }).join('') + '</ul>' + (S.plan.check ? '<p class="meta">' + esc(S.plan.check) + '</p>' : '') + '<p class="meta">Made ' + esc(new Date(S.plan.at).toLocaleDateString()) + '.</p>';
     } else h += '<p class="meta">No plan yet.</p>';
     var failed = !planBusy && K.planFailed(S, new Date());
-    if (failed) h += '<p class="meta" id="me-plan-failed">Couldn’t make your plan this time.' + (WL.pc && WL.pc.ready() ? '' : ' It tries again when your PC answers.') + '</p>';
+    if (!planBusy && planQueued()) { h += queuedLine(); failed = false; }
+    else if (failed) h += '<p class="meta" id="me-plan-failed">Couldn’t make your plan this time.' + (WL.pc && WL.pc.ready() ? '' : ' It tries again when your PC answers.') + '</p>';
     h += WL.pc && WL.pc.ready() ? '<button id="me-plan"' + (planBusy ? ' disabled' : '') + '>' + (planBusy ? 'Claude is on it…' : failed ? 'Try again' : (S.plan ? 'Make a new plan now' : 'Make this week’s plan')) + '</button>'
       : '<p class="meta">The weekly plan needs the PC link (Settings › PC link).</p>';
     h += '</div>';
@@ -197,7 +211,7 @@
   // The weekly plan makes itself when one is due and the PC link answers (at most one answered try a day; the button
   // is there too): shortly after the app opens, whenever it comes back to the front, and every 15 minutes.
   function autoPlan() {
-    if (WL.pc && WL.pc.ready() && K.planDue(S, new Date()) && S.planTried !== today() && !document.hidden && (S.feedback.length || Object.keys(S.checkins).length))
+    if (WL.pc && WL.pc.ready() && K.planDue(S, new Date()) && S.planTried !== today() && !document.hidden && !planQueued() && (S.feedback.length || Object.keys(S.checkins).length))
       makePlan(redrawCard, true);
   }
   setTimeout(autoPlan, 20000);

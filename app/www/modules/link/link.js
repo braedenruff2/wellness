@@ -50,6 +50,10 @@
   }
 
   function adviceHtml() {
+    var q = pc.queued && pc.queued('advice').length && !(advice && advice.waiting != null) ? '<p class="meta" id="lk-queued">' + esc(pc.QUEUED) + '</p>' : '';
+    return q + adviceBody();
+  }
+  function adviceBody() {
     if (!advice) return '';
     if (advice.error) return '<p class="no">' + esc(advice.error) + '</p>';
     if (advice.waiting != null) return '<p class="meta">Claude is thinking… ' + advice.waiting + ' s</p>';
@@ -132,8 +136,15 @@
     // send the latest first, so Claude sees today
     pc.sync().catch(function () {}).then(function () {
       return pc.ask('advice', { question: String(q).slice(0, 1000) }, function (s) { if (advice && advice.waiting != null) { advice.waiting = s; draw(); } });
-    }).then(function (a) { adviceBusy = false; advice = { answer: a, at: new Date().toISOString() }; keep(); draw(); }, function (e) { adviceBusy = false; advice = { error: e.message }; draw(); });
+    }).then(function (a) { adviceBusy = false; advice = { answer: a, at: new Date().toISOString() }; keep(); draw(); }, function (e) {
+      adviceBusy = false; advice = e.queued ? pc.settings().advice || null : { error: e.message }; draw();
+    });
   }
+  // an answer from the cloud run (the PC wasn't answering) shows like the PC's
+  if (pc.onCloudAnswer) pc.onCloudAnswer('advice', function (e, a) {
+    if (!adviceBusy) advice = e ? { error: e } : { answer: a || {}, at: new Date().toISOString() };
+    if (!e) keep(); draw();
+  });
   function keep() { var P = pc.settings(); P.advice = advice; pc.save(); }
   function draw() {
     var el = document.getElementById('lk-adv'); if (el) el.innerHTML = adviceHtml();

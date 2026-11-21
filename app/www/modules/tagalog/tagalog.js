@@ -26,9 +26,34 @@
     }).join('') + '</div>';
   }
 
+  /* Claude's check of a typed answer (from the PC at once, or later from a cloud run). */
+  function checkHtml(a) {
+    a = a || {};
+    return '<div class="card">' + (a.ok ? '<p class="ok">Claude: that works too ✓</p>' : '') +
+      (a.corrected ? '<p><b lang="tl">' + esc(a.corrected) + '</b>' + (a.meaning ? ' <span class="meta">(' + esc(a.meaning) + ')</span>' : '') + '</p>' : '') +
+      (a.explain ? '<p>' + esc(a.explain) + '</p>' : '') + (a.tip ? '<p class="meta">Tip: ' + esc(a.tip) + '</p>' : '') + (a.text ? '<p>' + esc(a.text) + '</p>' : '') + '</div>';
+  }
+  /* Checks the cloud answered (the PC wasn't answering): kept until he closes them on the Tagalog page. */
+  if (WL.pc && WL.pc.onCloudAnswer) WL.pc.onCloudAnswer('tagalog-check', function (e, a, m) {
+    S.checks = (S.checks || []).concat([{ at: new Date().toISOString(), prompt: String((m && m.task) || '').slice(0, 300), given: String((m && m.answer) || '').slice(0, 300),
+      a: e ? { text: e } : T.cleanCheck(a) }]).slice(-20);
+    save();
+    if (view && /^#tagalog\/?$/.test(location.hash)) route([], view);
+  });
+  function checksHtml() {
+    var c = S.checks || [], q = WL.pc && WL.pc.queued ? WL.pc.queued('tagalog-check') : [];
+    if (!c.length && !q.length) return '';
+    return '<div class="card ui" id="tl-checks"><h2>Claude checked your answers</h2>' +
+      (q.length ? '<p class="meta">' + q.length + ' answer' + (q.length === 1 ? '' : 's') + ' waiting: ' + esc(WL.pc.QUEUED) + '</p>' : '') +
+      c.slice().reverse().map(function (x) {
+        return '<p class="meta" style="margin-bottom:0">' + esc(x.prompt) + '</p><p style="margin:.2em 0">You wrote: <span lang="tl">' + esc(x.given) + '</span></p>' + checkHtml(x.a);
+      }).join('') + (c.length ? '<div class="row"><button class="link" id="tl-checks-clear">Done, clear these</button></div>' : '') + '</div>';
+  }
+
   function home() {
     var all = packs(), nx = T.nextLesson(S, all), st = T.stats(S);
     var h = subnav('') + '<h1>Tagalog</h1><p class="meta ui">' + esc(T.advice(S, all)) + '</p>';
+    h += checksHtml();
     if (st.due) h += '<div class="card ui"><div class="row"><div class="grow"><b>' + st.due + '</b> word' + (st.due === 1 ? '' : 's') + ' to review</div><a class="btn primary" href="#tagalog/review">Review</a></div></div>';
     if (nx) h += '<div class="card"><div class="meta ui">Week ' + esc(nx.pack.week || '') + ' · ' + esc(nx.pack.title) + ' · lesson ' + nx.lesson.day + ' of ' + nx.pack.lessons.length + '</div>' +
       '<h3 style="margin:.2em 0">' + esc(nx.lesson.title) + '</h3><p class="meta ui">' + esc(nx.lesson.intro) + '</p>' +
@@ -106,12 +131,15 @@
         if (askable) $('#tl-ask').onclick = function () {
           var b = this; b.disabled = true;
           var out = $('#tl-claude'); out.innerHTML = '<p class="meta">Asking Claude on your PC…</p>';
-          WL.pc.ask('tagalog-check', { task: ex.prompt, expected: ex.answer, answer: String(given) }).then(function (a) {
+          var input = { task: ex.prompt, expected: ex.answer, answer: String(given) };
+          WL.pc.ask('tagalog-check', input, null, input).then(function (a) {
             if (!out.isConnected) return;
-            out.innerHTML = '<div class="card">' + (a.ok ? '<p class="ok">Claude: that works too ✓</p>' : '') +
-              (a.corrected ? '<p><b lang="tl">' + esc(a.corrected) + '</b>' + (a.meaning ? ' <span class="meta">(' + esc(a.meaning) + ')</span>' : '') + '</p>' : '') +
-              (a.explain ? '<p>' + esc(a.explain) + '</p>' : '') + (a.tip ? '<p class="meta">Tip: ' + esc(a.tip) + '</p>' : '') + (a.text ? '<p>' + esc(a.text) + '</p>' : '') + '</div>';
-          }, function (e) { if (out.isConnected) out.innerHTML = '<p class="no">' + esc(e.message || e) + '</p>'; b.disabled = false; });
+            out.innerHTML = checkHtml(a);
+          }, function (e) {
+            if (!out.isConnected) return;
+            if (e.queued) { out.innerHTML = '<p class="meta">' + esc(e.message) + ' It will show on the Tagalog page.</p>'; return; }
+            out.innerHTML = '<p class="no">' + esc(e.message || e) + '</p>'; b.disabled = false;
+          });
         };
         if (ex.type !== 'mc' || /[a-z]/.test(ex.answer) && ex.type !== 'listen') { /* hear the Tagalog answer when there is one */ }
         if (ex.type === 'type' || ex.type === 'build') say(ex.answer);
@@ -276,6 +304,7 @@
       return;
     }
     view.innerHTML = home();
+    var cc = $('#tl-checks-clear'); if (cc) cc.onclick = function () { S.checks = []; save(); route([]); };
     // once a day, look for next week's lessons
     if (S.source && (!S.lastCheck || Date.now() - new Date(S.lastCheck).getTime() > 20 * 3600e3)) fetchPacks(false).then(function (n) { if (n && location.hash.replace(/\/$/, '') === '#tagalog') route([]); });
   }

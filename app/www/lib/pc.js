@@ -76,10 +76,12 @@
 
   /* Claude on the PC: starts the request, then checks every few seconds (it takes 10 s to a few minutes).
      onWait(seconds) is called while waiting. Resolves to Claude's answer object. */
-  function ask(task, input, onWait) {
+  function ask(task, input, onWait, meta) {
     if (!ready()) return Promise.reject(new Error('Pair the PC link first (Settings > PC link).'));
     var t0 = Date.now();
-    return post('/v1/ask', { task: task, input: input }).then(function (r) { return poll(r.job, t0, onWait); });
+    return post('/v1/ask', { task: task, input: input }).then(function (r) { return poll(r.job, t0, onWait); }, function (e) {
+      throw orQueue(e, task, input, meta);
+    });
   }
   function poll(job, t0, onWait) {
     return new Promise(function (res, rej) {
@@ -100,6 +102,76 @@
     });
   }
 
+  /* Cloud answers (task B): when the PC can't be reached, a Claude request goes into the Drive sync file's queue
+     (WL.driveSync, lib/sync.js) and the next cloud run answers it with the same prompt (pc/prompts/<task>.md).
+     Each module registers how to show an answer (onCloudAnswer), the same code it uses for a PC answer.
+     P.cloud keeps, per queued id, the task and what the module needs to show the answer later (meta). */
+  var QUEUED = 'Your PC isn’t answering, so this will be answered by the next cloud run (within about 5 hours).';
+  var handlers = {};
+  function cloud() { if (!P.cloud || typeof P.cloud !== 'object') P.cloud = {}; return P.cloud; }
+  function unreachable(e) {
+    return /couldn.t reach the PC|timed? ?out|failed to connect|unreachable|no route|connection (refused|reset)|network|pair the PC link/i.test(String((e && e.message) || e || ''));
+  }
+  function cloudOn() {
+    var d = WL.driveSync; if (!d || !d.enqueue) return false;
+    try { var st = d.status(); return !!(st && st.available && st.configured); } catch (e) { return false; }
+  }
+  function queued(task) {
+    return Object.keys(cloud()).filter(function (id) { return !task || cloud()[id].task === task; })
+      .map(function (id) { var c = cloud()[id]; return { id: id, task: c.task, at: c.at, meta: c.meta || null }; })
+      .sort(function (a, b) { return a.at < b.at ? -1 : 1; });
+  }
+  /* Puts a request in the cloud queue (one per task and input: asking twice doesn't queue twice). Returns it, or
+     null when Drive sync isn't set up (then nothing can answer it). */
+  function queue(task, input, meta) {
+    if (!cloudOn()) return null;
+    // one waiting at a time for these (a new day's input is still the same question); others: one per input
+    var key = /^(weekly-plan|advice|coach-scenario)$/.test(task) ? task : JSON.stringify(input || {}).slice(0, 4000), mine = queued(task);
+    for (var i = 0; i < mine.length; i++) if (cloud()[mine[i].id].key === key) return { id: mine[i].id, task: task, at: mine[i].at };
+    var r = WL.driveSync.enqueue(task, input || {});
+    cloud()[r.id] = { task: task, at: r.at, key: key, meta: meta == null ? null : meta };
+    store.save(P);
+    try { WL.driveSync.sync().catch(function () {}); } catch (e) {}
+    return r;
+  }
+  /* The error a module shows when the PC failed: queued for the cloud (e.queued) when the PC couldn't be reached and
+     the module can show a cloud answer; otherwise the PC's own error, with a hint when Drive sync would help. */
+  function orQueue(e, task, input, meta) {
+    if (!unreachable(e) || !handlers[task]) return e;
+    var r = queue(task, input, meta);
+    if (!r) {
+      var x = new Error(String((e && e.message) || e) + (WL.driveSync && WL.driveSync.available() ? ' Turn on Settings › Sync with Google Drive and the next cloud run can answer instead.' : ''));
+      return x;
+    }
+    var q = new Error(QUEUED); q.queued = r; return q;
+  }
+  /* Asks the PC; if it can't be reached, queues for the cloud. Resolves to the answer, or rejects (e.queued set
+     when it went to the cloud). Used where the PC must be reached first (sync) before asking. */
+  function askOrQueue(task, input, onWait, meta) {
+    if (!ready()) return Promise.reject(orQueue(new Error('Pair the PC link first (Settings › PC link).'), task, input, meta));
+    return ask(task, input, onWait, meta);
+  }
+  function onCloudAnswer(task, fn) { handlers[task] = fn; setTimeout(deliver, 0); }
+  /* Hands every cloud answer that has arrived to its module (once). A cloud answer is {task, answer} or
+     {task, error}; a bare answer object works too. */
+  function deliver() {
+    var d = WL.driveSync; if (!d || !d.answers) return 0;
+    var all = d.answers(), n = 0, old = Date.now() - 7 * 864e5;
+    Object.keys(cloud()).forEach(function (id) { if (!(id in all) && Date.parse(cloud()[id].at) < old) { delete cloud()[id]; store.save(P); } });
+    Object.keys(all).forEach(function (id) {
+      var c = cloud()[id], a = all[id] || {};
+      var task = (c && c.task) || (typeof a.task === 'string' ? a.task : '');
+      var h = handlers[task]; if (!h || (!c && !a.task)) return;
+      d.takeAnswer(id); delete cloud()[id]; store.save(P); n++;
+      var ans = a && typeof a === 'object' && a.answer && typeof a.answer === 'object' ? a.answer : (a.error ? null : a);
+      var err = a && a.error && !a.answer ? String(a.error).slice(0, 400) : null;
+      try { h(err, ans, c ? c.meta : null, { id: id, task: task, at: c ? c.at : null }); } catch (x) {}
+    });
+    return n;
+  }
+  if (WL.driveSync && WL.driveSync.onAnswers) WL.driveSync.onAnswers(function () { deliver(); });
+  setTimeout(deliver, 2500);
+
   // send the log when the app opens and every 15 minutes while it's open (quietly: no PC, no problem)
   function auto() { if (ready() && !document.hidden) sync().catch(function () {}); }
   setTimeout(auto, 4000);
@@ -107,6 +179,8 @@
 
   WL.pc = {
     status: status, ready: ready, request: request, get: get, post: post, sync: sync, ask: ask, poll: poll, events: events,
+    askOrQueue: askOrQueue, orQueue: orQueue, queue: queue, queued: queued, onCloudAnswer: onCloudAnswer, deliver: deliver, cloudOn: cloudOn,
+    unreachable: unreachable, QUEUED: QUEUED,
     settings: function () { return P; }, save: function () { store.save(P); }, storeKey: store.key, reload: function () { P = store.load(); },
     reset: function () { P.sent = {}; P.lastSync = null; P.weekSent = null; store.save(P); }
   };

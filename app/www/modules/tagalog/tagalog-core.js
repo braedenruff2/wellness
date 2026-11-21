@@ -184,6 +184,14 @@
       packs: packs.map(function (p) { return p.id; }) };
   }
 
+  /* Claude's check of a typed answer, kept to the fields the app shows (text only, cut to size). */
+  function cleanCheck(a) {
+    a = a && typeof a === 'object' ? a : {};
+    var t = function (v, n) { return typeof v === 'string' ? v.slice(0, n) : ''; }, o = { ok: a.ok === true };
+    [['corrected', 300], ['meaning', 300], ['explain', 800], ['tip', 300], ['text', 800]].forEach(function (f) { var v = t(a[f[0]], f[1]); if (v) o[f[0]] = v; });
+    return o;
+  }
+
   function validate(s) {
     if (!s || typeof s !== 'object' || typeof s.cards !== 'object' || !s.cards) return null;
     var d = defaults();
@@ -205,11 +213,14 @@
     Object.keys(s.packs || {}).forEach(function (k) { if (!checkPack(s.packs[k]).length) d.packs[k] = s.packs[k]; });
     if (s.settings && typeof s.settings.slow === 'boolean') d.settings.slow = s.settings.slow;
     if (s.packHash && typeof s.packHash === 'object') Object.keys(s.packHash).forEach(function (k) { if (d.packs[k] && /^[0-9a-f]{12}$/.test(s.packHash[k])) (d.packHash = d.packHash || {})[k] = s.packHash[k]; });
+    (Array.isArray(s.checks) ? s.checks : []).slice(-20).forEach(function (c) {
+      if (c && !isNaN(new Date(c.at).getTime())) (d.checks = d.checks || []).push({ at: new Date(c.at).toISOString(), prompt: String(c.prompt || '').slice(0, 300), given: String(c.given || '').slice(0, 300), a: cleanCheck(c.a) });
+    });
     if (typeof s.source === 'string' && /^https:\/\/raw\.githubusercontent\.com\//.test(s.source)) d.source = s.source;
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;

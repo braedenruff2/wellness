@@ -65,6 +65,7 @@
     if (!pc.ready()) h += '<div class="card ui"><p>Scenarios and feedback come from Claude on your PC. <a href="#link">Pair the PC link</a> first (home Wi-Fi).</p></div>';
     if (err) h += '<p class="no ui">' + esc(err) + '</p>' + (/reach|time|connect|fail|network|wi-?fi|answer/i.test(err) && !/Claude didn/i.test(err)
       ? '<p class="meta ui" id="co-offline">Your PC isn’t answering (away from home Wi-Fi, or it’s asleep). The tips and past advice below still work; try again at home.</p>' : '');
+    h += queuedHtml();
     if (waiting) h += '<div class="card ui"><p>' + (waiting.kind === 'grade' ? 'Claude is checking current guidance and grading your answer…' : waiting.kind === 'real' ? 'Claude is checking current guidance for your situation…' : 'Claude is writing a scenario for her age…') +
       ' <span id="co-secs">' + (waiting.secs || 0) + ' s</span></p><p class="meta">This can take a minute or two. You can leave this screen; it carries on.</p></div>';
     var c = S.current;
@@ -160,14 +161,45 @@
   }
   /* Starts a Claude request; its job id is saved so leaving the app and coming back carries on waiting for it. */
   function start(task, input, onAnswer) {
-    pc.post('/v1/ask', { task: task, input: input }).then(function (r) {
+    var meta = task === 'coach-grade' ? { answer: input.answer, scn: S.current ? JSON.parse(JSON.stringify(S.current)) : null }
+      : task === 'coach-advice' ? { answer: input.situation } : null;
+    pc.post('/v1/ask', { task: task, input: input }).then(null, function (e) { throw pc.orQueue ? pc.orQueue(e, task, input, meta) : e; }).then(function (r) {
       S.pending = { job: r.job, task: task, at: Date.now(), answer: input.answer || input.situation || '' };
       if (task === 'coach-grade' && S.current) S.pending.scn = JSON.parse(JSON.stringify(S.current)); // graded against this one
       save();
       return pc.poll(r.job, Date.now(), tick);
     }).then(function (a) { S.pending = null; onAnswer(a); save(); })
       // an answer Claude sent as prose (onAnswer throws) ends the wait with a message instead of a spinner forever
-      .then(finish, function (e) { S.pending = null; save(); err = e.message || String(e); finish(); });
+      .then(finish, function (e) { S.pending = null; save(); err = e.queued ? null : e.message || String(e); finish(); });
+  }
+  /* Answers from the cloud run (when the PC wasn't answering): shown through the same code as a PC answer. */
+  function cloudDone(err0) { if (err0) err = err0; save(); finish(); }
+  if (pc.onCloudAnswer) {
+    pc.onCloudAnswer('coach-scenario', function (e, a) {
+      if (e) return cloudDone(e);
+      if (!S.current) { try { K.setScenario(S, a); } catch (x) { return cloudDone(x.message); } }
+      cloudDone();
+    });
+    pc.onCloudAnswer('coach-grade', function (e, a, m) {
+      if (e) return cloudDone(e);
+      var scn = m && m.scn; if (!scn || S.history.some(function (h) { return h.id === scn.id; })) return cloudDone();
+      K.grade(S, m.answer || scn.answer || '', a, null, scn); cloudDone();
+    });
+    pc.onCloudAnswer('coach-advice', function (e, a, m) {
+      if (e) return cloudDone(e);
+      if (!m || !m.answer) return cloudDone();
+      try { K.addReal(S, m.answer, a); } catch (x) { return cloudDone(x.message); }
+      if (S.realDraft === m.answer) S.realDraft = ''; cloudDone();
+    });
+  }
+  function queuedHtml() {
+    var q = pc.queued ? pc.queued().filter(function (x) { return /^coach-/.test(x.task); }) : [];
+    if (!q.length) return '';
+    return '<div class="card ui" id="co-queued"><p>' + esc(pc.QUEUED) + '</p><ul class="list">' + q.map(function (x) {
+      var m = x.meta || {}, what = x.task === 'coach-grade' ? 'Feedback on “' + ((m.scn && m.scn.title) || 'your answer') + '”'
+        : x.task === 'coach-advice' ? 'Advice: “' + String(m.answer || '').slice(0, 60) + (String(m.answer || '').length > 60 ? '…' : '') + '”' : 'A new scenario';
+      return '<li><span class="grow">' + esc(what) + '</span><span class="meta">asked ' + esc(new Date(x.at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })) + '</span></li>';
+    }).join('') + '</ul></div>';
   }
   function resume() {
     var p = S.pending;
