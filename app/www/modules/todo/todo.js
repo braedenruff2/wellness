@@ -27,12 +27,18 @@
     return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
   var REP = { daily: 'every day', weekdays: 'weekdays', weekly: 'every week', biweekly: 'every 2 weeks', monthly: 'every month' };
+  var WDN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  /* "every Thursday" rather than "every week" when the task has a date (weekly tasks keep their weekday). */
+  function repLabel(t) {
+    if (t.repeat === 'weekly' && /^\d{4}-\d\d-\d\d$/.test(t.due || '')) { var p = t.due.split('-'); return 'every ' + WDN[new Date(+p[0], +p[1] - 1, +p[2]).getDay()]; }
+    return REP[t.repeat] || '';
+  }
 
   function item(t, overdue) {
     return '<li class="task' + (t.done ? ' is-done' : '') + '" data-id="' + esc(t.id) + '">' +
       '<button class="tick-box" data-tick="' + esc(t.id) + '" aria-label="' + (t.done ? 'Not done' : 'Done') + ': ' + esc(t.text) + '">' + (t.done ? '✓' : '') + '</button>' +
       '<span class="grow"><span class="task-text">' + esc(t.text) + '</span>' +
-      ((t.due || t.repeat) && !t.done ? '<span class="meta ui' + (overdue ? ' late' : '') + '"> ' + esc(fmtDue(t.due)) + (t.at ? ' 🔔 ' + esc(T.fmtTime(t.at)) : '') + (t.repeat ? ' ↻ ' + REP[t.repeat] : '') + '</span>' : '') + '</span>' +
+      ((t.due || t.repeat) && !t.done ? '<span class="meta ui' + (overdue ? ' late' : '') + '"> ' + esc(fmtDue(t.due)) + (t.at ? ' 🔔 ' + esc(T.fmtTime(t.at)) : '') + (t.repeat ? ' ↻ ' + esc(repLabel(t)) : '') + '</span>' : '') + '</span>' +
       '<button class="link small" data-more="' + esc(t.id) + '" aria-label="Options for ' + esc(t.text) + '">⋯</button></li>';
   }
 
