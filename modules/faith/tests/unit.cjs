@@ -404,4 +404,13 @@ t('practice wordings: guiding lines vary, Scripture and the Lord’s Prayer neve
   assert.strictEqual(C.practiceTimes({}, 'examen'), 0);
 });
 
+t('doneInLast: bounded at today so logging for an earlier day ignores future completions', () => {
+  const s = C.defaults();
+  C.finishDay(s, 1, new Date(2026, 10, 14, 12));
+  C.finishDay(s, 2, new Date(2026, 10, 18, 12));
+  C.finishDay(s, 3, new Date(2026, 10, 22, 12));
+  assert.strictEqual(C.doneInLast(s, 7, new Date(2026, 10, 18, 12)), 2);
+  assert.strictEqual(C.doneInLast(s, 7, new Date(2026, 10, 22, 12)), 2);
+});
+
 console.log(n + ' unit tests passed');

@@ -21,6 +21,9 @@ t('age in words', () => {
   assert.strictEqual(K.ageMonths('2024-01-31', new Date(2024, 1, 29)), 1, 'born on the 31st: a month old on the last day of February');
   assert.strictEqual(K.ageMonths('2025-10-31', new Date(2026, 10, 30)), 13, 'end of a 30-day month');
   assert.strictEqual(K.ageText('2024-02-29', new Date(2026, 1, 28)), K.ageText('2024-02-29', new Date(2026, 2, 1)), '29 Feb birthday: 2 on 28 Feb');
+  // spring-forward DST (2026-03-08 in North America): 23-hour day still counts as 1 full calendar day
+  assert.strictEqual(K.ageText('2026-03-08', new Date(2026, 2, 9, 0, 30)), '1 day old');
+  assert.strictEqual(K.ageText('2026-03-07', new Date(2026, 2, 9, 0, 30)), '2 days old');
 });
 
 t('scenario, grade, skills and what to practise next', () => {

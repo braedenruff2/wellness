@@ -6,8 +6,15 @@
   function logNow() { return WL.logNow ? WL.logNow() : new Date(); } // the day picked on Home, or now
   var C = window.FCCore, P = window.WLPersonal;
   /* {child} in the content becomes her name from Parenting setup (on the phone only; see lib/personal.js). */
-  var CONTENT = P ? P.personalize(window.FC_CONTENT, P.childName()) : window.FC_CONTENT;
-  var DAYS = CONTENT.days, PRACTICES = CONTENT.practices, TOTAL = DAYS.length;
+  var contentFor = null, CONTENT = window.FC_CONTENT, DAYS = CONTENT.days, PRACTICES = CONTENT.practices, TOTAL = DAYS.length;
+  function syncContent() {
+    var name = P ? P.childName() : '';
+    if (contentFor === name) return;
+    contentFor = name;
+    CONTENT = P ? P.personalize(window.FC_CONTENT, name) : window.FC_CONTENT;
+    DAYS = CONTENT.days; PRACTICES = CONTENT.practices; TOTAL = DAYS.length;
+  }
+  syncContent();
   var store = C.makeStore();
   var S = store.load();
   var view = null;
@@ -331,6 +338,7 @@
     if (!parts) parts = lastParts; // re-render the current screen after a change
     lastParts = parts;
     var h = parts && parts.length && parts[0] ? parts : ['today'];
+    syncContent();
     leave();
     var html, tab = h[0];
     switch (h[0]) {
@@ -490,6 +498,7 @@
 
   /* Home screen card: today's day of the path. */
   function card() {
+    syncContent();
     var n = C.currentDay(S, TOTAL), today = C.finishedToday(S), d = day(n);
     var h = '<div class="meta ui">Faith \u00b7 grow closer to God</div>';
     if (today) h += '<h3>Day ' + today + ' done today \u2713</h3><p class="meta ui">' + (d ? 'Next: day ' + n + ', ' + esc(d.title) + '. Tomorrow, or now if you like.' : 'You\u2019ve finished every day written so far.') + '</p>';
@@ -508,7 +517,7 @@
     pause: function () { var pp = view && view.querySelector('#pp'); if (pp && pp.dataset.state === 'playing') pp.click(); },
     validate: function (k, raw) { try { return JSON.stringify(C.importData(JSON.stringify({ app: 'faith-companion', state: JSON.parse(raw) }))); } catch (e) { return null; } },
     importOld: function (text) { S = C.importData(text); save(); },
-    reload: function () { S = store.load(); }
+    reload: function () { S = store.load(); syncContent(); }
   });
-  window.FC = { state: function () { return S; }, reload: function () { S = store.load(); } };
+  window.FC = { state: function () { return S; }, reload: function () { S = store.load(); syncContent(); } };
 })();

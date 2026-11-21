@@ -17,9 +17,12 @@ const W = require('./lib/web.cjs');
     await page.goto(base + lessonWith);
     await noToken();
   });
-  await t.step('after Parenting setup: her name everywhere', async () => {
+  await t.step('after Parenting setup: her name everywhere immediately (no reload needed) and after reload', async () => {
     await page.goto(base + '#coach/setup');
     await page.fill('#co-name', 'Ana'); await page.fill('#co-birth', '2025-11-24'); await page.click('#co-save');
+    await page.goto(base + '#faith/day/' + firstDay);
+    assert.ok((await page.textContent('main')).includes('Ana'), 'Faith updates immediately without reload');
+    await noToken();
     await page.reload();
     await page.goto(base + '#faith/day/' + firstDay);
     assert.ok((await page.textContent('main')).includes('Ana'));

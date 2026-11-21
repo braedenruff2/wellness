@@ -41,7 +41,8 @@
   function ageText(birth, now) {
     var m = ageMonths(birth, now); if (m == null || m < 0) return '';
     if (m < 1) {
-      var d = Math.floor(((now || new Date()) - parse(birth)) / 864e5);
+      var n = now || new Date(), b = parse(birth);
+      var d = Math.round((Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) - Date.UTC(b.getFullYear(), b.getMonth(), b.getDate())) / 864e5);
       return d < 14 ? d + ' day' + (d === 1 ? '' : 's') + ' old' : Math.floor(d / 7) + ' weeks old';
     }
     if (m < 24) return m + ' month' + (m === 1 ? '' : 's') + ' old';

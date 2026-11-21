@@ -211,8 +211,8 @@
 
   function doneInLast(state, days, now) {
     now = now || new Date();
-    var from = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1)));
-    return state.tasks.filter(function (t) { return t.done && iso(new Date(t.done)) >= from; }).length;
+    var from = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1))), today = iso(now);
+    return state.tasks.filter(function (t) { if (!t.done) return false; var d = iso(new Date(t.done)); return d >= from && d <= today; }).length;
   }
 
   /* One short, kind piece of advice for the Home card and the list. */

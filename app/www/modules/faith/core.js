@@ -110,9 +110,9 @@
   /* How many path days were finished in the last `days` calendar days, today included (local dates). */
   function doneInLast(state, days, when) {
     var w = when || new Date();
-    var from = isoDate(new Date(w.getFullYear(), w.getMonth(), w.getDate() - (days - 1)));
+    var from = isoDate(new Date(w.getFullYear(), w.getMonth(), w.getDate() - (days - 1))), today = isoDate(w);
     var n = 0;
-    for (var k in state.done) if (state.done[k] >= from) n++;
+    for (var k in state.done) if (state.done[k] >= from && state.done[k] <= today) n++;
     return n;
   }
 

@@ -317,4 +317,15 @@ t('every 2 months / every 3 months / every year (month ends and Feb 29 like mont
   const rem = T.reminders(r, wed, 400).map((x) => x.id.split('@')[1]);
   assert.ok(rem.includes('2026-11-20') && rem.includes('2027-11-20') && rem.length === 2, rem.join(','));
 });
+t('doneInLast: bounded at now so an earlier-day window ignores later completions', () => {
+  const s = T.defaults();
+  const a = T.add(s, 'a', null, new Date(2026, 10, 15, 9));
+  const b = T.add(s, 'b', null, new Date(2026, 10, 18, 9));
+  const c = T.add(s, 'c', null, new Date(2026, 10, 21, 9));
+  T.complete(s, a.id, new Date(2026, 10, 15, 10));
+  T.complete(s, b.id, new Date(2026, 10, 18, 10));
+  T.complete(s, c.id, new Date(2026, 10, 21, 10));
+  assert.strictEqual(T.doneInLast(s, 7, new Date(2026, 10, 18, 12)), 2);
+  assert.strictEqual(T.doneInLast(s, 7, new Date(2026, 10, 21, 12)), 3);
+});
 console.log(n + ' to-do unit tests passed');
