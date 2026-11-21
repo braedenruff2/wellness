@@ -31,3 +31,4 @@ or the bare answer JSON object). The phone exports that sheet as CSV on each syn
 Keeping the sheet small: row 1 is the header `id,task,answer-json,at`; give every row `at` (ISO time of the answer).
 Each run, before adding rows, drop the rows whose `id` is already in the sync file's `acked` (the phone has them),
 and keep the rest. The phone ignores an answer it isn't waiting for once it is over a week old (`WL.pc.deliver`).
+`tools/cloud-answer.cjs` does both halves (prompts from the sync file; sheet rows from the answers); see cloud-plan.md.
