@@ -1,5 +1,15 @@
 # Cloud log
 
+## 2026-11-21 11:10 AST (cloud run; PC awake but no folder connected to the session)
+- Cross-reviewed Gemini's 5961e84 (prepare skips ids already in the answers sheet), 59804d0 (live {child} refresh, doneInLast bounds, DST-safe ageText), 2ae2c5b (--good tick, 44 px links), 4534aeb (coach guards + e2e): sound, nothing to fix.
+- Drive: wellness-sync.json is syncing from the phone; no queued requests, so nothing to answer.
+- Done 38: Parenting requests (scenario, grade, real-situation advice) carry `tipNotes` (his "Did you try it?" and "Not for me?" answers on earlier "This week, try" tips, with his note); pc prompts get {{tips}} (tip_notes) so Claude doesn't suggest again what he or she already does.
+- Done 35: Cancel on waiting cloud requests (Parenting queued card, Home advice, weekly plan, Tagalog checks). WL.pc.cancel drops it from the sync queue; an answer that still arrives for it is acked and not shown (P.cancelled); a cancelled plan isn't re-asked by itself that day (planCancelled).
+- Done 37: Faith "Your week" counts days finished earlier in the week after Walk again.
+- Done 36: backup nudge says "Drive sync last worked N days ago" (link to the sync card) when sync stopped and no newer backup file.
+- Tested: full suite after each task, all 50 pass, none skipped. APK 0.1.20261121.1410 (real key, cert 6795e499...).
+- Check on the phone: with the PC off, Parenting > New scenario > Cancel in the waiting card: the New scenario button is back. Home advice/plan Cancel buttons fit at text size Larger.
+
 ## 2026-11-21 07:15 AST (live: owner reported the answers sheet error)
 - Phone said "The answers sheet could not be opened ... Drive refused CSV export". Cause: Drive serves a Google Sheet as a virtual document and offers it as XLSX/PDF, not CSV; Sync.java only tried text types.
 - Fixed: Sync.java reads the sheet's XLSX export (zip + javax.xml DOM: shared/inline/str cells, workbook's first sheet), tries CSV/text first when offered; if nothing works the error says what Drive offered. Checked against the real Drive XLSX export of wellness-answers (test row written, parsed, cleared).
