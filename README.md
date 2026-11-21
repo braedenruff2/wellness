@@ -12,6 +12,17 @@ Started 18 Nov 2026 as "Faith Companion"; became this app the same day at his re
   Settings > App updates also has "Check now" and "Update now". Everything you've entered is kept.
 - On the PC: open `app\www\index.html` in Chrome to try it.
 
+## Cloud-first (since 21 Nov 2026)
+The autopilot now works in the cloud and pushes to `main` here after the full test suite passes. The phone updates itself
+from `main` (app from `dist/`, lessons from `modules/tagalog/packs/`), so your PC doesn't need to be on.
+- Private things live in your Google Drive folder **Wellness (private)**, never in this public repo: the signing key
+  (`faith.keystore`, so cloud builds install over your app), your app data (a backup, later a daily sync file), and
+  `autopilot-notes.md` (your requests to the autopilot).
+- New lessons are written by the autopilot on Wednesdays from noon.
+- The PC is still used, when it's on, for instant Claude answers (Parenting, advice, "Ask Claude") and Loudbook's PC voice.
+  When it's off, those requests will wait for the next cloud run (being built).
+- `tools\publish.bat` (every 15 minutes on the PC) first takes what the cloud pushed, then sends any PC changes.
+
 ## Weekly Tagalog lessons (one-time setup)
 Double-click **Turn on lesson updates.bat** once. It makes a public GitHub repo `wellness` and pushes this folder every
 15 minutes. Every Wednesday at noon (when your Claude usage resets) a scheduled Claude run writes next week's 7 lessons
