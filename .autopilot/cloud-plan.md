@@ -48,14 +48,14 @@ B. [any] Request queue for the Claude features when the PC link fails (coach-sce
    pc/wellness_pc.py into pc/prompts/<task>.md (PC reads them from there; tests) so cloud runs answer with the same
    prompt and the same JSON shape. [drive] part: the agent with Drive access answers queued requests, then writes `answers` into the Drive file
    (keep the phone's other content; update_file).
-C. [any] Parenting setup: "What she can do now" (chips: walks, gets down by herself, climbs, waves/bless, first words,
+C. (done 21 Nov 00:40, Claude: coach-core CAN/canText, input.can, pc can_do()) Parenting setup: "What she can do now" (chips: walks, gets down by herself, climbs, waves/bless, first words,
    points; plus free text), saved on the phone, sent in coach-scenario / coach-grade / coach-advice input; the prompt
    must keep scenarios within what she can and can't do yet. Tests.
-D. [any] Advice summary: count active days from the first day there is any data, not a fixed 14-day window
+D. (done 21 Nov 00:40, Claude: first_day()) Advice summary: count active days from the first day there is any data, not a fixed 14-day window
    ("active 2 of 2 days", not "2 of 14"); pc/wellness_pc.py summarize + its test.
-E. [any] me-core guidance: a calm wind-down rated "Mind racing" -> next evening suggest writing it down first (journal)
+E. (done 21 Nov 00:40, Claude: key mindracing) me-core guidance: a calm wind-down rated "Mind racing" -> next evening suggest writing it down first (journal)
    before the wind-down; stable key + unit test.
-F. [any] Weekly plan: if a weekly-plan request fails, keep a visible "Couldn't make your plan - Try again" instead of nothing
+F. (done 21 Nov 00:40, Claude: planFailed; queue part waits for B) Weekly plan: if a weekly-plan request fails, keep a visible "Couldn't make your plan - Try again" instead of nothing
    (planTried set, plan null); e2e with the fake PC failing; then it goes through the queue (B).
 G. Done 21 Nov: tools/publish.bat fetches and merges origin/main (GitHub wins on a clash) before pushing, because the
    cloud now pushes to main. The PC picks it up when it next takes main.
