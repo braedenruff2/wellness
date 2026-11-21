@@ -1,7 +1,7 @@
 """Tests for the Wellness PC link (pc/wellness_pc.py): pairing, the activity log, Claude jobs (with a stand-in
 `claude` that answers like `claude -p --output-format json`), the summary, and the security checks.
 Runs a real server on a free port with temporary folders.   python pc/test/test_pc.py"""
-import datetime, hashlib, http.client, json, os, secrets, socket, ssl, stat, sys, tempfile, threading, time
+import datetime, hashlib, http.client, json, os, re, secrets, socket, ssl, stat, sys, tempfile, threading, time
 
 # his PC's time zone (the phone sends UTC times; the PC files them by its local date)
 if hasattr(time, "tzset"):
@@ -93,6 +93,21 @@ for _t in ("coach-scenario", "coach-grade", "coach-advice"):
     check(_t + ": nothing said, no can-do line", "can already do" not in W.prompt_for(_t, {"age": "12 months old"})[0])
 check("real-situation prompt carries his words and the age", "car seat" in W.prompt_for("coach-advice", {"situation": "car seat", "age": "11 months old"})[0]
       and "11 months old" in W.prompt_for("coach-advice", {"situation": "car seat", "age": "11 months old"})[0])
+
+for t in W.TASKS:
+    _tpl = W.read_prompt(t)
+    _names = set(re.findall(r"\{\{([a-z]+)\}\}", _tpl))
+    check("prompts/" + t + ".md: every {{name}} has a value", _names <= set(W.prompt_values(t, {})), _names)
+    check("prompts/" + t + ".md: nothing left unfilled", "{{" not in W.prompt_for(t, {})[0])
+check("prompt files: what he typed that looks like {{rules}} stays as typed",
+      '"{{rules}} and {{nope}}"' in W.prompt_for("coach-advice", {"situation": "{{rules}} and {{nope}}"})[0])
+check("prompt files: rules come from prompts/rules.md", W.read_prompt("rules") in W.prompt_for("advice", {})[0])
+try: W.fill("a {{nope}}", {}); check("fill: an unknown name is an error", False)
+except ValueError: check("fill: an unknown name is an error", True)
+_old = W.PROMPTS; W.PROMPTS = os.path.join(TMP, "no-prompts")
+try: W.prompt_for("advice", {}); check("missing prompt file: a clear error", False)
+except RuntimeError as e: check("missing prompt file: a clear error", "prompts/advice.md" in str(e), e)
+W.PROMPTS = _old
 
 # ---------------------------------------------------------------- the server
 threading.Thread(target=W.serve, daemon=True).start()

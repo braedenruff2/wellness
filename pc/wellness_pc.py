@@ -469,11 +469,6 @@ def find_claude():
 SKILLS = ["Connection", "Calm under stress", "Sleep", "Feeding", "Play and learning", "Safety", "Routines",
           "Crying and comfort", "Looking after yourself", "Family and partner"]
 
-RULES = ("Rules: you are helping Braeden through his own Wellness app. Be warm, specific and practical. Only state what "
-         "you are confident is true; say so when evidence is mixed. General guidance only, never a diagnosis; for anything "
-         "medical or urgent, say to contact a doctor or 811 (PEI health line). Reply with ONE JSON object and nothing else.")
-
-
 def j(x): return json.dumps(x, ensure_ascii=False)
 
 
@@ -486,91 +481,46 @@ def can_do(inp):
             "now (not new or worrying), and don't have her do things a child her age usually can't. ")
 
 
+PROMPTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts")
+# the tools each task may use (the rest get none); cloud runs answering queued requests use the same prompts
+TOOLS = {"coach-grade": "WebSearch,WebFetch", "coach-advice": "WebSearch,WebFetch"}
+# what a prompt says when the phone sent nothing for a field
+DEFAULTS = {"coach-scenario": {"child": "his baby", "age": "about one year old",
+                               "skill": "pick the one he needs most from his recent scores"},
+            "coach-grade": {"age": "about one"}, "coach-advice": {"age": "about one"},
+            "weekly-plan": {"age": "about one year old"}}
+
+
+def prompt_values(task, inp):
+    """The {{name}} values for pc/prompts/<task>.md. Plain fields go in as text, quoted fields as JSON."""
+    d = DEFAULTS.get(task, {})
+    v = {k: str(inp.get(k) or d.get(k, "")) for k in ("child", "age", "skill")}
+    v.update({k: j(inp.get(k) or "") for k in ("scenario", "question", "answer", "situation", "task", "expected")})
+    v["recent"] = j(inp.get("recent") or []); v["avoid"] = j(inp.get("avoid") or [])
+    v["summary"] = str(inp.get("summary") or "")
+    v["phone"] = j({"checkins": inp.get("checkins"), "feedback": inp.get("feedback")})[:20000]
+    v["can"] = can_do(inp); v["skills"] = j(SKILLS); v["rules"] = read_prompt("rules")
+    return v
+
+
+def fill(template, values):
+    """{{name}} -> values[name], in one pass (text he typed that looks like {{x}} stays as it is)."""
+    def one(m):
+        if m.group(1) not in values: raise ValueError("prompt template needs " + m.group(1))
+        return values[m.group(1)]
+    return re.sub(r"\{\{([a-z]+)\}\}", one, template)
+
+
+def read_prompt(name):
+    try:
+        with open(os.path.join(PROMPTS, name + ".md"), encoding="utf-8") as f: return f.read().rstrip("\n")
+    except OSError: raise RuntimeError("The PC link's prompt file prompts/" + name + ".md is missing. Update the wellness folder.")
+
+
 def prompt_for(task, inp):
-    """(prompt, tools allowed) for a task. inp is the phone's checked input."""
-    if task == "coach-scenario":
-        return (
-            "You are an expert, evidence-based parenting coach (think AAP, CDC milestones, Zero to Three, responsive "
-            "parenting research). Write ONE realistic, specific scenario to practise, for a dad on parental leave caring "
-            f"mostly alone for his daughter {inp.get('child') or 'his baby'}, who is {inp.get('age') or 'about one year old'} "
-            "today. It must fit what a child exactly that age really does (development, sleep, feeding, mobility, "
-            "language, feelings). Make it a moment where his response matters. " + can_do(inp) +
-            f"Practise skill: {inp.get('skill') or 'pick the one he needs most from his recent scores'}. "
-            f"His recent scores (skill: score/10): {j(inp.get('recent') or [])}. Recent scenario titles to avoid repeating: "
-            f"{j(inp.get('avoid') or [])}. " + RULES +
-            ' JSON: {"title": short title, "skill": one of ' + j(SKILLS) + ', "scenario": 3-6 sentences, present tense, '
-            'second person ("you"), "question": what he should answer, e.g. "What do you do and say, step by step?"}', "")
-    if task == "coach-grade":
-        return (
-            "You are an expert, evidence-based parenting coach. Grade a dad's answer to a practice scenario about his "
-            f"daughter {inp.get('child') or ''}, aged {inp.get('age') or 'about one'}. First check current guidance "
-            "(use web search: AAP/HealthyChildren.org, CDC, Caring for Kids (Canadian Paediatric Society), Zero to Three, "
-            "or research) for what works best at this age, then grade kindly and honestly. " + can_do(inp) +
-            f"Scenario: {j(inp.get('scenario') or '')}\nQuestion: {j(inp.get('question') or '')}\nHis answer: {j(inp.get('answer') or '')}\n"
-            + RULES +
-            ' JSON: {"score": 1-10, "verdict": one encouraging sentence, "good": [what he did well, 1-3 items], '
-            '"improve": [specific changes, 1-3 items], "better": "what an expert would do and say here, step by step, '
-            'in 3-6 sentences", "why": "the child-development reason in 1-3 sentences", "practice": "one tiny thing to try '
-            'with her this week", "sources": [{"title": ..., "url": ...}] (only pages you actually opened)}', "WebSearch,WebFetch")
-    if task == "coach-advice":
-        return (
-            "You are an expert, evidence-based parenting coach (AAP/HealthyChildren.org, CDC, Caring for Kids (Canadian "
-            "Paediatric Society), Zero to Three, responsive-parenting research). A dad on parental leave, caring mostly "
-            f"alone for his daughter {inp.get('child') or ''}, aged {inp.get('age') or 'about one'}, describes something "
-            "REAL that is happening with her and asks for advice. First check current guidance with web search for what "
-            "works at exactly this age, then answer warmly and concretely. If anything he describes could be a health or "
-            "safety concern, say clearly what signs mean calling 811 (PEI health line), a doctor or 911, and don't diagnose. "
-            + can_do(inp) + "\n"
-            f"What's happening, in his words: {j(inp.get('situation') or '')}\n" + RULES +
-            ' JSON: {"title": short title for this situation, "skill": one of ' + j(SKILLS) + ', "summary": "what is '
-            'probably going on at her age, 1-3 sentences", "steps": [what to do, in order, 3-6 short items], "say": [1-3 '
-            'things he could say to her, word for word], "avoid": [0-3 common mistakes], "why": "the child-development '
-            'reason in 1-3 sentences", "watch": "when to get medical help, or empty if not relevant", "sources": '
-            '[{"title": ..., "url": ...}] (only pages you actually opened)}', "WebSearch,WebFetch")
-    if task == "tagalog-check":
-        return (
-            "You are a careful Tagalog (Filipino) teacher for an English speaker whose wife's family is Filipino. Check "
-            "his answer. Use only standard, natural, everyday Tagalog as spoken in Filipino families today; never invent "
-            "words. If more than one answer is fine, say so. If you are not sure, say so instead of guessing. "
-            f"Task: {j(inp.get('task') or '')}\nExpected (one good answer): {j(inp.get('expected') or '')}\n"
-            f"His answer: {j(inp.get('answer') or '')}\n" + RULES +
-            ' JSON: {"ok": true if it is correct and natural (small spelling slips are fine), "corrected": the best version '
-            'in Tagalog, "meaning": its English meaning, "explain": 1-3 short sentences on what to change and why, '
-            '"tip": one memory tip or related word}', "")
-    if task == "advice":
-        return (
-            "You are a kind, practical coach for Braeden: a new Christian (wants to feel belief and awe and become a "
-            "better person), a dad on parental leave mostly caring alone for his baby daughter, getting back into "
-            "strength training (beginner), learning Tagalog for his wife's family, using meditation for stress. "
-            "Here is what his Wellness app logged recently:\n" + (inp.get("summary") or "") + "\n"
-            f"His question (may be empty): {j(inp.get('question') or '')}\n"
-            "Give advice that fits his real week: what is going well, and the one or two next steps that would help "
-            "most. Faith: point to Scripture accurately (World English Bible) and never speak as God. " + RULES +
-            ' JSON: {"headline": one sentence, "points": [3-5 short, specific items], "next": "the single best next step"}', "")
-    if task == "weekly-plan":
-        return (
-            "You are a kind, practical, evidence-based coach for Braeden, writing his plan for the coming week inside his "
-            "Wellness phone app. Who he is: a new Christian who wants to feel belief and awe and become a better person; a dad "
-            f"on parental leave, mostly caring alone for his baby daughter (now {inp.get('age') or 'about one year old'}); "
-            "a beginner getting back into strength training (3 full-body workouts a week, A/B/C); learning Tagalog for his "
-            "wife's Filipino family; using short calm practices for stress. He said the app's guidance felt generic, so "
-            "he now answers quick questions and a daily check-in: USE THEM. Every line must come from what he actually did "
-            "and said below (cite it in 'why', e.g. 'you rated the body scan \"a lot\" twice', 'you slept under 5 h on 4 "
-            "nights'); never generic advice he could read anywhere. Respect everything he marked \"not for me\": don't "
-            "suggest it again, and adjust to his reasons. Keep the plan small enough for a tired solo parent.\n"
-            "What the app logged (last 14 days):\n" + (inp.get("summary") or "") + "\n"
-            "Check-ins and answers straight from the phone (may repeat the above): " + j({"checkins": inp.get("checkins"), "feedback": inp.get("feedback")})[:20000] + "\n"
-            "Calm practice ids you may list in calm.prefer: sigh (one-minute reset), slow, box, body (body scan), ground (5-4-3-2-1), "
-            "feed (mindful feed), kind (kindness), sleep (wind-down), night (back to sleep after a night wake), walk, timer. "
-            "Faith: point to Scripture accurately (World English Bible), never speak as God. Health: general guidance only; if "
-            "he reports pain or a low mood that keeps coming back, gently suggest a doctor/physio or someone he trusts (811 "
-            "in PEI). Leave out a part if there is nothing real to say about it. " + RULES +
-            ' JSON: {"headline": "one sentence: the theme of his week, specific to him", "parts": {"calm": {"focus": '
-            '"what to do this week, 1-2 sentences", "why": "the evidence from his own data", "prefer": [1-3 practice ids]}, '
-            '"workout": {"focus": ..., "why": ...}, "faith": {"focus": ..., "why": ...}, "coach": {"focus": ..., "why": ...}, '
-            '"tagalog": {"focus": ..., "why": ...}, "todo": {"focus": ..., "why": ...}, "home": {"focus": "sleep, energy '
-            'and looking after himself", "why": ...}}, "check": "one question for him to notice this week"}', "")
-    raise ValueError("unknown task")
+    """(prompt, tools allowed) for a task. inp is the phone's checked input. The text is pc/prompts/<task>.md."""
+    if task not in TASKS: raise ValueError("unknown task")
+    return fill(read_prompt(task), prompt_values(task, inp)), TOOLS.get(task, "")
 
 
 def run_claude(prompt, tools):
