@@ -1,5 +1,11 @@
 # Cloud log
 
+## 2026-11-21 07:15 AST (live: owner reported the answers sheet error)
+- Phone said "The answers sheet could not be opened ... Drive refused CSV export". Cause: Drive serves a Google Sheet as a virtual document and offers it as XLSX/PDF, not CSV; Sync.java only tried text types.
+- Fixed: Sync.java reads the sheet's XLSX export (zip + javax.xml DOM: shared/inline/str cells, workbook's first sheet), tries CSV/text first when offered; if nothing works the error says what Drive offered. Checked against the real Drive XLSX export of wellness-answers (test row written, parsed, cleared).
+- Tested: full suite, all 49 pass, none skipped (SyncTest has the XLSX cases). APK 0.1.20261121.1115 (real key).
+- Check on the phone: after the update, Settings > Sync with Google Drive > Sync now: no answers-sheet error. If one shows, it now lists the types Drive offered.
+
 ## 2026-11-21 05:30 AST (same run, continued)
 - Done: Home shows one card until Drive sync and the answers sheet are set up ("Set it up" opens Settings at the sync card; "Not now" hides it a week). A recent Drive sync now counts as a backup, so no backup nudge while it syncs.
 - Done: tools/cloud-answer.cjs + tools/cloud_prompts.py: `prepare` turns unacked requests in wellness-sync.json into the PC link's own prompts (advice/weekly-plan get summarize(14) from the synced stores); `rows` turns answers into the full wellness-answers sheet (acked rows pruned, old rows blanked) and checks it reads back through WLSyncCore. Steps in cloud-plan.md.
