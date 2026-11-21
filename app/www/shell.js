@@ -257,6 +257,7 @@
     order.forEach(function (id) { var m = modules[id]; if (m.settingsLink) h += '<p class="ui"><a href="' + m.settingsLink + '">' + esc(m.title) + ' settings</a></p>'; });
     h += voiceHtml();
     h += updateHtml();
+    h += syncHtml();
     h += '<div class="card ui"><h3>Backup</h3><p class="meta">Everything lives only on this phone. Save a backup file now and then (all parts of the app in one file).' +
       (SH.lastBackup ? ' Last saved ' + esc(new Date(SH.lastBackup).toLocaleDateString()) + '.' : '') + (backupDue() ? ' <b>It’s been a while: save one now.</b>' : '') + '</p>' +
       '<div class="row"><button id="wl-export">Save a backup</button><label class="btn" for="wl-import">Restore a backup</label><input type="file" id="wl-import" accept=".json,application/json" class="sr"></div></div>';
@@ -328,6 +329,43 @@
   }
   function redrawUpdate() { var el = $('#wl-update'); if (el) { el.outerHTML = updateHtml(); wireUpdate(); } }
   window.FCUpdateState = redrawUpdate;
+
+  /* Google Drive sync (lib/sync.js + Android Sync.java): one-time SAF file pick, automatic sync on open & background. */
+  function syncHtml() {
+    var ds = window.WL && WL.driveSync; if (!ds || !ds.available()) return '';
+    var s = ds.status();
+    var h = '<div class="card ui" id="wl-sync"><h3>Sync with Google Drive</h3>';
+    if (!s.configured) {
+      h += '<p class="meta">Save a live copy (<code>wellness-sync.json</code>) into your private Google Drive folder so cloud runs can read your progress and answer queued requests.</p>';
+      if (s.error) h += '<p class="no" id="wl-sync-err">' + esc(s.error) + '</p>';
+      h += '<div class="row"><button class="primary" id="wl-sync-pick">Choose Google Drive folder</button></div></div>';
+      return h;
+    }
+    var when = s.lastSync ? new Date(s.lastSync).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'not yet';
+    var extra = [];
+    if (s.pendingRequests) extra.push(s.pendingRequests + ' waiting for cloud');
+    if (s.pendingAnswers) extra.push(s.pendingAnswers + ' cloud ' + (s.pendingAnswers === 1 ? 'answer' : 'answers') + ' ready');
+    h += '<p class="meta">Syncing to <b>' + esc(s.name) + '</b> (on open and leaving the app, at most every 30 min).</p>' +
+      '<p class="meta" id="wl-sync-when">' + (s.busy ? 'Syncing…' : 'Last synced: ' + esc(when)) + (extra.length ? ' · ' + esc(extra.join(' · ')) : '') + '</p>';
+    if (s.error) h += '<p class="no" id="wl-sync-err">' + esc(s.error) + '</p>';
+    h += '<div class="row"><button class="primary" id="wl-sync-now"' + (s.busy ? ' disabled' : '') + '>' + (s.busy ? 'Syncing…' : 'Sync now') + '</button>' +
+      '<button id="wl-sync-pick">Change file</button></div>' +
+      '<p style="margin:8px 0 0"><button class="link" id="wl-sync-forget">Turn off Drive sync</button></p></div>';
+    return h;
+  }
+  function wireSync() {
+    var ds = window.WL && WL.driveSync; if (!ds || !ds.available()) return;
+    var p = $('#wl-sync-pick'); if (p) p.onclick = function () { ds.pick(); };
+    var n = $('#wl-sync-now'); if (n) n.onclick = function () {
+      n.disabled = true; n.textContent = 'Syncing…';
+      ds.sync({ auto: false }).then(function () { toast('Synced with Google Drive'); }, function (e) { toast((e && e.message) || 'Sync failed'); });
+    };
+    var f = $('#wl-sync-forget'); if (f) f.onclick = function () {
+      if (f.dataset.sure) { ds.forget(); toast('Drive sync turned off'); return; }
+      f.dataset.sure = '1'; f.textContent = 'Tap again to turn off';
+    };
+  }
+  function redrawSync() { var el = $('#wl-sync'); if (el) { el.outerHTML = syncHtml(); wireSync(); } }
   // coming back from Android's "Install unknown apps" screen: show the new state
   document.addEventListener('visibilitychange', function () { if (!document.hidden) redrawUpdate(); });
   // an update never installs during a guided prayer or calm session (Android asks the page)
@@ -376,7 +414,7 @@
     $$('[data-look]').forEach(function (b) {
       b.onclick = function () { var v = b.dataset.val; setLook(b.dataset.look, isNaN(+v) ? v : +v); route(); };
     });
-    wireUpdate(); wireVoice();
+    wireUpdate(); wireVoice(); wireSync();
     var ld = $('#wl-logday'); if (ld) ld.onchange = function () { setLogDay(ld.value || null); toast(ld.value ? 'Logging for ' + dayLabel(ld.value) : 'Logging for today'); };
     var ex = $('#wl-export'); if (ex) ex.onclick = function () { saveFile('wellness-backup-' + isoDate() + '.json', backupText()); SH.lastBackup = new Date().toISOString(); shellStore.save(SH); };
     var im = $('#wl-import');
@@ -426,13 +464,25 @@
         return '<a href="#' + id + '" data-tab="' + id + '"><span class="ico" aria-hidden="true">' + m.icon + '</span>' + esc(m.short || m.title) + '</a>';
       }).join('');
     window.addEventListener('hashchange', route);
-    window.addEventListener('pagehide', function () { order.forEach(function (id) { if (modules[id].saveNow) modules[id].saveNow(); }); });
-    document.addEventListener('visibilitychange', function () { if (document.hidden) order.forEach(function (id) { if (modules[id].saveNow) modules[id].saveNow(); }); });
+    window.addEventListener('pagehide', function () {
+      order.forEach(function (id) { if (modules[id].saveNow) modules[id].saveNow(); });
+      if (WL.driveSync) WL.driveSync.autoSync();
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        order.forEach(function (id) { if (modules[id].saveNow) modules[id].saveNow(); });
+        if (WL.driveSync) WL.driveSync.autoSync();
+      }
+    });
+    if (WL.driveSync) { WL.driveSync.onState(redrawSync); WL.driveSync.start(); }
     route();
   }
 
   // The Android app calls these.
-  window.FCSaveNow = function () { order.forEach(function (id) { if (modules[id].saveNow) modules[id].saveNow(); }); };
+  window.FCSaveNow = function () {
+    order.forEach(function (id) { if (modules[id].saveNow) modules[id].saveNow(); });
+    if (WL.driveSync) WL.driveSync.autoSync();
+  };
   window.FCPauseSession = function () { if (current && current.pause) current.pause(); };
 
   window.WL = {

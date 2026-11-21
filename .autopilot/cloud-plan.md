@@ -34,7 +34,7 @@ Browser tests block the internet (tests/lib/web.cjs).
 ## Tasks (cloud-first move, 21 Nov; do these first, in order)
 Two agents work here: read .autopilot/agents.md first (who can do what, claims, push rules). Tasks are [any] (claim first); [drive] ones need the private Drive folder.
 Note for B/C: C sends milestones in coach-* input; B moves prompts to pc/prompts/ — whoever lands second rebases onto the first.
-A. [any] Drive sync on the phone. Settings > "Sync with Google Drive": once, Android's file picker (SAF ACTION_CREATE_DOCUMENT,
+A. (done 21 Nov 01:10, Gemini: Sync.java + MainActivity bridge, lib/sync-core.js + lib/sync.js WL.driveSync, Settings card, SyncTest + sync.cjs + e2e-sync.cjs) Drive sync on the phone. Settings > "Sync with Google Drive": once, Android's file picker (SAF ACTION_CREATE_DOCUMENT,
    application/json, name wellness-sync.json; takePersistableUriPermission) so he can pick his Drive folder. Then the
    app writes the same JSON as "Save a backup" plus `requests` (queue, see B) to that file when the app opens and
    when it goes to the background (at most every 30 min) and on "Sync now". Before writing it reads the file and takes

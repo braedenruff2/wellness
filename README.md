@@ -106,7 +106,7 @@ reads anything they can't (before the downloads, or if something fails).
   session engine), modules/<id>/ (each part's code; own storage key `fc.v1` / `wl.<id>.v1`).
 - `modules/<id>/`: each part's sources, tools and tests, kept separate. Faith content: `modules/faith/tools/build-content.cjs`.
   Tagalog packs: `modules/tagalog/packs/*.json` -> `node modules/tagalog/tools/build-packs.cjs` (checks the format).
-- `lib/activity.js`: the activity log, read from each part's saved data; `lib/pc.js` (WL.pc): sync and Claude requests.
+- `lib/activity.js`: the activity log, read from each part's saved data; `lib/pc.js` (WL.pc): sync and Claude requests; `lib/sync-core.js` + `lib/sync.js` (`WL.driveSync`): Google Drive sync (`wellness-sync.json`, backup + `requests`/`answers`/`acked`) through `android/.../Sync.java`.
 - `android/.../Voices.java` + `Speech.java`: Kokoro / MMS Tagalog through sherpa-onnx (Loudbook's engine, `com/k2fsa/...`),
   Loudbook's PC voice through the PC link; the build needs `tools/get-voice-parts.sh` (sherpa-onnx libs, Kokoro small files).
 - `pc/wellness_pc.py`: the PC side (pairing, HTTPS pinned at pairing, activity files, `claude -p` jobs, `summary`, voice

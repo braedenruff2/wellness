@@ -42,6 +42,7 @@ import java.util.Locale;
  *  goes over the network except the public Tagalog lesson packs the page downloads. */
 public class MainActivity extends Activity {
     private static final int PICK_FILE = 7;
+    private static final int PICK_SYNC = 8;
     private WebView web;
     /** The activity on screen (or null), so a "Done" tapped on a to-do notification reaches an open page at once. */
     private static java.lang.ref.WeakReference<MainActivity> shown = new java.lang.ref.WeakReference<>(null);
@@ -257,6 +258,16 @@ public class MainActivity extends Activity {
             fileCallback = null;
             return;
         }
+        if (req == PICK_SYNC) {
+            ownScreenOnTop = false;
+            boolean picked = false;
+            if (res == RESULT_OK && data != null && data.getData() != null) {
+                picked = Sync.savePicked(this, data.getData(), data.getFlags()).isEmpty();
+            }
+            final boolean ok = picked;
+            runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSyncState&&FCSyncState(" + ok + ")", null); });
+            return;
+        }
         super.onActivityResult(req, res, data);
     }
 
@@ -386,6 +397,43 @@ public class MainActivity extends Activity {
             } catch (Exception e) {
                 return "";
             }
+        }
+
+        /** Google Drive sync (Sync.java): SAF document picker, read, write, forget. */
+        @JavascriptInterface public String syncStatus() { return Sync.status(getApplicationContext()); }
+        @JavascriptInterface public void syncPick() {
+            runOnUiThread(() -> {
+                try { ownScreenOnTop = true; startActivityForResult(Sync.pickIntent(), PICK_SYNC); }
+                catch (Exception e) {
+                    ownScreenOnTop = false;
+                    Sync.setError(getApplicationContext(), Sync.friendlyError(e, true));
+                    if (web != null) web.evaluateJavascript("window.FCSyncState&&FCSyncState(false)", null);
+                }
+            });
+        }
+        @JavascriptInterface public void syncForget() {
+            Sync.forget(getApplicationContext());
+            runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSyncState&&FCSyncState(false)", null); });
+        }
+        @JavascriptInterface public void syncRead(String id) {
+            final Context app = getApplicationContext();
+            new Thread(() -> {
+                boolean ok = true; String out;
+                try { out = Sync.read(app); }
+                catch (Exception e) { ok = false; out = e.getMessage() == null ? e.toString() : e.getMessage(); }
+                final boolean fOk = ok; final String fOut = out;
+                runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSyncDone&&FCSyncDone(" + jsString(id) + "," + fOk + "," + jsString(fOut) + ")", null); });
+            }, "wl-sync-read").start();
+        }
+        @JavascriptInterface public void syncWrite(String id, String text) {
+            final Context app = getApplicationContext();
+            new Thread(() -> {
+                boolean ok = true; String out = "";
+                try { Sync.write(app, text); }
+                catch (Exception e) { ok = false; out = e.getMessage() == null ? e.toString() : e.getMessage(); }
+                final boolean fOk = ok; final String fOut = out;
+                runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSyncDone&&FCSyncDone(" + jsString(id) + "," + fOk + "," + jsString(fOut) + ")", null); });
+            }, "wl-sync-write").start();
         }
 
         /** False when Android won't show this app's notifications (permission refused or switched off). */

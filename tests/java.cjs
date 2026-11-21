@@ -17,11 +17,12 @@ const srcs = [];
 (function walk(d) { for (const f of fs.readdirSync(d)) { const p = path.join(d, f); if (fs.statSync(p).isDirectory()) walk(p); else if (p.endsWith('.java')) srcs.push(p); } })(path.join(ROOT, 'android', 'src'));
 srcs.push(path.join(gen, 'R.java'), path.join(ROOT, 'tests', 'java', 'app', 'faithcompanion', 'ReminderTest.java'),
   path.join(ROOT, 'tests', 'java', 'app', 'faithcompanion', 'PcLinkTest.java'), path.join(ROOT, 'tests', 'java', 'app', 'faithcompanion', 'SpeechTest.java'),
-  path.join(ROOT, 'tests', 'java', 'app', 'faithcompanion', 'TodoAlarmTest.java'));
+  path.join(ROOT, 'tests', 'java', 'app', 'faithcompanion', 'TodoAlarmTest.java'), path.join(ROOT, 'tests', 'java', 'app', 'faithcompanion', 'SyncTest.java'));
 execFileSync('javac', ['-nowarn', '-encoding', 'UTF-8', '-source', '8', '-target', '8', '-Xlint:-options', '-cp', jar, '-d', path.join(out, 'c')].concat(srcs), { stdio: 'inherit' });
 execFileSync('java', ['-cp', path.join(out, 'c') + path.delimiter + jar, 'app.faithcompanion.ReminderTest'], { stdio: 'inherit' });
 execFileSync('java', ['-cp', path.join(out, 'c') + path.delimiter + jar, 'app.faithcompanion.SpeechTest'], { stdio: 'inherit' });
 execFileSync('java', ['-cp', path.join(out, 'c') + path.delimiter + jar, 'app.faithcompanion.TodoAlarmTest'], { stdio: 'inherit' });
+execFileSync('java', ['-cp', path.join(out, 'c') + path.delimiter + jar, 'app.faithcompanion.SyncTest'], { stdio: 'inherit' });
 
 // PcLink against the real PC server (needs python3 with the cryptography package; skipped otherwise)
 const { spawn, spawnSync } = require('child_process');
