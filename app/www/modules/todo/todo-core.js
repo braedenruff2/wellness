@@ -25,7 +25,7 @@
     if (mi > 59) return null;
     var rest = t.slice(0, m.index);
     if (/^\s*at\s*$/i.test(rest)) return null;
-    return { at: pad(h) + ':' + pad(mi), rest: rest };
+    return { at: pad(h) + ':' + pad(mi), rest: rest, bare: !!m[5] && m[5].charAt(0) !== '0' && h < 12 };  // bare: "at 7" (no am/pm)
   }
   /* Weekday names: only real spellings ("fri", "friday"), so "call friend" or "the wedding" stay plain text. */
   var WD = '(sun(?:day)?|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?)';
@@ -57,7 +57,7 @@
   /* A date at the end ("tomorrow", "fri", "24/12", "dec 24", "in 3 days", "next week", "this weekend"): {due, rest} or null. */
   function takeDay(t, now, today) {
     var m, d;
-    if ((m = /\s+(today|tonight)$/i.exec(t))) return { due: today, rest: t.slice(0, m.index) };
+    if ((m = /\s+(today|tonight|this evening)$/i.exec(t))) return { due: today, rest: t.slice(0, m.index), evening: !/^today$/i.test(m[1]) };
     if ((m = /\s+(tomorrow|tmrw)$/i.exec(t))) return { due: addDays(today, 1), rest: t.slice(0, m.index) };
     if ((m = new RegExp('\\s+(?:on |next |this )?' + WD + '$', 'i').exec(t))) {
       d = (wdIndex(m[1]) - now.getDay() + 7) % 7 || 7;
@@ -87,17 +87,18 @@
   }
   function quickParse(text, now) {
     now = now || new Date();
-    var t = String(text || '').trim(), today = iso(now), due = null, repeat = null, at = null, r, tm;
-    if ((tm = takeTime(t))) { at = tm.at; t = tm.rest; }
+    var t = String(text || '').trim(), today = iso(now), due = null, repeat = null, at = null, r, tm, bare = false, evening = false;
+    if ((tm = takeTime(t))) { at = tm.at; bare = tm.bare; t = tm.rest; }
     if ((r = takeRepeat(t, now, today))) { repeat = r.repeat; due = r.due; t = r.rest; }
-    if ((r = takeDay(t, now, today))) { due = r.due; t = r.rest; }
+    if ((r = takeDay(t, now, today))) { due = r.due; evening = !!r.evening; t = r.rest; }
     if (!at && (tm = takeTime(t))) {                 // "call Mom at 3pm tomorrow": the time came before the date
-      at = tm.at; t = tm.rest;
+      at = tm.at; bare = tm.bare; t = tm.rest;
       if (!due && !repeat) {
         if ((r = takeRepeat(t, now, today))) { repeat = r.repeat; due = r.due; t = r.rest; }
-        if ((r = takeDay(t, now, today))) { due = r.due; t = r.rest; }
+        if ((r = takeDay(t, now, today))) { due = r.due; evening = !!r.evening; t = r.rest; }
       }
     }
+    if (at && bare && evening) at = pad(+at.slice(0, 2) % 12 + 12) + at.slice(2);   // "tonight at 7" = 19:00
     if (at && !due) { due = today; if (!repeat && at <= hm(now)) due = addDays(today, 1); }  // "3pm" already gone: tomorrow
     if (!t.trim()) return { text: String(text || '').trim(), due: null, repeat: null, at: null };
     return { text: t.trim(), due: due, repeat: repeat, at: at };

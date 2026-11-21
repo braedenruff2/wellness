@@ -62,6 +62,19 @@ t('quickParse: "in 3 days", "next week", "this weekend", month names', () => {
   assert.strictEqual(T.quickParse('next week', wed).text, 'next week', 'a lone phrase stays the task');
 });
 
+t('quickParse: "tonight at 7" is 7 pm; a stated am or a 24-hour time is kept', () => {
+  const at = (s) => T.quickParse(s, wed).at;
+  assert.strictEqual(at('dinner tonight at 7'), '19:00');
+  assert.strictEqual(at('call at 8 tonight'), '20:00');
+  assert.strictEqual(at('bath at 7:30 tonight'), '19:30');
+  assert.deepStrictEqual(T.quickParse('x this evening at 6', wed), { text: 'x', due: '2026-11-18', repeat: null, at: '18:00' });
+  assert.strictEqual(at('meds tonight at 9am'), '09:00');
+  assert.strictEqual(at('x tonight at 07:00'), '07:00');
+  assert.strictEqual(at('x tonight at 22:00'), '22:00');
+  assert.strictEqual(at('x today at 7'), '07:00', 'only tonight / this evening move it');
+  assert.strictEqual(at('x at 7'), '07:00');
+});
+
 t('groups: overdue / today / upcoming / any time / done', () => {
   const s = T.defaults();
   T.add(s, 'a', { due: '2026-11-17' }, wed); T.add(s, 'b today', null, wed); T.add(s, 'c sat', null, wed); T.add(s, 'd', null, wed);
