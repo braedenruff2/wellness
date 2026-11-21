@@ -212,7 +212,7 @@
     return '<div class="card ui" id="co-queued"><p>' + esc(pc.queuedText ? pc.queuedText() : pc.QUEUED) + '</p><ul class="list">' + q.map(function (x) {
       var m = x.meta || {}, what = x.task === 'coach-grade' ? 'Feedback on “' + ((m.scn && m.scn.title) || 'your answer') + '”'
         : x.task === 'coach-advice' ? 'Advice: “' + String(m.answer || '').slice(0, 60) + (String(m.answer || '').length > 60 ? '…' : '') + '”' : 'A new scenario';
-      return '<li><span class="grow">' + esc(what) + '</span><span class="meta">asked ' + esc(new Date(x.at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })) + '</span></li>';
+      return '<li><span class="grow">' + esc(what) + '</span><span class="meta">asked ' + esc(new Date(x.at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' })) + '</span>' + (pc.cancelHtml ? pc.cancelHtml(x.id, what) : '') + '</li>';
     }).join('') + '</ul></div>';
   }
   function resume() {

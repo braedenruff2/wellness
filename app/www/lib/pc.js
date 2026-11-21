@@ -167,6 +167,8 @@
       // an answer this phone isn't waiting for and that is over a week old (a sheet row seen again after a restore
       // or once its id left the acked list) is dropped, not shown again
       if (!c && a.at && Date.parse(a.at) < old) { d.takeAnswer(id); return; }
+      // he cancelled it before the cloud's answer came in
+      if (!c && Array.isArray(P.cancelled) && P.cancelled.indexOf(id) >= 0) { d.takeAnswer(id); return; }
       var h = handlers[task]; if (!h || (!c && !a.task)) return;
       d.takeAnswer(id); delete cloud()[id]; store.save(P); n++;
       var ans = a && typeof a === 'object' && a.answer && typeof a.answer === 'object' ? a.answer : (a.error ? null : a);
@@ -175,6 +177,35 @@
     });
     return n;
   }
+  /* Drops a waiting cloud request (a typo, or he changed his mind): out of the sync file's queue, and an answer that
+     still arrives for it (the cloud run may have answered before the phone synced) is taken and not shown. */
+  var cancelFns = [];
+  function cancel(id) {
+    var c = cloud()[id]; if (!c) return false;
+    delete cloud()[id];
+    var gone = Array.isArray(P.cancelled) ? P.cancelled : [];
+    if (gone.indexOf(id) < 0) gone.push(id);
+    P.cancelled = gone.slice(-50); store.save(P);
+    if (WL.driveSync && WL.driveSync.cancelRequest) {
+      WL.driveSync.cancelRequest(id);
+      try { WL.driveSync.sync().catch(function () {}); } catch (e) {}
+    }
+    cancelFns.forEach(function (fn) { try { fn(c.task, id); } catch (e) {} });
+    return true;
+  }
+  function onCancel(fn) { if (typeof fn === 'function') cancelFns.push(fn); }
+  /* A "Cancel" button for waiting requests (ids: one id or a list); what: read out by screen readers. */
+  function cancelHtml(ids, what) {
+    ids = [].concat(ids || []).filter(Boolean); if (!ids.length) return '';
+    return ' <button class="link small" data-cloud-cancel="' + WL.esc(ids.join(' ')) + '" aria-label="' + WL.esc('Cancel ' + (what || 'this request')) + '">Cancel</button>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('[data-cloud-cancel]') : null; if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    var n = 0; String(b.getAttribute('data-cloud-cancel')).split(' ').forEach(function (id) { if (id && cancel(id)) n++; });
+    if (n) WL.toast('Cancelled: it won’t be answered');
+    WL.route();
+  });
   if (WL.driveSync && WL.driveSync.onAnswers) WL.driveSync.onAnswers(function () { deliver(); });
   setTimeout(deliver, 2500);
 
@@ -185,7 +216,7 @@
 
   WL.pc = {
     status: status, ready: ready, request: request, get: get, post: post, sync: sync, ask: ask, poll: poll, events: events,
-    askOrQueue: askOrQueue, orQueue: orQueue, queue: queue, queued: queued, onCloudAnswer: onCloudAnswer, deliver: deliver, cloudOn: cloudOn,
+    askOrQueue: askOrQueue, orQueue: orQueue, queue: queue, queued: queued, onCloudAnswer: onCloudAnswer, deliver: deliver, cloudOn: cloudOn, cancel: cancel, onCancel: onCancel, cancelHtml: cancelHtml,
     unreachable: unreachable, QUEUED: QUEUED, QUEUED_CLOUD: QUEUED_CLOUD, queuedText: queuedText, canAsk: canAsk,
     settings: function () { return P; }, save: function () { store.save(P); }, storeKey: store.key, reload: function () { P = store.load(); },
     reset: function () { P.sent = {}; P.lastSync = null; P.weekSent = null; store.save(P); }

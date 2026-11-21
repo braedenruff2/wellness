@@ -192,6 +192,54 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     assert.ok(!(await page.textContent('.home-card[data-module="link"]')).includes('Stale advice'));
     assert.strictEqual(await page.evaluate(() => Object.keys(WL.driveSync.answers()).length), 0);
   });
+  await t.step('Cancel drops a waiting request (parenting, Home advice, weekly plan, Tagalog) and a late answer is not shown', async () => {
+    await page.goto(base + '#coach');
+    await page.click('#co-new');
+    await page.waitForSelector('#co-queued [data-cloud-cancel]');
+    const id = (await reqs('coach-scenario'))[0].id;
+    assert.strictEqual(await page.getAttribute('#co-queued [data-cloud-cancel]', 'aria-label'), 'Cancel A new scenario');
+    await page.click('#co-queued [data-cloud-cancel]');
+    await page.waitForFunction(() => !document.querySelector('#co-queued'));
+    assert.ok(!(await page.$eval('#co-new', (b) => b.disabled)), 'can ask again');
+    await page.waitForTimeout(50);
+    assert.strictEqual((await reqs('coach-scenario')).length, 0, 'out of the sync file');
+    assert.strictEqual(await page.evaluate(() => WL.pc.queued().length), 0);
+    // the cloud run had already answered it: taken and acked, not shown
+    await cloudAnswers({ [id]: { task: 'coach-scenario', answer: { title: 'Too late', skill: 'Safety', scenario: 'A late one.', question: 'What do you do?' } } });
+    await page.waitForTimeout(100);
+    assert.strictEqual((await coach()).current, null);
+    assert.ok(!(await page.textContent('#view')).includes('Too late'));
+    assert.strictEqual(await page.evaluate(() => Object.keys(WL.driveSync.answers()).length), 0);
+    assert.ok((await file()).acked.includes(id), 'acked so the sheet row is pruned');
+
+    await page.evaluate(() => { const m = WLMe.state(); m.plan = null; m.planTried = null; });
+    await page.goto(base + '#home');
+    await page.click('[data-advice]');
+    await page.waitForSelector('#lk-queued [data-cloud-cancel]');
+    await page.click('#me-plan');
+    await page.waitForSelector('#me-plan-queued [data-cloud-cancel]');
+    assert.strictEqual((await reqs('advice')).length, 1); assert.strictEqual((await reqs('weekly-plan')).length, 1);
+    await page.click('#lk-queued [data-cloud-cancel]');
+    await page.waitForFunction(() => !document.querySelector('#lk-queued'));
+    assert.ok(await page.$('#me-plan-queued'), 'only the advice was cancelled');
+    await page.click('#me-plan-queued [data-cloud-cancel]');
+    await page.waitForFunction(() => !document.querySelector('#me-plan-queued'));
+    assert.ok(!(await page.$('#me-plan-failed')), 'a cancelled plan is not "couldn’t make your plan"');
+    await page.waitForTimeout(50);
+    assert.strictEqual((await reqs('advice')).length + (await reqs('weekly-plan')).length, 0);
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.me.v1')).planCancelled), '2026-11-21', 'not asked again by itself today');
+
+    await page.evaluate(() => { for (const a of ['tubeg', 'tubik']) { const i = { task: 'Say: water', expected: 'tubig', answer: a }; WL.pc.queue('tagalog-check', i, i); } });
+    await page.goto(base + '#tagalog');
+    assert.ok((await page.textContent('#tl-checks')).includes('2 answers waiting'));
+    assert.strictEqual(await page.getAttribute('#tl-checks [data-cloud-cancel]', 'aria-label'), 'Cancel the waiting checks');
+    await page.click('#tl-checks [data-cloud-cancel]');
+    await page.waitForFunction(() => !document.querySelector('#tl-checks [data-cloud-cancel]'));
+    assert.ok(!/waiting/.test(await page.textContent('#view')), 'no waiting line left');
+    await page.waitForTimeout(50);
+    assert.strictEqual((await reqs('tagalog-check')).length, 0);
+    assert.strictEqual(await page.evaluate(() => WL.pc.queued().length), 0);
+  });
   await t.step('no PC and no Drive sync: buttons are off and the note says both ways to get answers', async () => {
     await page.evaluate(() => localStorage.setItem('test.drive.off', '1'));
     await page.reload();

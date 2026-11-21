@@ -44,7 +44,8 @@
     var c = S.checks || [], q = WL.pc && WL.pc.queued ? WL.pc.queued('tagalog-check') : [];
     if (!c.length && !q.length) return '';
     return '<div class="card ui" id="tl-checks"><h2>Claude checked your answers</h2>' +
-      (q.length ? '<p class="meta">' + q.length + ' answer' + (q.length === 1 ? '' : 's') + ' waiting: ' + esc(WL.pc.queuedText ? WL.pc.queuedText() : WL.pc.QUEUED) + '</p>' : '') +
+      (q.length ? '<p class="meta">' + q.length + ' answer' + (q.length === 1 ? '' : 's') + ' waiting: ' + esc(WL.pc.queuedText ? WL.pc.queuedText() : WL.pc.QUEUED) +
+        (WL.pc.cancelHtml ? WL.pc.cancelHtml(q.map(function (x) { return x.id; }), q.length === 1 ? 'the waiting check' : 'the waiting checks') : '') + '</p>' : '') +
       c.slice().reverse().map(function (x) {
         return '<p class="meta" style="margin-bottom:0">' + esc(x.prompt) + '</p><p style="margin:.2em 0">You wrote: <span lang="tl">' + esc(x.given) + '</span></p>' + checkHtml(x.a);
       }).join('') + (c.length ? '<div class="row"><button class="link" id="tl-checks-clear">Done, clear these</button></div>' : '') + '</div>';

@@ -50,7 +50,7 @@
   }
 
   function adviceHtml() {
-    var q = pc.queued && pc.queued('advice').length && !(advice && advice.waiting != null) ? '<p class="meta" id="lk-queued">' + esc(pc.queuedText ? pc.queuedText() : pc.QUEUED) + '</p>' : '';
+    var q = pc.queued && pc.queued('advice').length && !(advice && advice.waiting != null) ? '<p class="meta" id="lk-queued">' + esc(pc.queuedText ? pc.queuedText() : pc.QUEUED) + (pc.cancelHtml ? pc.cancelHtml(pc.queued('advice').map(function (x) { return x.id; }), 'the advice request') : '') + '</p>' : '';
     return q + adviceBody();
   }
   function adviceBody() {

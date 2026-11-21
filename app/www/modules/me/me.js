@@ -144,7 +144,12 @@
     });
   }
   function planQueued() { return !!(WL.pc && WL.pc.queued && WL.pc.queued('weekly-plan').length); }
-  function queuedLine() { return '<p class="meta" id="me-plan-queued">' + esc(WL.pc.queuedText ? WL.pc.queuedText() : WL.pc.QUEUED) + '</p>'; }
+  function queuedLine() {
+    return '<p class="meta" id="me-plan-queued">' + esc(WL.pc.queuedText ? WL.pc.queuedText() : WL.pc.QUEUED) +
+      (WL.pc.cancelHtml ? WL.pc.cancelHtml(WL.pc.queued('weekly-plan').map(function (x) { return x.id; }), 'the weekly plan request') : '') + '</p>';
+  }
+  // a cancelled plan isn't asked for again by itself today (the button still makes one)
+  if (WL.pc && WL.pc.onCancel) WL.pc.onCancel(function (task) { if (task === 'weekly-plan') { S.planCancelled = today(); save(); redrawCard(); } });
   if (WL.pc && WL.pc.onCloudAnswer) WL.pc.onCloudAnswer('weekly-plan', function (e, a) {
     var p = e ? null : K.cleanPlan(a, new Date());
     S.planTried = today();
@@ -212,7 +217,7 @@
   // The weekly plan makes itself when one is due and the PC link answers (at most one answered try a day; the button
   // is there too): shortly after the app opens, whenever it comes back to the front, and every 15 minutes.
   function autoPlan() {
-    if (askable() && K.planDue(S, new Date()) && S.planTried !== today() && !document.hidden && !planQueued() && (S.feedback.length || Object.keys(S.checkins).length))
+    if (askable() && K.planDue(S, new Date()) && S.planTried !== today() && S.planCancelled !== today() && !document.hidden && !planQueued() && (S.feedback.length || Object.keys(S.checkins).length))
       makePlan(redrawCard, true);
   }
   setTimeout(autoPlan, 20000);

@@ -265,6 +265,7 @@
     });
     if (s.plan) d.plan = s.plan.at ? (function () { var p = cleanPlan(s.plan); if (p) p.at = cut(s.plan.at, 40); return p; })() : null;
     if (typeof s.planTried === 'string' && /^\d{4}-\d\d-\d\d$/.test(s.planTried)) d.planTried = s.planTried;
+    if (typeof s.planCancelled === 'string' && /^\d{4}-\d\d-\d\d$/.test(s.planCancelled)) d.planCancelled = s.planCancelled;
     if (s.skipped && typeof s.skipped === 'object') Object.keys(s.skipped).forEach(function (k) { if (/^\d{4}-\d\d-\d\d$/.test(k)) d.skipped[k] = 1; });
     return d;
   }
