@@ -22,6 +22,7 @@ from `main` (app from `dist/`, lessons from `modules/tagalog/packs/`), so your P
 - The PC is still used, when it's on, for instant Claude answers (Parenting, advice, "Ask Claude") and Loudbook's PC voice.
   When it's off, those requests will wait for the next cloud run (being built).
 - `tools\publish.bat` (every 15 minutes on the PC) first takes what the cloud pushed, then sends any PC changes.
+- Two autopilots work here, Claude and Gemini: `.autopilot/agents.md` says who owns what, how they claim tasks and how they push.
 
 ## Weekly Tagalog lessons (one-time setup)
 Double-click **Turn on lesson updates.bat** once. It makes a public GitHub repo `wellness` and pushes this folder every
