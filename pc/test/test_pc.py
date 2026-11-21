@@ -4,8 +4,11 @@ Runs a real server on a free port with temporary folders.   python pc/test/test_
 import datetime, hashlib, http.client, json, os, secrets, socket, ssl, stat, sys, tempfile, threading, time
 
 # his PC's time zone (the phone sends UTC times; the PC files them by its local date)
-os.environ["TZ"] = "America/Halifax"
-if hasattr(time, "tzset"): time.tzset()
+if hasattr(time, "tzset"):
+    os.environ["TZ"] = "America/Halifax"
+    time.tzset()
+else:
+    os.environ["TZ"] = "AST4ADT"
 HERE = os.path.dirname(os.path.abspath(__file__))
 TMP = tempfile.mkdtemp(prefix="wpc-")
 os.environ["WELLNESS_STATE"] = os.path.join(TMP, "state")
@@ -19,13 +22,14 @@ os.environ["WELLNESS_TAGALOG"] = os.path.join(TMP, "tgl")
 s = socket.socket(); s.bind(("127.0.0.1", 0)); os.environ["LOUDBOOK_PORT"] = str(s.getsockname()[1]); s.close()
 
 # a stand-in for Claude Code: echoes what it was asked in the shape of `claude -p --output-format json`
-FAKE = os.path.join(TMP, "claude")
-with open(FAKE, "w") as f:
+FAKE_PY = os.path.join(TMP, "claude.py" if os.name == "nt" else "claude")
+FAKE = os.path.join(TMP, "claude.cmd") if os.name == "nt" else FAKE_PY
+with open(FAKE_PY, "w", encoding="utf-8") as f:
     f.write("""#!/usr/bin/env python3
-import json, sys
+import json, os, sys
 p = sys.stdin.read()
 args = sys.argv[1:]
-open(sys.argv[0] + '.args', 'w').write(json.dumps(args))
+open(os.environ.get("WELLNESS_FAKE_ARGS", sys.argv[0] + '.args'), 'w', encoding='utf-8').write(json.dumps(args))
 if 'FAIL-PLEASE' in p:
     print(json.dumps({"type": "result", "subtype": "error_max_turns", "is_error": True, "result": ""})); sys.exit(1)
 if 'REVOKED' in p:
@@ -47,7 +51,12 @@ else:
     ans = json.dumps({"headline": "h", "points": [p[p.find('Activity'):p.find('Activity') + 60]], "next": "n"})
 print(json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": ans}))
 """)
-os.chmod(FAKE, os.stat(FAKE).st_mode | stat.S_IEXEC)
+if os.name == "nt":
+    with open(FAKE, "w", encoding="utf-8") as f:
+        f.write(f'@echo off\r\n"{sys.executable}" "{FAKE_PY}" %*\r\n')
+else:
+    os.chmod(FAKE, os.stat(FAKE).st_mode | stat.S_IEXEC)
+os.environ["WELLNESS_FAKE_ARGS"] = FAKE + ".args"
 os.environ["WELLNESS_CLAUDE"] = FAKE
 
 sys.path.insert(0, os.path.join(HERE, ".."))
