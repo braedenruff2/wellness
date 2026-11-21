@@ -1,5 +1,11 @@
 # Cloud log
 
+## 2026-11-21 05:30 AST (same run, continued)
+- Done: Home shows one card until Drive sync and the answers sheet are set up ("Set it up" opens Settings at the sync card; "Not now" hides it a week). A recent Drive sync now counts as a backup, so no backup nudge while it syncs.
+- Done: tools/cloud-answer.cjs + tools/cloud_prompts.py: `prepare` turns unacked requests in wellness-sync.json into the PC link's own prompts (advice/weekly-plan get summarize(14) from the synced stores); `rows` turns answers into the full wellness-answers sheet (acked rows pruned, old rows blanked) and checks it reads back through WLSyncCore. Steps in cloud-plan.md.
+- Tested: full suite, all 49 pass, none skipped. APK 0.1.20261121.0900 (real key).
+- Check on the phone: Home shows the Drive sync card until both steps are done.
+
 ## 2026-11-21 05:15 AST (cloud run; PC asleep/no folder connected)
 - Cross-reviewed Gemini's 30, 31, 32 (sync-core/sync.js, Sync.java, style.css, tests): sound. One gap fixed: sheet rows stay until pruned and the phone keeps only 200 acked ids, so an old row could be shown again; deliver() now drops an answer it isn't waiting for once it's over a week old, and pc/prompts/README.md says cloud runs prune acked rows.
 - Done 33: with no PC paired but Drive sync on, Parenting (New scenario, Get advice), Home advice card, weekly plan (#me + Home) and Tagalog "Ask Claude" queue straight for the cloud (WL.pc.canAsk; ask() queues when unpaired; note "This will be answered by the next cloud run" without "PC isn't answering"). No PC and no Drive: buttons off, note names both ways.
