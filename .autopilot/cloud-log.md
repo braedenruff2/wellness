@@ -1,5 +1,13 @@
 # Cloud log
 
+## 2026-11-21 05:15 AST (cloud run; PC asleep/no folder connected)
+- Cross-reviewed Gemini's 30, 31, 32 (sync-core/sync.js, Sync.java, style.css, tests): sound. One gap fixed: sheet rows stay until pruned and the phone keeps only 200 acked ids, so an old row could be shown again; deliver() now drops an answer it isn't waiting for once it's over a week old, and pc/prompts/README.md says cloud runs prune acked rows.
+- Done 33: with no PC paired but Drive sync on, Parenting (New scenario, Get advice), Home advice card, weekly plan (#me + Home) and Tagalog "Ask Claude" queue straight for the cloud (WL.pc.canAsk; ask() queues when unpaired; note "This will be answered by the next cloud run" without "PC isn't answering"). No PC and no Drive: buttons off, note names both ways.
+- 34 (cloud side): made the `wellness-answers` Google Sheet in the private folder (header id,task,answer-json,at); Drive's CSV export of it parses with WLSyncCore.mergeRemote.
+- Tested: full suite, all 47 pass, none skipped. APK 0.1.20261121.0853 (real key, cert 6795e499...), includes Gemini's 30/31/32.
+- Check on the phone: Settings > Sync with Google Drive > choose answers sheet > pick `wellness-answers` (Drive virtual file; it should say it's set, no error after Sync now). With the PC unpaired, Parenting > New scenario shows the cloud note. Restore from Drive lists wellness-sync.json once it exists.
+- No wellness-sync.json in Drive yet, so no queued requests to answer.
+
 ## 2026-11-21 01:50 AST (cloud run; PC asleep/unreachable)
 - Cross-review: Gemini's A (Drive sync, WL.driveSync), date-window bounds and the Windows test fix read fine; B builds on A's enqueue/takeAnswer/onAnswers and e2e-cloud exercises them together.
 - Done B: PC prompts now live in pc/prompts/<task>.md + rules.md (README there says how each {{name}} is filled); prompt_for fills them and gives byte-identical prompts to before (checked on 1200 random inputs). Tests: every placeholder has a value, typed {{x}} stays as typed, missing file is a clear error.
