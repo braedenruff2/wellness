@@ -55,6 +55,15 @@ final class Sync {
         return i;
     }
 
+    /** Intent to pick an existing wellness-sync.json backup from Google Drive to restore (works on a new phone). */
+    static Intent pickRestoreIntent() {
+        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("*/*");
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        return i;
+    }
+
     /** Picks the best stream MIME type offered by Drive for a virtual Google Sheet (CSV first, then JSON/text). */
     static String chooseAnswersMime(String[] types) {
         if (types == null || types.length == 0) return null;
@@ -274,6 +283,29 @@ final class Sync {
         out.flush();
     }
 
+    /** Queries a SAF document's display name, cleaned with a fallback. */
+    static String displayName(Context c, Uri uri, String fallback) {
+        String name = fallback;
+        try (Cursor cur = c.getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cur != null && cur.moveToFirst() && cur.getString(0) != null) name = cleanName(cur.getString(0), fallback);
+        } catch (Exception ignored) { }
+        return name;
+    }
+
+    /** Reads any picked SAF document URI as UTF-8 text without touching saved sync settings (used for Restore from Drive). */
+    static String readUri(Context c, Uri u) throws IOException {
+        if (u == null) throw new IOException("No file chosen.");
+        try {
+            InputStream in = c.getContentResolver().openInputStream(u);
+            if (in == null) throw new IOException("could not open file");
+            try (InputStream s = in) {
+                return readStream(s, MAX_READ_BYTES);
+            }
+        } catch (Throwable t) {
+            throw new IOException(friendlyError(t, false), t);
+        }
+    }
+
     /** Saves a newly picked SAF document URI and takes persistable read/write permission. Returns "" on success, else error. */
     static String savePicked(Context c, Uri uri, int intentFlags) {
         int rw = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
@@ -294,10 +326,7 @@ final class Sync {
         if (old != null && !old.equals(uri.toString())) {
             try { c.getContentResolver().releasePersistableUriPermission(Uri.parse(old), rw); } catch (Exception ignored) { }
         }
-        String name = DEFAULT_NAME;
-        try (Cursor cur = c.getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
-            if (cur != null && cur.moveToFirst() && cur.getString(0) != null) name = cleanName(cur.getString(0), DEFAULT_NAME);
-        } catch (Exception ignored) { }
+        String name = displayName(c, uri, DEFAULT_NAME);
         prefs(c).edit().putString("uri", uri.toString()).putString("name", name).putString("error", "").apply();
         return "";
     }
@@ -315,10 +344,7 @@ final class Sync {
         if (old != null && !old.equals(uri.toString())) {
             try { c.getContentResolver().releasePersistableUriPermission(Uri.parse(old), Intent.FLAG_GRANT_READ_URI_PERMISSION); } catch (Exception ignored) { }
         }
-        String name = DEFAULT_ANSWERS_NAME;
-        try (Cursor cur = c.getContentResolver().query(uri, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
-            if (cur != null && cur.moveToFirst() && cur.getString(0) != null) name = cleanName(cur.getString(0), DEFAULT_ANSWERS_NAME);
-        } catch (Exception ignored) { }
+        String name = displayName(c, uri, DEFAULT_ANSWERS_NAME);
         prefs(c).edit().putString("answersUri", uri.toString()).putString("answersName", name).putString("answersError", "").apply();
         return "";
     }

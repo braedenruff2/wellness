@@ -214,9 +214,30 @@
     return d;
   }
 
+  /* Validate a backup / wellness-sync.json string before confirming restore. Returns {app, exported, storeCount}. */
+  function describeBackup(text) {
+    var raw = String(text || '');
+    if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+    var o;
+    try { o = JSON.parse(raw); } catch (e) { throw new Error('This is not a backup from this app.'); }
+    if (!o || typeof o !== 'object') throw new Error('This is not a backup from this app.');
+    if (o.app === 'faith-companion') {
+      return { app: 'faith-companion', exported: typeof o.exported === 'string' && !isNaN(Date.parse(o.exported)) ? o.exported : null, storeCount: 1 };
+    }
+    if (o.app !== 'wellness' || !o.stores || typeof o.stores !== 'object' || Array.isArray(o.stores)) {
+      throw new Error('This is not a backup from this app.');
+    }
+    var keys = Object.keys(o.stores).filter(function (k) { return typeof o.stores[k] === 'string'; });
+    return {
+      app: 'wellness',
+      exported: typeof o.exported === 'string' && !isNaN(Date.parse(o.exported)) ? o.exported : null,
+      storeCount: keys.length
+    };
+  }
+
   var api = {
     AUTO_MS: AUTO_MS, defaults: defaults, autoDue: autoDue, enqueue: enqueue, cancelRequest: cancelRequest,
-    parseCsv: parseCsv, rowsToAnswers: rowsToAnswers,
+    parseCsv: parseCsv, rowsToAnswers: rowsToAnswers, describeBackup: describeBackup,
     mergeRemote: mergeRemote, takeAnswer: takeAnswer, buildPayload: buildPayload, validate: validate
   };
   root.WLSyncCore = api;

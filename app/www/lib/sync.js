@@ -8,7 +8,7 @@
   var store = WL.store('wl.sync.v1', C.defaults);
   var S = C.validate(store.load());
   var cbs = {}, seq = 0, inFlight = null;
-  var stateListeners = [], answerListeners = [], reqProvider = null;
+  var stateListeners = [], answerListeners = [], restoreListeners = [], reqProvider = null;
 
   function nat() {
     var x = window.FCAndroid;
@@ -18,6 +18,10 @@
   window.FCSyncDone = function (id, ok, text) {
     var c = cbs[id]; delete cbs[id];
     if (c) { if (ok) c[0](text == null ? '' : String(text)); else c[1](new Error(text || 'Google Drive sync failed.')); }
+  };
+
+  window.FCSyncRestore = function (ok, text, name) {
+    restoreListeners.forEach(function (fn) { try { fn(!!ok, text == null ? '' : String(text), name == null ? '' : String(name)); } catch (e) {} });
   };
 
   function emitState() {
@@ -73,7 +77,7 @@
 
   function status() {
     var ns = nativeStatus(), x = nat();
-    if (!ns) return { available: false, configured: false, name: '', lastSync: null, error: '', busy: false, pendingRequests: 0, pendingAnswers: 0, answersSupported: false, answersConfigured: false, answersName: '', answersError: '' };
+    if (!ns) return { available: false, configured: false, name: '', lastSync: null, error: '', busy: false, pendingRequests: 0, pendingAnswers: 0, answersSupported: false, answersConfigured: false, answersName: '', answersError: '', restoreSupported: false };
     var nLast = ns.lastSync ? new Date(ns.lastSync).toISOString() : null;
     var last = S.lastSync;
     if (nLast && (!last || Date.parse(nLast) > Date.parse(last))) last = nLast;
@@ -89,7 +93,8 @@
       answersSupported: !!(x && x.syncPickAnswers && x.syncReadAnswers),
       answersConfigured: !!ns.answersConfigured,
       answersName: ns.answersConfigured ? (ns.answersName || 'wellness-answers') : '',
-      answersError: S.answersError || ns.answersError || ''
+      answersError: S.answersError || ns.answersError || '',
+      restoreSupported: !!(x && x.syncPickRestore)
     };
   }
 
@@ -99,6 +104,11 @@
     var x = nat(); if (!x || !x.syncPick) return;
     S.lastError = null; store.save(S);
     x.syncPick();
+  }
+
+  function pickRestore() {
+    var x = nat(); if (!x || !x.syncPickRestore) return;
+    x.syncPickRestore();
   }
 
   function pickAnswers() {
@@ -191,6 +201,7 @@
     available: available,
     status: status,
     pick: pick,
+    pickRestore: pickRestore,
     pickAnswers: pickAnswers,
     forgetAnswers: forgetAnswers,
     forget: forget,
@@ -206,6 +217,7 @@
     acked: function () { return S.acked.slice(); },
     onState: function (fn) { if (typeof fn === 'function') stateListeners.push(fn); },
     onAnswers: function (fn) { if (typeof fn === 'function') answerListeners.push(fn); },
+    onRestore: function (fn) { if (typeof fn === 'function') restoreListeners.push(fn); },
     setRequestsProvider: function (fn) { reqProvider = typeof fn === 'function' ? fn : null; }
   };
 })();

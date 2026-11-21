@@ -21,7 +21,10 @@ const FAKE_DRIVE = `
       answersContent: ls('test.drive.ansContent') || '',
       answersReads: 0,
       answersError: '',
-      failAnswers: null
+      failAnswers: null,
+      restoreContent: '',
+      restoreName: 'wellness-sync.json',
+      failRestore: null
     };
     window.FCAndroid = {
       syncStatus: function () {
@@ -35,6 +38,12 @@ const FAKE_DRIVE = `
         ls('test.drive.configured', '1');
         d.error = '';
         Promise.resolve().then(function () { window.FCSyncState && window.FCSyncState(true); });
+      },
+      syncPickRestore: function () {
+        Promise.resolve().then(function () {
+          if (d.failRestore) window.FCSyncRestore && window.FCSyncRestore(false, d.failRestore, '');
+          else window.FCSyncRestore && window.FCSyncRestore(true, d.restoreContent, d.restoreName);
+        });
       },
       syncPickAnswers: function () {
         d.answersConfigured = true;
@@ -251,6 +260,58 @@ const FAKE_DRIVE = `
     await page.click('#wl-sync-forget');
     await page.waitForFunction(() => !window.__drive.configured);
     assert.ok((await page.textContent('#wl-sync')).includes('Choose Google Drive folder'));
+  });
+
+  await t.step('Restore from Drive (ACTION_OPEN_DOCUMENT) works even before sync is set up, with confirm and validation', async () => {
+    // Prepare a Drive wellness-sync.json backup containing a different to-do item
+    await page.evaluate(() => {
+      window.__drive.restoreContent = JSON.stringify({
+        app: 'wellness',
+        exported: '2026-11-20T15:00:00Z',
+        stores: {
+          'wl.todo.v1': JSON.stringify({
+            tasks: [{ id: 't1', text: 'restored from Drive', due: '2026-11-21', done: false, repeat: null, remind: null, created: '2026-11-20T15:00:00Z' }]
+          })
+        },
+        requests: [],
+        acked: []
+      });
+      window.__confirmReply = false;
+      window.__confirmPrompt = '';
+      window.confirm = function (msg) { window.__confirmPrompt = msg; return window.__confirmReply; };
+    });
+
+    // 1) Cancelling confirm leaves existing phone data untouched
+    await page.click('#wl-sync-restore');
+    await page.waitForFunction(() => !!window.__confirmPrompt);
+    assert.ok((await page.evaluate(() => window.__confirmPrompt)).includes('wellness-sync.json'));
+    assert.ok((await page.evaluate(() => localStorage.getItem('wl.todo.v1'))).includes('buy diapers'), 'cancel kept current data');
+
+    // 2) Corrupt/non-backup file shows error without confirming or overwriting
+    await page.evaluate(() => { window.__drive.restoreContent = '{"app":"other"}'; window.__confirmPrompt = ''; });
+    await page.click('#wl-sync-restore');
+    await page.waitForFunction(() => document.getElementById('toast').textContent.includes('not a backup'));
+    assert.strictEqual(await page.evaluate(() => window.__confirmPrompt), '', 'bad file rejected before confirm');
+
+    // 3) Valid wellness-sync.json + confirm accepted restores the app data
+    await page.evaluate(() => {
+      window.__drive.restoreContent = JSON.stringify({
+        app: 'wellness',
+        exported: '2026-11-20T15:00:00Z',
+        stores: {
+          'wl.todo.v1': JSON.stringify({
+            tasks: [{ id: 't1', text: 'restored from Drive', due: '2026-11-21', done: false, repeat: null, remind: null, created: '2026-11-20T15:00:00Z' }]
+          })
+        },
+        requests: [],
+        acked: []
+      });
+      window.__confirmReply = true;
+    });
+    await page.click('#wl-sync-restore');
+    await page.waitForFunction(() => (localStorage.getItem('wl.todo.v1') || '').includes('restored from Drive'));
+    await page.goto(base + '#todo');
+    assert.ok((await page.textContent('#view')).includes('restored from Drive'));
   });
 
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });

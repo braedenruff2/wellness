@@ -137,4 +137,19 @@ t('parseCsv + rowsToAnswers + mergeRemote handle wellness-answers sheet CSV and 
   assert.deepStrictEqual(s.acked, ['req-a', 'req-b', 'req-c']);
 });
 
+t('describeBackup validates wellness-sync.json and legacy backups before confirm restore', () => {
+  const ok = C.describeBackup('\uFEFF' + JSON.stringify({
+    app: 'wellness', exported: '2026-11-21T10:00:00Z',
+    stores: { 'wl.todo.v1': '{}', 'wl.calm.v1': '{}' }, requests: [], acked: []
+  }));
+  assert.deepStrictEqual(ok, { app: 'wellness', exported: '2026-11-21T10:00:00Z', storeCount: 2 });
+
+  const old = C.describeBackup(JSON.stringify({ app: 'faith-companion', exported: '2026-11-18T00:00:00Z' }));
+  assert.strictEqual(old.app, 'faith-companion');
+
+  assert.throws(() => C.describeBackup('not json'), /not a backup/);
+  assert.throws(() => C.describeBackup(JSON.stringify({ app: 'other', stores: {} })), /not a backup/);
+  assert.throws(() => C.describeBackup(JSON.stringify({ app: 'wellness', stores: [] })), /not a backup/);
+});
+
 console.log(n + ' sync tests passed');

@@ -338,7 +338,8 @@
     if (!s.configured) {
       h += '<p class="meta">Save a live copy (<code>wellness-sync.json</code>) into your private Google Drive folder so cloud runs can read your progress and answer queued requests.</p>';
       if (s.error) h += '<p class="no" id="wl-sync-err">' + esc(s.error) + '</p>';
-      h += '<div class="row"><button class="primary" id="wl-sync-pick">Choose Google Drive folder</button></div></div>';
+      h += '<div class="row"><button class="primary" id="wl-sync-pick">Choose Google Drive folder</button>' +
+        (s.restoreSupported ? '<button id="wl-sync-restore">Restore from Drive</button>' : '') + '</div></div>';
       return h;
     }
     var when = s.lastSync ? new Date(s.lastSync).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'not yet';
@@ -349,7 +350,8 @@
       '<p class="meta" id="wl-sync-when">' + (s.busy ? 'Syncing…' : 'Last synced: ' + esc(when)) + (extra.length ? ' · ' + esc(extra.join(' · ')) : '') + '</p>';
     if (s.error) h += '<p class="no" id="wl-sync-err">' + esc(s.error) + '</p>';
     h += '<div class="row"><button class="primary" id="wl-sync-now"' + (s.busy ? ' disabled' : '') + '>' + (s.busy ? 'Syncing…' : 'Sync now') + '</button>' +
-      '<button id="wl-sync-pick">Change file</button></div>';
+      '<button id="wl-sync-pick">Change file</button>' +
+      (s.restoreSupported ? '<button id="wl-sync-restore">Restore from Drive</button>' : '') + '</div>';
     if (s.answersSupported) {
       if (!s.answersConfigured) {
         h += '<p class="meta" style="margin-top:10px">Cloud answers: choose your <b>wellness-answers</b> Google Sheet in Drive so answers from cloud runs show up here.</p>';
@@ -364,9 +366,24 @@
     h += '<p style="margin:8px 0 0"><button class="link" id="wl-sync-forget">Turn off Drive sync</button></p></div>';
     return h;
   }
+  function handleDriveRestore(ok, text, name) {
+    if (!ok) { toast(text || 'Could not read that Google Drive file'); return; }
+    try {
+      var info = window.WLSyncCore && WLSyncCore.describeBackup ? WLSyncCore.describeBackup(text) : null;
+      var msg = 'Replace what is on this phone with the Drive backup' +
+        (info && info.exported ? ' from ' + new Date(info.exported).toLocaleDateString() : '') +
+        (name ? ' (' + name + ')' : '') + '?';
+      if (!window.confirm || window.confirm(msg)) {
+        var bad = restoreText(text) || []; applyLook();
+        toast(bad.length ? 'Backup restored, except ' + bad.join(', ') + ' (unreadable there; kept as it was)' : 'Backup restored from Google Drive');
+        route();
+      }
+    } catch (e) { toast((e && e.message) || 'Could not read that file'); }
+  }
   function wireSync() {
     var ds = window.WL && WL.driveSync; if (!ds || !ds.available()) return;
     var p = $('#wl-sync-pick'); if (p) p.onclick = function () { ds.pick(); };
+    var r = $('#wl-sync-restore'); if (r) r.onclick = function () { ds.pickRestore(); };
     var ap = $('#wl-sync-ans-pick'); if (ap) ap.onclick = function () { ds.pickAnswers(); };
     var af = $('#wl-sync-ans-forget'); if (af) af.onclick = function () { ds.forgetAnswers(); toast('Answers sheet removed'); };
     var n = $('#wl-sync-now'); if (n) n.onclick = function () {
@@ -489,7 +506,11 @@
         if (WL.driveSync) WL.driveSync.autoSync();
       }
     });
-    if (WL.driveSync) { WL.driveSync.onState(redrawSync); WL.driveSync.start(); }
+    if (WL.driveSync) {
+      WL.driveSync.onState(redrawSync);
+      if (WL.driveSync.onRestore) WL.driveSync.onRestore(handleDriveRestore);
+      WL.driveSync.start();
+    }
     route();
   }
 

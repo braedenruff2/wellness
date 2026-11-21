@@ -44,6 +44,7 @@ public class MainActivity extends Activity {
     private static final int PICK_FILE = 7;
     private static final int PICK_SYNC = 8;
     private static final int PICK_ANSWERS = 9;
+    private static final int PICK_RESTORE = 10;
     private WebView web;
     /** The activity on screen (or null), so a "Done" tapped on a to-do notification reaches an open page at once. */
     private static java.lang.ref.WeakReference<MainActivity> shown = new java.lang.ref.WeakReference<>(null);
@@ -279,6 +280,26 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSyncState&&FCSyncState(" + ok + ")", null); });
             return;
         }
+        if (req == PICK_RESTORE) {
+            ownScreenOnTop = false;
+            if (res != RESULT_OK || data == null || data.getData() == null) return;
+            final Uri uri = data.getData();
+            final Context app = getApplicationContext();
+            new Thread(() -> {
+                boolean ok = true; String out; String name = Sync.DEFAULT_NAME;
+                try {
+                    name = Sync.displayName(app, uri, Sync.DEFAULT_NAME);
+                    out = Sync.readUri(app, uri);
+                } catch (Exception e) {
+                    ok = false; out = e.getMessage() == null ? e.toString() : e.getMessage();
+                }
+                final boolean fOk = ok; final String fOut = out; final String fName = name;
+                runOnUiThread(() -> {
+                    if (web != null) web.evaluateJavascript("window.FCSyncRestore&&FCSyncRestore(" + fOk + "," + jsString(fOut) + "," + jsString(fName) + ")", null);
+                });
+            }, "wl-sync-restore").start();
+            return;
+        }
         super.onActivityResult(req, res, data);
     }
 
@@ -470,6 +491,16 @@ public class MainActivity extends Activity {
                 final boolean fOk = ok; final String fOut = out;
                 runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSyncDone&&FCSyncDone(" + jsString(id) + "," + fOk + "," + jsString(fOut) + ")", null); });
             }, "wl-sync-answers").start();
+        }
+        /** Pick an existing wellness-sync.json from Google Drive to restore (ACTION_OPEN_DOCUMENT). */
+        @JavascriptInterface public void syncPickRestore() {
+            runOnUiThread(() -> {
+                try { ownScreenOnTop = true; startActivityForResult(Sync.pickRestoreIntent(), PICK_RESTORE); }
+                catch (Exception e) {
+                    ownScreenOnTop = false;
+                    if (web != null) web.evaluateJavascript("window.FCSyncRestore&&FCSyncRestore(false," + jsString(Sync.friendlyError(e, false)) + ",\"\")", null);
+                }
+            });
         }
 
         /** False when Android won't show this app's notifications (permission refused or switched off). */
