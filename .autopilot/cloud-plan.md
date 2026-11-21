@@ -31,30 +31,30 @@ Browser tests block the internet (tests/lib/web.cjs).
 - No paid services, API keys, accounts or required network for core use.
 
 ## Tasks (cloud-first move, 21 Nov; do these first, in order)
-Two agents work here: read .autopilot/agents.md first (lanes, claims, push rules). Take only tasks tagged for you or [any].
+Two agents work here: read .autopilot/agents.md first (who can do what, claims, push rules). Tasks are [any] (claim first); [drive] ones need the private Drive folder.
 Note for B/C: C sends milestones in coach-* input; B moves prompts to pc/prompts/ — whoever lands second rebases onto the first.
-A. [claude] Drive sync on the phone. Settings > "Sync with Google Drive": once, Android's file picker (SAF ACTION_CREATE_DOCUMENT,
+A. [any] Drive sync on the phone. Settings > "Sync with Google Drive": once, Android's file picker (SAF ACTION_CREATE_DOCUMENT,
    application/json, name wellness-sync.json; takePersistableUriPermission) so he can pick his Drive folder. Then the
    app writes the same JSON as "Save a backup" plus `requests` (queue, see B) to that file when the app opens and
    when it goes to the background (at most every 30 min) and on "Sync now". Before writing it reads the file and takes
    `answers` (written by cloud runs, keyed by request id) and keeps them until shown; it writes `acked: [ids]`.
    Java: a small Sync class + JS bridge (like the backup one), fake bridge in browser tests, Java unit test like the
    others in tests/java.cjs. Show "last synced" and any error plainly. If Drive's provider refuses writes, say so.
-B. [claude] Request queue for the Claude features when the PC link fails (coach-scenario, coach-grade, coach-advice,
+B. [any] Request queue for the Claude features when the PC link fails (coach-scenario, coach-grade, coach-advice,
    tagalog-check, advice, weekly-plan): queue {id, task, input, at} (input = exactly what the PC task gets), show
    "Your PC isn't answering, so this will be answered by the next cloud run (within about 5 hours)", and render the
    answer through the same code as a PC result when it arrives. Move each task's prompt text out of
    pc/wellness_pc.py into pc/prompts/<task>.md (PC reads them from there; tests) so cloud runs answer with the same
-   prompt and the same JSON shape. Cloud runs: answer queued requests first, then write `answers` into the Drive file
+   prompt and the same JSON shape. [drive] part: the agent with Drive access answers queued requests, then writes `answers` into the Drive file
    (keep the phone's other content; update_file).
-C. [gemini] Parenting setup: "What she can do now" (chips: walks, gets down by herself, climbs, waves/bless, first words,
+C. [any] Parenting setup: "What she can do now" (chips: walks, gets down by herself, climbs, waves/bless, first words,
    points; plus free text), saved on the phone, sent in coach-scenario / coach-grade / coach-advice input; the prompt
    must keep scenarios within what she can and can't do yet. Tests.
-D. [claude] Advice summary: count active days from the first day there is any data, not a fixed 14-day window
+D. [any] Advice summary: count active days from the first day there is any data, not a fixed 14-day window
    ("active 2 of 2 days", not "2 of 14"); pc/wellness_pc.py summarize + its test.
-E. [gemini] me-core guidance: a calm wind-down rated "Mind racing" -> next evening suggest writing it down first (journal)
+E. [any] me-core guidance: a calm wind-down rated "Mind racing" -> next evening suggest writing it down first (journal)
    before the wind-down; stable key + unit test.
-F. [gemini] Weekly plan: if a weekly-plan request fails, keep a visible "Couldn't make your plan - Try again" instead of nothing
+F. [any] Weekly plan: if a weekly-plan request fails, keep a visible "Couldn't make your plan - Try again" instead of nothing
    (planTried set, plan null); e2e with the fake PC failing; then it goes through the queue (B).
 G. Done 21 Nov: tools/publish.bat fetches and merges origin/main (GitHub wins on a clash) before pushing, because the
    cloud now pushes to main. The PC picks it up when it next takes main.
@@ -109,5 +109,5 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 26. (done 20 Nov cloud: practicesThisWeek) Faith Pray list: practices done this week get a tick and a count ("2× this week"); tests.
 27. (done 20 Nov 20:45, cloud) To-do quick add: real weekday names only ("call friend"), "every <day>", "every other <day>", "in N days",
     "next week", "this weekend", month names, "tonight at 7" = pm. Tagalog typed answers: accents and hyphens forgiven.
-28. [gemini] To-do: "every 2 months" / "every 3 months" / "every year" repeats (month-end and Feb 29 rules like monthly); tests.
-29. [claude] Tagalog: typed answers: accept a missing "po"/"ho" only where the lesson marks it optional (pack field), never by default; tests.
+28. [any] To-do: "every 2 months" / "every 3 months" / "every year" repeats (month-end and Feb 29 rules like monthly); tests.
+29. [any] Tagalog: typed answers: accept a missing "po"/"ho" only where the lesson marks it optional (pack field), never by default; tests.
