@@ -41,8 +41,13 @@
     return e;
   }
 
-  /* Compare typed answers kindly: case, punctuation, extra spaces and the ho/po variant don't matter. */
-  function norm(s) { return String(s || '').toLowerCase().replace(/[’']/g, "'").replace(/[.,!?;:"“”]/g, '').replace(/\s+/g, ' ').trim(); }
+  /* Compare typed answers kindly: case, punctuation, extra spaces, accents a keyboard adds (é, ñ), a hyphen or a space
+     ("araw-araw" / "araw araw") and the ho/po variant don't matter. */
+  function norm(s) {
+    s = String(s || '').toLowerCase();
+    if (s.normalize) s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return s.replace(/[’‘`´']/g, "'").replace(/[-‐‑–—_/]/g, ' ').replace(/[.,!?;:"“”…()¿¡]/g, '').replace(/\s+/g, ' ').trim();
+  }
   function check(ex, given) {
     var g = norm(given);
     if (!g) return false;
