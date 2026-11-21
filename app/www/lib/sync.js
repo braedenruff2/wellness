@@ -7,7 +7,7 @@
   var C = window.WLSyncCore;
   var store = WL.store('wl.sync.v1', C.defaults);
   var S = C.validate(store.load());
-  var cbs = {}, seq = 0, inFlight = null;
+  var cbs = {}, seq = 0, inFlight = null, pendingResync = null;
   var stateListeners = [], answerListeners = [], restoreListeners = [], reqProvider = null;
 
   function nat() {
@@ -137,7 +137,14 @@
     opts = opts || {};
     var st = status();
     if (!st.available || !st.configured) return Promise.resolve({ ok: false, skipped: true });
-    if (inFlight) return inFlight;
+    if (inFlight) {
+      if (opts.auto) return inFlight;
+      if (!pendingResync) {
+        var next = function () { pendingResync = null; return sync({ auto: false }); };
+        pendingResync = inFlight.then(next, next);
+      }
+      return pendingResync;
+    }
     var now = new Date();
     if (opts.auto && !C.autoDue(S, now)) return Promise.resolve({ ok: false, skipped: true });
 

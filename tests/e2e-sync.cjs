@@ -84,7 +84,7 @@ const FAKE_DRIVE = `
       },
       syncWrite: function (id, text) {
         d.writes++;
-        Promise.resolve().then(function () {
+        var finish = function () {
           if (d.failWrite) { d.error = d.failWrite; window.FCSyncDone(id, false, d.failWrite); }
           else {
             d.content = text; d.lastSync = Date.now(); d.error = '';
@@ -92,7 +92,13 @@ const FAKE_DRIVE = `
             ls('test.drive.lastSync', String(d.lastSync));
             window.FCSyncDone(id, true, '');
           }
-        });
+        };
+        if (d.holdWrite) {
+          d.holdWrite = false;
+          d.releaseWrite = function () { d.releaseWrite = null; Promise.resolve().then(finish); };
+          return;
+        }
+        Promise.resolve().then(finish);
       }
     };
   })();
@@ -233,6 +239,41 @@ const FAKE_DRIVE = `
     await page.waitForSelector('#wl-sync-ans-err');
     assert.ok((await page.textContent('#wl-sync-ans-err')).includes('refused to export'));
     await page.evaluate(() => { window.__drive.failAnswers = null; });
+  });
+
+  await t.step('non-auto sync called while a write is in flight coalesces and runs a follow-up sync so queued/cancelled requests are not dropped', async () => {
+    const writesBefore = await page.evaluate(() => window.__drive.writes);
+    await page.evaluate(() => {
+      WL.driveSync.enqueue('advice', { question: 'first' }, 'req-race-1');
+      window.__drive.holdWrite = true;
+      window.__p1 = WL.driveSync.sync({ auto: false });
+    });
+    // Wait until the first sync is paused inside syncWrite (stale snapshot has req-race-1 only)
+    await page.waitForFunction(() => typeof window.__drive.releaseWrite === 'function');
+    // While syncWrite is in flight: cancel req-race-1, enqueue req-race-2, and call sync() twice
+    const samePromise = await page.evaluate(() => {
+      WL.driveSync.cancelRequest('req-race-1');
+      WL.driveSync.enqueue('advice', { question: 'second' }, 'req-race-2');
+      const p2 = WL.driveSync.sync({ auto: false });
+      const p3 = WL.driveSync.sync({ auto: false });
+      window.__pFollow = p2;
+      return p2 === p3;
+    });
+    assert.strictEqual(samePromise, true, 'multiple mid-flight sync calls coalesce into one follow-up');
+    // Release the first write and await the follow-up sync
+    await page.evaluate(async () => {
+      window.__drive.releaseWrite();
+      await window.__p1;
+      await window.__pFollow;
+    });
+    const after = await page.evaluate(() => ({
+      writes: window.__drive.writes,
+      drive: JSON.parse(window.__drive.content)
+    }));
+    assert.strictEqual(after.writes, writesBefore + 2, 'exactly one follow-up write ran');
+    assert.deepStrictEqual(after.drive.requests.map((r) => r.id), ['req-race-2'], 'cancelled req-race-1 is gone and req-race-2 landed');
+    // Clean up req-race-2 for later steps
+    await page.evaluate(async () => { WL.driveSync.cancelRequest('req-race-2'); await WL.driveSync.sync({ auto: false }); });
   });
 
   await t.step('auto-sync runs on app open when 30 min have passed; a11y at Larger text size (1.3)', async () => {

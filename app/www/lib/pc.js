@@ -180,7 +180,7 @@
   /* Drops a waiting cloud request (a typo, or he changed his mind): out of the sync file's queue, and an answer that
      still arrives for it (the cloud run may have answered before the phone synced) is taken and not shown. */
   var cancelFns = [];
-  function cancel(id) {
+  function cancel(id, noSync) {
     var c = cloud()[id]; if (!c) return false;
     delete cloud()[id];
     var gone = Array.isArray(P.cancelled) ? P.cancelled : [];
@@ -188,7 +188,7 @@
     P.cancelled = gone.slice(-50); store.save(P);
     if (WL.driveSync && WL.driveSync.cancelRequest) {
       WL.driveSync.cancelRequest(id);
-      try { WL.driveSync.sync().catch(function () {}); } catch (e) {}
+      if (!noSync) try { WL.driveSync.sync().catch(function () {}); } catch (e) {}
     }
     cancelFns.forEach(function (fn) { try { fn(c.task, id); } catch (e) {} });
     return true;
@@ -202,7 +202,8 @@
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest ? e.target.closest('[data-cloud-cancel]') : null; if (!b) return;
     e.preventDefault(); e.stopPropagation();
-    var n = 0; String(b.getAttribute('data-cloud-cancel')).split(' ').forEach(function (id) { if (id && cancel(id)) n++; });
+    var n = 0; String(b.getAttribute('data-cloud-cancel')).split(' ').forEach(function (id) { if (id && cancel(id, true)) n++; });
+    if (n && WL.driveSync && WL.driveSync.sync) try { WL.driveSync.sync().catch(function () {}); } catch (x) {}
     if (n) WL.toast('Cancelled: it won’t be answered');
     WL.route();
   });
