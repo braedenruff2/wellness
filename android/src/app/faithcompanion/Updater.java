@@ -66,10 +66,23 @@ final class Updater {
             + ",\"from\":" + PcLink.quote(p.getString("from", "")) + "}";
     }
 
-    /** {code, name} from a version.json; null if it isn't one. */
+    /** {code} from a version.json; null if it isn't one. */
     static long[] parseCode(String json) {
         try { long code = Long.parseLong(PcLink.num(json, "code")); return code > 0 ? new long[]{code} : null; }
         catch (NumberFormatException e) { return null; }
+    }
+
+    /** True only when the remote version is newer than both the installed build and any already-downloaded update,
+     *  and hasn't already failed to install 3 times. */
+    static boolean shouldDownload(long remoteCode, long installed, int ready, int fails) {
+        return remoteCode > installed && remoteCode > ready && fails < 3;
+    }
+
+    /** Combines source check errors: show GitHub's error when unpaired (cloud-first), or both errors when both failed. */
+    static String combineErrors(boolean hasPc, String pcErr, String ghErr) {
+        if (ghErr == null || ghErr.isEmpty()) return "";
+        if (!hasPc) return ghErr;
+        return (pcErr != null && !pcErr.isEmpty()) ? pcErr + "; " + ghErr : "";
     }
 
     /** Looks for a newer version and downloads it. Off the main thread; quiet on failure. pc: the PC link, or null. */
@@ -84,7 +97,7 @@ final class Updater {
                 String[] errs = new String[2];
                 if (pc != null) try { if (tryFrom(app, pc, null)) return; } catch (Exception e) { errs[0] = "PC: " + e.getMessage(); }
                 try { if (tryFrom(app, null, GITHUB)) return; } catch (Exception e) { errs[1] = "GitHub: " + e.getMessage(); }
-                if (errs[0] != null && errs[1] != null) err = errs[0] + "; " + errs[1];
+                err = combineErrors(pc != null, errs[0], errs[1]);
             } finally {
                 p.edit().putLong("checked", System.currentTimeMillis()).putString("error", err).apply();
                 busy = false;
@@ -93,16 +106,21 @@ final class Updater {
         }, "wl-update").start();
     }
 
-    /** True when that source had a newer version (downloaded now, or given up on after 3 failed installs). */
+    /** True when that source had a newer version and downloaded it now. */
     private static boolean tryFrom(Context app, PcLink pc, String base) throws IOException {
         String v = pc != null ? pc.get("/v1/app/version", 8000) : text(base + "version.json");
         long[] code = parseCode(v);
         if (code == null) throw new IOException("no version information");
         String name = PcLink.str(v, "name");
         SharedPreferences p = prefs(app);
-        // nothing newer here: not the end (the cloud now ships to GitHub, so a PC that is behind must not hide a newer build there)
-        if (code[0] <= installedCode(app)) { p.edit().putString("from", pc != null ? "pc" : "github").apply(); return false; }
-        if (p.getInt("failed:" + code[0], 0) >= 3) return true;           // failed to install 3 times: wait for a newer one
+        long installed = installedCode(app);
+        int ready = readyCode(app);
+        int fails = p.getInt("failed:" + code[0], 0);
+        // nothing newer to download here: return false so GitHub is still checked when PC is behind or has a failed build
+        if (!shouldDownload(code[0], installed, ready, fails)) {
+            if (code[0] <= installed) p.edit().putString("from", pc != null ? "pc" : "github").apply();
+            return false;
+        }
         File f = apk(app, (int) code[0]), part = new File(f.getPath() + ".part");
         try (OutputStream out = new FileOutputStream(part)) {
             if (pc != null) pc.download("/v1/app/apk", out, 120000); else download(base + "Wellness.apk", out);
