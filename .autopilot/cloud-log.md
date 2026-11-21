@@ -1,4 +1,10 @@
-# Cloud log (autopilot-cloud branch)
+# Cloud log
+
+## 2026-11-20 23:30 AST (live session with the owner: cloud-first)
+- The owner asked for everything to run in the cloud. From now on cloud runs commit to main after the full suite passes.
+- Done: harder lessons 4-7 in week 2026-11-18 (more typed answers and longer builds); bundled weeks re-download when corrected; build-apk.sh key guard; publish.bat merges origin/main before pushing.
+- Verified: a full APK build works in the container (throwaway key, not committed); full suite passes.
+- Next: tasks A-F in cloud-plan.md. The signing key must be in the private Drive folder before the cloud can ship an APK.
 
 ## 2026-11-20 20:45 AST (cloud run; the PC was awake but no folder was connected to the session)
 - Fixed: to-do quick add read words like "friend", "wedding", "month", "sundeck" as weekdays ("call friend" became "call", due Friday). Weekday names now match only real spellings.

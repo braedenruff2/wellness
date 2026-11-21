@@ -1,12 +1,25 @@
-# Cloud plan (for overnight autopilot runs)
+# Cloud plan (for autopilot runs)
 status: active
+mode: cloud-first
 repo: braedenruff2/wellness
-branch: autopilot-cloud (never push to main)
+branch: main (since 21 Nov 2026 cloud runs commit to main after the FULL test suite passes; the PC is optional)
 
 ## Test in a Linux container
-npm install -g as needed, then: NODE_PATH=$(npm root -g) node tests/run-all.cjs
-Browser tests block the internet (tests/lib/web.cjs). Java/browser suites run in the cloud; some PC-only checks run later on the PC.
-Can't do here: APK build/signing (key not in repo), anything using data outside the repo. Leave those for the next PC run.
+npm install -g as needed, then: NODE_PATH=$(npm root -g) node tests/run-all.cjs (every suite must pass before a push).
+Browser tests block the internet (tests/lib/web.cjs).
+
+## Build the APK in the container (only when app/www, android/ or modules/ changed since the last build)
+- Android tools: build-tools_r35.0.1_linux.zip and platform-35_r02.zip from https://dl.google.com/android/repository/
+  (unzip: BT=<dir>/android-15, ANDROID_JAR=<dir>/android-35/android.jar); PARTS=<dir> bash tools/get-voice-parts.sh.
+- Signing key: faith.keystore in the owner's private Google Drive folder "Wellness (private)" (Drive connector,
+  download_file_content, base64). Save it OUTSIDE the repo (e.g. the scratchpad) and pass FC_KEYSTORE=<path>.
+  Never commit it, never copy it anywhere else. If it isn't in Drive yet, don't build (build-apk.sh refuses without it).
+- Then: BT=... ANDROID_JAR=... PARTS=... FC_KEYSTORE=... bash tools/build-apk.sh; commit dist/Wellness.apk,
+  dist/version.json, dist/version.txt with the change. The phone updates itself from main/dist/.
+
+## Private inputs (Google Drive folder "Wellness (private)", never copied into this repo)
+- The phone's data (backup JSON, later the sync file with queued requests) and the owner's notes for the autopilot.
+  Read them to decide what to build; write nothing personal here.
 
 ## Rules
 - Public repo: technical content only. No personal data, keys or keystores. Never a child's name or birthday in content:
@@ -16,7 +29,36 @@ Can't do here: APK build/signing (key not in repo), anything using data outside 
 - Tagalog: natural, correct everyday Tagalog only; never invent words.
 - No paid services, API keys, accounts or required network for core use.
 
-## Tasks (pick in order; update this list on the PC; keep going until usage runs out)
+## Tasks (cloud-first move, 21 Nov; do these first, in order)
+A. Drive sync on the phone. Settings > "Sync with Google Drive": once, Android's file picker (SAF ACTION_CREATE_DOCUMENT,
+   application/json, name wellness-sync.json; takePersistableUriPermission) so he can pick his Drive folder. Then the
+   app writes the same JSON as "Save a backup" plus `requests` (queue, see B) to that file when the app opens and
+   when it goes to the background (at most every 30 min) and on "Sync now". Before writing it reads the file and takes
+   `answers` (written by cloud runs, keyed by request id) and keeps them until shown; it writes `acked: [ids]`.
+   Java: a small Sync class + JS bridge (like the backup one), fake bridge in browser tests, Java unit test like the
+   others in tests/java.cjs. Show "last synced" and any error plainly. If Drive's provider refuses writes, say so.
+B. Request queue for the Claude features when the PC link fails (coach-scenario, coach-grade, coach-advice,
+   tagalog-check, advice, weekly-plan): queue {id, task, input, at} (input = exactly what the PC task gets), show
+   "Your PC isn't answering, so this will be answered by the next cloud run (within about 5 hours)", and render the
+   answer through the same code as a PC result when it arrives. Move each task's prompt text out of
+   pc/wellness_pc.py into pc/prompts/<task>.md (PC reads them from there; tests) so cloud runs answer with the same
+   prompt and the same JSON shape. Cloud runs: answer queued requests first, then write `answers` into the Drive file
+   (keep the phone's other content; update_file).
+C. Parenting setup: "What she can do now" (chips: walks, gets down by herself, climbs, waves/bless, first words,
+   points; plus free text), saved on the phone, sent in coach-scenario / coach-grade / coach-advice input; the prompt
+   must keep scenarios within what she can and can't do yet. Tests.
+D. Advice summary: count active days from the first day there is any data, not a fixed 14-day window
+   ("active 2 of 2 days", not "2 of 14"); pc/wellness_pc.py summarize + its test.
+E. me-core guidance: a calm wind-down rated "Mind racing" -> next evening suggest writing it down first (journal)
+   before the wind-down; stable key + unit test.
+F. Weekly plan: if a weekly-plan request fails, keep a visible "Couldn't make your plan - Try again" instead of nothing
+   (planTried set, plan null); e2e with the fake PC failing; then it goes through the queue (B).
+G. Done 21 Nov: tools/publish.bat fetches and merges origin/main (GitHub wins on a clash) before pushing, because the
+   cloud now pushes to main. The PC picks it up when it next takes main.
+H. Done 21 Nov: bundled lesson weeks re-download when corrected (TL_PACK_HASH); build-apk.sh refuses to make a new
+   signing key unless FC_NEW_KEY=1 (FC_KEYSTORE sets the key path).
+
+## Earlier tasks (keep going down this list after A-F)
 Done 20 Nov early (PC run): "Not for me?" on Faith day / Tagalog lesson / Home advice / exercise cues; 6 more guidance
 rules; Home "today" list (module today()); reviews of every module + Android side (29 bugs fixed with tests).
 1. (done 20 Nov 07:10: dayScript DAY_LINES x3) Faith: wording variants for guided-prayer steps that repeat daily (like Calm's VARIANTS; Scripture text exact, WEB

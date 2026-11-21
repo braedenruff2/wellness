@@ -10,7 +10,7 @@ ROOT=$PWD
 OUT=$ROOT/build
 CODE=${FC_CODE:-$(( 30000000 + ($(date -u +%s) - 1767225600) / 60 ))}  # minutes since 2026-01-01, always above the first build (26111815)
 NAME=${FC_NAME:-0.1.$(date -u +%Y%m%d.%H%M)}
-KS=$ROOT/android/faith.keystore
+KS=${FC_KEYSTORE:-$ROOT/android/faith.keystore}   # cloud runs: FC_KEYSTORE=<the copy from his private Drive folder>
 # Loudbook's voice engine (sherpa-onnx) and Kokoro's small files: PARTS from tools/get-voice-parts.sh
 PARTS=${PARTS:-/home/claude/parts}
 ABI=${ABI:-arm64-v8a}
@@ -49,6 +49,8 @@ cp "$JNI/libsherpa-onnx-jni.so" "$JNI/libonnxruntime.so" "$OUT/stage/lib/$ABI/"
   zip -q -0 "$OUT/unsigned.apk" lib/$ABI/*.so )
 "$BT/zipalign" -P 16 -f 4 "$OUT/unsigned.apk" "$OUT/aligned.apk" 2>/dev/null || "$BT/zipalign" -f -p 4 "$OUT/unsigned.apk" "$OUT/aligned.apk"
 if [ ! -e "$KS" ]; then
+  # A new key would make an app that can't install over his (Android refuses a different signature): only on purpose.
+  [ "${FC_NEW_KEY:-}" = 1 ] || { echo "missing signing key $KS (cloud: download faith.keystore from the private Drive folder; FC_NEW_KEY=1 makes a new one)"; exit 1; }
   keytool -genkeypair -keystore "$KS" -storepass "$PASS" -keypass "$PASS" -alias faith -keyalg RSA -keysize 2048 \
     -validity 20000 -dname "CN=Faith Companion" >/dev/null
 fi
