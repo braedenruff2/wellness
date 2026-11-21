@@ -107,12 +107,14 @@
     return Object.keys(seen).length;
   }
 
-  /* How many path days were finished in the last `days` calendar days, today included (local dates). */
+  /* How many path days were finished in the last `days` calendar days, today included (local dates). Days finished
+     in an earlier round count too (walkAgain mid-week keeps them in pastRounds). */
   function doneInLast(state, days, when) {
     var w = when || new Date();
     var from = isoDate(new Date(w.getFullYear(), w.getMonth(), w.getDate() - (days - 1))), today = isoDate(w);
-    var n = 0;
-    for (var k in state.done) if (state.done[k] >= from && state.done[k] <= today) n++;
+    var n = 0, count = function (done) { for (var k in done) if (done[k] >= from && done[k] <= today) n++; };
+    count(state.done);
+    (state.pastRounds || []).forEach(function (r) { if (r && r.done) count(r.done); });
     return n;
   }
 

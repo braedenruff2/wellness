@@ -413,4 +413,18 @@ t('doneInLast: bounded at today so logging for an earlier day ignores future com
   assert.strictEqual(C.doneInLast(s, 7, new Date(2026, 10, 22, 12)), 2);
 });
 
+t('doneInLast: days finished earlier in the week still count after walkAgain starts a new round', () => {
+  const s = C.defaults();
+  C.finishDay(s, 1, new Date(2026, 10, 10, 12)); // over a week before
+  C.finishDay(s, 2, new Date(2026, 10, 16, 12));
+  C.finishDay(s, 3, new Date(2026, 10, 17, 12));
+  C.walkAgain(s, new Date(2026, 10, 18, 9));
+  C.finishDay(s, 1, new Date(2026, 10, 18, 12));
+  assert.strictEqual(C.doneInLast(s, 7, new Date(2026, 10, 18, 20)), 3, 'Mon + Tue of the old round, Wed of the new');
+  assert.strictEqual(C.doneInLast(s, 1, new Date(2026, 10, 18, 20)), 1);
+  assert.strictEqual(C.doneInLast(s, 7, new Date(2026, 10, 16, 20)), 2, 'bounded at today in past rounds too (10th + 16th)');
+  s.pastRounds.push({ done: null, ended: null });
+  assert.strictEqual(C.doneInLast(s, 7, new Date(2026, 10, 18, 20)), 3, 'an odd round is skipped');
+});
+
 console.log(n + ' unit tests passed');
