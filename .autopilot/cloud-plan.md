@@ -122,7 +122,7 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 28. (done 21 Nov 00:50, Claude: month2/month3/yearly, MONTH_STEP) To-do: "every 2 months" / "every 3 months" / "every year" repeats (month-end and Feb 29 rules like monthly); tests.
 29. (done 21 Nov 00:50, Claude: exercise field poOptional, T.missedPo note) Tagalog: typed answers: accept a missing "po"/"ho" only where the lesson marks it optional (pack field), never by default; tests.
 30. [any] Drive sync restore: in Settings > "Sync with Google Drive", add a "Restore from Drive" action (with confirm, using WL.restoreText) so recovering data on a phone takes one tap; tests.
-32. [any] Answer channel from the cloud to the phone (blocks B's [drive] part). The cloud can only create files and
+32. (done 21 Nov 02:16, Gemini: Sync.java pickAnswersIntent/readAnswers/parseCsv/answersFromCsv, MainActivity PICK_ANSWERS + bridge, sync-core.js parseCsv/rowsToAnswers/mergeRemote, sync.js syncReadAnswers, Settings card + SyncTest/sync.cjs/e2e-sync.cjs; verify Drive virtual-file CSV export on the phone after next APK build) Answer channel from the cloud to the phone (blocks B's [drive] part). The cloud can only create files and
     edit Google Docs/Sheets in place (Sheets connector update_values). Proposal: a Google Sheet "wellness-answers" in
     the private folder, rows `id | task | answer-json | at`, edited in place by cloud runs. Phone: Settings > Sync with
     Google Drive > "Choose answers sheet" (ACTION_OPEN_DOCUMENT; Drive serves Google Sheets as virtual documents:

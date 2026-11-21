@@ -25,13 +25,17 @@
   }
   function emitAnswers(fresh) {
     if (!fresh || !fresh.length) return;
-    answerListeners.forEach(function (fn) { try { fn(Object.assign({}, S.answers), fresh.slice()); } catch (e) {} });
+    var snap = Object.assign({}, S.answers);
+    answerListeners.forEach(function (fn) { try { fn(Object.assign({}, snap), fresh.slice()); } catch (e) {} });
   }
 
   window.FCSyncState = function (picked) {
     var ns = nativeStatus();
-    if (ns && ns.error) { S.lastError = ns.error; store.save(S); }
-    else if (picked) { S.lastError = null; store.save(S); }
+    if (ns && ns.error) S.lastError = ns.error;
+    else if (picked) S.lastError = null;
+    if (ns && ns.answersError) S.answersError = ns.answersError;
+    else if (picked || (ns && !ns.answersConfigured)) S.answersError = null;
+    store.save(S);
     emitState();
     if (picked) sync({ auto: false }).catch(function () {});
   };
@@ -68,8 +72,8 @@
   }
 
   function status() {
-    var ns = nativeStatus();
-    if (!ns) return { available: false, configured: false, name: '', lastSync: null, error: '', busy: false, pendingRequests: 0, pendingAnswers: 0 };
+    var ns = nativeStatus(), x = nat();
+    if (!ns) return { available: false, configured: false, name: '', lastSync: null, error: '', busy: false, pendingRequests: 0, pendingAnswers: 0, answersSupported: false, answersConfigured: false, answersName: '', answersError: '' };
     var nLast = ns.lastSync ? new Date(ns.lastSync).toISOString() : null;
     var last = S.lastSync;
     if (nLast && (!last || Date.parse(nLast) > Date.parse(last))) last = nLast;
@@ -81,7 +85,11 @@
       error: S.lastError || ns.error || '',
       busy: !!inFlight || !!ns.busy,
       pendingRequests: pendingRequestCount(),
-      pendingAnswers: Object.keys(S.answers).length
+      pendingAnswers: Object.keys(S.answers).length,
+      answersSupported: !!(x && x.syncPickAnswers && x.syncReadAnswers),
+      answersConfigured: !!ns.answersConfigured,
+      answersName: ns.answersConfigured ? (ns.answersName || 'wellness-answers') : '',
+      answersError: S.answersError || ns.answersError || ''
     };
   }
 
@@ -93,14 +101,28 @@
     x.syncPick();
   }
 
+  function pickAnswers() {
+    var x = nat(); if (!x || !x.syncPickAnswers) return;
+    S.answersError = null; store.save(S);
+    x.syncPickAnswers();
+  }
+
+  function forgetAnswers() {
+    var x = nat();
+    S.answersError = null; store.save(S);
+    if (x && x.syncForgetAnswers) x.syncForgetAnswers();
+    else emitState();
+  }
+
   function forget() {
     var x = nat();
-    S.lastSync = null; S.lastAuto = null; S.lastError = null; store.save(S);
+    S.lastSync = null; S.lastAuto = null; S.lastError = null; S.answersError = null; store.save(S);
     if (x && x.syncForget) x.syncForget();
     else emitState();
   }
 
-  /* Run a full read -> take answers -> write cycle. opts.auto enforces the 30-min throttle. */
+  /* Run a full read (sync file + optional answers sheet) -> take answers -> write cycle.
+     opts.auto enforces the 30-min throttle. */
   function sync(opts) {
     opts = opts || {};
     var st = status();
@@ -118,7 +140,18 @@
       return callNative('syncRead');
     }).then(function (remoteText) {
       var m = C.mergeRemote(S, remoteText);
-      fresh = m.fresh;
+      fresh = m.fresh.slice();
+      var x = nat();
+      if (!st.answersConfigured || !x || !x.syncReadAnswers) return null;
+      return callNative('syncReadAnswers').then(function (ansText) {
+        var m2 = C.mergeRemote(S, ansText);
+        if (m2.fresh.length) fresh = fresh.concat(m2.fresh);
+        S.answersError = null;
+      }, function (ae) {
+        // Keep syncing backup + outgoing requests even if Drive refuses answers-sheet export; show the error plainly in Settings.
+        S.answersError = String((ae && ae.message) || ae || 'Could not read the answers sheet.').slice(0, 300);
+      });
+    }).then(function () {
       // save received answers and acked ids locally BEFORE writing back to Drive
       store.save(S);
       var backupObj = JSON.parse(WL.backupText());
@@ -131,7 +164,7 @@
       inFlight = null;
       emitState();
       emitAnswers(fresh);
-      return { ok: true, fresh: fresh };
+      return { ok: true, fresh: fresh, answersError: S.answersError || '' };
     }, function (e) {
       S.lastError = String((e && e.message) || e || 'Google Drive sync failed.').slice(0, 300);
       store.save(S);
@@ -158,6 +191,8 @@
     available: available,
     status: status,
     pick: pick,
+    pickAnswers: pickAnswers,
+    forgetAnswers: forgetAnswers,
     forget: forget,
     sync: sync,
     autoSync: autoSync,

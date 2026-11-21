@@ -5,6 +5,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /** Plain-Java unit tests for Sync (run against android.jar; no device needed). */
 public class SyncTest {
@@ -55,6 +56,57 @@ public class SyncTest {
             capped = e.getMessage() != null && e.getMessage().contains("too large");
         }
         ok(capped, "maxBytes guard enforced");
+
+        // Task 32: virtual Google Sheet MIME selection, CSV parsing, answersFromCsv, errors
+        ok("text/csv".equals(Sync.chooseAnswersMime(new String[]{"application/pdf", "text/csv", "text/plain"})), "prefers text/csv");
+        ok("text/comma-separated-values".equals(Sync.chooseAnswersMime(new String[]{"application/pdf", "text/comma-separated-values"})), "fallback comma-separated");
+        ok("application/json".equals(Sync.chooseAnswersMime(new String[]{"application/json"})), "accepts json");
+        ok("text/plain".equals(Sync.chooseAnswersMime(new String[]{"application/pdf", "text/plain"})), "accepts text/plain");
+        ok(Sync.chooseAnswersMime(new String[]{"application/pdf", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}) == null, "rejects binary-only");
+        ok(Sync.chooseAnswersMime(null) == null && Sync.chooseAnswersMime(new String[0]) == null, "empty stream types");
+
+        String csv = "\uFEFFid,task,answer-json,at\r\n"
+            + "r1,advice,\"{\"\"headline\"\":\"\"Steady, calm week\"\",\"\"points\"\":[\"\"one\"\",\"\"two\"\"]}\",2026-11-21T12:00:00Z\r\n"
+            + "\r\n"
+            + "r2,coach-scenario,\"{\n\"\"title\"\":\"\"Bedtime\"\",\n\"\"scenario\"\":\"\"She cries ☀️\"\"\n}\",\r\n"
+            + "short-row,only-two\n"
+            + " ,advice,\"{\"\"skip\"\":true}\",2026-11-21T13:00:00Z\n";
+        List<List<String>> parsed = Sync.parseCsv(csv);
+        ok(parsed.size() == 5, "parsed 5 non-empty rows, got " + parsed.size());
+        ok("id".equals(parsed.get(0).get(0)) && "at".equals(parsed.get(0).get(3)), "header parsed");
+        ok("r1".equals(parsed.get(1).get(0)) && parsed.get(1).get(2).contains("\"Steady, calm week\""), "doubled quotes + comma");
+        ok("r2".equals(parsed.get(2).get(0)) && parsed.get(2).get(2).contains("\n") && parsed.get(2).get(2).contains("☀️") && "".equals(parsed.get(2).get(3)), "multiline + unicode + trailing empty col");
+
+        String rowsJson = Sync.answersFromCsv(csv);
+        ok(rowsJson.startsWith("{\"rows\":[") && rowsJson.endsWith("]}"), "rows json wrapper: " + rowsJson);
+        ok(rowsJson.contains("\"id\":\"r1\"") && rowsJson.contains("\"task\":\"advice\""), "contains r1");
+        ok(rowsJson.contains("\"id\":\"r2\"") && rowsJson.contains("\\u000a") && rowsJson.contains("☀️"), "contains r2 with escaped newline");
+        ok(!rowsJson.contains("short-row") && !rowsJson.contains("\"id\":\"id\""), "skips header, short row, blank id");
+
+        // No-header CSV keeps first row
+        String noHeader = "r9,weekly-plan,\"{\"\"headline\"\":\"\"Rest\"\"}\",2026-11-21T14:00:00Z";
+        ok(Sync.answersFromCsv(noHeader).contains("\"id\":\"r9\""), "no-header csv kept");
+        // JSON passthrough
+        String rawJson = "\uFEFF  {\"answers\":{\"r1\":{\"task\":\"advice\"}}}  ";
+        ok("{\"answers\":{\"r1\":{\"task\":\"advice\"}}}".equals(Sync.answersFromCsv(rawJson)), "json passthrough");
+        ok("{\"rows\":[]}".equals(Sync.answersFromCsv("   \r\n  ")), "blank csv -> empty rows");
+
+        // Binary export (XLSX/PDF) rejected clearly
+        boolean badBin = false;
+        try { Sync.answersFromCsv("PK\u0003\u0004binary-xlsx"); } catch (IOException e) { badBin = e.getMessage().contains("CSV"); }
+        ok(badBin, "rejects xlsx binary");
+        boolean badPdf = false;
+        try { Sync.answersFromCsv("%PDF-1.7"); } catch (IOException e) { badPdf = e.getMessage().contains("CSV"); }
+        ok(badPdf, "rejects pdf binary");
+
+        String stAns = Sync.statusJson(true, "wellness-sync.json", 10L, "", false, true, "wellness-answers", "Drive refused");
+        ok(stAns.contains("\"answersConfigured\":true") && stAns.contains("\"answersName\":\"wellness-answers\"")
+            && stAns.contains("\"answersError\":\"Drive refused\""), "answers status fields: " + stAns);
+
+        ok(Sync.friendlyAnswersError(new SecurityException("denied")).contains("permission"), "answers security error");
+        ok(Sync.friendlyAnswersError(new UnsupportedOperationException("no csv")).contains("CSV"), "answers unsupported error");
+        ok(Sync.friendlyAnswersError(new FileNotFoundException("missing")).contains("answers sheet"), "answers not found error");
+        ok(Sync.friendlyAnswersError(new IOException("virtual document not openable")).contains("export"), "answers virtual error");
 
         System.out.println("SyncTest ok");
     }

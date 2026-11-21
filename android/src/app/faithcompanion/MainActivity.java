@@ -43,6 +43,7 @@ import java.util.Locale;
 public class MainActivity extends Activity {
     private static final int PICK_FILE = 7;
     private static final int PICK_SYNC = 8;
+    private static final int PICK_ANSWERS = 9;
     private WebView web;
     /** The activity on screen (or null), so a "Done" tapped on a to-do notification reaches an open page at once. */
     private static java.lang.ref.WeakReference<MainActivity> shown = new java.lang.ref.WeakReference<>(null);
@@ -268,6 +269,16 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSyncState&&FCSyncState(" + ok + ")", null); });
             return;
         }
+        if (req == PICK_ANSWERS) {
+            ownScreenOnTop = false;
+            boolean picked = false;
+            if (res == RESULT_OK && data != null && data.getData() != null) {
+                picked = Sync.savePickedAnswers(this, data.getData(), data.getFlags()).isEmpty();
+            }
+            final boolean ok = picked;
+            runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSyncState&&FCSyncState(" + ok + ")", null); });
+            return;
+        }
         super.onActivityResult(req, res, data);
     }
 
@@ -434,6 +445,31 @@ public class MainActivity extends Activity {
                 final boolean fOk = ok; final String fOut = out;
                 runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSyncDone&&FCSyncDone(" + jsString(id) + "," + fOk + "," + jsString(fOut) + ")", null); });
             }, "wl-sync-write").start();
+        }
+        /** Cloud answers Google Sheet (Sync.java): virtual-file CSV export, read-only SAF grant. */
+        @JavascriptInterface public void syncPickAnswers() {
+            runOnUiThread(() -> {
+                try { ownScreenOnTop = true; startActivityForResult(Sync.pickAnswersIntent(), PICK_ANSWERS); }
+                catch (Exception e) {
+                    ownScreenOnTop = false;
+                    Sync.setAnswersError(getApplicationContext(), Sync.friendlyAnswersError(e));
+                    if (web != null) web.evaluateJavascript("window.FCSyncState&&FCSyncState(false)", null);
+                }
+            });
+        }
+        @JavascriptInterface public void syncForgetAnswers() {
+            Sync.forgetAnswers(getApplicationContext());
+            runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSyncState&&FCSyncState(false)", null); });
+        }
+        @JavascriptInterface public void syncReadAnswers(String id) {
+            final Context app = getApplicationContext();
+            new Thread(() -> {
+                boolean ok = true; String out;
+                try { out = Sync.readAnswers(app); }
+                catch (Exception e) { ok = false; out = e.getMessage() == null ? e.toString() : e.getMessage(); }
+                final boolean fOk = ok; final String fOut = out;
+                runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSyncDone&&FCSyncDone(" + jsString(id) + "," + fOk + "," + jsString(fOut) + ")", null); });
+            }, "wl-sync-answers").start();
         }
 
         /** False when Android won't show this app's notifications (permission refused or switched off). */

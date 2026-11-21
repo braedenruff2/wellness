@@ -15,11 +15,20 @@ const FAKE_DRIVE = `
       lastSync: +(ls('test.drive.lastSync') || 0),
       error: '',
       failWrite: null,
-      failRead: null
+      failRead: null,
+      answersConfigured: ls('test.drive.ansConfigured') === '1',
+      answersName: 'wellness-answers',
+      answersContent: ls('test.drive.ansContent') || '',
+      answersReads: 0,
+      answersError: '',
+      failAnswers: null
     };
     window.FCAndroid = {
       syncStatus: function () {
-        return JSON.stringify({ configured: d.configured, name: d.name, lastSync: d.lastSync, error: d.error, busy: false });
+        return JSON.stringify({
+          configured: d.configured, name: d.name, lastSync: d.lastSync, error: d.error, busy: false,
+          answersConfigured: d.answersConfigured, answersName: d.answersConfigured ? d.answersName : '', answersError: d.answersError
+        });
       },
       syncPick: function () {
         d.configured = true;
@@ -27,11 +36,26 @@ const FAKE_DRIVE = `
         d.error = '';
         Promise.resolve().then(function () { window.FCSyncState && window.FCSyncState(true); });
       },
+      syncPickAnswers: function () {
+        d.answersConfigured = true;
+        ls('test.drive.ansConfigured', '1');
+        d.answersError = '';
+        Promise.resolve().then(function () { window.FCSyncState && window.FCSyncState(true); });
+      },
+      syncForgetAnswers: function () {
+        d.answersConfigured = false;
+        d.answersError = '';
+        ls('test.drive.ansConfigured', null);
+        Promise.resolve().then(function () { window.FCSyncState && window.FCSyncState(false); });
+      },
       syncForget: function () {
         d.configured = false;
+        d.answersConfigured = false;
         d.lastSync = 0;
         d.error = '';
+        d.answersError = '';
         ls('test.drive.configured', null);
+        ls('test.drive.ansConfigured', null);
         ls('test.drive.lastSync', null);
         Promise.resolve().then(function () { window.FCSyncState && window.FCSyncState(false); });
       },
@@ -40,6 +64,13 @@ const FAKE_DRIVE = `
         Promise.resolve().then(function () {
           if (d.failRead) { d.error = d.failRead; window.FCSyncDone(id, false, d.failRead); }
           else window.FCSyncDone(id, true, d.content);
+        });
+      },
+      syncReadAnswers: function (id) {
+        d.answersReads++;
+        Promise.resolve().then(function () {
+          if (d.failAnswers) { d.answersError = d.failAnswers; window.FCSyncDone(id, false, d.failAnswers); }
+          else { d.answersError = ''; window.FCSyncDone(id, true, d.answersContent); }
         });
       },
       syncWrite: function (id, text) {
@@ -153,7 +184,46 @@ const FAKE_DRIVE = `
     const errText = await page.textContent('#wl-sync-err');
     assert.ok(errText.includes('refused writes'), errText);
     assert.strictEqual(await page.evaluate(() => WL.driveSync.peekAnswer('req-99').answer.headline), 'Kept even on write error');
-    await page.evaluate(() => { window.__drive.failWrite = null; });
+    await page.evaluate(() => { window.__drive.failWrite = null; WL.driveSync.takeAnswer('req-99'); });
+  });
+
+  await t.step('answers Google Sheet (CSV export): reads rows, merges answers + acked, handles Drive export refusal plainly', async () => {
+    await page.evaluate(() => {
+      WL.driveSync.enqueue('advice', { question: 'evening routine' }, 'req-sheet-1');
+      window.__sheetGot = [];
+      WL.driveSync.onAnswers(function (ans, fresh) { window.__sheetGot.push({ ans: ans, fresh: fresh }); });
+      window.__drive.answersContent = 'id,task,answer-json,at\r\n'
+        + 'req-sheet-1,advice,"{""headline"":""Keep evenings quiet"",""points"":[""dim lights""],""next"":""Box breathe""}",2026-11-21T16:00:00Z\r\n';
+      localStorage.setItem('test.drive.ansContent', window.__drive.answersContent);
+    });
+    const writesBefore = await page.evaluate(() => window.__drive.writes);
+    await page.click('#wl-sync-ans-pick');
+    await page.waitForFunction((n) => window.__drive.writes === n + 1, writesBefore);
+    assert.ok((await page.textContent('#wl-sync-ans')).includes('wellness-answers'));
+    const after = await page.evaluate(() => ({
+      reads: window.__drive.answersReads,
+      drive: JSON.parse(window.__drive.content),
+      deliveredAdvice: WL.pc.settings().advice,
+      got: window.__sheetGot
+    }));
+    assert.strictEqual(after.reads, 1);
+    assert.strictEqual(after.got[0].ans['req-sheet-1'].task, 'advice');
+    assert.strictEqual(after.got[0].ans['req-sheet-1'].answer.headline, 'Keep evenings quiet');
+    assert.strictEqual(after.deliveredAdvice && after.deliveredAdvice.answer && after.deliveredAdvice.answer.headline, 'Keep evenings quiet', 'delivered through WL.pc to advice');
+    assert.ok(after.drive.acked.includes('req-sheet-1'), 'sheet answer id acked in wellness-sync.json');
+    assert.strictEqual(after.drive.requests.length, 0, 'answered request removed');
+    assert.deepStrictEqual(after.got[0].fresh, ['req-sheet-1']);
+
+    // If Drive refuses CSV export on the answers sheet, show the error plainly while backup still syncs
+    await page.evaluate(() => {
+      window.__drive.failAnswers = 'Google Drive refused to export the answers sheet as CSV.';
+    });
+    const w2 = await page.evaluate(() => window.__drive.writes);
+    await page.click('#wl-sync-now');
+    await page.waitForFunction((n) => window.__drive.writes === n + 1, w2);
+    await page.waitForSelector('#wl-sync-ans-err');
+    assert.ok((await page.textContent('#wl-sync-ans-err')).includes('refused to export'));
+    await page.evaluate(() => { window.__drive.failAnswers = null; });
   });
 
   await t.step('auto-sync runs on app open when 30 min have passed; a11y at Larger text size (1.3)', async () => {
@@ -172,7 +242,10 @@ const FAKE_DRIVE = `
     assert.deepStrictEqual(small, []);
   });
 
-  await t.step('turning off Drive sync (two-tap confirm) resets to unconfigured', async () => {
+  await t.step('removing answers sheet and turning off Drive sync resets to unconfigured', async () => {
+    await page.click('#wl-sync-ans-forget');
+    await page.waitForFunction(() => !window.__drive.answersConfigured);
+    assert.ok((await page.textContent('#wl-sync')).includes('Choose answers sheet'));
     await page.click('#wl-sync-forget');
     assert.ok((await page.textContent('#wl-sync-forget')).includes('Tap again'));
     await page.click('#wl-sync-forget');

@@ -98,4 +98,43 @@ t('validate cleans corrupt stored state and caps acked/requests', () => {
   assert.deepStrictEqual(C.validate(null), C.defaults());
 });
 
+t('parseCsv + rowsToAnswers + mergeRemote handle wellness-answers sheet CSV and Java {"rows":[...]} JSON', () => {
+  const s = C.defaults();
+  const now = new Date('2026-11-21T10:00:00Z');
+  C.enqueue(s, 'advice', { question: 'sleep?' }, now, 'req-a');
+  C.enqueue(s, 'coach-scenario', { child: 'Kid' }, now, 'req-b');
+  C.enqueue(s, 'weekly-plan', {}, now, 'req-c');
+
+  // 1) Raw CSV with BOM, header, doubled quotes, commas, multiline JSON, wrapped/bare/error objects, and one corrupt JSON row
+  const csv = '\uFEFFid,task,answer-json,at\r\n'
+    + 'req-a,advice,"{""headline"":""Steady, calm week"",""points"":[""p1"",""p2""],""next"":""Nap""}",2026-11-21T12:00:00Z\r\n'
+    + 'req-bad,advice,"{broken json",2026-11-21T12:01:00Z\r\n'
+    + 'req-b,coach-scenario,"{\n""error"":""Could not answer this one""\n}",2026-11-21T12:02:00Z\r\n';
+  const m1 = C.mergeRemote(s, csv);
+  assert.deepStrictEqual(m1, { fresh: ['req-a', 'req-b'], badRemote: false });
+  assert.strictEqual(s.answers['req-a'].task, 'advice');
+  assert.strictEqual(s.answers['req-a'].answer.headline, 'Steady, calm week');
+  assert.strictEqual(s.answers['req-a'].at, '2026-11-21T12:00:00Z');
+  assert.strictEqual(s.answers['req-b'].task, 'coach-scenario');
+  assert.strictEqual(s.answers['req-b'].error, 'Could not answer this one');
+  assert.strictEqual(s.answers['req-bad'], undefined, 'corrupt JSON row skipped safely');
+  assert.deepStrictEqual(s.acked, ['req-a', 'req-b']);
+  assert.deepStrictEqual(s.requests.map((r) => r.id), ['req-c'], 'answered requests removed');
+
+  // 2) Java Sync.answersFromCsv output: {"rows":[...]} with wrapped {task, answer}
+  const javaOut = JSON.stringify({
+    rows: [
+      { id: 'req-a', task: 'advice', raw: JSON.stringify({ headline: 'Duplicate ignored' }), at: '2026-11-21T12:00:00Z' },
+      { id: 'req-c', task: 'weekly-plan', raw: JSON.stringify({ task: 'weekly-plan', answer: { headline: 'Rest first' } }), at: '2026-11-21T12:05:00Z' }
+    ]
+  });
+  const m2 = C.mergeRemote(s, javaOut);
+  assert.deepStrictEqual(m2, { fresh: ['req-c'], badRemote: false });
+  assert.strictEqual(s.answers['req-c'].task, 'weekly-plan');
+  assert.strictEqual(s.answers['req-c'].answer.headline, 'Rest first');
+  assert.strictEqual(s.answers['req-a'].answer.headline, 'Steady, calm week', 'acked answer not overwritten');
+  assert.deepStrictEqual(s.requests, []);
+  assert.deepStrictEqual(s.acked, ['req-a', 'req-b', 'req-c']);
+});
+
 console.log(n + ' sync tests passed');

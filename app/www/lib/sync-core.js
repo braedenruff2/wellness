@@ -8,7 +8,7 @@
   var MAX_REQUESTS = 50;
 
   function defaults() {
-    return { requests: [], answers: {}, acked: [], lastSync: null, lastAuto: null, lastError: null };
+    return { requests: [], answers: {}, acked: [], lastSync: null, lastAuto: null, lastError: null, answersError: null };
   }
 
   function newId(now) {
@@ -45,18 +45,97 @@
     state.requests = state.requests.filter(function (r) { return r && r.id !== id; });
   }
 
-  /* Read the existing Drive file before writing: take any new `answers` (keyed by request id) not yet acked,
-     store them in state.answers until shown, add their ids to state.acked, and drop answered requests. */
+  /* RFC-4180 CSV parser (handles quotes, doubled quotes, commas & newlines inside quotes, BOM, CRLF/LF/CR). */
+  function parseCsv(text) {
+    var s = String(text || '');
+    if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1);
+    var rows = [], row = [], cell = '', inQ = false, has = false;
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charAt(i);
+      if (inQ) {
+        if (c === '"') {
+          if (i + 1 < s.length && s.charAt(i + 1) === '"') { cell += '"'; i++; }
+          else inQ = false;
+        } else cell += c;
+      } else {
+        if (c === '"' && !cell.length) { inQ = true; has = true; }
+        else if (c === ',') { row.push(cell); cell = ''; has = true; }
+        else if (c === '\r' || c === '\n') {
+          if (c === '\r' && i + 1 < s.length && s.charAt(i + 1) === '\n') i++;
+          if (has || cell.length || row.length) { row.push(cell); rows.push(row); }
+          row = []; cell = ''; has = false;
+        } else { cell += c; has = true; }
+      }
+    }
+    if (has || cell.length || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  /* Converts sheet rows ({id, task, raw, at} or CSV arrays [id, task, raw, at]) into an answers map.
+     Malformed JSON in one row is skipped safely so other answers still arrive. */
+  function rowsToAnswers(rows) {
+    var out = {};
+    if (!Array.isArray(rows)) return out;
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i], id, task, raw, at;
+      if (Array.isArray(r)) {
+        if (r.length < 3) continue;
+        id = String(r[0] || '').trim();
+        task = String(r[1] || '').trim();
+        raw = String(r[2] || '').trim();
+        at = r.length > 3 ? String(r[3] || '').trim() : '';
+        if (i === 0 && id.toLowerCase() === 'id' && task.toLowerCase() === 'task') continue;
+      } else if (r && typeof r === 'object') {
+        id = String(r.id || '').trim();
+        task = String(r.task || '').trim();
+        raw = String(r.raw || '').trim();
+        at = String(r.at || '').trim();
+      } else continue;
+      if (!id || !raw) continue;
+      var obj;
+      try { obj = JSON.parse(raw); } catch (e) { continue; }
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) continue;
+      var entry;
+      if ((obj.answer && typeof obj.answer === 'object') || typeof obj.error === 'string') {
+        entry = Object.assign({}, obj);
+        if (!entry.task && task) entry.task = task;
+        if (!entry.at && at) entry.at = at;
+      } else {
+        entry = { task: task, answer: obj };
+        if (at) entry.at = at;
+      }
+      out[id] = entry;
+    }
+    return out;
+  }
+
+  /* Read the existing Drive file (or exported answers sheet CSV / {"rows":[...]}) before writing:
+     take any new `answers` (keyed by request id) not yet acked, store them in state.answers until shown,
+     add their ids to state.acked, and drop answered requests. */
   function mergeRemote(state, remoteText) {
     state.requests = Array.isArray(state.requests) ? state.requests : [];
     state.answers = state.answers && typeof state.answers === 'object' && !Array.isArray(state.answers) ? state.answers : {};
     state.acked = Array.isArray(state.acked) ? state.acked : [];
-    var raw = String(remoteText || '').trim();
+    var raw = String(remoteText || '');
+    if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+    raw = raw.trim();
     if (!raw) return { fresh: [], badRemote: false };
-    var remote;
-    try { remote = JSON.parse(raw); } catch (e) { return { fresh: [], badRemote: true }; }
-    if (!remote || typeof remote !== 'object') return { fresh: [], badRemote: true };
-    var ans = remote.answers, fresh = [];
+    var ans = null;
+    if (raw.charAt(0) === '{') {
+      var remote;
+      try { remote = JSON.parse(raw); } catch (e) { return { fresh: [], badRemote: true }; }
+      if (!remote || typeof remote !== 'object') return { fresh: [], badRemote: true };
+      ans = {};
+      if (remote.answers && typeof remote.answers === 'object' && !Array.isArray(remote.answers)) {
+        Object.assign(ans, remote.answers);
+      }
+      if (Array.isArray(remote.rows)) {
+        Object.assign(ans, rowsToAnswers(remote.rows));
+      }
+    } else {
+      ans = rowsToAnswers(parseCsv(raw));
+    }
+    var fresh = [];
     if (ans && typeof ans === 'object' && !Array.isArray(ans)) {
       Object.keys(ans).forEach(function (id) {
         if (!id || ans[id] == null) return;
@@ -131,11 +210,13 @@
     if (typeof raw.lastSync === 'string' && !isNaN(Date.parse(raw.lastSync))) d.lastSync = raw.lastSync;
     if (typeof raw.lastAuto === 'string' && !isNaN(Date.parse(raw.lastAuto))) d.lastAuto = raw.lastAuto;
     if (typeof raw.lastError === 'string' && raw.lastError) d.lastError = raw.lastError.slice(0, 300);
+    if (typeof raw.answersError === 'string' && raw.answersError) d.answersError = raw.answersError.slice(0, 300);
     return d;
   }
 
   var api = {
     AUTO_MS: AUTO_MS, defaults: defaults, autoDue: autoDue, enqueue: enqueue, cancelRequest: cancelRequest,
+    parseCsv: parseCsv, rowsToAnswers: rowsToAnswers,
     mergeRemote: mergeRemote, takeAnswer: takeAnswer, buildPayload: buildPayload, validate: validate
   };
   root.WLSyncCore = api;

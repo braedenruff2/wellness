@@ -349,16 +349,31 @@
       '<p class="meta" id="wl-sync-when">' + (s.busy ? 'Syncing…' : 'Last synced: ' + esc(when)) + (extra.length ? ' · ' + esc(extra.join(' · ')) : '') + '</p>';
     if (s.error) h += '<p class="no" id="wl-sync-err">' + esc(s.error) + '</p>';
     h += '<div class="row"><button class="primary" id="wl-sync-now"' + (s.busy ? ' disabled' : '') + '>' + (s.busy ? 'Syncing…' : 'Sync now') + '</button>' +
-      '<button id="wl-sync-pick">Change file</button></div>' +
-      '<p style="margin:8px 0 0"><button class="link" id="wl-sync-forget">Turn off Drive sync</button></p></div>';
+      '<button id="wl-sync-pick">Change file</button></div>';
+    if (s.answersSupported) {
+      if (!s.answersConfigured) {
+        h += '<p class="meta" style="margin-top:10px">Cloud answers: choose your <b>wellness-answers</b> Google Sheet in Drive so answers from cloud runs show up here.</p>';
+        if (s.answersError) h += '<p class="no" id="wl-sync-ans-err">' + esc(s.answersError) + '</p>';
+        h += '<div class="row"><button id="wl-sync-ans-pick">Choose answers sheet</button></div>';
+      } else {
+        h += '<p class="meta" id="wl-sync-ans" style="margin-top:10px">Cloud answers sheet: <b>' + esc(s.answersName) + '</b> (checked on each sync).</p>';
+        if (s.answersError) h += '<p class="no" id="wl-sync-ans-err">' + esc(s.answersError) + '</p>';
+        h += '<div class="row"><button id="wl-sync-ans-pick">Change answers sheet</button><button class="link" id="wl-sync-ans-forget">Remove sheet</button></div>';
+      }
+    }
+    h += '<p style="margin:8px 0 0"><button class="link" id="wl-sync-forget">Turn off Drive sync</button></p></div>';
     return h;
   }
   function wireSync() {
     var ds = window.WL && WL.driveSync; if (!ds || !ds.available()) return;
     var p = $('#wl-sync-pick'); if (p) p.onclick = function () { ds.pick(); };
+    var ap = $('#wl-sync-ans-pick'); if (ap) ap.onclick = function () { ds.pickAnswers(); };
+    var af = $('#wl-sync-ans-forget'); if (af) af.onclick = function () { ds.forgetAnswers(); toast('Answers sheet removed'); };
     var n = $('#wl-sync-now'); if (n) n.onclick = function () {
       n.disabled = true; n.textContent = 'Syncing…';
-      ds.sync({ auto: false }).then(function () { toast('Synced with Google Drive'); }, function (e) { toast((e && e.message) || 'Sync failed'); });
+      ds.sync({ auto: false }).then(function (r) {
+        toast(r && r.answersError ? 'Synced backup, but could not read the answers sheet' : 'Synced with Google Drive');
+      }, function (e) { toast((e && e.message) || 'Sync failed'); });
     };
     var f = $('#wl-sync-forget'); if (f) f.onclick = function () {
       if (f.dataset.sure) { ds.forget(); toast('Drive sync turned off'); return; }

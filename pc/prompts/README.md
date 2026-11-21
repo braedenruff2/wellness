@@ -20,9 +20,10 @@ with exactly the same text, so both paths give the same JSON shape.
 
 Web tools: only coach-grade and coach-advice may search the web (`TOOLS` in wellness_pc.py).
 
-## Answering a queued request (cloud runs; see .autopilot/cloud-plan.md task B)
-The phone's `wellness-sync.json` has `requests: [{id, task, input, at}]`. For each one not yet answered, fill the
-task's prompt with its input, answer it as the prompt says (one JSON object), and add it to the file's `answers`:
-`"answers": {"<id>": {"task": "<task>", "answer": {...}}}` (or `{"task": ..., "error": "why it couldn't be answered"}`).
-Keep everything else in the file as it is. The phone shows the answer through the same code as a PC answer.
-(The Drive connector can't edit that file's content in place yet: see .autopilot/cloud-plan.md task 32.)
+## Answering a queued request (cloud runs; see .autopilot/cloud-plan.md task B & task 32)
+The phone's `wellness-sync.json` has `requests: [{id, task, input, at}]` and `acked: [ids]`. For each request whose `id`
+is not in `acked` and not yet answered, fill the task's prompt with its input and answer it as the prompt says (one JSON
+object). Write answers to the `wellness-answers` Google Sheet in the private Drive folder (columns `id | task |
+answer-json | at`), where `answer-json` is `{"task":"<task>","answer":{...}}` (or `{"task":"<task>","error":"..."}`,
+or the bare answer JSON object). The phone exports that sheet as CSV on each sync and feeds rows through the same
+`answers` / `acked` path as `wellness-sync.json` (the `answers` map in `wellness-sync.json` still works too).
