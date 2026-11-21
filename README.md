@@ -81,7 +81,7 @@ reads anything they can't (before the downloads, or if something fails).
 - **Log for an earlier day** (Home, bottom): pick one of the last 7 days and use any part as usual: workout sets,
   faith days/journal, calm sessions and ticked to-dos are recorded on that day (WL.logNow()). A banner shows it on every
   screen; "Back to today" or 2 hours ends it.
-- **To do** (`modules/todo`, on Home): quick add with plain words ("call Mom tomorrow", "stretch every day", "rent every month", "recycling every 2 weeks"),
+- **To do** (`modules/todo`, on Home): quick add with plain words ("call Mom tomorrow", "dentist next week", "water plants in 3 days", "party dec 24", "bins every thursday", "stretch every day", "rent every month", "recycling every 2 weeks"),
   repeating tasks, overdue nudges. Reminders: end a task with a time ("bins fri at 7pm", "meds 8:30 pm") or set
   one in its ⋯ sheet; the phone notifies at that time even when the app is closed (TodoAlarm.java, exact alarm,
   re-armed after a reboot/update; repeating tasks get each coming day's reminder). The notification has "Done"

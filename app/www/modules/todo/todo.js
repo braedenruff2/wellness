@@ -45,7 +45,7 @@
     T.tidy(S); save();
     var g = T.groups(S), adv = T.advice(S);
     var h = '<h1>To do</h1><div class="card ui"><form id="td-form" class="row"><input type="text" id="td-new" class="grow" placeholder="Add a task (e.g. call Mom tomorrow)" autocomplete="off" aria-label="New task"><button class="primary" type="submit">Add</button></form>' +
-      '<p class="meta" style="margin:.5em 0 0">Ends like “today”, “tomorrow”, “fri”, “24/12” or “every day” set the date; “at 3pm” adds a reminder.</p></div>';
+      '<p class="meta" style="margin:.5em 0 0">Ends like “tomorrow”, “fri”, “24/12”, “dec 24”, “in 3 days”, “next week”, “every day” or “every monday” set the date; “at 3pm” adds a reminder.</p></div>';
     if (adv) h += '<p class="gentle ui">' + esc(adv) + (g.overdue.length ? ' <button class="link" id="td-move">Move overdue to today</button>' : '') + '</p>';
     h += '<div class="card">' + (list('Overdue', g.overdue, true) + list('Today', g.today) + list('Coming up', g.upcoming) + list('Any time', g.someday) || '<p class="meta ui">Nothing to do. ✨</p>') + '</div>';
     var wk = T.doneInLast(S, 7);
