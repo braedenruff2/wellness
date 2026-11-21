@@ -220,6 +220,12 @@
     return !state.plan || now.getTime() - new Date(state.plan.at).getTime() > 6.5 * 864e5;
   }
 
+  /* The last try at a weekly plan didn't give one (Claude's error, an empty answer): a plan is due, a try was made,
+     and the plan (if any) is older than that try. Then Home and About you say so with a "Try again". */
+  function planFailed(state, now) {
+    return planDue(state, now) && !!state.planTried && (!state.plan || iso(new Date(state.plan.at)) < state.planTried);
+  }
+
   /* What the PC's weekly plan reads (the phone sends it with the request): the last 14 days of answers. */
   function forPlan(state, now) {
     now = now || new Date(); var from = new Date(now.getTime() - 14 * 864e5).toISOString();
@@ -278,7 +284,7 @@
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
     notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes,
-    guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
+    guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

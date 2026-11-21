@@ -88,7 +88,9 @@
     var p = S.plan, due = K.planDue(S, new Date()), pc = WL.pc;
     var h = '';
     if (p && !due) h += '<p><b>This week:</b> ' + esc(p.headline) + '</p>' + (K.planFor(S, 'home', new Date()) ? '<p class="meta">' + esc(K.planFor(S, 'home', new Date()).focus) + '</p>' : '');
-    if (due && pc && pc.ready()) h += '<div class="row"><span class="grow meta">' + (p ? 'Time for a new weekly plan.' : 'Claude can make you a plan for the week from your check-ins and answers.') + '</span>' +
+    if (due && !planBusy && K.planFailed(S, new Date())) h += '<div class="row" id="me-plan-failed"><span class="grow meta">Couldn’t make your plan this time.' +
+      (pc && pc.ready() ? '</span><button id="me-plan">Try again</button></div>' : ' It tries again when your PC answers.</span></div>');
+    else if (due && pc && pc.ready()) h += '<div class="row"><span class="grow meta">' + (p ? 'Time for a new weekly plan.' : 'Claude can make you a plan for the week from your check-ins and answers.') + '</span>' +
       '<button id="me-plan"' + (planBusy ? ' disabled' : '') + '>' + (planBusy ? 'Claude is on it…' : 'Make this week’s plan') + '</button></div>';
     return h;
   }
@@ -156,7 +158,9 @@
         var x = S.plan.parts[k]; return '<li><b>' + esc(label(k)) + ':</b> ' + esc(x.focus) + (x.why ? ' <span class="meta">(' + esc(x.why) + ')</span>' : '') + '</li>';
       }).join('') + '</ul>' + (S.plan.check ? '<p class="meta">' + esc(S.plan.check) + '</p>' : '') + '<p class="meta">Made ' + esc(new Date(S.plan.at).toLocaleDateString()) + '.</p>';
     } else h += '<p class="meta">No plan yet.</p>';
-    h += WL.pc && WL.pc.ready() ? '<button id="me-plan"' + (planBusy ? ' disabled' : '') + '>' + (planBusy ? 'Claude is on it…' : (S.plan ? 'Make a new plan now' : 'Make this week’s plan')) + '</button>'
+    var failed = !planBusy && K.planFailed(S, new Date());
+    if (failed) h += '<p class="meta" id="me-plan-failed">Couldn’t make your plan this time.' + (WL.pc && WL.pc.ready() ? '' : ' It tries again when your PC answers.') + '</p>';
+    h += WL.pc && WL.pc.ready() ? '<button id="me-plan"' + (planBusy ? ' disabled' : '') + '>' + (planBusy ? 'Claude is on it…' : failed ? 'Try again' : (S.plan ? 'Make a new plan now' : 'Make this week’s plan')) + '</button>'
       : '<p class="meta">The weekly plan needs the PC link (Settings › PC link).</p>';
     h += '</div>';
     var tr = K.trend(S, new Date(), 14);

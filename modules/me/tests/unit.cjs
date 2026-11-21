@@ -155,6 +155,19 @@ t('more guidance: calm interrupted, low workout energy, tips that didn’t work,
   assert.ok(!keys(c).includes('calminterrupt'));
 });
 
+t('weekly plan failed: a try was made and no newer plan came; a plan made that day is not a failure', () => {
+  const s = K.defaults();
+  assert.ok(!K.planFailed(s, D(20)), 'never tried');
+  s.planTried = '2026-11-20';
+  assert.ok(K.planFailed(s, D(20)), 'tried, no plan');
+  assert.ok(K.planFailed(s, D(21)), 'still shown the next day');
+  s.plan = K.cleanPlan({ headline: 'h', parts: { home: { focus: 'f' } } }, D(20, 9));
+  assert.ok(!K.planFailed(s, D(20, 10)), 'plan made: not due, not failed');
+  assert.ok(!K.planFailed(s, D(28)), 'a week later it is due, but that try worked');
+  s.planTried = '2026-11-28';
+  assert.ok(K.planFailed(s, D(28)), 'the new week\'s try failed: the old plan is older than it');
+});
+
 t('weekly plan: checked, per part, expires after 10 days, due after a week; what the PC is sent', () => {
   const s = K.defaults();
   assert.ok(K.planDue(s, D(20)));
