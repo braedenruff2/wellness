@@ -43,6 +43,16 @@ t('check-in: one per day, tap again clears, done when every question answered, n
   assert.strictEqual(s.checkins['2026-11-20'].note, 'she’s teething');
   K.checkinNote(s, '2026-11-20', '');
   assert.ok(!('note' in s.checkins['2026-11-20']));
+  // clearing the only note or chip on a day removes the ghost entry completely
+  K.checkinNote(s, '2026-11-21', 'brief note');
+  assert.strictEqual(s.checkins['2026-11-21'].note, 'brief note');
+  K.checkinNote(s, '2026-11-21', '   ');
+  assert.strictEqual(s.checkins['2026-11-21'], undefined);
+  assert.strictEqual(K.checkinNote(s, '2026-11-22', ''), null);
+  assert.strictEqual(s.checkins['2026-11-22'], undefined);
+  K.checkin(s, '2026-11-22', 'sleep', '7 h+');
+  K.checkin(s, '2026-11-22', 'sleep', '7 h+');
+  assert.strictEqual(s.checkins['2026-11-22'], undefined);
   assert.strictEqual(K.checkin(s, 'nope', 'sleep', '7 h+'), null);
   assert.strictEqual(K.checkin(s, '2026-11-20', 'sleep', '9 h'), null);
   for (let i = 0; i < 130; i++) K.checkin(s, K.iso(new Date(2026, 0, 1 + i)), 'sleep', '7 h+');

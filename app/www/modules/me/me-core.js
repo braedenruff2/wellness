@@ -106,15 +106,20 @@
     var c = state.checkins[day] || (state.checkins[day] = { at: now.toISOString() });
     if (c[k] === v) delete c[k]; else c[k] = v;
     c.edited = now.toISOString();
+    if (!hasCheckin(c)) delete state.checkins[day];
     trimCheckins(state);
     return c;
   }
   function checkinNote(state, day, text, now) {
     if (!/^\d{4}-\d\d-\d\d$/.test(day)) return null;
     now = now || new Date();
-    var c = state.checkins[day] || (state.checkins[day] = { at: now.toISOString() });
-    c.note = cut(String(text || '').trim(), 600); if (!c.note) delete c.note;
+    var note = cut(String(text || '').trim(), 600);
+    var c = state.checkins[day];
+    if (!note && !c) return null;
+    c = c || (state.checkins[day] = { at: now.toISOString() });
+    if (note) c.note = note; else delete c.note;
     c.edited = now.toISOString();
+    if (!hasCheckin(c)) delete state.checkins[day];
     trimCheckins(state);
     return c;
   }

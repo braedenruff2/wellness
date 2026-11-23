@@ -117,7 +117,7 @@
   }
   function wireCard(el) {
     var sk = $('#me-skip', el); if (sk) sk.onclick = function () { S.skipped[today()] = 1; save(); el.innerHTML = cardHtml(); wireCard(el); if (WL.refreshToday) WL.refreshToday(); };
-    var n = $('#me-ck-note', el); if (n) n.onchange = function () { K.checkinNote(S, today(), n.value, new Date()); save(); };
+    var n = $('#me-ck-note', el); if (n) n.oninput = n.onchange = function () { K.checkinNote(S, today(), n.value, new Date()); save(); };
     var pb = $('#me-plan', el); if (pb) pb.onclick = function () { makePlan(redrawCard); el.innerHTML = cardHtml(); wireCard(el); };
   }
 
@@ -193,8 +193,11 @@
         '<div class="trow"><span class="tl">Mood</span><span class="tbars">' + bars('mood', 2) + '</span></div>' +
         '<p class="meta">Oldest on the left, today on the right. Taller is more sleep, more energy, better mood.</p></div>';
     }
-    var days = K.recentCheckins(S, new Date(), 7);
-    if (days.length) h += '<div class="card ui"><h3>Last 7 check-ins</h3><ul class="me-g">' + Object.keys(S.checkins).sort().reverse().slice(0, 7).map(function (d) {
+    var shownDays = Object.keys(S.checkins).filter(function (d) {
+      var c = S.checkins[d];
+      return c && (K.CHECKIN.some(function (q) { return c[q.k]; }) || c.note);
+    }).sort().reverse().slice(0, 7);
+    if (shownDays.length) h += '<div class="card ui"><h3>Last 7 check-ins</h3><ul class="me-g">' + shownDays.map(function (d) {
       var c = S.checkins[d]; return '<li><b>' + esc(d) + '</b> ' + esc(K.CHECKIN.map(function (q) { return c[q.k] ? q.q.split(' ')[0] + ': ' + c[q.k] : ''; }).filter(Boolean).join(' · ')) + (c.note ? ' — ' + esc(c.note) : '') + '</li>';
     }).join('') + '</ul></div>';
     var nf = S.feedback.filter(function (f) { return f.kind === 'notfit'; }).slice(-10).reverse();
@@ -210,7 +213,7 @@
   function route(parts, v) {
     if (v) view = v;
     view.innerHTML = page();
-    var n = $('#me-ck-note'); if (n) n.onchange = function () { K.checkinNote(S, today(), n.value, new Date()); save(); };
+    var n = $('#me-ck-note'); if (n) n.oninput = n.onchange = function () { K.checkinNote(S, today(), n.value, new Date()); save(); };
     var pb = $('#me-plan'); if (pb) pb.onclick = function () { makePlan(function () { if (location.hash === '#me') route([]); }); route([]); };
   }
 

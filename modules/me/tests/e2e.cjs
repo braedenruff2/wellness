@@ -69,6 +69,14 @@ const Wb = require('../../../tests/lib/web.cjs');
     const txt = await page.textContent('#view');
     assert.ok(!(await page.$('#me-trend')) || (await page.locator('#me-trend .tb').count()) === 42, 'trend: 3 rows of 14 days');
     assert.ok(/Last 7 check-ins/.test(txt) && /teething/.test(txt) && /not for me/.test(txt) && /PC link/.test(txt), txt);
+    // typing a check-in note saves on input without needing blur/change
+    await page.fill('#me-ck-note', 'long afternoon walk');
+    assert.strictEqual((await me()).checkins['2026-11-21'].note, 'long afternoon walk');
+    // clearing the note leaves an empty check-in object that must not render as a blank bullet in "Last 7 check-ins"
+    await page.fill('#me-ck-note', '');
+    await page.goto(base + '#home'); await page.goto(base + '#me');
+    const items = await page.locator('#view .card:has(h3:text-is("Last 7 check-ins")) li').allTextContents();
+    assert.ok(items.length === 1 && items[0].includes('2026-11-20'), 'empty 2026-11-21 entry omitted: ' + JSON.stringify(items));
     const ev = await page.evaluate(() => window.WLActivity.collect({ 'wl.me.v1': JSON.parse(localStorage.getItem('wl.me.v1')) }, {}, new Date()));
     assert.ok(ev.some((e) => e.part === 'checkin') && ev.some((e) => e.kind === 'feedback' && e.part === 'workout') && ev.some((e) => e.kind === 'not-for-me'));
   });
