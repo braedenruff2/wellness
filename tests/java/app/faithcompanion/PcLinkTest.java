@@ -36,6 +36,15 @@ public class PcLinkTest {
         String found = PcLink.discover(800, port);
         check("discover answers a JSON list", found.startsWith("[") && found.endsWith("]"), found);
         check("pair key matches the PC's (PBKDF2)", PcLink.hexOf(PcLink.pairKey("abcd-efgh-jkmn")).equals(a[2]), PcLink.hexOf(PcLink.pairKey("abcd-efgh-jkmn")));
+        check("quote handles null safely", "\"\"".equals(PcLink.quote(null)), PcLink.quote(null));
+        check("readAll caps oversized responses",
+            PcLink.readAll(new java.io.ByteArrayInputStream(new byte[10]), 10).length == 10, "exact cap");
+        try {
+            PcLink.readAll(new java.io.ByteArrayInputStream(new byte[11]), 10);
+            check("readAll rejects over-cap responses", false, "allowed");
+        } catch (java.io.IOException e) {
+            check("readAll rejects over-cap responses", e.getMessage().contains("too large"), e.getMessage());
+        }
         System.out.println(fails == 0 ? "PcLink: all passed" : "PcLink: " + fails + " failed");
         System.exit(fails == 0 ? 0 : 1);
     }

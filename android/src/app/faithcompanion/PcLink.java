@@ -119,8 +119,10 @@ final class PcLink {
             throw new IOException("wrong code (or that's not your PC)");
         // step 2: now the certificate is trusted; prove the code ourselves and get our key
         HttpsURLConnection c2 = open(host, port, "/v1/pair/finish", fpHex, null, 8000);
-        post(c2, ("{\"nc\":\"" + b64(nc) + "\",\"ns\":\"" + b64(ns) + "\",\"mac\":\"" + b64(mac(key, "client", nc, ns, fp))
-            + "\",\"name\":" + quote(phoneName) + "}").getBytes(StandardCharsets.UTF_8));
+        try {
+            post(c2, ("{\"nc\":\"" + b64(nc) + "\",\"ns\":\"" + b64(ns) + "\",\"mac\":\"" + b64(mac(key, "client", nc, ns, fp))
+                + "\",\"name\":" + quote(phoneName) + "}").getBytes(StandardCharsets.UTF_8));
+        } catch (IOException | RuntimeException e) { c2.disconnect(); throw e; }
         String t = str(readText(c2), "token");
         if (t == null || t.isEmpty()) throw new IOException("the PC didn't send a key");
         PcLink l = new PcLink(host, port, fpHex, t, host);
@@ -230,10 +232,16 @@ final class PcLink {
         try (InputStream in = c.getErrorStream()) { if (in == null) return ""; String e = str(new String(readAll(in), StandardCharsets.UTF_8), "error"); return e == null ? "" : e; }
         catch (IOException e) { return ""; }
     }
-    private static byte[] readAll(InputStream in) throws IOException {
+    static final int MAX_BODY = 16 * 1024 * 1024;
+    static byte[] readAll(InputStream in) throws IOException { return readAll(in, MAX_BODY); }
+    static byte[] readAll(InputStream in, int maxBytes) throws IOException {
         ByteArrayOutputStream b = new ByteArrayOutputStream();
-        byte[] buf = new byte[16384]; int n;
-        while ((n = in.read(buf)) > 0) b.write(buf, 0, n);
+        byte[] buf = new byte[16384]; int n, total = 0;
+        while ((n = in.read(buf)) > 0) {
+            total += n;
+            if (total > maxBytes) throw new IOException("response from PC is too large");
+            b.write(buf, 0, n);
+        }
         return b.toByteArray();
     }
     static String str(String json, String key) {
@@ -269,6 +277,7 @@ final class PcLink {
         return m.find() ? m.group(1) : "0";
     }
     static String quote(String s) {
+        if (s == null) return "\"\"";
         StringBuilder sb = new StringBuilder("\"");
         for (char ch : s.toCharArray()) {
             if (ch == '"' || ch == '\\') sb.append('\\').append(ch);
