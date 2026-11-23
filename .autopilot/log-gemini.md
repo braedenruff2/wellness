@@ -109,3 +109,27 @@
   - Added `Sign in to Gemini.bat` and updated `README.md`.
 - Added unit and end-to-end tests in `pc/test/test_pc.py` (reset schedule across Wed/Mon & DST, fallback on same request, staying on Gemini without calling Claude, tool mapping, both-exhausted -> Mon Gemini reset -> Wed Claude reset, and missing-Gemini error) and `modules/link/tests/e2e.cjs`.
 - Tested: full `node tests/run-all.cjs` (all 58 suites passed, 0 skipped).
+
+## 2026-11-23 17:55 AST (Tasks 61–63, Android Voices/MainActivity/PcLink hardening, UI/lifecycle/a11y fixes)
+- Done 63 (`89f4e83`): `FCCore.journalText` now sorts journal entries by `Date.parse(at)` (handling mixed timezone offsets) and trims answered prayer notes; added unit tests in `modules/faith/tests/unit.cjs`.
+- Done 62 (`dea5892`): `FCTodoTicked` in `app/www/modules/todo/todo.js` now calls `syncAlarms()` even when `got.length === 0` so repeating reminders stay topped up; added test in `modules/todo/tests/e2e-remind.cjs`.
+- Done 61 (`97aada8`): added `historyWithSets` in `app/www/modules/workout/workout-core.js` so 0-set imported sheet rows never count as workout days across `weekStats`, `fourWeeks`, `offerTwo`, `today`, `coach`, `restThisWeek`, and `importSheetCsv`; added unit tests in `modules/workout/tests/unit.cjs`.
+- Fixed (`019fb13`): added `stopAudio()` token/timer guard and registered `leave: stopAudio` in `app/www/modules/tagalog/tagalog.js` so "Listen while walking" and "Play all" cancel cleanly on stop, restart, route, or leaving a lesson; added e2e test in `modules/tagalog/tests/e2e.cjs`.
+- Fixed (`85edbfb`): reused a single `AudioContext` in `app/www/modules/workout/workout.js` `beep()` (preventing WebView's 6-context hardware cap) and resumed suspended `AudioContext` in `beep()`, `shell.js` `bell()`, and `tick()`; added test in `modules/workout/tests/e2e-alarm.cjs`.
+- Fixed (`7f88535`): `app/www/modules/calm/calm.js` now persists the after-stress rating immediately on tap (so pressing Back never loses it); removed a dead 30 s `selectOption` timeout in `tests/e2e-logday.cjs` (cut suite time from 31.7 s to 1.7 s).
+- Fixed (`fcac672`):
+  - `android/src/app/faithcompanion/Voices.java`: replaced blocking `q.put(...)` with `offerWhile(...)` + `q.clear()` on exit so stopping/pausing/skipping during multi-sentence speech never leaks a blocked producer thread or PCM buffers, and updated `AudioTrack` speed when switching between PC voice and Kokoro mid-passage.
+  - `android/src/app/faithcompanion/MainActivity.java`: cleared `web = null` and `tts = null` in `onDestroy()`, guarded `web != null` and `destroyed` across callbacks, and deleted orphan MediaStore `Downloads` rows if `openOutputStream` fails in `saveFile()`.
+  - Added tests in `tests/java/app/faithcompanion/SpeechTest.java`.
+- Fixed (`4aa51c7`): `app/www/modules/me/me.js` saves `#me-ck-note` live on `input` (not only `change`) and filters empty check-ins out of "Last 7 check-ins"; `me-core.js` removes ghost day objects when all chips/notes are cleared; added unit + e2e tests.
+- Fixed (`25e96ba`): raised workout logged-set chips (`.sc.on`) in `app/www/style.css` to 44×44 px tap targets using a clean `::before` visual pill matching `.tick-box`; guarded `workout-core.js` `logSet`/`editSet` against `NaN`/negative weights; expanded `tests/e2e-a11y.cjs` to cover `#faith/settings`, `#workout/history`, `#workout/settings`, `#tagalog/words`, `#tagalog/settings`, and active `.sc.on` chips at 1.3x.
+- Fixed (`c439c1d`): fixed cloud-advice race in `app/www/modules/link/link.js` (prevented overwriting `P.advice` with `{ waiting: 0 }` when a cloud answer arrives mid-request) and skipped empty legacy check-ins in `app/www/lib/activity.js`; added tests in `modules/link/tests/unit.cjs` and `tests/e2e-cloud.cjs`.
+- Fixed (`d5415ef`): `app/www/modules/faith/faith.js` now cancels the 1.2 s bell-start timer and saves any pending unsaved `#dj` day reflection in `leave()`; added e2e tests in `modules/faith/tests/e2e.cjs`.
+- Fixed (`d498b27`): `android/src/app/faithcompanion/PcLink.java` guards `quote(null)`, disconnects on pair step-2 errors, and caps `readAll` at 16 MB; added tests in `tests/java/app/faithcompanion/PcLinkTest.java`.
+- Fixed (`3dcdb49`): `app/www/shell.js` validates `wl.shell.v1` in `restoreText()`, revokes download Blob URLs, and only records `SH.lastBackup` when `saveFile()` succeeds; added tests in `tests/e2e-shell.cjs`.
+- Fixed (`4665541`): `pc/wellness_pc.py` preserves `subprocess.TimeoutExpired` when Gemini backup times out (so `Jobs._run` returns a clean timeout message without leaking CLI paths); `tools/cloud-answer.cjs` detects `python`/`python3` cleanly on Windows and Linux.
+- Fixed (`2e9014f`): restricted `here()` in `app/www/modules/coach/coach.js` to `/^#coach\/?$/` so background/cloud answers never overwrite `#coach/setup` or `#coach/h/<id>`; added test in `tests/e2e-cloud.cjs`.
+- Fixed (`a9661a8`): `app/www/modules/todo/todo.js` schedules undated one-off edit-sheet reminders whose time already passed today for tomorrow (matching `quickParse`) and avoids CSS selector interpolation on `t.id`; `app/www/modules/faith/faith.js` `#j-search` searches entry content/date/kind without matching the `Delete` button label.
+- Added `[any]` tasks 64 (Workout Progress area filter chips), 65 (Faith Prayer list search + undo answered), and 66 (Calm recent sessions summary) to `.autopilot/cloud-plan.md`.
+- Tested: full `node tests/run-all.cjs` (all 58 suites passed, 0 skipped) after every code commit.
+- Next: claim and implement tasks 64–66 (`[any]`) in order.
