@@ -240,4 +240,41 @@ t('logging for an earlier week: weekStats, weekVolume and coach ignore sessions 
   s.history.push({ date: '2026-11-22', ex: 'Pushups', sets: [15, 15], w: null, from: 'sheet' });
   assert.ok(/Done for today/.test(W.coach(s, at(22, 18))), 'newer imported history recognised');
 });
+t('rest days with a reason: done for the day, kind coach line, not a workout, undo, validate', () => {
+  const s = W.defaults();
+  W.logSet(s, 'A', 0, 12, 10, at(19, 9)); W.endSession(s, at(19, 10)); // Thursday
+  // Sunday 22 Nov: busy, no workout
+  W.logRest(s, '2026-11-22', 'Busy day', at(22, 20));
+  assert.deepStrictEqual(W.today(s, at(22, 21)), { done: true, text: 'rest day (busy day)' });
+  assert.ok(/busy day isn’t a missed workout/.test(W.coach(s, at(22, 21))), W.coach(s, at(22, 21)));
+  assert.strictEqual(W.weekStats(s, at(22, 21)).thisWeek, 1, 'a rest day is not a workout');
+  assert.deepStrictEqual(W.restThisWeek(s, at(22, 21)), [{ date: '2026-11-22', why: 'Busy day' }]);
+  // the next day it's in the past: today() is the next workout again
+  assert.strictEqual(W.today(s, at(23, 9)).done, false);
+  // Sore: the line says normal + pain caveat; next day "two sets"
+  W.logRest(s, '2026-11-23', 'Sore', at(23, 9));
+  assert.ok(/normal/.test(W.coach(s, at(23, 10))) && /doctor or physio/.test(W.coach(s, at(23, 10))));
+  assert.ok(/two sets of each/.test(W.coach(s, at(24, 9))), W.coach(s, at(24, 9)));
+  // changing the reason replaces it and remembers the old one as removed (so the PC drops it)
+  const first = s.rest['2026-11-23'].at;
+  W.logRest(s, '2026-11-23', 'Tired', at(23, 11));
+  assert.strictEqual(W.restOn(s, '2026-11-23'), 'Tired');
+  assert.deepStrictEqual(s.restRemoved, [{ date: '2026-11-23', at: first }]);
+  assert.ok(W.clearRest(s, '2026-11-23')); assert.strictEqual(W.restOn(s, '2026-11-23'), null);
+  assert.ok(!W.clearRest(s, '2026-11-23'));
+  assert.throws(() => W.logRest(s, '2026-11-23', 'Lazy'));
+  // a busy week names the rest days
+  const b = W.defaults(); W.logRest(b, '2026-11-26', 'Busy day', at(26, 9)); W.logRest(b, '2026-11-27', 'Sick', at(27, 9));
+  assert.ok(/rest days logged/.test(W.coach(b, at(28, 18))) || /Rest until/.test(W.coach(b, at(28, 18))), W.coach(b, at(28, 18)));
+  assert.ok(/2 rest days logged/.test(W.coach(b, at(29, 9))), W.coach(b, at(29, 9)));
+  // a workout on the same day wins over a rest day
+  W.logSet(b, 'A', 0, 12, 10, at(27, 18)); W.endSession(b, at(27, 18, 30));
+  assert.deepStrictEqual(W.restThisWeek(b, at(29, 9)), [{ date: '2026-11-26', why: 'Busy day' }]);
+  // validate keeps good entries, drops bad ones; old saves without rest still load
+  const v = W.validate(JSON.parse(JSON.stringify(Object.assign(s, { rest: { '2026-11-22': { why: 'Busy day', at: at(22, 20).toISOString() }, 'x': { why: 'Sore', at: 'y' }, '2026-11-21': { why: 'Nope', at: at(21, 1).toISOString() } } }))));
+  assert.deepStrictEqual(Object.keys(v.rest), ['2026-11-22']);
+  assert.strictEqual(v.restRemoved.length, 2, "the Sore and Tired entries were undone");
+  const old = W.validate({ sessions: [] }); assert.strictEqual(old.rest, undefined); assert.strictEqual(W.restOn(old, '2026-11-22'), null);
+  assert.deepStrictEqual(W.restThisWeek(old, at(22, 9)), []);
+});
 console.log(n + ' workout unit tests passed');

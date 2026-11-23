@@ -47,6 +47,13 @@
     var M = window.WLMe, co = W.coach(S, now());
     h += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + day, co) : '') + '</p>';
     if (M) h += M.planLine('workout');
+    var dIso = W.iso(now()), worked = S.sessions.some(function (x) { return x.date === dIso && x.sets && x.sets.length; });
+    if (!open && !worked) {
+      var rw = W.restOn(S, dIso);
+      h += rw ? '<div class="card ui" id="wo-rest"><div class="row"><span class="grow">Rest day logged: <b>' + esc(rw) + '</b></span><button class="link" id="wo-rest-undo">Undo</button></div></div>'
+        : '<details class="ui" id="wo-rest"><summary class="meta">Not training today?</summary><div class="chips" style="margin-top:6px">' + W.REST_REASONS.map(function (r) {
+          return '<button class="chip" data-rest="' + esc(r) + '">' + esc(r) + '</button>'; }).join('') + '</div><p class="meta">It’s kept as a rest day with your reason, not a missed workout.</p></details>';
+    }
     if (!open) h += '<div class="chips ui" style="margin-bottom:10px">' + W.ORDER.map(function (d) {
       return '<button class="chip" data-day="' + d + '" aria-pressed="' + (d === day) + '">' + W.PROGRAM[d].title.replace('Full body ', 'Day ') + '</button>';
     }).join('') + '</div>';
@@ -116,6 +123,8 @@
   function wireToday() {
     $$('[data-day]').forEach(function (b) { b.onclick = function () { dayChoice = b.dataset.day; renderToday(); }; });
     var dy = $('#wo-db-yes'); if (dy) dy.onclick = function () { S.equipment = 'adjustable'; save(); WL.toast('Switched to adjustable dumbbells'); renderToday(); };
+    $$('[data-rest]').forEach(function (b) { b.onclick = function () { W.logRest(S, W.iso(now()), b.dataset.rest, new Date()); save(); renderToday(); if (WL.refreshToday) WL.refreshToday(); }; });
+    var ru = $('#wo-rest-undo'); if (ru) ru.onclick = function () { W.clearRest(S, W.iso(now())); save(); renderToday(); if (WL.refreshToday) WL.refreshToday(); };
     var dn = $('#wo-db-no'); if (dn) dn.onclick = function () { S.dbAsked = W.iso(new Date()); save(); renderToday(); };
     $$('.ex').forEach(function (card) {
       var idx = +card.dataset.i, val = card.querySelector('.val');

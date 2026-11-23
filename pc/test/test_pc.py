@@ -315,6 +315,17 @@ req("POST", "/v1/activity", {"events": [
     {"id": "todo/done/t1/e300", "at": today + "T10:20:00-04:00", "part": "todo", "kind": "done", "text": "x"}]}, token=token)
 ends = [e for e in W.recent_events(7) if e["id"].startswith("workout/end/s9")]
 check("finished again: only the newest end counts", [e["data"]["sets"] for e in ends] == [12], ends)
+# rest days he logged with a reason: in the summary as "not missed"; one undone (/x) is dropped
+r1, r2 = "workout/rest/" + today + "/" + today + "T20:00:00.000Z", "workout/rest/" + today + "/" + today + "T19:00:00.000Z"
+req("POST", "/v1/activity", {"events": [
+    {"id": r2, "at": today + "T12:00:00-04:00", "part": "workout", "kind": "rest-day", "text": "Tired", "data": {"date": today, "why": "Tired"}},
+    {"id": r2 + "/x", "at": today + "T12:00:00-04:00", "part": "workout", "kind": "rest-removed"},
+    {"id": r1, "at": today + "T12:00:00-04:00", "part": "workout", "kind": "rest-day", "text": "Busy day", "data": {"date": today, "why": "Busy day"}}]}, token=token)
+rests = [e for e in W.recent_events(7) if e["id"].startswith("workout/rest/")]
+check("rest day: the undone one and its /x are dropped", [e["data"]["why"] for e in rests] == ["Busy day"], rests)
+summ = W.summarize(7)
+check("summary: rest days named as not missed", "rest days he logged on purpose (not missed workouts): " + today + " Busy day" in summ and "Tired" not in summ, summ)
+check("prompts: rest days are never 'inconsistent'", all("never call him inconsistent" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", f), encoding="utf-8").read() for f in ("weekly-plan.md", "advice.md")))
 req("POST", "/v1/activity", {"events": [
     {"id": "calm/" + today + "T12:00:00.000Z/body", "at": today + "T12:00:00.000Z", "part": "calm", "kind": "session", "data": {"practice": "body", "mins": 8, "before": 4, "after": None}},
     {"id": "calm/" + today + "T12:00:00.000Z/body/e500", "at": today + "T12:00:00.000Z", "part": "calm", "kind": "session", "data": {"practice": "body", "mins": 8, "before": 4, "after": 2}}]}, token=token)

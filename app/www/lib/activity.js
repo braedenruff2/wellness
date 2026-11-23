@@ -76,6 +76,14 @@
         out.push({ id: 'workout/end/' + w.id + '/e' + Date.parse(w.end), at: w.end, part: 'workout', kind: 'workout-done', text: 'Day ' + w.day, data: { day: w.day, sets: w.sets.length, mins: isNaN(mins) ? null : mins } });
       }
     });
+    // rest days he logged with a reason (not missed workouts); an undone one comes again as <id>/x and the PC drops it
+    Object.keys(s.rest || {}).forEach(function (d) {
+      var r = s.rest[d]; if (!r || !okDate(r.at) || !/^\d{4}-\d\d-\d\d$/.test(d)) return;
+      out.push({ id: 'workout/rest/' + d + '/' + r.at, at: localNoon(d), part: 'workout', kind: 'rest-day', text: String(r.why || '').slice(0, 40), data: { date: d, why: r.why } });
+    });
+    (s.restRemoved || []).forEach(function (r) {
+      if (r && okDate(r.at) && /^\d{4}-\d\d-\d\d$/.test(r.date)) out.push({ id: 'workout/rest/' + r.date + '/' + r.at + '/x', at: localNoon(r.date), part: 'workout', kind: 'rest-removed' });
+    });
   };
 
   /* Tagalog (wl.tagalog.v1): lessons finished, every exercise answer, every review card. */
@@ -177,6 +185,7 @@
       case 'faith/prayer-answered': return 'Faith: a prayer answered';
       case 'calm/session': return 'Calm: ' + (e.text || 'session') + ' ' + (d.mins || 0) + ' min' + (d.before && d.after ? ', stress ' + d.before + '→' + d.after : '');
       case 'workout/set': return 'Move: ' + d.ex + ' set ' + d.n + ': ' + d.val + (d.w ? ' @ ' + d.w + ' lb' : '');
+      case 'workout/rest-day': return 'Move: rest day (' + (d.why || e.text || '') + ')';
       case 'workout/workout-done': return 'Move: finished workout ' + (d.day || '') + ' (' + d.sets + ' sets' + (d.mins != null ? ', ' + d.mins + ' min' : '') + ')';
       case 'tagalog/lesson': return 'Tagalog: finished lesson ' + e.text;
       case 'tagalog/answer': return 'Tagalog: ' + (d.ok ? '✓ ' : '✗ ') + cut(d.prompt, 60);

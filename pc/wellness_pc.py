@@ -422,6 +422,11 @@ def summarize(days=7, today=None):
                 ex.setdefault(dd.get("ex", "?"), []).append(dd)
             extra = "; " + "; ".join(f"{name}: " + ", ".join(str(x.get("val")) + (f"@{x.get('w')}lb" if x.get("w") else "") for x in v[-6:])
                                      for name, v in list(ex.items())[:10]) if ex else ""
+            rests = [e for e in es if e["kind"] == "rest-day"]
+            if rests:
+                d = len({local_day(e["at"]) for e in es if e["kind"] != "rest-day"})
+                extra += ("; rest days he logged on purpose (not missed workouts): "
+                          + ", ".join(f"{(e.get('data') or {}).get('date') or local_day(e['at'])} {(e.get('data') or {}).get('why') or e.get('text', '')}" for e in rests[-10:]))
         elif part == "tagalog":
             ans = [e for e in es if e["kind"] in ("answer", "review")]
             ok = [e for e in ans if (e.get("data") or {}).get("ok") or (e.get("data") or {}).get("right")]

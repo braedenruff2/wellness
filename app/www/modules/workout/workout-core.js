@@ -5,7 +5,8 @@
    - Progression: with the 10 lb pair, hitting the top of the range on every set means "make it harder" (tempo,
      pauses, a harder variation); with adjustable dumbbells it means "add weight" (double progression).
    Storage key 'wl.workout.v1': { equipment, weights:{name:lb}, sessions:[{id, date, day, start, end, sets:[{ex, n, val, w, at}]}],
-                                  history:[...imported rows], next: {name: variation note he switched to} }. */
+                                  history:[...imported rows], next: {name: variation note he switched to},
+                                  rest: {date: {why, at}} days he chose not to train and why, restRemoved: [{date, at}] (undone; the PC drops them) }. */
 (function (root) {
   'use strict';
   var WLD = root.WLDates || require('../../lib/dates.js');
@@ -62,6 +63,41 @@
   };
   var ORDER = ['A', 'B', 'C'];
   var TRANSITION = 20, WEEK_TARGET = 3, LATE_HOURS = 6;
+
+  /* A day he chose not to train, and why (he asked not to be marked "inconsistent" for days with no time). A rest day
+     with a reason counts as done for that day; it never adds to the week's workouts. */
+  var REST_REASONS = ['Busy day', 'Sore', 'Tired', 'Sick', 'Planned rest'];
+  function restOn(state, day) { var r = state.rest && state.rest[day]; return r && r.why ? r.why : null; }
+  function logRest(state, day, why, now) {
+    if (REST_REASONS.indexOf(why) < 0) throw new Error('Unknown reason');
+    clearRest(state, day);
+    if (!state.rest) state.rest = {};
+    state.rest[day] = { why: why, at: (now || new Date()).toISOString() };
+    return state.rest[day];
+  }
+  function clearRest(state, day) {
+    var r = state.rest && state.rest[day]; if (!r) return false;
+    delete state.rest[day];
+    if (!Array.isArray(state.restRemoved)) state.restRemoved = [];
+    state.restRemoved.push({ date: day, at: r.at });
+    state.restRemoved = state.restRemoved.slice(-60);
+    return true;
+  }
+  /* Rest days logged in the Monday-to-Sunday week of now: [{date, why}] (only days without a workout). */
+  function restThisWeek(state, now) {
+    now = now || new Date();
+    var ws = weekStart(now), a = iso(ws), b = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + 7)), t = iso(now);
+    var worked = {}; sessionsWithSets(state).forEach(function (s) { worked[s.date] = 1; });
+    return Object.keys(state.rest || {}).sort().filter(function (d) { return d >= a && d < b && d <= t && !worked[d] && restOn(state, d); })
+      .map(function (d) { return { date: d, why: state.rest[d].why }; });
+  }
+  var REST_LINES = {
+    'Busy day': 'Rest day logged: a busy day isn’t a missed workout. The next one picks up where you left off.',
+    'Sore': 'Sore muscles a day or two after a workout are normal when you’re getting back into it. A walk or gentle stretching helps; train again when moving feels easy. Sharp or one-sided pain is different: rest it, and if it lasts, ask a doctor or physio.',
+    'Tired': 'Rest day logged. Sleep comes first; the next workout keeps.',
+    'Sick': 'Rest until you’re better. When you start again, do two sets of each.',
+    'Planned rest': 'Rest day. This is when the muscle actually grows.'
+  };
 
   function defaults() { return { equipment: 'fixed10', weights: {}, sessions: [], history: [], next: {} }; }
   var iso = WLD.iso;
@@ -307,10 +343,15 @@
     var open = openSession(state, now);
     if (open) return 'In progress: ' + open.sets.length + ' set' + (open.sets.length === 1 ? '' : 's') + ' so far. Keep going.';
     if (lastDate === iso(now)) return 'Done for today. Rest is when the muscle actually grows.';
+    var restToday = restOn(state, todayIso);
+    if (restToday) return REST_LINES[restToday];
+    var yIso = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
+    if (restOn(state, yIso) === 'Sore') return 'Still sore? Do two sets of each today and keep the weights the same; moving usually eases it. If it still hurts to move, rest one more day.';
     if (gap != null && gap > 10) return 'It’s been ' + gap + ' days. Start easy today: do two sets of each, not three.';
     if (st.thisWeek >= st.target) return 'Three this week. Anything more is a bonus: a stroller walk counts.';
     var left = st.target - st.thisWeek, daysLeft = 7 - dow;
-    if (left > daysLeft) return 'A busy week. One good workout still counts; don’t try to catch up all at once.';
+    var rests = restThisWeek(state, now).length;
+    if (left > daysLeft) return 'A busy week' + (rests ? ' (' + rests + ' rest day' + (rests === 1 ? '' : 's') + ' logged)' : '') + '. One good workout still counts; don’t try to catch up all at once.';
     return st.thisWeek + ' of ' + st.target + ' this week. ' + (st.streak >= 2 ? st.streak + ' good weeks in a row.' : 'About 30 minutes, any time today.');
   }
 
@@ -331,6 +372,8 @@
     var open = openSession(state, now);
     if (open) return { done: false, text: 'in progress (' + PROGRAM[open.day].title + ')' };
     if (dates[d]) return { done: true, text: 'workout done' };
+    var rd = restOn(state, d);
+    if (rd) return { done: true, text: 'rest day (' + rd.toLowerCase() + ')' };
     var st = weekStats(state, now);
     if (st.thisWeek >= st.target) return { done: true, text: st.target + ' this week, rest or a walk' };
     if (dates[y]) return { done: true, text: 'rest day (worked out yesterday)' };
@@ -387,6 +430,13 @@
     if (typeof s.dbAsked === 'string' && dateRe.test(s.dbAsked)) d.dbAsked = s.dbAsked;
     Object.keys(s.weights || {}).forEach(function (k) { if (EX[k] && typeof s.weights[k] === 'number') d.weights[k] = s.weights[k]; });
     Object.keys(s.next || {}).forEach(function (k) { if (EX[k] && typeof s.next[k] === 'string') d.next[k] = s.next[k]; });
+    if (s.rest && typeof s.rest === 'object') Object.keys(s.rest).sort().slice(-200).forEach(function (k) {
+      var r = s.rest[k]; if (dateRe.test(k) && r && REST_REASONS.indexOf(r.why) >= 0 && typeof r.at === 'string' && !isNaN(Date.parse(r.at))) { if (!d.rest) d.rest = {}; d.rest[k] = { why: r.why, at: r.at }; }
+    });
+    if (Array.isArray(s.restRemoved)) {
+      var rr = s.restRemoved.filter(function (r) { return r && dateRe.test(r.date) && typeof r.at === 'string' && !isNaN(Date.parse(r.at)); }).slice(-60).map(function (r) { return { date: r.date, at: r.at }; });
+      if (rr.length) d.restRemoved = rr;
+    }
     s.sessions.forEach(function (x) {
       if (!x || !dateRe.test(x.date) || !PROGRAM[x.day] || !Array.isArray(x.sets)) return;
       d.sessions.push({ id: String(x.id || newId()), date: x.date, day: x.day, start: String(x.start || ''), end: x.end ? String(x.end) : null,
@@ -404,7 +454,7 @@
     return d;
   }
 
-  var api = { askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
+  var api = { REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
     last: last, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     validate: validate, iso: iso };
