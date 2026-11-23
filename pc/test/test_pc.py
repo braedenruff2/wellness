@@ -1,7 +1,7 @@
 """Tests for the Wellness PC link (pc/wellness_pc.py): pairing, the activity log, Claude jobs (with a stand-in
 `claude` that answers like `claude -p --output-format json`), the summary, and the security checks.
 Runs a real server on a free port with temporary folders.   python pc/test/test_pc.py"""
-import datetime, hashlib, http.client, json, os, re, secrets, socket, ssl, stat, sys, tempfile, threading, time
+import datetime, hashlib, http.client, json, os, re, secrets, socket, ssl, stat, subprocess, sys, tempfile, threading, time
 
 # his PC's time zone (the phone sends UTC times; the PC files them by its local date)
 if hasattr(time, "tzset"):
@@ -560,6 +560,22 @@ ans, _, prov = W.run_ai("practical coach", "", now=wed_before)
 check("Wed 11:59: still on Gemini just before Claude noon reset", prov == "gemini", prov)
 ans, _, prov = W.run_ai("practical coach", "", now=wed_reset)
 check("Wed 12:00: Claude resets -> automatically back on Claude", prov == "claude", prov)
+
+# Gemini backup TimeoutExpired propagates cleanly (doesn't leak CLI command path via RuntimeError)
+W.write_json(W.AI_STATE_FILE, {})
+_orig_run_gemini = W.run_gemini
+def _timeout_gemini(prompt, tools):
+    raise subprocess.TimeoutExpired(["gemini", "-p"], 300)
+W.run_gemini = _timeout_gemini
+try:
+    W.run_ai("LIMIT-CLAUDE practical coach", "", now=thu)
+    check("Gemini backup timeout propagates TimeoutExpired cleanly", False)
+except subprocess.TimeoutExpired:
+    check("Gemini backup timeout propagates TimeoutExpired cleanly", True)
+except Exception as e:
+    check("Gemini backup timeout propagates TimeoutExpired cleanly", False, type(e).__name__ + ": " + str(e))
+finally:
+    W.run_gemini = _orig_run_gemini
 
 # Clean up Gemini state/env for remaining tests
 W.write_json(W.AI_STATE_FILE, {})

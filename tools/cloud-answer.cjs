@@ -12,11 +12,18 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const ROOT = path.join(__dirname, '..');
 const A = require(path.join(ROOT, 'app/www/lib/activity.js'));
 const C = require(path.join(ROOT, 'app/www/lib/sync-core.js'));
 const HEADER = ['id', 'task', 'answer-json', 'at'];
+let cachedPy = null;
+function pythonBin() {
+  if (cachedPy) return cachedPy;
+  const cands = process.platform === 'win32' ? ['python', 'python3'] : ['python3', 'python'];
+  for (const c of cands) { if (spawnSync(c, ['--version'], { stdio: 'ignore' }).status === 0) return (cachedPy = c); }
+  return (cachedPy = cands[0]);
+}
 
 function readSync(file) {
   const raw = fs.readFileSync(file, 'utf8').replace(/^﻿/, '');
@@ -47,7 +54,7 @@ function prepare(syncFile, work, csvOrNow, maybeNow) {
   fs.mkdirSync(path.join(work, 'answers'), { recursive: true });
   const journalText = !!(st['wl.pc.v1'] && st['wl.pc.v1'].journalText);
   const events = A.collect(st, { journalText }, now || new Date());
-  const filled = reqs.length ? JSON.parse(execFileSync('python3', [path.join(__dirname, 'cloud_prompts.py')], {
+  const filled = reqs.length ? JSON.parse(execFileSync(pythonBin(), [path.join(__dirname, 'cloud_prompts.py')], {
     input: JSON.stringify({ events, requests: reqs, work: path.resolve(work) }), encoding: 'utf8', maxBuffer: 64 << 20
   })) : {};
   const list = reqs.map((r) => {

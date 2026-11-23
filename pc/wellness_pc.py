@@ -794,6 +794,8 @@ def run_ai(prompt, tools, now=None):
             if claude_limited or claude_out:
                 raise UsageLimitError("Both Claude (resets Wednesday) and Gemini (resets Monday) have reached their usage limit for now.")
             raise
+        except subprocess.TimeoutExpired:
+            raise
         except Exception as ge:
             if claude_limited:
                 raise RuntimeError("Claude's usage limit is reached (resets Wednesday), and the Gemini backup failed: " + str(ge))
