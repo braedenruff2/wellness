@@ -292,4 +292,14 @@ t('early days back: after the first 1-2 workouts in 4 weeks, leave reps in reser
   // a long gap still says "start easy" first
   assert.ok(/It’s been/.test(W.coach(s, new Date(2026, 11, 10, 9))));
 });
+t('a rest day logged, then a workout the same day: the rest day is cleared (and marked removed for the PC)', () => {
+  const s = W.defaults();
+  W.logRest(s, '2026-11-24', 'Tired', at(24, 9));
+  W.logSet(s, 'A', 0, 10, 10, at(24, 19));
+  assert.strictEqual(W.restOn(s, '2026-11-24'), null);
+  assert.strictEqual(s.restRemoved.length, 1);
+  assert.deepStrictEqual(W.today(s, at(24, 20)), { done: false, text: 'in progress (Full body A)' });
+  W.logSet(s, 'A', 1, 10, null, at(24, 19, 5));
+  assert.strictEqual(s.restRemoved.length, 1, 'only once');
+});
 console.log(n + ' workout unit tests passed');

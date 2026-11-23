@@ -444,7 +444,8 @@ def summarize(days=7, today=None):
             done = [e.get("text", "") for e in es if e["kind"] == "done"]
             if done: extra = "; done: " + ", ".join(t for t in done[-8:] if t)
         lines.append(f"- {part}: {kinds(es)} on {d} day(s){extra}")
-    fb = [e for e in ev if e["kind"] in ("feedback", "not-for-me")]
+    # an answer he tapped and then un-tapped arrives as an empty one (newest wins on the PC): nothing to say about it
+    fb = [e for e in ev if e["kind"] == "not-for-me" or (e["kind"] == "feedback" and (e.get("text") or ((e.get("data") or {}).get("a") or {})))]
     if fb:
         lines.append("His quick answers (after things he did) and \"not for me\" flags, newest last:")
         for e in fb[-40:]:

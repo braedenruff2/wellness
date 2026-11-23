@@ -327,6 +327,9 @@ summ = W.summarize(7)
 check("summary: rest days named as not missed", "rest days he logged on purpose (not missed workouts): " + today + " Busy day" in summ and "Tired" not in summ, summ)
 check("prompts: rest days are never 'inconsistent'", all("never call him inconsistent" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", f), encoding="utf-8").read() for f in ("weekly-plan.md", "advice.md")))
 req("POST", "/v1/activity", {"events": [
+    {"id": "fb/calm/after/empty@x", "at": today + "T13:00:00-04:00", "part": "calm", "kind": "feedback", "data": {"about": "slow@emptycheck", "a": {}}}]}, token=token)
+check("summary: an un-tapped (empty) quick answer isn't listed", "slow@emptycheck" not in W.summarize(7), W.summarize(7))
+req("POST", "/v1/activity", {"events": [
     {"id": "calm/" + today + "T12:00:00.000Z/body", "at": today + "T12:00:00.000Z", "part": "calm", "kind": "session", "data": {"practice": "body", "mins": 8, "before": 4, "after": None}},
     {"id": "calm/" + today + "T12:00:00.000Z/body/e500", "at": today + "T12:00:00.000Z", "part": "calm", "kind": "session", "data": {"practice": "body", "mins": 8, "before": 4, "after": 2}}]}, token=token)
 cs = [e for e in W.recent_events(7) if e["id"].startswith("calm/" + today + "T12:00:00.000Z/body")]

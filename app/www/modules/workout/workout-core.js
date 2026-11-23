@@ -204,6 +204,7 @@
     var set = { i: idx, ex: item.ex, n: n, val: +val, w: weight == null || weight === '' ? null : +weight, at: now.toISOString() };
     s.sets.push(set);
     if (set.w != null) state.weights[item.ex] = set.w;
+    clearRest(state, s.date); // he trained after all: that day isn't a rest day any more (the PC drops it too)
     return { set: set, rest: n <= item.sets ? restInfo(day, idx, n) : { secs: 0, label: '' } };
   }
 
