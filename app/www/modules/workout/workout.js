@@ -13,9 +13,12 @@
   /* the phone's alarm for the rest's end (beeps with the screen off); the page beeps itself when on screen */
   function alarm() { var n = WL.native; if (n && n.restAlarm) try { n.restAlarm(rest ? Math.max(0, rest.end - Date.now()) : 0, rest ? rest.label : ''); } catch (e) {} }
 
+  var beepCtx = null;
   function beep() {
     try {
-      var ctx = new (window.AudioContext || window.webkitAudioContext)(), t = ctx.currentTime;
+      beepCtx = beepCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (beepCtx.state === 'suspended' && beepCtx.resume) beepCtx.resume();
+      var ctx = beepCtx, t = ctx.currentTime;
       for (var i = 0; i < 2; i++) {
         var o = ctx.createOscillator(), g = ctx.createGain(), s = t + i * 0.28;
         o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);

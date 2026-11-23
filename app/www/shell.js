@@ -131,28 +131,31 @@
   })();
 
   var audioCtx = null;
+  function getAudio() {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended' && audioCtx.resume) audioCtx.resume();
+    return audioCtx;
+  }
   function bell() {
     try {
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      var t = audioCtx.currentTime;
+      var ctx = getAudio(), t = ctx.currentTime;
       [528, 792, 1056].forEach(function (f, i) {
-        var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        var o = ctx.createOscillator(), g = ctx.createGain();
         o.type = 'sine'; o.frequency.value = f;
         g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.18 / (i + 1), t + 0.02);
         g.gain.exponentialRampToValueAtTime(0.0001, t + 3.5);
-        o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 3.6);
+        o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 3.6);
       });
     } catch (e) {}
   }
   /* A very soft, short tick (breathing pacers: each change of phase). pitch: 'up' | 'down' | 'hold'. */
   function tick(pitch) {
     try {
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      var t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      var ctx = getAudio(), t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'sine'; o.frequency.value = pitch === 'up' ? 660 : pitch === 'down' ? 440 : 550;
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.015);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
-      o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + 0.3);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.3);
     } catch (e) {}
   }
   function keepAwake(on) { if (native && native.keepAwake) try { native.keepAwake(!!on); } catch (e) {} }
