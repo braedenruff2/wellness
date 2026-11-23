@@ -422,7 +422,8 @@ def summarize(days=7, today=None):
             aim = f"he aims for {(sorted(tg, key=lambda e: e['at'])[-1].get('data') or {}).get('perWeek')} workouts a week (his setting)" if tg else ""
             if not es:
                 lines.append("- workout: nothing" + (f"; {aim}" if aim else "")); continue
-            d = len({local_day(e["at"]) for e in es})
+            # days he trained (a rest day or a soreness answer isn't one)
+            d = len({local_day(e["at"]) for e in es if e["kind"] not in ("rest-day", "sore")})
             sets = [e for e in es if e["kind"] == "set"]
             ex = {}
             for s in sets:
@@ -430,9 +431,11 @@ def summarize(days=7, today=None):
                 ex.setdefault(dd.get("ex", "?"), []).append(dd)
             extra = "; " + "; ".join(f"{name}: " + ", ".join(str(x.get("val")) + (f"@{x.get('w')}lb" if x.get("w") else "") for x in v[-6:])
                                      for name, v in list(ex.items())[:10]) if ex else ""
+            sore = [e for e in es if e["kind"] == "sore" and (e.get("data") or {}).get("level") in ("A bit", "Very")]
+            if sore:
+                extra += "; sore before a workout: " + ", ".join(f"{(e.get('data') or {}).get('date') or local_day(e['at'])} {(e['data'] or {}).get('level')}" for e in sore[-8:])
             rests = [e for e in es if e["kind"] == "rest-day"]
             if rests:
-                d = len({local_day(e["at"]) for e in es if e["kind"] != "rest-day"})
                 extra += ("; rest days he logged on purpose (not missed workouts): "
                           + ", ".join(f"{(e.get('data') or {}).get('date') or local_day(e['at'])} {(e.get('data') or {}).get('why') or e.get('text', '')}" for e in rests[-10:]))
             if aim: extra += "; " + aim

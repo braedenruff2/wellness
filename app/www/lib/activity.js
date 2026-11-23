@@ -76,6 +76,11 @@
         out.push({ id: 'workout/end/' + w.id + '/e' + Date.parse(w.end), at: w.end, part: 'workout', kind: 'workout-done', text: 'Day ' + w.day, data: { day: w.day, sets: w.sets.length, mins: isNaN(mins) ? null : mins } });
       }
     });
+    // "sore from last time?" before a workout (changed: a newer /e<ms> id, the PC keeps the newest)
+    Object.keys(s.sore || {}).forEach(function (d) {
+      var x = s.sore[d]; if (!x || !okDate(x.at) || !/^\d{4}-\d\d-\d\d$/.test(d)) return;
+      out.push({ id: 'workout/sore/' + d + '/e' + Date.parse(x.at), at: localNoon(d), part: 'workout', kind: 'sore', text: String(x.level || '').slice(0, 10), data: { date: d, level: x.level } });
+    });
     // rest days he logged with a reason (not missed workouts); an undone one comes again as <id>/x and the PC drops it
     Object.keys(s.rest || {}).forEach(function (d) {
       var r = s.rest[d]; if (!r || !okDate(r.at) || !/^\d{4}-\d\d-\d\d$/.test(d)) return;
@@ -192,6 +197,7 @@
       case 'calm/session': return 'Calm: ' + (e.text || 'session') + ' ' + (d.mins || 0) + ' min' + (d.before && d.after ? ', stress ' + d.before + '→' + d.after : '');
       case 'workout/set': return 'Move: ' + d.ex + ' set ' + d.n + ': ' + d.val + (d.w ? ' @ ' + d.w + ' lb' : '');
       case 'workout/target': return 'Move: aiming for ' + d.perWeek + ' workouts a week';
+      case 'workout/sore': return 'Move: sore from last time: ' + (d.level || e.text || '');
       case 'workout/rest-day': return 'Move: rest day (' + (d.why || e.text || '') + ')';
       case 'workout/workout-done': return 'Move: finished workout ' + (d.day || '') + ' (' + d.sets + ' sets' + (d.mins != null ? ', ' + d.mins + ' min' : '') + ')';
       case 'tagalog/lesson': return 'Tagalog: finished lesson ' + e.text;

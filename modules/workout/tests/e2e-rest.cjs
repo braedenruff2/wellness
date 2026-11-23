@@ -69,6 +69,19 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.reload(); await page.waitForSelector('h1');
     assert.strictEqual(!!(await page.$('#wo-two')), false);
   });
+  await t.step('the day after a workout: "Sore from last time?" -> Very gives the two-sets line; asked once a day', async () => {
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.workout.v1'));
+      s.sessions = [{ id: 'x1', date: '2026-11-22', day: 'A', start: '2026-11-22T14:00:00.000Z', end: '2026-11-22T14:30:00.000Z', sets: [{ i: 0, ex: 'Bulgarian Split Squats', n: 1, val: 12, w: 10, at: '2026-11-22T14:05:00.000Z' }] }];
+      s.rest = {}; s.sore = {}; localStorage.setItem('wl.workout.v1', JSON.stringify(s));
+    });
+    await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('#wo-sore');
+    await page.click('[data-sore="Very"]');
+    assert.strictEqual(!!(await page.$('#wo-sore')), false);
+    assert.ok(/Very sore today: do two sets of each/.test(await page.textContent('main')));
+    await page.reload(); await page.waitForSelector('h1');
+    assert.strictEqual(!!(await page.$('#wo-sore')), false, 'not asked again today');
+  });
   await t.step('no overflow, no errors', async () => {
     await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.workout.v1')); s.sessions = []; s.rest = {}; localStorage.setItem('wl.workout.v1', JSON.stringify(s)); });
     await t.noOverflow(['#workout']);

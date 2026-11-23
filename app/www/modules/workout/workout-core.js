@@ -109,6 +109,25 @@
     return Object.keys(state.rest || {}).sort().filter(function (d) { return d >= a && d < b && d <= t && !worked[d] && restOn(state, d); })
       .map(function (d) { return { date: d, why: state.rest[d].why }; });
   }
+  /* "Sore from last time?" before a workout, 1-3 days after the last one: {date: {level, at}}. */
+  var SORE_LEVELS = ['No', 'A bit', 'Very'];
+  function askSore(state, now) {
+    now = now || new Date();
+    var d = iso(now);
+    if (openSession(state, now) || (state.sore && state.sore[d]) || restOn(state, d)) return false;
+    var done = sessionsWithSets(state).filter(function (x) { return x.date <= d; });
+    if (!done.length || done[done.length - 1].date === d) return false;
+    var gap = Math.round((new Date(d) - new Date(done[done.length - 1].date)) / 864e5);
+    return gap >= 1 && gap <= 3;
+  }
+  function setSore(state, day, level, now) {
+    if (SORE_LEVELS.indexOf(level) < 0) throw new Error('Unknown level');
+    if (!state.sore) state.sore = {};
+    state.sore[day] = { level: level, at: (now || new Date()).toISOString() };
+    var ks = Object.keys(state.sore).sort(); if (ks.length > 120) ks.slice(0, ks.length - 120).forEach(function (k) { delete state.sore[k]; });
+    return state.sore[day];
+  }
+  function soreOn(state, day) { var x = state.sore && state.sore[day]; return x ? x.level : null; }
   var REST_LINES = {
     'Busy day': 'Rest day logged: a busy day isn’t a missed workout. The next one picks up where you left off.',
     'Sore': 'Sore muscles a day or two after a workout are normal when you’re getting back into it. A walk or gentle stretching helps; train again when moving feels easy. Sharp or one-sided pain is different: rest it, and if it lasts, ask a doctor or physio.',
@@ -377,6 +396,9 @@
     if (lastDate === iso(now)) return 'Done for today. Rest is when the muscle actually grows.';
     var restToday = restOn(state, todayIso);
     if (restToday) return REST_LINES[restToday];
+    var soreToday = soreOn(state, todayIso);
+    if (soreToday === 'Very') return 'Very sore today: do two sets of each and keep the weights the same, or make it a rest day (“Not training today?” › Sore). Moving gently usually helps it ease.';
+    if (soreToday === 'A bit') return 'A bit sore is normal: warm up well and it usually eases once you’re moving.';
     var yIso = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
     if (restOn(state, yIso) === 'Sore') return 'Still sore? Do two sets of each today and keep the weights the same; moving usually eases it. If it still hurts to move, rest one more day.';
     if (gap != null && gap > 10) return 'It’s been ' + gap + ' days. Start easy today: do two sets of each, not three.';
@@ -472,6 +494,9 @@
     if (s.rest && typeof s.rest === 'object') Object.keys(s.rest).sort().slice(-200).forEach(function (k) {
       var r = s.rest[k]; if (dateRe.test(k) && r && REST_REASONS.indexOf(r.why) >= 0 && typeof r.at === 'string' && !isNaN(Date.parse(r.at))) { if (!d.rest) d.rest = {}; d.rest[k] = { why: r.why, at: r.at }; }
     });
+    if (s.sore && typeof s.sore === 'object') Object.keys(s.sore).sort().slice(-120).forEach(function (k) {
+      var x = s.sore[k]; if (dateRe.test(k) && x && SORE_LEVELS.indexOf(x.level) >= 0 && typeof x.at === 'string' && !isNaN(Date.parse(x.at))) { if (!d.sore) d.sore = {}; d.sore[k] = { level: x.level, at: x.at }; }
+    });
     if (Array.isArray(s.restRemoved)) {
       var rr = s.restRemoved.filter(function (r) { return r && dateRe.test(r.date) && typeof r.at === 'string' && !isNaN(Date.parse(r.at)); }).slice(-60).map(function (r) { return { date: r.date, at: r.at }; });
       if (rr.length) d.restRemoved = rr;
@@ -493,7 +518,7 @@
     return d;
   }
 
-  var api = { fourWeeks: fourWeeks, targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
+  var api = { fourWeeks: fourWeeks, SORE_LEVELS: SORE_LEVELS, askSore: askSore, setSore: setSore, soreOn: soreOn, targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
     last: last, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     validate: validate, iso: iso };

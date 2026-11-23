@@ -347,4 +347,23 @@ t('fourWeeks: 28 days Monday 3 weeks ago to this Sunday; workout / rest with rea
   // DST end (1 Nov 2026 in North America) inside the window: still 28 distinct dates
   const g = W.fourWeeks(s, at(16, 9)); assert.strictEqual(new Set(g.map((d) => d.date)).size, 28); assert.strictEqual(g[0].date, '2026-10-26');
 });
+t('"Sore from last time?": asked 1-3 days after a workout, once a day, not on a rest day; Very/A bit shape the coach line', () => {
+  const s = W.defaults();
+  assert.ok(!W.askSore(s, at(20, 9)), 'no workout yet');
+  W.logSet(s, 'A', 0, 17, 10, at(19, 9)); W.endSession(s, at(19, 10));
+  assert.ok(!W.askSore(s, at(19, 12)), 'same day');
+  assert.ok(W.askSore(s, at(20, 9)) && W.askSore(s, at(22, 9)), 'days 1-3');
+  assert.ok(!W.askSore(s, at(23, 9)), '4 days later');
+  W.setSore(s, '2026-11-21', 'Very', at(21, 9));
+  assert.ok(!W.askSore(s, at(21, 10)), 'answered today');
+  assert.ok(/Very sore today/.test(W.coach(s, at(21, 10))), W.coach(s, at(21, 10)));
+  W.setSore(s, '2026-11-21', 'A bit', at(21, 11));
+  assert.ok(/A bit sore is normal/.test(W.coach(s, at(21, 12))));
+  W.setSore(s, '2026-11-21', 'No', at(21, 12));
+  assert.ok(!/Very sore|A bit sore/.test(W.coach(s, at(21, 13))), W.coach(s, at(21, 13)));
+  W.logRest(s, '2026-11-22', 'Busy day', at(22, 8)); assert.ok(!W.askSore(s, at(22, 9)), 'not on a rest day');
+  assert.throws(() => W.setSore(s, '2026-11-22', 'Extremely'));
+  const v = W.validate(JSON.parse(JSON.stringify(Object.assign({}, s, { sore: Object.assign({}, s.sore, { bad: { level: 'Very', at: 'x' }, '2026-11-01': { level: 'Huge', at: at(1, 1).toISOString() } }) }))));
+  assert.deepStrictEqual(Object.keys(v.sore), ['2026-11-21']); assert.strictEqual(v.sore['2026-11-21'].level, 'No');
+});
 console.log(n + ' workout unit tests passed');

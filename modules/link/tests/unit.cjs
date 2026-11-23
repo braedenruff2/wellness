@@ -24,6 +24,7 @@ function states() {
   const w = WK.defaults();
   const day = WK.nextDay(w, at(9));
   WK.logSet(w, day, 0, 18, null, at(9, 1)); WK.logSet(w, day, 0, 16, null, at(9, 4)); WK.endSession(w, at(9, 30));
+  WK.setSore(w, '2026-11-18', 'A bit', at(8)); WK.setSore(w, '2026-11-18', 'Very', at(8, 5));
   WK.logRest(w, '2026-11-17', 'Busy day', at(10, 20)); WK.logRest(w, '2026-11-18', 'Sore', at(11, 8)); WK.clearRest(w, '2026-11-18');
   const g = TG.defaults();
   const pack = { id: '2026-11-18' }, lesson = { day: 1, words: [{ tl: 'salamat', en: 'thank you' }] };
@@ -61,6 +62,8 @@ t('collect: every part, oldest first, unique ids', () => {
   assert.strictEqual(new Set(ev.map((e) => e.id)).size, ev.length);
   const rd = ev.filter((e) => e.kind === 'rest-day'), rx = ev.filter((e) => e.kind === 'rest-removed');
   assert.deepStrictEqual(rd.map((e) => [e.data.date, e.data.why]), [['2026-11-17', 'Busy day']]);
+  const so = ev.filter((e) => e.kind === 'sore');
+  assert.deepStrictEqual(so.map((e) => e.data.level), ['Very']); assert.ok(/^workout\/sore\/2026-11-18\/e\d+$/.test(so[0].id), so[0].id);
   // the undone one: only its /x goes (the PC drops the rest day it may already have)
   assert.strictEqual(rx.length, 1); assert.ok(/^workout\/rest\/2026-11-18\/.+\/x$/.test(rx[0].id), rx[0].id);
   assert.strictEqual(A.describe ? A.describe(rd[0]).indexOf('Move: rest day (') : 0, 0);

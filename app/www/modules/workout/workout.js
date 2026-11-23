@@ -48,6 +48,8 @@
     h += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + day, co) : '') + '</p>';
     if (M) h += M.planLine('workout');
     var dIso = W.iso(now()), worked = S.sessions.some(function (x) { return x.date === dIso && x.sets && x.sets.length; });
+    if (W.askSore(S, now())) h += '<div class="card ui" id="wo-sore"><div class="meta">Sore from last time? (optional)</div><div class="chips">' + W.SORE_LEVELS.map(function (l) {
+      return '<button class="chip" data-sore="' + esc(l) + '">' + esc(l) + '</button>'; }).join('') + '</div></div>';
     if (!open && !worked) {
       var rw = W.restOn(S, dIso);
       h += rw ? '<div class="card ui" id="wo-rest"><div class="row"><span class="grow">Rest day logged: <b>' + esc(rw) + '</b></span><button class="link" id="wo-rest-undo">Undo</button></div></div>'
@@ -126,6 +128,7 @@
     $$('[data-day]').forEach(function (b) { b.onclick = function () { dayChoice = b.dataset.day; renderToday(); }; });
     var dy = $('#wo-db-yes'); if (dy) dy.onclick = function () { S.equipment = 'adjustable'; save(); WL.toast('Switched to adjustable dumbbells'); renderToday(); };
     $$('[data-rest]').forEach(function (b) { b.onclick = function () { W.logRest(S, W.iso(now()), b.dataset.rest, new Date()); save(); renderToday(); if (WL.refreshToday) WL.refreshToday(); }; });
+    $$('[data-sore]').forEach(function (b) { b.onclick = function () { W.setSore(S, W.iso(now()), b.dataset.sore, new Date()); save(); renderToday(); }; });
     var ru = $('#wo-rest-undo'); if (ru) ru.onclick = function () { W.clearRest(S, W.iso(now())); save(); renderToday(); if (WL.refreshToday) WL.refreshToday(); };
     var ty = $('#wo-two-yes'); if (ty) ty.onclick = function () { S.target = 2; save(); WL.toast('2 workouts a week'); renderToday(); if (WL.refreshToday) WL.refreshToday(); };
     var tn = $('#wo-two-no'); if (tn) tn.onclick = function () { S.twoAsked = W.iso(new Date()); save(); renderToday(); };

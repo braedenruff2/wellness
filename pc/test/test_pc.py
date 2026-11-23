@@ -334,6 +334,11 @@ check("summary: the last weekly target sent is named; it isn't a workout kind", 
 check("prompts: plan around his weekly target", all("workouts a week" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", f), encoding="utf-8").read() for f in ("weekly-plan.md", "advice.md")))
 check("prompts: rest days are never 'inconsistent'", all("never call him inconsistent" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", f), encoding="utf-8").read() for f in ("weekly-plan.md", "advice.md")))
 req("POST", "/v1/activity", {"events": [
+    {"id": "workout/sore/" + today + "/e100", "at": today + "T12:00:00-04:00", "part": "workout", "kind": "sore", "data": {"date": today, "level": "A bit"}},
+    {"id": "workout/sore/" + today + "/e200", "at": today + "T12:00:00-04:00", "part": "workout", "kind": "sore", "data": {"date": today, "level": "Very"}}]}, token=token)
+summ = W.summarize(7)
+check("summary: soreness before a workout, newest answer only", "sore before a workout: " + today + " Very" in summ and today + " A bit" not in summ, summ)
+req("POST", "/v1/activity", {"events": [
     {"id": "fb/calm/after/empty@x", "at": today + "T13:00:00-04:00", "part": "calm", "kind": "feedback", "data": {"about": "slow@emptycheck", "a": {}}}]}, token=token)
 check("summary: an un-tapped (empty) quick answer isn't listed", "slow@emptycheck" not in W.summarize(7), W.summarize(7))
 req("POST", "/v1/activity", {"events": [
