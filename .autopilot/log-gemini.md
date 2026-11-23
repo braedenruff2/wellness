@@ -83,3 +83,20 @@
 - Added `[any]` tasks 43 (Calm quick duration chips), 44 (Faith journal kind filter), and 45 (Tagalog review missed-words recap) to `.autopilot/cloud-plan.md`.
 - Tested: full `node tests/run-all.cjs` (all 50 suites passed, 0 skipped, including Playwright e2e, Java, Python `test_pc.py`, and `privacy`) after every commit.
 - Next: cross-review Claude's task 42 once landed, then pick up tasks 43–45 (`[any]`) in order.
+
+## 2026-11-23 16:54 AST (Cross-review privacy & overflow fixes, me-core edge cases, a11y form inputs, TodoCore quickParse)
+- Cross-reviewed Claude's commits (`3ecd90f`..`8b2c87d`: tasks 42–56, 59, 60): solid features overall; both open tasks (57 and 58) were actively claimed by two Claude runs, so stayed completely clear of `tagalog-core.js` and module `today()`/`week()` hooks.
+- Fixed (`1ebde48`, cross-review privacy): `tests/privacy.cjs` locally flagged the dummy birth date in `tests/storage-size.cjs`; replaced it with `'2025-01-15'` so `tests/privacy.cjs` passes cleanly.
+- Fixed (`d44bf4d`, `modules/me/me-core.js` + `modules/me/tests/unit.cjs`):
+  - `lastN` now skips un-tapped quick answers (`a: {}`) so tapping and clearing a chip never masks a previous workout pain answer or inflates answer counts in `guidance()`.
+  - `checkinNote` now validates ISO dates and trims `state.checkins` to 120 days (matching `checkin`), and `recentCheckins` ignores empty cleared check-ins.
+  - Moved today's explicit check-in note rules (`sick`, `busyday`) right after `rough` in `guidance()` so Home's 3-item cap doesn't hide them behind multi-day trends; passed `now` to `calmLikes(state, now)`.
+- Fixed (`6209b6e`, `app/www/style.css` + `tests/e2e-a11y.cjs` + `tests/lib/web.cjs`):
+  - Wrapped `.tabs2` (`flex-wrap: wrap`) to fix a 31 px horizontal overflow on `#faith/journal` at text size 1.3 caused by the 5th tab ("Written").
+  - Extended form-input theme styling (`color`, `background`, `border`, `border-radius`, `min-height: 44px`) to `input[type="search"]`, `input[type="date"]`, `input[type="time"]`, and `input[type="number"]` so `#j-search`, `#co-birth`, `#td-date`, `#td-time`, `#rem-time`, and workout number inputs match dark/night themes and meet 44 px tap targets.
+  - Added a short `waitForTimeout(30)` in `tests/lib/web.cjs` `noOverflow` so hash-only navigations settle before measuring scroll width; verified all inputs in night mode at 1.3x in `tests/e2e-a11y.cjs`.
+- Fixed (`fb63709`, `app/www/modules/todo/todo-core.js` + `modules/todo/tests/unit.cjs`):
+  - Made `TodoCore.quickParse` peel time, repeat, and explicit date modifiers in a short multi-pass loop so combinations in any order (e.g. `"pay rent every month on dec 1 at 9am"`, `"water plants every 2 weeks tomorrow"`, `"take pills tomorrow at 8am every day"`) preserve all three fields and set monthly `mday` from the explicit start date.
+- Added `[any]` tasks 61 (workout 0-set imported sheet rows), 62 (`FCTodoTicked` `syncAlarms` fallback), and 63 (`FCCore.journalText` timestamp sort + edge tests) to `.autopilot/cloud-plan.md`.
+- Tested: full `node tests/run-all.cjs` (all 58 suites passed, 0 skipped, including Playwright e2e, Java, Python `test_pc.py`, and `privacy`) after every code commit.
+- Next: cross-review Claude's tasks 57 and 58 once landed, then claim and tackle tasks 61–63 (`[any]`) in order.
