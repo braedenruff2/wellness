@@ -215,6 +215,29 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.ok(afterLeave.c > cancelsBefore, 'leave() cancelled speech');
     assert.strictEqual(afterLeave.n, 3, 'no speech fired after leaving lesson');
   });
+  await t.step('Your words search filters Tagalog and English across Hard ones and All the others when 10+ words met', async () => {
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.tagalog.v1') || '{}');
+      s.cards = s.cards || {};
+      const extra = [['tubig', 'water', 0], ['pagkain', 'food', 0], ['bahay', 'house', 0], ['araw', 'sun / day', 0],
+        ['gabi', 'night', 0], ['umaga', 'morning', 0], ['tulog', 'sleep', 2], ['kain', 'eat', 0], ['lakad', 'walk', 0], ['ngiti', 'smile', 0]];
+      for (const [tl, en, wrong] of extra) s.cards[tl] = { en, box: wrong ? 1 : 3, due: '2026-11-30', seen: 3, right: 2, wrong };
+      localStorage.setItem('wl.tagalog.v1', JSON.stringify(s));
+    });
+    await page.reload();
+    await page.goto(base + '#tagalog/words');
+    await page.waitForSelector('#tl-word-search');
+    const total = await page.locator('#tl-hard li, #tl-all li').count();
+    assert.ok(total >= 10, '10+ words present: ' + total);
+    await page.fill('#tl-word-search', 'sleep');
+    assert.strictEqual(await page.locator('#tl-hard li:not([hidden]), #tl-all li:not([hidden])').count(), 1);
+    assert.ok(/1 found/.test(await page.textContent('#tl-word-found')));
+    assert.strictEqual(await page.locator('#tl-all').evaluate((u) => u.closest('.card').hidden), true, 'empty section card hidden');
+    await page.fill('#tl-word-search', 'ngiti');
+    assert.strictEqual(await page.locator('#tl-hard li:not([hidden]), #tl-all li:not([hidden])').count(), 1);
+    await page.fill('#tl-word-search', '');
+    assert.strictEqual(await page.locator('#tl-hard li:not([hidden]), #tl-all li:not([hidden])').count(), total);
+  });
   await t.step('no overflow, no errors', async () => {
     await page.evaluate(() => { window.__voiceState.tagalogVoice = 'missing'; });
     await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#tagalog/words', '#settings/voice', '#home']);

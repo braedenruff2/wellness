@@ -185,10 +185,32 @@
     var keys = Object.keys(S.cards), hard = T.weakWords(S, 10), known = keys.filter(function (k) { return S.cards[k].box >= 3; });
     var row = function (k) { var c = S.cards[k]; return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(c.en) + '</span></span>' + (c.box >= 3 ? '<span class="tick" title="known well">✓</span>' : '') + hear(k) + '</li>'; };
     var h = subnav('') + '<h1>Your words</h1><p class="meta ui">' + keys.length + ' met · ' + known.length + ' known well (✓).</p>';
+    if (keys.length >= 10) h += '<div class="ui" style="margin:8px 0"><label class="sr" for="tl-word-search">Search your words</label><input type="search" id="tl-word-search" placeholder="Search Tagalog or English" autocomplete="off"><span class="meta" id="tl-word-found"></span></div>';
     if (hard.length) h += '<div class="card"><h2>Hard ones</h2><p class="meta ui">Missed most often. Say each one out loud a few times.</p><ul class="list" id="tl-hard">' + hard.map(row).join('') + '</ul></div>';
     var rest = keys.filter(function (k) { return hard.indexOf(k) < 0; }).sort(function (a, b) { return a.localeCompare(b); });
     if (rest.length) h += '<div class="card"><h2>All the others</h2><ul class="list" id="tl-all">' + rest.map(row).join('') + '</ul></div>';
     return h;
+  }
+
+  function wireWords() {
+    wireHear(view);
+    var ws = $('#tl-word-search');
+    if (ws) ws.oninput = function () {
+      var q = ws.value.trim().toLowerCase(), n = 0;
+      ['#tl-hard', '#tl-all'].forEach(function (sel) {
+        var ul = $(sel), shown = 0;
+        if (!ul) return;
+        $$('li', ul).forEach(function (li) {
+          var txt = ['b', '.meta'].map(function (s) { var x = li.querySelector(s); return x ? x.textContent : ''; }).join(' ').toLowerCase();
+          var hit = !q || txt.indexOf(q) >= 0;
+          li.hidden = !hit;
+          if (hit) { shown++; n++; }
+        });
+        var card = ul.closest('.card');
+        if (card) card.hidden = !!q && shown === 0;
+      });
+      var out = $('#tl-word-found'); if (out) out.textContent = q ? ' ' + n + ' found' : '';
+    };
   }
 
   function runReview() {
@@ -313,7 +335,7 @@
       return;
     }
     if (parts[0] === 'review') { view.innerHTML = reviewHtml(); runReview(); return; }
-    if (parts[0] === 'words') { view.innerHTML = wordsHtml(); wireHear(view); return; }
+    if (parts[0] === 'words') { view.innerHTML = wordsHtml(); wireWords(); return; }
     if (parts[0] === 'settings') {
       view.innerHTML = settingsHtml();
       $('#tl-save-src').onclick = function () {
