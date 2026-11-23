@@ -242,11 +242,14 @@
     var st = driveState(); if (!st) return '';
     var step = !st.configured ? 'file' : st.answersSupported && !st.answersConfigured ? 'sheet' : '';
     if (!step) return '';
-    if (SH.syncLater && now.getTime() - Date.parse(SH.syncLater) < 7 * 864e5 && now.getTime() >= Date.parse(SH.syncLater)) return '';
+    // questions already waiting for the cloud can't come back without the sheet: then the card stays (no "Not now")
+    var waiting = step === 'sheet' ? st.pendingRequests || 0 : 0;
+    if (!waiting && SH.syncLater && now.getTime() - Date.parse(SH.syncLater) < 7 * 864e5 && now.getTime() >= Date.parse(SH.syncLater)) return '';
     return '<div class="card ui" id="wl-sync-nudge"><p>' + (step === 'file'
       ? 'Let Claude answer from the cloud when your PC isn’t around, and keep a live backup: turn on <b>Sync with Google Drive</b> and pick your private Wellness folder.'
-      : 'One more step for cloud answers: choose the <b>wellness-answers</b> sheet in Sync with Google Drive.') + '</p>' +
-      '<div class="row"><a class="btn primary" href="#settings/sync" id="wl-sync-nudge-go">Set it up</a><button class="link" id="wl-sync-later">Not now</button></div></div>';
+      : waiting ? '<b>Answers sheet: not set.</b> ' + waiting + (waiting === 1 ? ' question is' : ' questions are') + ' waiting for the cloud, and the answers can’t reach this phone until you choose the <b>wellness-answers</b> sheet in Sync with Google Drive.'
+      : '<b>Answers sheet: not set.</b> One more step for cloud answers: choose the <b>wellness-answers</b> sheet in Sync with Google Drive.') + '</p>' +
+      '<div class="row"><a class="btn primary" href="#settings/sync" id="wl-sync-nudge-go">Set it up</a>' + (waiting ? '' : '<button class="link" id="wl-sync-later">Not now</button>') + '</div></div>';
   }
   function backupNudge(now) {
     now = now || new Date();
@@ -398,11 +401,12 @@
       (s.restoreSupported ? '<button id="wl-sync-restore">Restore from Drive</button>' : '') + '</div>';
     if (s.answersSupported) {
       if (!s.answersConfigured) {
-        h += '<p class="meta" style="margin-top:10px">Cloud answers: choose your <b>wellness-answers</b> Google Sheet in Drive so answers from cloud runs show up here.</p>';
+        h += '<p class="meta" id="wl-sync-ans" style="margin-top:10px">Answers sheet: <b>not set</b>. Choose your <b>wellness-answers</b> Google Sheet in Drive so answers from cloud runs show up here' +
+          (s.pendingRequests ? ' (' + s.pendingRequests + ' waiting)' : '') + '.</p>';
         if (s.answersError) h += '<p class="no" id="wl-sync-ans-err">' + esc(s.answersError) + '</p>';
         h += '<div class="row"><button id="wl-sync-ans-pick">Choose answers sheet</button></div>';
       } else {
-        h += '<p class="meta" id="wl-sync-ans" style="margin-top:10px">Cloud answers sheet: <b>' + esc(s.answersName) + '</b> (checked on each sync).</p>';
+        h += '<p class="meta" id="wl-sync-ans" style="margin-top:10px">Answers sheet: <b>' + esc(s.answersName) + '</b> (checked on each sync).</p>';
         if (s.answersError) h += '<p class="no" id="wl-sync-ans-err">' + esc(s.answersError) + '</p>';
         h += '<div class="row"><button id="wl-sync-ans-pick">Change answers sheet</button><button class="link" id="wl-sync-ans-forget">Remove sheet</button></div>';
       }

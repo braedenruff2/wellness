@@ -129,12 +129,25 @@ const FAKE_DRIVE = `
     await page.waitForFunction(() => window.__drive.writes >= 1);
     await page.goto(base + '#home');
     const txt = await page.textContent('#wl-sync-nudge');
-    assert.ok(txt.includes('wellness-answers'), txt);
+    assert.ok(txt.includes('Answers sheet: not set') && txt.includes('wellness-answers'), txt);
+    // a question waiting for the cloud without the sheet: the card stays even after "Not now", and says so
+    await page.click('#wl-sync-later');
+    assert.strictEqual(await page.$('#wl-sync-nudge'), null);
+    await page.evaluate(() => WL.driveSync.enqueue('advice', { note: 'x' }));
+    await page.goto(base + '#settings'); await page.goto(base + '#home');
+    const w = await page.textContent('#wl-sync-nudge');
+    assert.ok(/1 question is waiting for the cloud/.test(w) && /can’t reach this phone/.test(w), w);
+    assert.strictEqual(await page.$('#wl-sync-later'), null, 'no Not now while answers are stuck');
+    assert.ok((await page.evaluate(() => WL.pc.queuedText())).includes('choose the answers sheet'));
     await page.goto(base + '#settings');
+    assert.ok(/Answers sheet: not set.*\(1 waiting\)/.test(await page.textContent('#wl-sync-ans')));
     await page.click('#wl-sync-ans-pick');
     await page.waitForFunction(() => window.__drive.answersConfigured);
     await page.goto(base + '#home');
     assert.strictEqual(await page.$('#wl-sync-nudge'), null);
+    assert.ok(!(await page.evaluate(() => WL.pc.queuedText())).includes('answers sheet'), 'sheet set: the plain line');
+    await page.goto(base + '#settings');
+    assert.ok(/Answers sheet: wellness-answers/.test(await page.textContent('#wl-sync-ans')));
   });
   await t.step('a recent Drive sync counts as a backup: no backup nudge 20 days on while it syncs', async () => {
     await page.clock.fastForward(20 * 864e5);

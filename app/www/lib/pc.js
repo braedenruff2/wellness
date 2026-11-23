@@ -110,7 +110,12 @@
   var QUEUED = 'Your PC isn’t answering, so this will be answered by the next cloud run (within about 5 hours).';
   var QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 5 hours).';
   /* What a waiting request says: "PC isn't answering" only when there is a PC to answer. */
-  function queuedText() { return ready() ? QUEUED : QUEUED_CLOUD; }
+  var NO_SHEET = ' It can’t reach this phone until you choose the answers sheet in Settings › Sync with Google Drive.';
+  function queuedText() {
+    var t = ready() ? QUEUED : QUEUED_CLOUD, d = WL.driveSync;
+    try { var st = d && d.status(); if (st && st.configured && st.answersSupported && !st.answersConfigured) t += NO_SHEET; } catch (e) {}
+    return t;
+  }
   /* Claude can be asked at all: the PC link is paired, or Drive sync is on (the cloud run answers). */
   function canAsk() { return ready() || cloudOn(); }
   var handlers = {};
