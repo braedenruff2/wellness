@@ -55,6 +55,7 @@ public class MainActivity extends Activity {
     private android.widget.FrameLayout root;
     private TextToSpeech tts;
     private boolean ttsReady;
+    private volatile boolean destroyed;
     private final List<String[]> pending = new ArrayList<>();
     private ValueCallback<Uri[]> fileCallback;
     private boolean ownScreenOnTop; // set when the app opens something over itself; cleared when it comes back
@@ -115,18 +116,19 @@ public class MainActivity extends Activity {
                 android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::goBack);
         }
         tts = new TextToSpeech(this, status -> {
-            if (status != TextToSpeech.SUCCESS) return;
-            defaultLocale = Locale.getDefault().getLanguage().equals("en") ? Locale.getDefault() : Locale.US;
-            tts.setLanguage(defaultLocale);
-            tts.setAudioAttributes(new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
-            tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-                @Override public void onStart(String id) { }
-                @Override public void onDone(String id) { done(id); }
-                @Override public void onError(String id) { done(id); }
-                @Override public void onStop(String id, boolean interrupted) { }
-            });
+            if (status != TextToSpeech.SUCCESS || destroyed) return;
             runOnUiThread(() -> {
+                if (destroyed || tts == null) return;
+                defaultLocale = Locale.getDefault().getLanguage().equals("en") ? Locale.getDefault() : Locale.US;
+                tts.setLanguage(defaultLocale);
+                tts.setAudioAttributes(new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
+                tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
+                    @Override public void onStart(String id) { }
+                    @Override public void onDone(String id) { done(id); }
+                    @Override public void onError(String id) { done(id); }
+                    @Override public void onStop(String id, boolean interrupted) { }
+                });
                 ttsReady = true;
                 for (String[] p : pending) speakNow(p[0], p[1], Float.parseFloat(p[2]), p[3]);
                 pending.clear();
@@ -153,6 +155,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
+        if (web == null) return;
         if (i != null && i.getBooleanExtra("fromReminder", false)) web.evaluateJavascript("location.hash='#faith/today'", null);
         String h = openHash(i);
         if (h != null) web.evaluateJavascript("location.hash='" + h + "'", null);
@@ -165,7 +168,7 @@ public class MainActivity extends Activity {
     }
 
     private void done(String id) {
-        runOnUiThread(() -> web.evaluateJavascript("window.FCSpeechDone&&FCSpeechDone(" + jsString(id) + ")", null));
+        runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSpeechDone&&FCSpeechDone(" + jsString(id) + ")", null); });
     }
 
     private Locale defaultLocale = Locale.US;
@@ -189,6 +192,7 @@ public class MainActivity extends Activity {
     private void speakNow(String text, String id, float rate) { speakNow(text, id, rate, ""); }
 
     private void speakNow(String text, String id, float rate, String lang) {
+        if (tts == null || !ttsReady) return;
         useLang(lang);
         tts.setSpeechRate(Math.max(0.5f, Math.min(1.6f, rate)));
         Bundle b = new Bundle();
@@ -196,7 +200,7 @@ public class MainActivity extends Activity {
     }
 
     private void goBack() {
-        if (web.canGoBack()) web.goBack(); else finish();
+        if (web != null && web.canGoBack()) web.goBack(); else finish();
     }
 
     @SuppressWarnings("deprecation")
@@ -246,10 +250,15 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        destroyed = true;
+        ttsReady = false;
+        pending.clear();
         try { unregisterReceiver(noisy); } catch (Exception ignored) { }
         if (voices != null) voices.stop();
-        if (tts != null) tts.shutdown();
-        if (web != null) web.destroy();
+        TextToSpeech t = tts; tts = null;
+        if (t != null) t.shutdown();
+        WebView w = web; web = null;
+        if (w != null) w.destroy();
         super.onDestroy();
     }
 
@@ -391,11 +400,12 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface public void setDark(boolean dark) {
             runOnUiThread(() -> {
+                if (destroyed) return;
                 int c = dark ? Color.BLACK : Color.parseColor("#F7F3EC");
                 Window w = getWindow();
                 w.setStatusBarColor(c);
                 w.setNavigationBarColor(c);
-                web.setBackgroundColor(c);
+                if (web != null) web.setBackgroundColor(c);
                 if (root != null) root.setBackgroundColor(c);
                 View d = w.getDecorView();
                 int f = d.getSystemUiVisibility();
@@ -416,7 +426,13 @@ public class MainActivity extends Activity {
                     v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
                     Uri u = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
                     if (u == null) return "";
-                    try (OutputStream o = getContentResolver().openOutputStream(u)) { o.write(bytes); }
+                    try (OutputStream o = getContentResolver().openOutputStream(u)) {
+                        if (o == null) throw new java.io.IOException("could not open download");
+                        o.write(bytes);
+                    } catch (Exception e) {
+                        try { getContentResolver().delete(u, null, null); } catch (Exception ignored) { }
+                        throw e;
+                    }
                     String shown = name; // Android may have renamed it, e.g. "name (1).json"
                     try (Cursor c = getContentResolver().query(u, new String[]{MediaStore.MediaColumns.DISPLAY_NAME}, null, null, null)) {
                         if (c != null && c.moveToFirst() && c.getString(0) != null) shown = c.getString(0);
@@ -574,7 +590,7 @@ public class MainActivity extends Activity {
                 if (hour >= 0 && Build.VERSION.SDK_INT >= 33
                         && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                     requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 3);
-                } else if (hour >= 0) {
+                } else if (hour >= 0 && web != null) {
                     web.evaluateJavascript("window.FCReminderPermission&&FCReminderPermission(" + notificationsAllowedNow() + ")", null);
                 }
                 Reminder.set(MainActivity.this, hour, minute);

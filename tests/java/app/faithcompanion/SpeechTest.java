@@ -25,6 +25,23 @@ public class SpeechTest {
         check("resample 16k -> 24k", Speech.resample(new float[16000], 16000, 24000).length == 24000, "");
         check("Tagalog text: lower case, punctuation out", Speech.forTagalog("Kumain ka na ba, Lola? “Salamat po!”").equals("kumain ka na ba lola salamat po"), Speech.forTagalog("Kumain ka na ba, Lola? “Salamat po!”"));
         check("Tagalog text: ñ, accents, apostrophes", Speech.forTagalog("Señora, áko’y mag-aaral").equals("señora ako'y mag-aaral"), Speech.forTagalog("Señora, áko’y mag-aaral"));
+        // Voices.offerWhile: stops cleanly when cancelled on a full queue (no blocked producer thread leak)
+        try {
+            java.util.concurrent.LinkedBlockingQueue<Object> q = new java.util.concurrent.LinkedBlockingQueue<>(1);
+            check("offerWhile: enqueues when space is available", Voices.offerWhile(q, "a", () -> true) && "a".equals(q.peek()), q.size());
+            final java.util.concurrent.atomic.AtomicBoolean alive = new java.util.concurrent.atomic.AtomicBoolean(true);
+            new Thread(() -> { try { Thread.sleep(60); } catch (InterruptedException ignored) { } alive.set(false); }).start();
+            long t0 = System.currentTimeMillis();
+            boolean put = Voices.offerWhile(q, "b", alive::get);
+            long dt = System.currentTimeMillis() - t0;
+            check("offerWhile: returns false promptly when stopped on a full queue", !put && dt < 1000 && q.size() == 1, put + " " + dt + "ms");
+        } catch (InterruptedException e) {
+            check("offerWhile: unexpected interrupt", false, e);
+        }
+        check("jsString: escapes quotes, control chars, line separators",
+            MainActivity.jsString(null).equals("null")
+                && MainActivity.jsString("a\"b\\c\n\u2028\u2029").equals("\"a\\\"b\\\\c\\u000a\\u2028\\u2029\""),
+            MainActivity.jsString("a\"b\\c\n\u2028\u2029"));
         System.out.println(fails == 0 ? "Speech: all passed" : "Speech: " + fails + " failed");
         System.exit(fails == 0 ? 0 : 1);
     }

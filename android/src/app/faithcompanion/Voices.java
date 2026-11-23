@@ -222,10 +222,21 @@ final class Voices {
 
     static final class Clip { final float[] s; final int rate; final float play; Clip(float[] s, int r, float p) { this.s = s; rate = r; play = p; } }
 
+    interface Active { boolean ok(); }
+
+    /** Offers item to a bounded queue while active remains true; returns false promptly if stopped while full. */
+    static boolean offerWhile(LinkedBlockingQueue<Object> q, Object item, Active active) throws InterruptedException {
+        while (active.ok()) {
+            if (q.offer(item, 100, TimeUnit.MILLISECONDS)) return true;
+        }
+        return false;
+    }
+
     /** Says text (sentence by sentence, the next one made while this one plays); calls done(id) at the end. */
     void say(final String text, final String id, final float rate, final String lang) {
         stop();
         final int my = ++gen;
+        final Active alive = () -> gen == my;
         final boolean tl = lang != null && (lang.startsWith("fil") || lang.startsWith("tl"));
         final List<String> parts = Speech.sentences(text);
         final LinkedBlockingQueue<Object> q = new LinkedBlockingQueue<>(3);
@@ -238,16 +249,16 @@ final class Voices {
                     if (c == null) {                           // nothing could make it: the phone's voice says the rest
                         StringBuilder rest = new StringBuilder();
                         for (int k = i; k < parts.size(); k++) rest.append(parts.get(k)).append(' ');
-                        q.put(new String[]{rest.toString().trim()});
-                        break;
+                        offerWhile(q, new String[]{rest.toString().trim()}, alive);
+                        return;
                     }
-                    q.put(c);
+                    if (!offerWhile(q, c, alive)) return;
                 }
-                q.put(END);
+                offerWhile(q, END, alive);
             } catch (InterruptedException ignored) { }
         }, "wl-voice-make").start();
         new Thread(() -> {                                     // plays it
-            AudioTrack t = null; int trackRate = 0; long written = 0;
+            AudioTrack t = null; int trackRate = 0; float trackPlay = 1f; long written = 0;
             try {
                 while (gen == my) {
                     Object o = q.poll(200, TimeUnit.MILLISECONDS);
@@ -259,7 +270,15 @@ final class Voices {
                         return;
                     }
                     Clip c = (Clip) o;
-                    if (t == null) { trackRate = c.rate; t = newTrack(trackRate); track = t; setSpeed(t, c.play); t.play(); }
+                    if (t == null) {
+                        trackRate = c.rate; t = newTrack(trackRate); track = t;
+                        if (Math.abs(c.play - 1f) >= 0.02f) { setSpeed(t, c.play); trackPlay = c.play; }
+                        t.play();
+                    } else if (Math.abs(c.play - trackPlay) >= 0.02f) {
+                        waitPlayed(t, written, my);
+                        if (gen != my) break;
+                        setSpeed(t, c.play); trackPlay = c.play;
+                    }
                     float[] s = c.rate == trackRate ? c.s : Speech.resample(c.s, c.rate, trackRate);
                     int off = 0;
                     while (off < s.length && gen == my) { int n = t.write(s, off, Math.min(4096, s.length - off), AudioTrack.WRITE_BLOCKING); if (n <= 0) break; off += n; }
@@ -271,6 +290,7 @@ final class Voices {
                 Log.w(TAG, "playing failed", e);
                 if (gen == my) doneCb.done(id);
             } finally {
+                q.clear();
                 if (t != null) { try { t.stop(); } catch (Throwable ignored) { } t.release(); if (track == t) track = null; }
             }
         }, "wl-voice-play").start();
@@ -317,7 +337,6 @@ final class Voices {
             .setBufferSizeInBytes(Math.max(min, rate * 4 / 2)).setTransferMode(AudioTrack.MODE_STREAM).build();
     }
     private static void setSpeed(AudioTrack t, float speed) {
-        if (Math.abs(speed - 1f) < 0.02f) return;
         try { t.setPlaybackParams(new PlaybackParams().setSpeed(Math.max(0.5f, Math.min(2f, speed))).setPitch(1f)); } catch (Throwable ignored) { }
     }
 
