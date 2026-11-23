@@ -39,6 +39,7 @@ on `Sheet1!A1:D<n>` (it prunes acked rows and blanks old ones). No PROBLEM lines
 - No paid services, API keys, accounts or required network for core use.
 
 ## Tasks (cloud-first move, 21 Nov; do these first, in order)
+NOTE 23 Nov 18:55 UTC: two Claude runs are active at once (an earlier one still going + a new one). The second run takes tasks from the BOTTOM of the open list and marks its claims `| run2`; the first keeps going top-down. A `run2` claim is the other run's: leave it.
 Two agents work here: read .autopilot/agents.md first (who can do what, claims, push rules). Tasks are [any] (claim first); [drive] ones need the private Drive folder.
 Note for B/C: C sends milestones in coach-* input; B moves prompts to pc/prompts/ — whoever lands second rebases onto the first.
 A. (done 21 Nov 01:10, Gemini: Sync.java + MainActivity bridge, lib/sync-core.js + lib/sync.js WL.driveSync, Settings card, SyncTest + sync.cjs + e2e-sync.cjs) Drive sync on the phone. Settings > "Sync with Google Drive": once, Android's file picker (SAF ACTION_CREATE_DOCUMENT,
