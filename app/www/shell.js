@@ -464,6 +464,21 @@
     var v = lsGet(SKEY); if (v != null) stores[SKEY] = v;
     return JSON.stringify({ app: 'wellness', exported: new Date().toISOString(), stores: stores }, null, 1);
   }
+  function validateShell(raw) {
+    try {
+      var o = JSON.parse(raw);
+      if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+      var d = {
+        theme: ['auto', 'light', 'dark', 'night'].indexOf(o.theme) >= 0 ? o.theme : 'auto',
+        textSize: [0.9, 1, 1.15, 1.3].indexOf(o.textSize) >= 0 ? o.textSize : 1
+      };
+      ['since', 'lastBackup', 'syncLater'].forEach(function (k) {
+        if (typeof o[k] === 'string' && !isNaN(Date.parse(o[k]))) d[k] = o[k];
+      });
+      if (typeof o.nudged === 'string' && /^\d{4}-\d\d-\d\d$/.test(o.nudged)) d.nudged = o.nudged;
+      return JSON.stringify(d);
+    } catch (e) { return null; }
+  }
   function restoreText(text) {
     var o = JSON.parse(text);
     if (o && o.app === 'faith-companion' && modules.faith && modules.faith.importOld) { modules.faith.importOld(text); return; }
@@ -472,6 +487,7 @@
     order.forEach(function (id) { (modules[id].storageKeys || []).forEach(function (k) { allowed[k] = 1; }); });
     Object.keys(o.stores).forEach(function (k) {
       if (!allowed[k] || typeof o.stores[k] !== 'string') return;
+      if (k === SKEY) { var sv = validateShell(o.stores[k]); if (sv != null) lsSet(k, sv); else skipped.push('Settings'); return; }
       var m = order.map(function (id) { return modules[id]; }).filter(function (m) { return (m.storageKeys || []).indexOf(k) >= 0; })[0];
       var val = o.stores[k];
       if (m && m.validate) val = m.validate(k, val); // each module checks its own data
@@ -484,13 +500,19 @@
 
   function saveFile(name, text) {
     if (native && native.saveFile) {
-      try { var where = native.saveFile(name, text); toast(where ? 'Saved to ' + where : 'Could not save the file'); } catch (e) { toast('Could not save the file'); }
-      return;
+      try {
+        var where = native.saveFile(name, text);
+        toast(where ? 'Saved to ' + where : 'Could not save the file');
+        return !!where;
+      } catch (e) { toast('Could not save the file'); return false; }
     }
     var a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([text], { type: /\.txt$/i.test(name) ? 'text/plain' : 'application/json' }));
+    var url = URL.createObjectURL(new Blob([text], { type: /\.txt$/i.test(name) ? 'text/plain' : 'application/json' }));
+    a.href = url;
     a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 10000);
     toast('Saved ' + name);
+    return true;
   }
 
   function wireShell() {
@@ -500,7 +522,11 @@
     wireUpdate(); wireVoice(); wireSync();
     var sl = $('#wl-sync-later'); if (sl) sl.onclick = function () { SH.syncLater = new Date().toISOString(); shellStore.save(SH); var c = $('#wl-sync-nudge'); if (c) c.remove(); };
     var ld = $('#wl-logday'); if (ld) ld.onchange = function () { setLogDay(ld.value || null); toast(ld.value ? 'Logging for ' + dayLabel(ld.value) : 'Logging for today'); };
-    var ex = $('#wl-export'); if (ex) ex.onclick = function () { saveFile('wellness-backup-' + isoDate() + '.json', backupText()); SH.lastBackup = new Date().toISOString(); shellStore.save(SH); };
+    var ex = $('#wl-export'); if (ex) ex.onclick = function () {
+      if (saveFile('wellness-backup-' + isoDate() + '.json', backupText())) {
+        SH.lastBackup = new Date().toISOString(); shellStore.save(SH);
+      }
+    };
     var im = $('#wl-import');
     if (im) im.onchange = function () {
       var f = im.files && im.files[0]; if (!f) return;

@@ -63,6 +63,33 @@ const W = require('./lib/web.cjs');
     await at(20); await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#wl-today');
     assert.strictEqual(await page.$('#wl-backup'), null, 'saved 9 days ago: no nudge');
   });
+  await t.step('restoreText validates wl.shell.v1 (sanitizes bad theme/textSize, skips corrupt JSON)', async () => {
+    const res = await page.evaluate(() => {
+      const skipped1 = WL.restoreText(JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': JSON.stringify({ theme: 'purple', textSize: 99, nudged: 'bad' }) } }));
+      WL.applyLook();
+      const sh1 = JSON.parse(localStorage.getItem('wl.shell.v1'));
+      const skipped2 = WL.restoreText(JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': '{not json' } }));
+      return { skipped1, sh1, skipped2 };
+    });
+    assert.deepStrictEqual(res.skipped1, []);
+    assert.deepStrictEqual(res.sh1, { theme: 'auto', textSize: 1 });
+    assert.deepStrictEqual(res.skipped2, ['Settings']);
+  });
+  await t.step('failed Android saveFile does not record lastBackup', async () => {
+    const p2 = await page.context().newPage();
+    await p2.addInitScript(() => { window.FCAndroid = { saveFile: () => '' }; });
+    await p2.goto(base + '#settings');
+    await p2.evaluate(() => {
+      const sh = JSON.parse(localStorage.getItem('wl.shell.v1') || '{}');
+      delete sh.lastBackup;
+      localStorage.setItem('wl.shell.v1', JSON.stringify(sh));
+    });
+    await p2.reload();
+    await p2.click('#wl-export');
+    const sh = await p2.evaluate(() => JSON.parse(localStorage.getItem('wl.shell.v1') || '{}'));
+    assert.strictEqual(sh.lastBackup, undefined, 'failed export must not set lastBackup');
+    await p2.close();
+  });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('shell browser');
 })().catch((e) => { console.error(e); process.exit(1); });
