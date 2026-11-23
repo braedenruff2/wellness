@@ -122,6 +122,33 @@ const W = require('../../../tests/lib/web.cjs');
     assert.ok((await page.textContent('#view')).includes('Not found'));
   });
 
+  await t.step('Past practice search finds items by title or skill (even past 20) and Show all reveals the rest', async () => {
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      // put an older item first (will be beyond index 20 when reversed), keeping h1/h2 and adding 21 newer items
+      s.history.unshift({ id: 'old-sleep', at: '2026-10-01T12:00:00Z', title: 'Midnight crib wake', skill: 'Sleep', scenario: 'S', question: 'Q', age: '10 months old', answer: 'A', result: { score: 7, verdict: 'V', good: [], improve: [], better: '', why: '', practice: '', text: '', sources: [] } });
+      for (let i = 1; i <= 21; i++) {
+        s.history.push({ id: 'p' + i, at: new Date(2026, 10, 1 + (i % 20), 12, i).toISOString(), title: 'Moment ' + i, skill: i === 5 ? 'Safety' : 'Play and learning', scenario: 'S', question: 'Q', age: '11 months old', answer: 'A', result: { score: 8, verdict: 'V', good: [], improve: [], better: '', why: '', practice: '', text: '', sources: [] } });
+      }
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+    });
+    await page.reload();
+    await page.goto(base + '#coach');
+    await page.waitForSelector('#co-hist-search');
+    const total = await page.locator('#co-hist-list > li').count();
+    assert.ok(total > 22, '20+ history items seeded: ' + total);
+    assert.strictEqual(await page.locator('#co-hist-list > li:not([hidden])').count(), 20, 'shows newest 20 first');
+    await page.fill('#co-hist-search', 'crib');
+    assert.strictEqual(await page.locator('#co-hist-list > li:not([hidden])').count(), 1, 'finds older item past 20');
+    assert.ok(/1 found/.test(await page.textContent('#co-hist-found')));
+    await page.fill('#co-hist-search', 'safety');
+    assert.strictEqual(await page.locator('#co-hist-list > li:not([hidden])').count(), 1, 'matches by skill');
+    await page.fill('#co-hist-search', '');
+    assert.strictEqual(await page.locator('#co-hist-list > li:not([hidden])').count(), 20);
+    await page.click('#co-hist-more');
+    assert.strictEqual(await page.locator('#co-hist-list > li:not([hidden])').count(), total, 'Show all reveals all items');
+  });
+
   await t.step('no overflow, no console errors', async () => {
     await t.noOverflow(['#coach', '#coach/setup', '#coach/h/h1', '#coach/h/h2']);
     assert.deepStrictEqual(t.errors, []);

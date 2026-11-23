@@ -5,7 +5,7 @@
   'use strict';
   var K = window.CoachCore, esc = WL.esc, $ = WL.$, $$ = WL.$$, pc = WL.pc;
   var store = WL.store('wl.coach.v1', K.defaults);
-  var S = store.load(), view = null, waiting = null, err = null, pickSkill = '';
+  var S = store.load(), view = null, waiting = null, err = null, pickSkill = '', showAllHist = false;
   function save() { store.save(S); }
   function here() { return view && /^#coach\/?$/.test(location.hash); }
 
@@ -110,9 +110,12 @@
     h += '<div id="co-worked-wrap">' + workedHtml() + '</div>';
     var last = S.history.slice().reverse();
     if (last.length) {
-      h += '<div class="card ui"><h3>Past practice</h3><ul class="list">' + last.slice(0, 20).map(function (x) {
-        return '<li><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.title) + '</a><span class="meta">' + (x.kind === 'real' ? 'your situation' : x.result && x.result.score != null ? x.result.score + '/10' : '') + '</span></li>';
-      }).join('') + '</ul></div>';
+      h += '<div class="card ui" id="co-hist"><h3>Past practice</h3>' +
+        (last.length > 5 ? '<label class="sr" for="co-hist-search">Search past practice</label><input type="search" id="co-hist-search" placeholder="Search past practice" autocomplete="off" style="margin-bottom:8px"><span class="meta" id="co-hist-found"></span>' : '') +
+        '<ul class="list" id="co-hist-list">' + last.map(function (x, i) {
+          var extra = i >= 20;
+          return '<li data-skill="' + esc(x.skill || '') + '"' + (extra ? ' data-extra="1"' : '') + (extra && !showAllHist ? ' hidden' : '') + '><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.title) + '</a><span class="meta">' + (x.kind === 'real' ? 'your situation' : x.result && x.result.score != null ? x.result.score + '/10' : '') + '</span></li>';
+        }).join('') + '</ul>' + (!showAllHist && last.length > 20 ? '<button class="link" id="co-hist-more">Show all (' + last.length + ')</button>' : '') + '</div>';
     }
     return h + progressHtml();
   }
@@ -151,6 +154,22 @@
     var tp = $('#co-tips'); if (tp) tp.addEventListener('click', function (e) {
       if (e.target.closest && e.target.closest('[data-me-a], #me-send')) setTimeout(refreshWorked, 0);
     });
+    var hm = $('#co-hist-more'); if (hm) hm.onclick = function () {
+      showAllHist = true;
+      $$('#co-hist-list > li[data-extra]').forEach(function (li) { li.hidden = false; });
+      hm.hidden = true;
+    };
+    var hs = $('#co-hist-search'); if (hs) hs.oninput = function () {
+      var q = hs.value.trim().toLowerCase(), n = 0;
+      $$('#co-hist-list > li').forEach(function (li) {
+        if (!q) { li.hidden = !showAllHist && !!li.dataset.extra; return; }
+        var a = li.querySelector('a'), txt = ((a ? a.textContent : '') + ' ' + (li.dataset.skill || '')).toLowerCase();
+        var hit = txt.indexOf(q) >= 0;
+        li.hidden = !hit; if (hit) n++;
+      });
+      var out = $('#co-hist-found'); if (out) out.textContent = q ? ' ' + n + ' found' : '';
+      if (hm) hm.hidden = !!q || showAllHist;
+    };
   }
 
   function tick(secs) { if (waiting) waiting.secs = secs; var e = $('#co-secs'); if (e) e.textContent = secs + ' s'; }
