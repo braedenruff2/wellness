@@ -106,6 +106,21 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     await cloudAnswers({ [id]: { task: 'coach-scenario', error: 'The cloud run could not answer this one. Try again.' } });
     await page.waitForFunction(() => !document.querySelector('#co-queued'));
     assert.ok((await page.textContent('#view')).includes('The cloud run could not answer this one'));
+    // a cloud scenario arriving while editing #coach/setup must not wipe the setup form
+    await page.click('#co-new');
+    await page.waitForSelector('#co-queued');
+    const setupReqId = (await reqs('coach-scenario'))[0].id;
+    await page.goto(base + '#coach/setup');
+    await page.waitForSelector('#co-can-note');
+    await page.fill('#co-can-note', 'unsaved milestone note');
+    await cloudAnswers({ [setupReqId]: { task: 'coach-scenario', answer: { title: 'Bedtime story', skill: 'Routines', scenario: 'She throws the book.', question: 'What do you do?' } } });
+    await page.waitForTimeout(50);
+    assert.strictEqual(await page.inputValue('#co-can-note'), 'unsaved milestone note', '#coach/setup not overwritten by arriving scenario');
+    await page.goto(base + '#coach');
+    await page.waitForSelector('#co-answer');
+    assert.ok((await page.textContent('#view')).includes('Bedtime story'), 'scenario saved and ready when returning to #coach');
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.coach.v1')); s.current = null; localStorage.setItem('wl.coach.v1', JSON.stringify(s)); });
+    await page.reload();
   });
   await t.step('Home advice and the weekly plan queue too, and show the cloud answer', async () => {
     await page.goto(base + '#home');

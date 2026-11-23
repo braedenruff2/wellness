@@ -7,7 +7,7 @@
   var store = WL.store('wl.coach.v1', K.defaults);
   var S = store.load(), view = null, waiting = null, err = null, pickSkill = '';
   function save() { store.save(S); }
-  function here() { return view && location.hash.indexOf('#coach') === 0; }
+  function here() { return view && /^#coach\/?$/.test(location.hash); }
 
   function setupHtml() {
     return '<div class="card ui"><h3>About your little one</h3><p class="meta">So every scenario fits her exact age. This stays on your phone and goes only to your own PC when you ask for a scenario.</p>' +
