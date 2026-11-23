@@ -46,6 +46,29 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.fill('#ex-0 .val', '10'); await page.click('#ex-0 .logbtn');
     assert.strictEqual(await page.$('#wo-rest'), null);
   });
+  await t.step('after busy weeks: "Would 2 a week fit better?" -> Yes sets 2 (dots, Setup); Setup can set 3 again', async () => {
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.workout.v1'));
+      s.sessions = []; s.rest = { '2026-11-04': { why: 'Busy day', at: '2026-11-04T12:00:00.000Z' }, '2026-11-11': { why: 'Busy day', at: '2026-11-11T12:00:00.000Z' } };
+      localStorage.setItem('wl.workout.v1', JSON.stringify(s));
+    });
+    await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('#wo-two');
+    await page.click('#wo-two-yes');
+    assert.strictEqual(!!(await page.$('#wo-two')), false);
+    assert.ok(/of 2 workouts this week/.test(await page.getAttribute('.dots', 'aria-label')));
+    await page.goto(base + '#workout/settings');
+    assert.strictEqual(await page.getAttribute('[data-target="2"]', 'aria-pressed'), 'true');
+    await page.click('[data-target="3"]');
+    assert.strictEqual(await page.getAttribute('[data-target="3"]', 'aria-pressed'), 'true');
+    const st = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')));
+    assert.strictEqual(st.target, undefined);
+  });
+  await t.step('"Not now" hides the offer', async () => {
+    await page.goto(base + '#workout'); await page.waitForSelector('#wo-two');
+    await page.click('#wo-two-no');
+    await page.reload(); await page.waitForSelector('h1');
+    assert.strictEqual(!!(await page.$('#wo-two')), false);
+  });
   await t.step('no overflow, no errors', async () => {
     await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.workout.v1')); s.sessions = []; s.rest = {}; localStorage.setItem('wl.workout.v1', JSON.stringify(s)); });
     await t.noOverflow(['#workout']);

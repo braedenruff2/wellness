@@ -302,4 +302,27 @@ t('a rest day logged, then a workout the same day: the rest day is cleared (and 
   W.logSet(s, 'A', 1, 10, null, at(24, 19, 5));
   assert.strictEqual(s.restRemoved.length, 1, 'only once');
 });
+t('2 or 3 a week: target used everywhere; offered once after 2 busy weeks of 3; Not now hides it 4 weeks', () => {
+  const s = W.defaults();
+  assert.strictEqual(W.targetOf(s), 3);
+  // weeks of 2, 9 and 16 Nov (Mon): busy rest days and 1 workout in two of them
+  W.logRest(s, '2026-11-04', 'Busy day', at(4, 9)); W.logSet(s, 'A', 0, 10, 10, at(5, 9)); W.endSession(s, at(5, 10));
+  W.logRest(s, '2026-11-11', 'Busy day', at(11, 9)); W.logSet(s, 'B', 0, 10, 10, at(12, 9)); W.endSession(s, at(12, 10));
+  assert.ok(W.offerTwo(s, at(23, 9)), 'Mon 23 Nov: weeks of 2 and 9 Nov were busy');
+  assert.ok(!W.offerTwo(s, at(30, 9)), 'a week later only one busy week is in the last three');
+  s.twoAsked = '2026-11-23'; assert.ok(!W.offerTwo(s, at(24, 9)));
+  s.twoAsked = '2026-10-20'; assert.ok(W.offerTwo(s, at(23, 9)));
+  // "Sore" rest days don't count as busy; 3 workouts in a busy week don't either
+  const t2 = W.defaults(); W.logRest(t2, '2026-11-04', 'Sore', at(4, 9)); W.logRest(t2, '2026-11-11', 'Sore', at(11, 9));
+  assert.ok(!W.offerTwo(t2, at(23, 9)));
+  // with 2 a week
+  s.target = 2;
+  assert.ok(!W.offerTwo(s, at(23, 9)), 'already 2');
+  assert.strictEqual(W.weekStats(s, at(23, 9)).target, 2);
+  W.logSet(s, 'C', 0, 10, 10, at(23, 9)); W.endSession(s, at(23, 10)); W.logSet(s, 'A', 0, 10, 10, at(25, 9)); W.endSession(s, at(25, 10));
+  assert.ok(/^Two this week/.test(W.coach(s, at(26, 9))), W.coach(s, at(26, 9)));
+  assert.deepStrictEqual(W.today(s, at(26, 9)), { done: true, text: '2 this week, rest or a walk' });
+  const v = W.validate(JSON.parse(JSON.stringify(s))); assert.strictEqual(v.target, 2); assert.strictEqual(v.twoAsked, '2026-10-20');
+  assert.strictEqual(W.validate({ sessions: [], target: 7 }).target, undefined);
+});
 console.log(n + ' workout unit tests passed');

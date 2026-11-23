@@ -67,6 +67,24 @@
   /* A day he chose not to train, and why (he asked not to be marked "inconsistent" for days with no time). A rest day
      with a reason counts as done for that day; it never adds to the week's workouts. */
   var REST_REASONS = ['Busy day', 'Sore', 'Tired', 'Sick', 'Planned rest'];
+  /* Workouts a week he aims for: 3 (default) or 2 (busy stretches). */
+  function targetOf(state) { return state && state.target === 2 ? 2 : WEEK_TARGET; }
+  /* Offer 2 a week once: still on 3, and in 2 of the last 3 full weeks he logged a "Busy day" rest and did fewer than 3
+     workouts. "Not now" (twoAsked) hides it for 4 weeks. */
+  function offerTwo(state, now) {
+    now = now || new Date();
+    if (targetOf(state) !== 3) return false;
+    if (state.twoAsked && (new Date(iso(now)) - new Date(state.twoAsked)) / 864e5 < 28) return false;
+    var ws = weekStart(now), worked = {}, busy = 0;
+    sessionsWithSets(state).forEach(function (x) { worked[x.date] = 1; }); state.history.forEach(function (h) { worked[h.date] = 1; });
+    for (var w = 1; w <= 3; w++) {
+      var a = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7 * w)), b = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7 * (w - 1)));
+      var n = Object.keys(worked).filter(function (d) { return d >= a && d < b; }).length;
+      var hadBusy = Object.keys(state.rest || {}).some(function (d) { return d >= a && d < b && !worked[d] && restOn(state, d) === 'Busy day'; });
+      if (hadBusy && n < 3) busy++;
+    }
+    return busy >= 2;
+  }
   function restOn(state, day) { var r = state.rest && state.rest[day]; return r && r.why ? r.why : null; }
   function logRest(state, day, why, now) {
     if (REST_REASONS.indexOf(why) < 0) throw new Error('Unknown reason');
@@ -296,7 +314,7 @@
       if (n >= 2) streak++; else break;
       if (streak > 520) break;
     }
-    return { thisWeek: thisWeek, target: WEEK_TARGET, streak: streak, total: Object.keys(days).length };
+    return { thisWeek: thisWeek, target: targetOf(state), streak: streak, total: Object.keys(days).length };
   }
 
   /* Weekly sets per body area (Mon-Sun), this week and last, from logged sessions and the imported sheet. About 6+
@@ -354,7 +372,7 @@
     done.forEach(function (x) { if (x.date >= from28) recent[x.date] = 1; }); hist.forEach(function (x) { if (x.date >= from28) recent[x.date] = 1; });
     var nRecent = Object.keys(recent).length;
     if (gap != null && nRecent >= 1 && nRecent <= 2 && st.thisWeek < st.target) return 'Early days back: stop each set 2–3 reps before you have to. Feeling sore after the first workouts is normal and gets much less within a couple of weeks.';
-    if (st.thisWeek >= st.target) return 'Three this week. Anything more is a bonus: a stroller walk counts.';
+    if (st.thisWeek >= st.target) return (st.target === 2 ? 'Two' : 'Three') + ' this week. Anything more is a bonus: a stroller walk counts.';
     var left = st.target - st.thisWeek, daysLeft = 7 - dow;
     var rests = restThisWeek(state, now).length;
     if (left > daysLeft) return 'A busy week' + (rests ? ' (' + rests + ' rest day' + (rests === 1 ? '' : 's') + ' logged)' : '') + '. One good workout still counts; don’t try to catch up all at once.';
@@ -434,6 +452,8 @@
     var d = defaults(), dateRe = /^\d{4}-\d\d-\d\d$/;
     d.equipment = s.equipment === 'adjustable' ? 'adjustable' : 'fixed10';
     if (typeof s.dbAsked === 'string' && dateRe.test(s.dbAsked)) d.dbAsked = s.dbAsked;
+    if (s.target === 2) d.target = 2;
+    if (typeof s.twoAsked === 'string' && dateRe.test(s.twoAsked)) d.twoAsked = s.twoAsked;
     Object.keys(s.weights || {}).forEach(function (k) { if (EX[k] && typeof s.weights[k] === 'number') d.weights[k] = s.weights[k]; });
     Object.keys(s.next || {}).forEach(function (k) { if (EX[k] && typeof s.next[k] === 'string') d.next[k] = s.next[k]; });
     if (s.rest && typeof s.rest === 'object') Object.keys(s.rest).sort().slice(-200).forEach(function (k) {
@@ -460,7 +480,7 @@
     return d;
   }
 
-  var api = { REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
+  var api = { targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
     last: last, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     validate: validate, iso: iso };

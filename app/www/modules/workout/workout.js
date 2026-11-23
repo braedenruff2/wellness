@@ -59,6 +59,8 @@
     }).join('') + '</div>';
     if (W.askDumbbells(S, new Date())) h += '<div class="card ui" id="wo-db"><p><b>Got the adjustable dumbbells?</b> Then the app switches from “make it harder” (slower, pauses) to adding weight: when you hit the top of the range on every set, go up 5 lb (2.5 lb for small muscles) and start again at the bottom.</p>' +
       '<div class="row"><button class="primary" id="wo-db-yes">Yes, switch</button><button id="wo-db-no">Not yet</button></div></div>';
+    if (!open && W.offerTwo(S, now())) h += '<div class="card ui" id="wo-two"><p><b>Busy weeks lately.</b> Would 2 workouts a week fit better right now? Full-body days still work every muscle twice a week. You can change it back in Setup.</p>' +
+      '<div class="row"><button class="primary" id="wo-two-yes">Yes, 2 a week</button><button id="wo-two-no">Not now</button></div></div>';
     h += '<p class="meta ui">Warm up 2 minutes first: march on the spot, arm circles, 10 easy squats. Letters are supersets: one set of each, then rest.</p>';
     var groupSeen = {};
     plan.items.forEach(function (it, idx) {
@@ -125,6 +127,8 @@
     var dy = $('#wo-db-yes'); if (dy) dy.onclick = function () { S.equipment = 'adjustable'; save(); WL.toast('Switched to adjustable dumbbells'); renderToday(); };
     $$('[data-rest]').forEach(function (b) { b.onclick = function () { W.logRest(S, W.iso(now()), b.dataset.rest, new Date()); save(); renderToday(); if (WL.refreshToday) WL.refreshToday(); }; });
     var ru = $('#wo-rest-undo'); if (ru) ru.onclick = function () { W.clearRest(S, W.iso(now())); save(); renderToday(); if (WL.refreshToday) WL.refreshToday(); };
+    var ty = $('#wo-two-yes'); if (ty) ty.onclick = function () { S.target = 2; save(); WL.toast('2 workouts a week'); renderToday(); if (WL.refreshToday) WL.refreshToday(); };
+    var tn = $('#wo-two-no'); if (tn) tn.onclick = function () { S.twoAsked = W.iso(new Date()); save(); renderToday(); };
     var dn = $('#wo-db-no'); if (dn) dn.onclick = function () { S.dbAsked = W.iso(new Date()); save(); renderToday(); };
     $$('.ex').forEach(function (card) {
       var idx = +card.dataset.i, val = card.querySelector('.val');
@@ -216,6 +220,9 @@
     var h = subnav('settings') + '<h1>Setup</h1><div class="card ui"><h3>Dumbbells</h3><div class="chips">' +
       [['fixed10', 'One pair of 10 lb'], ['adjustable', 'Adjustable']].map(function (o) { return '<button class="chip" data-eq="' + o[0] + '" aria-pressed="' + (S.equipment === o[0]) + '">' + o[1] + '</button>'; }).join('') + '</div>' +
       '<p class="meta">With the 10 lb pair, progress means harder versions (slower lowering, pauses). With adjustable dumbbells, the app tells you when to add weight.</p></div>';
+    h += '<div class="card ui"><h3>Workouts a week</h3><div class="chips">' + [3, 2].map(function (n) {
+      return '<button class="chip" data-target="' + n + '" aria-pressed="' + (W.targetOf(S) === n) + '">' + n + ' a week</button>'; }).join('') + '</div>' +
+      '<p class="meta">3 is the plan. 2 still trains every muscle twice a week (full-body days) and fits busy stretches.</p></div>';
     h += '<div class="card ui"><h3>Harder versions you’ve switched to</h3><p class="meta">When the app says “ready for harder” and you make the switch, tick it so it stops suggesting it.</p><ul class="list">' +
       Object.keys(W.EX).filter(function (n) { return W.EX[n].hard; }).map(function (n) {
         var on = S.next[n] === W.EX[n].hard;
@@ -231,6 +238,7 @@
   }
 
   function wireSettings() {
+    $$('[data-target]').forEach(function (b) { b.onclick = function () { if (+b.dataset.target === 2) S.target = 2; else delete S.target; save(); route(['settings']); }; });
     $$('[data-eq]').forEach(function (b) { b.onclick = function () { S.equipment = b.dataset.eq; save(); route(['settings']); }; });
     $$('[data-hard]').forEach(function (c) { c.onchange = function () { var n = c.dataset.hard; if (c.checked) S.next[n] = W.EX[n].hard; else delete S.next[n]; save(); }; });
     var f = $('#wo-csv');
