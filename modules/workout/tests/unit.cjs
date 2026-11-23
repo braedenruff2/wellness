@@ -366,4 +366,23 @@ t('"Sore from last time?": asked 1-3 days after a workout, once a day, not on a 
   const v = W.validate(JSON.parse(JSON.stringify(Object.assign({}, s, { sore: Object.assign({}, s.sore, { bad: { level: 'Very', at: 'x' }, '2026-11-01': { level: 'Huge', at: at(1, 1).toISOString() } }) }))));
   assert.deepStrictEqual(Object.keys(v.sore), ['2026-11-21']); assert.strictEqual(v.sore['2026-11-21'].level, 'No');
 });
+t('progress numbers: a sheet row for a day also logged in the app counts once; 0 cells are not sets; fixed and removed sets show as fixed', () => {
+  const s = W.defaults();
+  s.history.push({ date: '2026-11-19', ex: 'Pushups', sets: [19, 15], w: null, from: 'sheet' });
+  s.history.push({ date: '2026-11-17', ex: 'Pushups', sets: [12, 0, 0], w: null, from: 'sheet' });
+  s.history.push({ date: '2026-11-16', ex: 'Pushups', sets: [0], w: null, from: 'sheet' });
+  W.logSet(s, 'A', 1, 19, null, at(19, 9)); W.logSet(s, 'A', 1, 51, null, at(19, 9, 5)); W.logSet(s, 'A', 1, 14, null, at(19, 9, 10));
+  W.editSet(s, 1, 1, 15, undefined, at(19, 9, 11)); // 51 was a typo for 15
+  W.editSet(s, 1, 2, 0, undefined, at(19, 9, 12)); // third set removed
+  W.endSession(s, at(19, 10));
+  const p = W.performances(s, 'Pushups');
+  assert.deepStrictEqual(p.map((x) => [x.date, x.sets]), [['2026-11-17', [12]], ['2026-11-19', [19, 15]]]);
+  assert.strictEqual(p[1].session !== undefined, true, 'the app session is the one kept');
+  assert.strictEqual(Math.max(...p.flatMap((x) => x.sets)), 19, 'best set is not the typo 51');
+  // weekly volume: the same day isn't counted twice (2 app sets, not 2 + 2)
+  assert.strictEqual(W.weekVolume(s, at(20, 9)).thisWeek.push, 2 + 1);
+  // a sheet row for an exercise the app session didn't do that day still counts
+  s.history.push({ date: '2026-11-19', ex: 'Plank', sets: [30, 30], w: null, from: 'sheet' });
+  assert.strictEqual(W.performances(s, 'Plank').length, 1);
+});
 console.log(n + ' workout unit tests passed');

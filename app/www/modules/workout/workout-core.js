@@ -272,9 +272,18 @@
   }
 
   /* Every performance of an exercise, newest last: [{date, sets:[vals], w}] from the app's sessions and the imported sheet. */
+  /* "date|exercise" of every exercise done in the app: an imported sheet row for the same day and exercise is the same
+     workout written twice (he kept the sheet going for a while), so the app's own sets win. */
+  function appDone(state) {
+    var k = {}; state.sessions.forEach(function (s) { (s.sets || []).forEach(function (x) { if (+x.val > 0) k[s.date + '|' + x.ex] = 1; }); });
+    return k;
+  }
   function performances(state, name) {
-    var out = [];
-    state.history.forEach(function (h) { if (h.ex === name && h.sets.length) out.push({ date: h.date, sets: h.sets.slice(), w: h.w }); });
+    var out = [], dup = appDone(state);
+    state.history.forEach(function (h) {
+      var sets = h.ex === name && !dup[h.date + '|' + name] ? h.sets.filter(function (v) { return +v > 0; }) : []; // empty sheet cells as 0 aren't sets
+      if (sets.length) out.push({ date: h.date, sets: sets, w: h.w });
+    });
     state.sessions.forEach(function (s) {
       var sets = s.sets.filter(function (x) { return x.ex === name; });
       if (sets.length) out.push({ date: s.date, sets: sets.map(function (x) { return x.val; }), w: sets[sets.length - 1].w, session: s.id });
@@ -366,7 +375,8 @@
       if (date >= a && date < nextWs) out.thisWeek[area] += n; else if (date >= b && date < a) out.lastWeek[area] += n;
     }
     state.sessions.forEach(function (s) { (s.sets || []).forEach(function (x) { if (+x.val > 0) add(s.date, x.ex, 1); }); });
-    state.history.forEach(function (h) { add(h.date, h.ex, h.sets.filter(function (v) { return +v > 0; }).length); });
+    var dup = appDone(state);
+    state.history.forEach(function (h) { if (!dup[h.date + '|' + h.ex]) add(h.date, h.ex, h.sets.filter(function (v) { return +v > 0; }).length); });
     return out;
   }
   /* One plain line about the week's balance, or '' when nothing is logged yet. */
