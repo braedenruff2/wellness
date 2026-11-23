@@ -1,5 +1,15 @@
 # Cloud log
 
+## 2026-11-23 14:30-15:40 AST (same run, continued)
+- Done: training on a day logged as rest clears that rest day (restRemoved -> PC drops it); pc summary skips un-tapped (empty) quick answers.
+- Done 49: logs were already capped at runtime; tests/storage-size.cjs (120 heavy days 1.4M chars; caps hold for a year, 2.8M). New: a save the phone refuses (quota/blocked) shows a toast once and a card on Home + Settings until a save of that part works (tests/e2e-savefail.cjs).
+- Done 44: Faith journal "Written" tab (other tabs + search already existed); unknown tab -> All.
+- Done 45: Tagalog review "All done" lists the "Not yet" words with hear buttons (e2e-recap).
+- Done 47 (forgot to claim first; nobody else had it): Faith Today from 21:00-05:00 offers a shorter guided prayer for that session only; says why after a late "Hard to focus" (e2e-short). 50 dropped (covered by coach()).
+- Note: an assert on a Playwright ElementHandle that fails makes console.error dump it and OOM-kills node; compare `!!(await page.$(...))` instead.
+- Tested: full suite, 55 suites pass, none skipped. APK 0.1.20261123.1834 (real key).
+- Check on the phone: Faith after 9 pm shows "A shorter one tonight"; Tagalog Review with a "Not yet" lists it at the end.
+
 ## 2026-11-23 13:35-14:30 AST (cloud run; PC reachable)
 - Cross-reviewed Gemini's c28de7e (coalesced resync), 5eb02f9 (pastRounds in activity, Tagalog stats bound), 176e99e (Updater), 3d2371f (forPlan local dates), ddca651 (to-do preview), f217263 (voice nudge): sound, nothing to fix.
 - Drive: wellness-sync.json synced today; no queued requests.
