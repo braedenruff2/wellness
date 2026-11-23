@@ -235,11 +235,17 @@
     return { secs: 0, label: '' };
   }
 
+  function cleanWeight(w) {
+    if (w == null || w === '') return null;
+    var n = +w;
+    return isFinite(n) && n >= 0 ? n : null;
+  }
+
   function logSet(state, day, idx, val, weight, now) {
     now = now || new Date();
     var s = startSession(state, day, now), item = PROGRAM[day].items[idx];
     var n = s.sets.filter(function (x) { return x.i === idx; }).length + 1;
-    var set = { i: idx, ex: item.ex, n: n, val: +val, w: weight == null || weight === '' ? null : +weight, at: now.toISOString() };
+    var set = { i: idx, ex: item.ex, n: n, val: +val, w: cleanWeight(weight), at: now.toISOString() };
     s.sets.push(set);
     if (set.w != null) state.weights[item.ex] = set.w;
     clearRest(state, s.date); // he trained after all: that day isn't a rest day any more (the PC drops it too)
@@ -267,7 +273,7 @@
       return set;
     }
     set.val = +val;
-    if (weight !== undefined) { set.w = weight == null || weight === '' ? null : +weight; if (set.w != null && k === mine.length - 1) state.weights[set.ex] = set.w; }
+    if (weight !== undefined) { set.w = cleanWeight(weight); if (set.w != null && k === mine.length - 1) state.weights[set.ex] = set.w; }
     set.edited = (now || new Date()).toISOString();
     return set;
   }

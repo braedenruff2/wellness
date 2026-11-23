@@ -3,8 +3,8 @@
 'use strict';
 const assert = require('assert');
 const W = require('./lib/web.cjs');
-const SCREENS = ['#home', '#faith/today', '#faith/day/3', '#faith/pray', '#faith/journal', '#calm', '#calm/s/body', '#workout',
-  '#tagalog', '#tagalog/l/2026-11-18/1', '#tagalog/review', '#coach', '#todo', '#me', '#settings', '#link'];
+const SCREENS = ['#home', '#faith/today', '#faith/day/3', '#faith/pray', '#faith/journal', '#faith/settings', '#calm', '#calm/s/body',
+  '#workout', '#workout/history', '#workout/settings', '#tagalog', '#tagalog/l/2026-11-18/1', '#tagalog/review', '#tagalog/words', '#tagalog/settings', '#coach', '#todo', '#me', '#settings', '#link'];
 (async () => {
   const t = await W.open({ time: new Date(2026, 10, 20, 9, 30) });
   const { page, base } = t;
@@ -107,6 +107,18 @@ const SCREENS = ['#home', '#faith/today', '#faith/day/3', '#faith/pray', '#faith
     await checkInput('#workout', '.logrow .val');
     await checkInput('#todo', '#td-date', () => page.click('[data-more]'));
     await checkInput('#todo', '#td-time', () => page.click('[data-more]'));
+  });
+  await t.step('workout logged-set chips (.sc.on): at least 44x44 px tap target and no overflow at 1.3x', async () => {
+    await page.goto(base + '#workout');
+    await page.click('#ex-0 .logbtn');
+    await page.waitForSelector('#ex-0 .sc.on');
+    const box = await page.$eval('#ex-0 .sc.on', (e) => {
+      const r = e.getBoundingClientRect();
+      return { w: Math.round(r.width), h: Math.round(r.height) };
+    });
+    assert.ok(box.w >= 44 && box.h >= 44, '.sc.on tap target too small: ' + box.w + 'x' + box.h);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    assert.ok(overflow <= 2, '#workout active session overflow ' + overflow + 'px');
   });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y browser');

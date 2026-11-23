@@ -404,4 +404,18 @@ t('0-set imported sheet rows never count as workout days; imported workout days 
   W.logRest(s, '2026-11-19', 'Tired', at(19, 8));
   assert.deepStrictEqual(W.restThisWeek(s, at(19, 12)), [{ date: '2026-11-19', why: 'Tired' }]);
 });
+t('logSet and editSet ignore NaN or negative weights cleanly', () => {
+  const s = W.defaults();
+  const r = W.logSet(s, 'A', 0, 12, 'abc', at(20, 9));
+  assert.strictEqual(r.set.w, null);
+  assert.strictEqual(s.weights['Bulgarian Split Squats'], undefined);
+  W.logSet(s, 'A', 0, 12, -5, at(20, 9, 2));
+  assert.strictEqual(s.sessions[0].sets[1].w, null);
+  W.editSet(s, 0, 1, 12, 15, at(20, 9, 3));
+  assert.strictEqual(s.sessions[0].sets[1].w, 15);
+  assert.strictEqual(s.weights['Bulgarian Split Squats'], 15);
+  W.editSet(s, 0, 1, 12, 'nope', at(20, 9, 4));
+  assert.strictEqual(s.sessions[0].sets[1].w, null);
+  assert.strictEqual(s.weights['Bulgarian Split Squats'], 15, 'bad edit weight does not corrupt saved weight');
+});
 console.log(n + ' workout unit tests passed');

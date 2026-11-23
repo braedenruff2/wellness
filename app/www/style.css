@@ -124,9 +124,10 @@ body.in-session { padding-bottom: 0; }
 .dot.on { background: var(--accent); }
 .sslabel { font-size: .75em; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin: 14px 0 4px; }
 .ex.ex-done { opacity: .7; }
-.setchips { display: inline-flex; gap: 4px; }
+.setchips { display: inline-flex; gap: 4px; align-items: center; }
 .sc { min-width: 30px; height: 26px; border-radius: 13px; border: 1px solid var(--line); font-size: 13px; display: inline-flex; align-items: center; justify-content: center; padding: 0 6px; }
-.sc.on { background: var(--good); color: var(--bg); border-color: var(--good); font: inherit; font-size: 13px; cursor: pointer; }
+.sc.on { min-width: 44px; min-height: 44px; height: 44px; padding: 0 10px; border: 0; background: none; color: var(--bg); font: inherit; font-size: 13px; cursor: pointer; position: relative; isolation: isolate; margin: -9px -4px; }
+.sc.on::before { content: ''; position: absolute; inset: 9px 4px; border-radius: 13px; background: var(--good); z-index: -1; }
 .editrow { margin-top: 8px; } .editrow input { width: 4.5em; }
 .logrow { margin-top: 8px; gap: 6px; }
 .logrow .step { min-width: 44px; padding: 0; font-size: 1.3em; }
