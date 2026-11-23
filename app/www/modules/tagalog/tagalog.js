@@ -191,10 +191,14 @@
   }
 
   function runReview() {
-    var due = T.dueCards(S), i = 0, el = $('#tl-card'); if (!el) return;
+    var due = T.dueCards(S), i = 0, el = $('#tl-card'), missed = []; if (!el) return;
     function show() {
       if (i >= due.length) {
-        el.innerHTML = '<p class="ui"><b>All done.</b> See you tomorrow.</p>' + (window.WLMe && due.length ? WLMe.askHtml('tagalog', 'review@' + new Date().toISOString().slice(0, 16), 'Quick question (optional): it shapes next week’s lessons', true) : '') + '<a class="btn" href="#tagalog">Back</a>';
+        // the words he said "Not yet" to, once more with their sound (they come back tomorrow anyway)
+        var miss = missed.filter(function (k, j) { return missed.indexOf(k) === j && S.cards[k]; });
+        el.innerHTML = '<p class="ui"><b>All done.</b> See you tomorrow.</p>' + (miss.length ? '<div id="tl-missed"><p class="meta ui">Once more before you go (they’re back tomorrow):</p><ul class="list">' +
+          miss.map(function (k) { return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(S.cards[k].en) + '</span></span>' + hear(k) + '</li>'; }).join('') + '</ul></div>' : '') + (window.WLMe && due.length ? WLMe.askHtml('tagalog', 'review@' + new Date().toISOString().slice(0, 16), 'Quick question (optional): it shapes next week’s lessons', true) : '') + '<a class="btn" href="#tagalog">Back</a>';
+        wireHear(el);
         return;
       }
       var k = due[i], c = S.cards[k], sayIt = T.direction(c) === 'say';
@@ -209,7 +213,7 @@
         $('#tl-btns').innerHTML = '<button id="tl-no">Not yet</button><button class="primary" id="tl-yes">Got it</button>';
         // a double-tap on Show would land on "Not yet" (now where Show was): ignore taps for a moment
         var shownAt = Date.now(), late = function () { return Date.now() - shownAt >= 400; };
-        $('#tl-no').onclick = function () { if (!late()) return; T.review(S, k, false); save(); i++; show(); };
+        $('#tl-no').onclick = function () { if (!late()) return; T.review(S, k, false); save(); missed.push(k); i++; show(); };
         $('#tl-yes').onclick = function () { if (!late()) return; T.review(S, k, true); save(); i++; show(); };
       };
     }
