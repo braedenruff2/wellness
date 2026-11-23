@@ -325,4 +325,26 @@ t('2 or 3 a week: target used everywhere; offered once after 2 busy weeks of 3; 
   const v = W.validate(JSON.parse(JSON.stringify(s))); assert.strictEqual(v.target, 2); assert.strictEqual(v.twoAsked, '2026-10-20');
   assert.strictEqual(W.validate({ sessions: [], target: 7 }).target, undefined);
 });
+t('fourWeeks: 28 days Monday 3 weeks ago to this Sunday; workout / rest with reason / none / future', () => {
+  const s = W.defaults();
+  W.logSet(s, 'A', 0, 10, 10, at(2, 9)); W.endSession(s, at(2, 10));
+  W.logSet(s, 'B', 0, 10, 10, at(19, 9)); W.endSession(s, at(19, 10));
+  W.logRest(s, '2026-11-21', 'Busy day', at(21, 20));
+  W.logRest(s, '2026-11-23', 'Sore', at(23, 8));
+  s.history.push({ date: '2026-11-04', ex: 'Pushups', sets: [10], w: null, from: 'sheet' });
+  const f = W.fourWeeks(s, at(24, 9));
+  assert.strictEqual(f.length, 28);
+  assert.strictEqual(f[0].date, '2026-11-02'); assert.strictEqual(f[27].date, '2026-11-29');
+  const by = Object.fromEntries(f.map((d) => [d.date, d]));
+  assert.strictEqual(by['2026-11-02'].kind, 'workout'); assert.strictEqual(by['2026-11-04'].kind, 'workout', 'imported sheet days count');
+  assert.deepStrictEqual(by['2026-11-21'], { date: '2026-11-21', kind: 'rest', why: 'Busy day' });
+  assert.strictEqual(by['2026-11-23'].why, 'Sore');
+  assert.strictEqual(by['2026-11-24'].kind, 'none', 'today, nothing yet');
+  assert.strictEqual(by['2026-11-25'].kind, 'future');
+  assert.strictEqual(f.filter((d) => d.kind === 'workout').length, 3);
+  // Sunday: the whole week is past or today
+  assert.strictEqual(W.fourWeeks(s, at(29, 23)).filter((d) => d.kind === 'future').length, 0);
+  // DST end (1 Nov 2026 in North America) inside the window: still 28 distinct dates
+  const g = W.fourWeeks(s, at(16, 9)); assert.strictEqual(new Set(g.map((d) => d.date)).size, 28); assert.strictEqual(g[0].date, '2026-10-26');
+});
 console.log(n + ' workout unit tests passed');

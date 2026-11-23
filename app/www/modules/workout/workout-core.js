@@ -317,6 +317,19 @@
     return { thisWeek: thisWeek, target: targetOf(state), streak: streak, total: Object.keys(days).length };
   }
 
+  /* The last 4 weeks (Monday 3 weeks ago to this Sunday), one entry per day: kind 'workout' | 'rest' (a rest day he
+     chose, with why) | 'none' | 'future'. For Progress; no streaks. */
+  function fourWeeks(state, now) {
+    now = now || new Date();
+    var ws = weekStart(now), todayIso = iso(now), days = {}, out = [];
+    sessionsWithSets(state).forEach(function (s) { days[s.date] = 1; }); state.history.forEach(function (h) { days[h.date] = 1; });
+    for (var i = 0; i < 28; i++) {
+      var d = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 21 + i)), why = restOn(state, d);
+      out.push(d > todayIso ? { date: d, kind: 'future' } : days[d] ? { date: d, kind: 'workout' } : why ? { date: d, kind: 'rest', why: why } : { date: d, kind: 'none' });
+    }
+    return out;
+  }
+
   /* Weekly sets per body area (Mon-Sun), this week and last, from logged sessions and the imported sheet. About 6+
      hard sets per area a week is a sound beginner dose (general guidance). Walk is cardio, not counted. */
   var AREA = { 'Bulgarian Split Squats': 'legs', 'Single Leg RDL': 'legs', 'Reverse Lunges': 'legs', 'Split Squats': 'legs',
@@ -480,7 +493,7 @@
     return d;
   }
 
-  var api = { targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
+  var api = { fourWeeks: fourWeeks, targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
     last: last, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     validate: validate, iso: iso };

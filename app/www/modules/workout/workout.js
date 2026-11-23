@@ -198,10 +198,27 @@
     }).join(' · ') + '</p><p class="gentle" style="margin:.3em 0 0">' + esc(adv) + (window.WLMe ? ' ' + WLMe.fitLink('workout', 'balance', adv) : '') + '</p>';
   }
 
+  /* 4 weeks x 7 days: filled = workout, outlined = a rest day he chose (reason in the label), faint = nothing. */
+  function monthRow() {
+    var days = W.fourWeeks(S, new Date());
+    if (!days.some(function (d) { return d.kind === 'workout' || d.kind === 'rest'; })) return '';
+    var name = function (iso) { var p = iso.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }); };
+    var h = '<div id="wo-4w" class="wk4"><div class="wk4-row wk4-head meta" aria-hidden="true">' + ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(function (x) { return '<span>' + x + '</span>'; }).join('') + '</div>';
+    for (var w = 0; w < 4; w++) {
+      h += '<div class="wk4-row" role="list" aria-label="' + (w === 3 ? 'This week' : w === 2 ? 'Last week' : (3 - w) + ' weeks ago') + '">';
+      days.slice(w * 7, w * 7 + 7).forEach(function (d) {
+        var label = name(d.date) + ': ' + (d.kind === 'workout' ? 'workout' : d.kind === 'rest' ? 'rest day (' + d.why.toLowerCase() + ')' : d.kind === 'future' ? 'still to come' : 'nothing logged');
+        h += '<span role="listitem" class="wk4-d wk4-' + d.kind + '" title="' + esc(label) + '" aria-label="' + esc(label) + '">' + (d.kind === 'rest' ? 'R' : '') + '</span>';
+      });
+      h += '</div>';
+    }
+    return h + '<p class="meta" style="margin:.3em 0 0"><span class="wk4-d wk4-workout wk4-key" aria-hidden="true"></span> workout · <span class="wk4-d wk4-rest wk4-key" aria-hidden="true">R</span> rest day you chose</p></div>';
+  }
+
   function history() {
     var st = W.weekStats(S);
     var h = subnav('history') + '<h1>Progress</h1><div class="card ui"><div class="row"><div class="grow"><b>' + st.thisWeek + '</b> of ' + st.target + ' this week</div>' + weekDots() + '</div>' +
-      '<p class="meta" style="margin:.4em 0 0">' + (st.streak ? st.streak + ' week' + (st.streak > 1 ? 's' : '') + ' in a row with 2+ workouts. ' : '') + st.total + ' workout days logged in all.</p>' + volume() + '</div>';
+      '<p class="meta" style="margin:.4em 0 0">' + (st.streak ? st.streak + ' week' + (st.streak > 1 ? 's' : '') + ' in a row with 2+ workouts. ' : '') + st.total + ' workout days logged in all.</p>' + monthRow() + volume() + '</div>';
     var names = Object.keys(W.EX);
     var rows = names.map(function (n) { return { n: n, p: W.performances(S, n) }; }).filter(function (x) { return x.p.length; });
     if (!rows.length) return h + '<p class="meta ui">Log a workout, or import your sheet under Setup, and your progress shows here.</p>';
