@@ -198,6 +198,7 @@
     var top = Object.keys(stood).sort(function (a, b) { return stood[b] - stood[a]; })[0];
     if (good.length >= 2 && top && stood[top] >= 2 && hard < 2) out.push({ key: 'faithstood', part: 'faith', text: 'When prayer has felt close lately, ' + top.toLowerCase() + ' stood out. Give it a little more time: ' + ({ 'The Scripture': 'read the passage twice, slowly, before you pray.', 'The prayer': 'stay with the prayer and add your own words to it.', 'The quiet': 'set the guided prayer to 10 min for longer silences.', 'The reflection': 'write a line after the Think part.' })[top] });
     if (today && today.note && /\b(sick|fever|teeth|teething)\b/i.test(today.note)) out.push({ key: 'sick', part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
+    else if (today && today.note && /\b(family|party|parties|visit|visits|visiting|visitors|guests|busy|hosting|birthday)\b/i.test(today.note)) out.push({ key: 'busyday', part: 'home', text: 'A full day with people around: keep it small. The one-minute reset between things, and a rest day from Move is fine (it won’t count as missed).' });
     return out.filter(function (g) { return !hidden[g.key]; }).slice(0, max || 3);
   }
 

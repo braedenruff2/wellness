@@ -275,4 +275,14 @@ t('calmLikes.racing: a night calm answer with "Mind racing" in the last 7 days, 
   f(new Date(2026, 10, 22, 22, 37), {}); f(new Date(2026, 10, 23, 23, 0), { helped: 'A lot' });
   assert.strictEqual(K.calmLikes(s, new Date(2026, 10, 24, 12)).racing, false, 'two newer night answers without it');
 });
+t('busyday: a check-in note about visitors / a party / a busy day -> one small-day line (stable key); no false hits', () => {
+  const now = new Date(2026, 10, 22, 9);
+  const g = (note) => { const s = K.defaults(); K.checkin(s, '2026-11-22', 'sleep', '5–6 h', now); if (note != null) K.checkinNote(s, '2026-11-22', note, now); return K.guidance(s, now, 10).map((x) => x.key); };
+  for (const n of ['Family is here all weekend', 'Her birthday PARTY today', 'mom visiting', 'Busy, busy day', 'hosting the in-laws']) assert.ok(g(n).includes('busyday'), n);
+  for (const n of ['quiet day', 'a busybody neighbour', 'familyroom painted', null]) assert.ok(!g(n).includes('busyday'), String(n));
+  assert.ok(!g('sick and the family is here').includes('busyday'), 'sick wins');
+  const s = K.defaults(); K.checkin(s, '2026-11-22', 'sleep', '5–6 h', now); K.checkinNote(s, '2026-11-22', 'party', now);
+  K.notFit(s, 'home', 'guide:busyday', 'x', ['Too generic'], '', now);
+  assert.ok(!K.guidance(s, now, 10).some((x) => x.key === 'busyday'), 'Not for me hides it');
+});
 console.log(n + ' me unit tests passed');
