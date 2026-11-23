@@ -13,7 +13,7 @@ const words = (n) => Array.from({ length: n }, (_, i) => 'word' + (i % 50)).join
 function simulate(days) {
   const tg = TG.defaults(), co = CO.defaults(), fc = FC.defaults ? FC.defaults() : { journal: [], sessions: [] }, ca = CA.defaults(), wk = WK.defaults(), me = ME.defaults();
   if (!Array.isArray(fc.journal)) fc.journal = [];
-  co.child = { name: '{child}', birth: '2025-11-22' };
+  co.child = { name: '{child}', birth: '2025-01-15' };
   const pack = { id: '2026-11-18' };
   for (let d = 0; d < days; d++) {
     const at = (h, m) => new Date(2026, 10, 18 + d, h, m || 0);
