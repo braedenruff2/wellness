@@ -291,6 +291,25 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     assert.ok((await page.textContent('main')).includes('Looking back'));
     page.off('dialog', onDialog);
     assert.strictEqual(dialogs, 0, 'no browser dialog');
+    // undo moves an answered prayer back to Praying for
+    await page.click('.p-undo');
+    assert.ok(!(await page.textContent('main')).includes('Looking back'), 'moved back out of Looking back');
+    assert.ok((await page.textContent('main')).includes('Baby sleeping through'), 'still in Praying for');
+    // with 6+ prayers, search filters both open and answered prayers without matching button labels
+    await page.click('.answered'); await page.fill('.ans-note', 'slept 7 hours'); await page.click('.ans-save');
+    for (const p of ['Patience at bedtime', 'My wife’s rest', 'Grandparents health', 'Work focus', 'Sunday church visit']) {
+      await page.fill('#new-prayer', p); await page.press('#new-prayer', 'Enter');
+    }
+    await page.waitForSelector('#p-search');
+    await page.fill('#p-search', 'church');
+    assert.strictEqual(await page.locator('.p-list > li:not([hidden])').count(), 1);
+    assert.ok(/1 found/.test(await page.textContent('#p-found')));
+    await page.fill('#p-search', '7 hours');
+    assert.strictEqual(await page.locator('.p-list > li:not([hidden])').count(), 1, 'matches answered prayer note');
+    await page.fill('#p-search', 'delete');
+    assert.strictEqual(await page.locator('.p-list > li:not([hidden])').count(), 0, 'ignores action button labels');
+    await page.fill('#p-search', '');
+    assert.strictEqual(await page.locator('.p-list > li:not([hidden])').count(), 6);
   });
 
   await step('settings: night theme, text size; auto turns night on at 9pm', async () => {

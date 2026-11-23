@@ -279,12 +279,16 @@
     var h = '<div class="card ui"><label for="new-prayer">Something or someone to pray for</label><input type="text" id="new-prayer">' +
       '<div class="row" style="margin-top:8px"><button class="primary" id="add-prayer">Add</button></div></div>';
     var open = S.prayers.filter(function (p) { return !p.answered; }), answered = S.prayers.filter(function (p) { return p.answered; });
-    h += '<div class="card"><h2>Praying for</h2>' + (open.length ? '<ul class="list">' + open.map(function (p) {
+    if (S.prayers.length > 5) h += '<div class="ui" style="margin:8px 0"><label class="sr" for="p-search">Search your prayer list</label><input type="search" id="p-search" placeholder="Search your prayer list" autocomplete="off"><span class="meta" id="p-found"></span></div>';
+    h += '<div class="card"><h2>Praying for</h2>' + (open.length ? '<ul class="list p-list">' + open.map(function (p) {
       return '<li class="entry"><p>' + esc(p.text) + '</p><div class="row ui"><span class="when grow">since ' + esc(new Date(p.at).toLocaleDateString()) +
         '</span><button class="link answered" data-id="' + esc(p.id) + '">Answered / let go</button><button class="link pdel" data-id="' + esc(p.id) + '">Delete</button></div></li>';
     }).join('') + '</ul>' : '<p class="meta ui">Nothing yet. People you love, worries, hopes: all of it can go here.</p>') + '</div>';
-    if (answered.length) h += '<div class="card"><h2>Looking back</h2><p class="meta ui">Prayers can be answered in ways we didn\u2019t expect, or not in ways we can see. Both are part of an honest faith.</p><ul class="list">' +
-      answered.map(function (p) { return '<li class="entry"><p>' + esc(p.text) + '</p><span class="when">' + esc(new Date(p.answered).toLocaleDateString()) + (p.note ? ': ' + esc(p.note) : '') + '</span></li>'; }).join('') + '</ul></div>';
+    if (answered.length) h += '<div class="card"><h2>Looking back</h2><p class="meta ui">Prayers can be answered in ways we didn\u2019t expect, or not in ways we can see. Both are part of an honest faith.</p><ul class="list p-list">' +
+      answered.map(function (p) {
+        return '<li class="entry"><p>' + esc(p.text) + '</p><div class="row ui"><span class="when grow">' + esc(new Date(p.answered).toLocaleDateString()) + (p.note ? ': ' + esc(p.note) : '') +
+          '</span><button class="link p-undo" data-id="' + esc(p.id) + '">Move back to praying</button></div></li>';
+      }).join('') + '</ul></div>';
     return h;
   }
 
@@ -490,6 +494,20 @@
         f.querySelector('.ans-save').onclick = done;
         inp.onkeydown = function (ev) { if (ev.key === 'Enter') done(); };
         f.querySelector('.ans-cancel').onclick = function () { f.remove(); row.style.display = ''; };
+      };
+    });
+    on('#p-search', function (el) { el.oninput = function () {
+      var q = el.value.trim().toLowerCase(), n = 0;
+      [].forEach.call(document.querySelectorAll('.p-list > li'), function (li) {
+        var txt = ['p', '.when'].map(function (s) { var x = li.querySelector(s); return x ? x.textContent : ''; }).join(' ').toLowerCase();
+        var hit = !q || txt.indexOf(q) >= 0; li.hidden = !hit; if (hit) n++;
+      });
+      $('#p-found').textContent = q ? ' ' + n + ' found' : '';
+    }; });
+    [].forEach.call(document.querySelectorAll('.p-undo'), function (b) {
+      b.onclick = function () {
+        var p = S.prayers.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!p) return;
+        p.answered = null; p.note = ''; save(); route(); toast('Moved back to praying');
       };
     });
     [].forEach.call(document.querySelectorAll('.pdel'), function (b) {
