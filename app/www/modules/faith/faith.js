@@ -241,12 +241,13 @@
 
   function screenJournal(tab) {
     tab = tab || 'all';
-    var tabs = [['all', 'All'], ['awe', 'Awe moments'], ['gratitude', 'Thanks'], ['prayers', 'Prayer list']];
+    if (['all', 'journal', 'awe', 'gratitude', 'prayers'].indexOf(tab) < 0) tab = 'all';
+    var tabs = [['all', 'All'], ['journal', 'Written'], ['awe', 'Awe moments'], ['gratitude', 'Thanks'], ['prayers', 'Prayer list']];
     var h = '<h1>Journal</h1><div class="tabs2 ui" role="tablist">' + tabs.map(function (t) {
       return '<button role="tab" data-jtab="' + t[0] + '" aria-selected="' + (t[0] === tab) + '">' + t[1] + '</button>';
     }).join('') + '</div>';
     if (tab === 'prayers') return h + prayersHtml();
-    var hint = { all: 'Anything on your mind or heart.', awe: 'A moment of wonder, beauty, or grace, however small. Over time these add up.', gratitude: 'Something you\u2019re thankful for.' }[tab];
+    var hint = { all: 'Anything on your mind or heart.', journal: 'Anything on your mind or heart. (Day reflections show here too.)', awe: 'A moment of wonder, beauty, or grace, however small. Over time these add up.', gratitude: 'Something you\u2019re thankful for.' }[tab];
     h += '<div class="card ui"><label for="new-entry">' + esc(hint) + '</label><textarea id="new-entry"></textarea>' +
       '<div class="row" style="margin-top:8px"><button class="primary" id="add-entry" data-kind="' + (tab === 'all' ? 'journal' : tab) + '">Save</button><span class="grow"></span></div><div id="entry-gentle"></div></div>';
     var items = S.journal.filter(function (e) { return tab === 'all' || e.kind === tab; });

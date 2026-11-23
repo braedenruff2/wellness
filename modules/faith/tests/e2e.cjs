@@ -240,6 +240,21 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 6);
   });
 
+  await step('journal "Written" tab: only written entries (not thanks or awe); saving there is a journal entry; unknown tab = All', async () => {
+    await page.goto(base + '#faith/journal/journal');
+    assert.strictEqual(await page.getAttribute('[data-jtab="journal"]', 'aria-selected'), 'true');
+    assert.ok(!(await page.textContent('main')).includes('warm socks'), 'thanks are not in Written');
+    await page.fill('#new-entry', 'A long day, but a good one.'); await page.click('#add-entry');
+    assert.ok((await page.textContent('#j-list, .list')).includes('A long day'));
+    const kinds = await page.evaluate(() => JSON.parse(localStorage.getItem('fc.v1')).journal.filter((e) => /A long day/.test(e.text)).map((e) => e.kind));
+    assert.deepStrictEqual(kinds, ['journal']);
+    await page.goto(base + '#faith/journal/gratitude');
+    assert.ok(!(await page.textContent('main')).includes('A long day'));
+    await page.goto(base + '#faith/journal/nonsense');
+    assert.strictEqual(await page.getAttribute('[data-jtab="all"]', 'aria-selected'), 'true');
+    assert.ok((await page.textContent('main')).includes('A long day') && (await page.textContent('main')).includes('warm socks'));
+  });
+
   await step('prayer list: add, mark answered with a note', async () => {
     await page.goto(base + '#faith/journal/prayers');
     await page.fill('#new-prayer', 'Baby sleeping through');
