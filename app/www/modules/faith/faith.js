@@ -111,7 +111,7 @@
     function fit(what, text) { return window.WLMe ? '<div class="ui" style="text-align:right">' + WLMe.fitLink('faith', 'day:' + d.n + ':' + what, text) + '</div>' : ''; }
     h += '<div class="card" id="reflect"><h2>Think</h2>' + d.reflection.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') + fit('think', d.reflection.join(' ')) + '</div>';
     h += '<div class="card" id="pray-card"><h2>Pray</h2><p class="key">' + esc(d.keyVerse) + '</p>' +
-      '<a class="btn primary big ui" href="#faith/session/day/' + d.n + '">Guided prayer \u00b7 about ' + (+S.settings.minutes) + ' min</a>' +
+      '<a class="btn primary big ui" href="#faith/session/day/' + d.n + '">Guided prayer \u00b7 about ' + (+S.settings.minutes) + ' min</a>' + shortTonight(d) +
       '<details class="ui" style="margin-top:10px"><summary>Read the prayer instead</summary><p class="verse" style="margin-top:8px">' + esc(d.prayer) + '</p></details></div>';
     h += '<div class="card" id="practice"><h2>Practice for today</h2><p>' + esc(d.practice) + '</p>' + fit('practice', d.practice) + '</div>';
     if (d.lookBack) h += lookBackWeek(d);
@@ -165,12 +165,27 @@
     return h;
   }
 
-  function sessionScript(kind, id) {
+  /* Late at night (from 9 pm, or before 5 am) a shorter guided prayer for tonight only, same words with shorter
+     silences; it says why when his last answer after a late prayer was "Hard to focus". The saved length stays. */
+  var shortOnce = null;
+  function lateNow() { var hr = new Date().getHours(); return hr >= 21 || hr < 5; }
+  function shortTonight(d) {
+    if (!lateNow() || !(S.settings.minutes > 2)) return '';
+    var full = sessionScript('day', d.n, 2), mins = full ? Math.max(2, Math.round(C.scriptLength(full.steps, S.settings.rate) / 60)) : 2;
+    var M = window.WLMe, lastLate = M ? M.state().feedback.filter(function (f) {
+      var h = new Date(f.at).getHours(); return f.part === 'faith' && f.kind === 'after' && (h >= 21 || h < 5);
+    }).slice(-1)[0] : null;
+    var why = lastLate && lastLate.a && lastLate.a.felt === 'Hard to focus' ? 'Focus was hard last time this late. ' : 'Tired? ';
+    return '<p class="meta ui" id="fc-short-wrap" style="margin:8px 0 0">' + why + '<a href="#faith/session/day/' + d.n + '" id="fc-short" data-n="' + d.n + '">A shorter one tonight (about ' + mins + ' min)</a></p>';
+  }
+
+  function sessionScript(kind, id, forceMin) {
     var steps, title, minutes;
     if (kind === 'day') {
       var d = day(id); if (!d) return null;
       var open = (S.prayers || []).filter(function (p) { return !p.answered; }).map(function (p) { return p.text; });
-      steps = C.dayScript(d, d.n + (S.round || 1) - 1, open); title = 'Day ' + d.n + ': ' + d.title; minutes = S.settings.minutes;
+      steps = C.dayScript(d, d.n + (S.round || 1) - 1, open); title = 'Day ' + d.n + ': ' + d.title;
+      minutes = forceMin || (shortOnce === d.n ? 2 : S.settings.minutes);
     } else {
       var p = practice(id); if (!p) return null;
       var tv = day(C.currentDay(S, TOTAL)) || DAYS[DAYS.length - 1];
@@ -186,7 +201,7 @@
     if (!sc) return '<p>Not found. <a href="#faith/today">Back</a></p>';
     session = sc;
     document.body.classList.add('in-session');
-    return '<div class="session ui"><div class="row"><button class="link" id="end">\u2715 End</button><div class="grow meta" style="text-align:right">' + esc(sc.title) + '</div></div>' +
+    return '<div class="session ui" data-secs="' + Math.round(C.scriptLength(sc.steps, S.settings.rate)) + '"><div class="row"><button class="link" id="end">\u2715 End</button><div class="grow meta" style="text-align:right">' + esc(sc.title) + '</div></div>' +
       '<div class="progress"><div id="prog"></div></div><div class="line" id="line" aria-live="polite">Ready when you are.</div>' +
       '<div class="meta" id="quiet" style="min-height:1.4em;text-align:center"></div>' +
       '<div class="controls"><button id="back" aria-label="Previous">\u23EE</button><button class="primary main" id="pp" data-from="' + (from || 0) + '">' + (from ? '\u25B6 Carry on' : '\u25B6 Begin') + '</button><button id="skip" aria-label="Next">\u23ED</button></div></div>';
@@ -379,6 +394,8 @@
     [].forEach.call(document.querySelectorAll('[data-jump]'), function (b) {
       b.onclick = function () { var t = document.getElementById(b.dataset.jump); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
     });
+    if (h && h[0] !== 'session') shortOnce = null; // the shorter prayer is for the one session it was picked for
+    on('#fc-short', function (el) { el.onclick = function () { shortOnce = +el.dataset.n; }; });
     on('#forget-resume', function (el) { el.onclick = function () { S.resume = null; save(); $('#resume').remove(); }; });
     on('#dj', function (el) { journalSaver(el); });
     on('#finish', function (el) { el.onclick = function () {
