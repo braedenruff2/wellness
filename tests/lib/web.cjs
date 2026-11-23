@@ -46,6 +46,7 @@ async function open(opts = {}) {
     async noOverflow(hashes) {
       for (const h of hashes) {
         await page.goto(base + h);
+        await page.waitForTimeout(30);
         const over = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
         if (over > 0) throw new Error(h + ' overflows by ' + over + 'px');
       }

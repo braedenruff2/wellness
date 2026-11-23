@@ -79,6 +79,35 @@ const SCREENS = ['#home', '#faith/today', '#faith/day/3', '#faith/pray', '#faith
   await t.step('largest text size (1.3): tap targets at least 44 px tall', async () => {
     await checkTargets('1.3');
   });
+  await t.step('form inputs (search, date, time, number): >= 44 px tall, themed in dark/night, no overflow', async () => {
+    // Seed 6 journal entries so #j-search is rendered on #faith/journal
+    await page.evaluate(() => {
+      const fc = JSON.parse(localStorage.getItem('fc.v1') || '{}');
+      fc.journal = Array.from({ length: 6 }, (_, i) => ({ id: 'j' + i, at: '2026-11-20T10:0' + i + ':00.000Z', kind: 'journal', text: 'Entry ' + i }));
+      localStorage.setItem('fc.v1', JSON.stringify(fc));
+      if (window.FC) window.FC.reload();
+      localStorage.setItem('wl.shell.v1', JSON.stringify({ theme: 'night', textSize: 1.3 }));
+    });
+    await page.reload();
+    const checkInput = async (hash, sel, prep) => {
+      await page.goto(base + hash); await page.waitForTimeout(50);
+      if (prep) await prep();
+      await page.waitForSelector(sel);
+      const info = await page.$eval(sel, (e) => {
+        const cs = getComputedStyle(e), bg = getComputedStyle(document.body).backgroundColor;
+        return { h: Math.round(e.getBoundingClientRect().height), bg: cs.backgroundColor, bodyBg: bg };
+      });
+      assert.ok(info.h >= 44, hash + ' ' + sel + ' height ' + info.h + ' < 44');
+      assert.strictEqual(info.bg, info.bodyBg, hash + ' ' + sel + ' uses theme --bg in night mode (' + info.bg + ' vs ' + info.bodyBg + ')');
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(overflow <= 2, hash + ' overflow ' + overflow + 'px');
+    };
+    await checkInput('#faith/journal', '#j-search');
+    await checkInput('#coach/setup', '#co-birth');
+    await checkInput('#workout', '.logrow .val');
+    await checkInput('#todo', '#td-date', () => page.click('[data-more]'));
+    await checkInput('#todo', '#td-time', () => page.click('[data-more]'));
+  });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y browser');
 })().catch((e) => { console.error(e); process.exit(1); });

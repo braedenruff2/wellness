@@ -48,10 +48,11 @@ button.link { border: 0; background: none; color: var(--accent); padding: 8px 4p
 button:disabled { opacity: .5; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .row > .grow { flex: 1; }
-textarea, input[type="text"], select {
-  width: 100%; font-size: 1em; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
-  border-radius: 10px; padding: 10px 12px;
+textarea, input[type="text"], input[type="search"], input[type="date"], input[type="time"], input[type="number"], select {
+  font-size: 1em; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 10px; padding: 10px 12px; min-height: 44px;
 }
+textarea, input[type="text"], input[type="search"], input[type="date"], select { width: 100%; }
 textarea { min-height: 96px; resize: vertical; line-height: 1.45; }
 .saved { color: var(--good); font-size: .8em; min-height: 1.2em; }
 .gentle { background: var(--bg); border: 1px dashed var(--line); border-radius: 10px; padding: 10px 12px; font-size: .92em; }
@@ -64,8 +65,8 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.45; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { border: 1px solid var(--line); border-radius: 22px; padding: 8px 14px; background: var(--card); min-height: 44px; font-size: .9em; }
 .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-.tabs2 { display: flex; gap: 6px; margin-bottom: 12px; }
-.tabs2 button { flex: 1; min-height: 44px; padding: 6px; font-size: .88em; }
+.tabs2 { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.tabs2 button { flex: 1 1 auto; min-height: 44px; padding: 6px 10px; font-size: .88em; }
 .tabs2 button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .entry .when { color: var(--soft); font-size: .78em; font-family: system-ui, sans-serif; }
 .entry p { white-space: pre-wrap; margin: .2em 0 0; }
