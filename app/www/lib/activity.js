@@ -84,6 +84,12 @@
     (s.restRemoved || []).forEach(function (r) {
       if (r && okDate(r.at) && /^\d{4}-\d\d-\d\d$/.test(r.date)) out.push({ id: 'workout/rest/' + r.date + '/' + r.at + '/x', at: localNoon(r.date), part: 'workout', kind: 'rest-removed' });
     });
+    // the workouts a week he aims for (3, or 2 when he chose it), once a day, so every summary knows it (the PC keeps the
+    // last one sent): advice and weekly plans then plan around his choice
+    if (o.now && (s.sessions || []).length + Object.keys(s.rest || {}).length) {
+      var n0 = o.now, day = n0.getFullYear() + '-' + ('0' + (n0.getMonth() + 1)).slice(-2) + '-' + ('0' + n0.getDate()).slice(-2), per = s.target === 2 ? 2 : 3;
+      out.push({ id: 'workout/target/' + day + '/' + per, at: localNoon(day), part: 'workout', kind: 'target', data: { perWeek: per } });
+    }
   };
 
   /* Tagalog (wl.tagalog.v1): lessons finished, every exercise answer, every review card. */
@@ -146,7 +152,7 @@
 
   /* All events from the saved data ({storageKey: parsed state}), oldest first, last MAX_DAYS days only. */
   function collect(states, opts, now) {
-    opts = opts || {}; now = now || new Date();
+    now = now || new Date(); opts = Object.assign({}, opts || {}, { now: now });
     var from = new Date(now.getTime() - MAX_DAYS * 864e5).toISOString(), to = new Date(now.getTime() + 864e5).toISOString();
     var out = [];
     Object.keys(X).forEach(function (k) {
@@ -185,6 +191,7 @@
       case 'faith/prayer-answered': return 'Faith: a prayer answered';
       case 'calm/session': return 'Calm: ' + (e.text || 'session') + ' ' + (d.mins || 0) + ' min' + (d.before && d.after ? ', stress ' + d.before + '→' + d.after : '');
       case 'workout/set': return 'Move: ' + d.ex + ' set ' + d.n + ': ' + d.val + (d.w ? ' @ ' + d.w + ' lb' : '');
+      case 'workout/target': return 'Move: aiming for ' + d.perWeek + ' workouts a week';
       case 'workout/rest-day': return 'Move: rest day (' + (d.why || e.text || '') + ')';
       case 'workout/workout-done': return 'Move: finished workout ' + (d.day || '') + ' (' + d.sets + ' sets' + (d.mins != null ? ', ' + d.mins + ' min' : '') + ')';
       case 'tagalog/lesson': return 'Tagalog: finished lesson ' + e.text;

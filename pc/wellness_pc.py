@@ -381,7 +381,8 @@ def summarize(days=7, today=None):
     if not ev:
         lines.append("Nothing logged yet (the phone sends its log when it is on home Wi-Fi with the PC link paired).")
         return "\n".join(lines)
-    active_days = sorted({local_day(e["at"]) for e in ev})
+    # (the daily weekly-target event is a setting, not something he did that day)
+    active_days = sorted({local_day(e["at"]) for e in ev if e.get("kind") != "target"})
     # count from the first day there is any data: a 2-day-old app is "active 2 of 2 days", not "2 of 14"
     span, first = days, first_day()
     if first:
@@ -415,6 +416,13 @@ def summarize(days=7, today=None):
             extra = f"; {mins:.0f} min"
             if r: extra += f"; stress {sum(x['before'] for x in r) / len(r):.1f} -> {sum(x['after'] for x in r) / len(r):.1f} (1-5)"
         elif part == "workout":
+            # his weekly target: the last one sent (sorted() is stable, so on the same day the later one wins)
+            tg = [e for e in es if e["kind"] == "target"]
+            es = [e for e in es if e["kind"] != "target"]
+            aim = f"he aims for {(sorted(tg, key=lambda e: e['at'])[-1].get('data') or {}).get('perWeek')} workouts a week (his setting)" if tg else ""
+            if not es:
+                lines.append("- workout: nothing" + (f"; {aim}" if aim else "")); continue
+            d = len({local_day(e["at"]) for e in es})
             sets = [e for e in es if e["kind"] == "set"]
             ex = {}
             for s in sets:
@@ -427,6 +435,7 @@ def summarize(days=7, today=None):
                 d = len({local_day(e["at"]) for e in es if e["kind"] != "rest-day"})
                 extra += ("; rest days he logged on purpose (not missed workouts): "
                           + ", ".join(f"{(e.get('data') or {}).get('date') or local_day(e['at'])} {(e.get('data') or {}).get('why') or e.get('text', '')}" for e in rests[-10:]))
+            if aim: extra += "; " + aim
         elif part == "tagalog":
             ans = [e for e in es if e["kind"] in ("answer", "review")]
             ok = [e for e in ans if (e.get("data") or {}).get("ok") or (e.get("data") or {}).get("right")]

@@ -65,7 +65,10 @@
   }
 
   function logHtml(P) {
-    var all = pc.events(), unsent = A.unsent(all, P.sent).length, list = all.slice().reverse().slice(0, showAll ? 300 : 30);
+    var all = pc.events(), unsent = A.unsent(all, P.sent).length;
+    // the daily "workouts a week" setting: listed once (the newest), not every day
+    var tg = all.filter(function (e) { return e.kind === 'target'; }).pop();
+    var shown = all.filter(function (e) { return e.kind !== 'target' || e === tg; }).reverse(), list = shown.slice(0, showAll ? 300 : 30);
     return '<div class="card ui"><h3>What gets logged</h3>' +
       '<p class="meta">' + all.length + ' things from the last ' + A.MAX_DAYS + ' days; ' + unsent + ' not sent yet. Faith days, guided prayers and practices, ' +
       'calm sessions with your stress ratings, every workout set, Tagalog lessons, answers and reviews, to-dos and parenting practice.</p>' +
@@ -73,7 +76,7 @@
       (list.length ? '<ul class="list log">' + list.map(function (e) {
         return '<li><span class="meta">' + esc(new Date(e.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</span> ' +
           esc(A.describe(e)) + (P.sent[e.id] ? '' : ' <span class="meta">· not sent</span>') + '</li>';
-      }).join('') + '</ul>' + (all.length > list.length ? '<button class="link" id="lk-more">Show more</button>' : '') : '<p class="meta">Nothing yet.</p>') + '</div>';
+      }).join('') + '</ul>' + (shown.length > list.length ? '<button class="link" id="lk-more">Show more</button>' : '') : '<p class="meta">Nothing yet.</p>') + '</div>';
   }
 
   function msg(t, cls) { var m = $('#lk-msg'); if (m) { m.className = cls || 'meta'; m.textContent = t; } }

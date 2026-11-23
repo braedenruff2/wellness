@@ -325,6 +325,13 @@ rests = [e for e in W.recent_events(7) if e["id"].startswith("workout/rest/")]
 check("rest day: the undone one and its /x are dropped", [e["data"]["why"] for e in rests] == ["Busy day"], rests)
 summ = W.summarize(7)
 check("summary: rest days named as not missed", "rest days he logged on purpose (not missed workouts): " + today + " Busy day" in summ and "Tired" not in summ, summ)
+req("POST", "/v1/activity", {"events": [
+    {"id": "workout/target/" + today + "/3", "at": today + "T12:00:00-04:00", "part": "workout", "kind": "target", "data": {"perWeek": 3}},
+    {"id": "workout/target/" + today + "/2", "at": today + "T12:00:00-04:00", "part": "workout", "kind": "target", "data": {"perWeek": 2}}]}, token=token)
+summ = W.summarize(7)
+wline = [l for l in summ.splitlines() if l.startswith("- workout:")][0]
+check("summary: the last weekly target sent is named; it isn't a workout kind", "he aims for 2 workouts a week (his setting)" in wline and "target" not in wline, summ)
+check("prompts: plan around his weekly target", all("workouts a week" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", f), encoding="utf-8").read() for f in ("weekly-plan.md", "advice.md")))
 check("prompts: rest days are never 'inconsistent'", all("never call him inconsistent" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", f), encoding="utf-8").read() for f in ("weekly-plan.md", "advice.md")))
 req("POST", "/v1/activity", {"events": [
     {"id": "fb/calm/after/empty@x", "at": today + "T13:00:00-04:00", "part": "calm", "kind": "feedback", "data": {"about": "slow@emptycheck", "a": {}}}]}, token=token)

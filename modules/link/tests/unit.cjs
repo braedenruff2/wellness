@@ -39,6 +39,20 @@ function states() {
   return { 'fc.v1': f, 'wl.calm.v1': c, 'wl.workout.v1': w, 'wl.tagalog.v1': g, 'wl.todo.v1': d, 'wl.coach.v1': co };
 }
 
+t('workout target: once a day (3 by default, 2 when he chose it), not before anything is logged, described plainly', () => {
+  const W0 = require('../../../app/www/modules/workout/workout-core.js');
+  const w = W0.defaults();
+  assert.strictEqual(A.collect({ 'wl.workout.v1': w }, {}, now).filter((e) => e.kind === 'target').length, 0, 'nothing logged yet');
+  W0.logSet(w, 'A', 0, 10, 10, new Date(2026, 10, 18, 9)); W0.endSession(w, new Date(2026, 10, 18, 10));
+  let ev = A.collect({ 'wl.workout.v1': w }, {}, now).filter((e) => e.kind === 'target');
+  assert.deepStrictEqual(ev.map((e) => [e.id, e.data.perWeek]), [['workout/target/2026-11-19/3', 3]]);
+  w.target = 2;
+  ev = A.collect({ 'wl.workout.v1': w }, {}, now).filter((e) => e.kind === 'target');
+  assert.deepStrictEqual(ev.map((e) => [e.id, e.data.perWeek]), [['workout/target/2026-11-19/2', 2]]);
+  assert.strictEqual(A.describe(ev[0]), 'Move: aiming for 2 workouts a week');
+  const next = A.collect({ 'wl.workout.v1': w }, {}, new Date(now.getTime() + 864e5)).filter((e) => e.kind === 'target');
+  assert.strictEqual(next[0].id, 'workout/target/2026-11-20/2', 'sent again the next day');
+});
 t('collect: every part, oldest first, unique ids', () => {
   const ev = A.collect(states(), {}, now);
   const kinds = ev.map((e) => e.part + '/' + e.kind);
