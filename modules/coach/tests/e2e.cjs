@@ -71,6 +71,45 @@ const W = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.inputValue('#co-answer'), 'Keep my voice calm and rub her back.');
   });
 
+  await t.step('"What worked with her" updates live when rating tips and keeps older working tips', async () => {
+    assert.strictEqual(await page.locator('#co-worked').count(), 0, 'hidden before any tip is marked It worked');
+    // add an older scenario (> 7 days ago) already marked "It worked"
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      s.history.unshift({
+        id: 'h0', at: '2026-11-01T12:00:00Z', title: 'Car seat song', skill: 'Crying and comfort',
+        scenario: 'Cries getting buckled in.', question: 'What do you do?', age: '11 months old',
+        answer: 'Sing before buckling.',
+        result: { score: 8, verdict: 'Warm', good: [], improve: [], better: '', why: '', practice: 'Sing the same car-seat song', text: '', sources: [] }
+      });
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      const me = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[],"checkins":{},"plan":null,"skipped":{}}');
+      me.feedback.push({ id: 'coach/after/tip:h0', at: '2026-11-02T12:00:00Z', part: 'coach', about: 'tip:h0', kind: 'after', a: { tried: 'It worked' } });
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.reload();
+    await page.goto(base + '#coach');
+    await page.waitForSelector('#co-worked');
+    let worked = await page.textContent('#co-worked');
+    assert.ok(worked.includes('What worked with Mila') && worked.includes('Sing the same car-seat song'), worked);
+    assert.ok(!worked.includes('Name what happened.'), 'unrated tip not shown yet');
+    // tap "It worked" on this week's tip: #co-worked updates live
+    await page.click('#co-tips [data-me-a][data-v="It worked"]');
+    await page.waitForFunction(() => {
+      const el = document.querySelector('#co-worked');
+      return el && el.textContent.includes('Name what happened.');
+    });
+    worked = await page.textContent('#co-worked');
+    assert.ok(worked.includes('Name what happened.') && worked.includes('Feeding'), worked);
+    // tapping again clears it and drops it from #co-worked live
+    await page.click('#co-tips [data-me-a][data-v="It worked"]');
+    await page.waitForFunction(() => {
+      const el = document.querySelector('#co-worked');
+      return el && !el.textContent.includes('Name what happened.');
+    });
+    assert.ok((await page.textContent('#co-worked')).includes('Sing the same car-seat song'), 'older working tip stays');
+  });
+
   await t.step('past practice views escape HTML cleanly and unknown id shows Not found', async () => {
     await page.goto(base + '#coach/h/h1');
     const txt = await page.textContent('#view');

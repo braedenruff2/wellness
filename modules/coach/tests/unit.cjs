@@ -161,4 +161,33 @@ t('tipNotes: his "Did you try it?" and "Not for me?" answers on tips, newest las
   assert.deepStrictEqual(K.tipNotes(s, null), []);
   assert.deepStrictEqual(K.tipNotes(s, { feedback: 'x' }), []);
 });
+t('workedTips: tips rated "It worked", newest first, deduped, survives past 7 days, excludes Not for me', () => {
+  const s = K.defaults(); s.child = { name: 'Kid', birth: '2025-11-24' };
+  const add = (day, practice, skill) => {
+    K.setScenario(s, { scenario: 'x', skill: skill || 'Sleep' }, new Date(2026, 9, day));
+    return K.grade(s, 'my answer', { score: 8, practice }, new Date(2026, 9, day, 12));
+  };
+  const hOld = add(1, 'Sing the same quiet song', 'Sleep');
+  const hDup = add(5, 'sing the same quiet song ', 'Routines');
+  const hMid = add(10, 'Offer two safe choices', 'Connection');
+  const hNotFit = add(12, 'Count to three', 'Safety');
+  const hOther = add(14, 'Use a calm whisper', 'Crying and comfort');
+  const me = { feedback: [
+    { part: 'coach', kind: 'after', about: 'tip:' + hOld.id, at: '2026-10-02T12:00:00Z', a: { tried: 'It worked' } },
+    { part: 'coach', kind: 'after', about: 'tip:' + hDup.id, at: '2026-10-06T12:00:00Z', a: { tried: 'It worked' } },
+    { part: 'coach', kind: 'after', about: 'tip:' + hMid.id, at: '2026-10-11T12:00:00Z', edited: '2026-10-20T12:00:00Z', a: { tried: 'It worked' } },
+    { part: 'coach', kind: 'after', about: 'tip:' + hNotFit.id, at: '2026-10-13T12:00:00Z', a: { tried: 'It worked' } },
+    { part: 'coach', kind: 'notfit', about: 'tip:' + hNotFit.id, at: '2026-10-14T12:00:00Z', a: { reasons: ['Doesn’t fit my situation'] } },
+    { part: 'coach', kind: 'after', about: 'tip:' + hOther.id, at: '2026-10-15T12:00:00Z', a: { tried: 'Sort of' } },
+    { part: 'coach', kind: 'after', about: 'tip:missing', at: '2026-10-16T12:00:00Z', a: { tried: 'It worked' } }
+  ] };
+  const w = K.workedTips(s, me);
+  assert.deepStrictEqual(w.map((x) => [x.id, x.text, x.skill]), [
+    [hMid.id, 'Offer two safe choices', 'Connection'],
+    [hDup.id, 'sing the same quiet song', 'Routines']
+  ], 'edited timestamp newest first, deduped to newest, excludes Sort of / notfit / missing');
+  assert.strictEqual(K.workedTips(s, me, 1).length, 1);
+  assert.deepStrictEqual(K.workedTips(s, null), []);
+  assert.deepStrictEqual(K.workedTips(s, { feedback: 'bad' }), []);
+});
 console.log(n + ' coach tests passed');

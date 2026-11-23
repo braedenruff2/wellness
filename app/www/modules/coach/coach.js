@@ -57,6 +57,16 @@
     }).join('') + '</ul>' + (st.some(function (s) { return s.scores.length >= 2; }) ? '<p class="meta">Bars: your last scores per skill, oldest on the left.</p>' : '') + '</div>';
   }
 
+  function workedHtml() {
+    var w = K.workedTips(S, window.WLMe && WLMe.state ? WLMe.state() : null);
+    if (!w.length) return '';
+    return '<div class="card ui" id="co-worked"><h3>What worked with ' + esc(S.child.name || 'her') + '</h3>' +
+      '<p class="meta">Tips you marked “It worked” — tap any to revisit the scenario.</p><ul class="list">' + w.map(function (x) {
+        return '<li class="row"><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.text) + '</a><span class="meta">' + esc(x.skill) + '</span></li>';
+      }).join('') + '</ul></div>';
+  }
+  function refreshWorked() { var wrap = $('#co-worked-wrap'); if (wrap) wrap.innerHTML = workedHtml(); }
+
   /* his earlier tip answers, sent with every coach request (only when there are some) */
   function withNotes(input) {
     var n = K.tipNotes(S, window.WLMe && WLMe.state ? WLMe.state() : null);
@@ -97,6 +107,7 @@
     if (!waiting) h += '<div class="card ui"><h3>Something happening with ' + esc(S.child.name || 'her') + '?</h3><p class="meta">Describe a real situation you’re dealing with: what she does, when, what you’ve tried. Claude checks current guidance for her age and gives you steps, words to say, and why.</p>' +
       '<label class="sr" for="co-real">Your situation</label><textarea id="co-real" rows="5" placeholder="e.g. She screams when I put her in the car seat, every time, since last week. I’ve tried…">' + esc(S.realDraft || '') + '</textarea>' +
       '<div class="row" style="margin-top:8px"><button class="primary" id="co-real-go"' + (askable() ? '' : ' disabled') + '>Get advice</button></div></div>';
+    h += '<div id="co-worked-wrap">' + workedHtml() + '</div>';
     var last = S.history.slice().reverse();
     if (last.length) {
       h += '<div class="card ui"><h3>Past practice</h3><ul class="list">' + last.slice(0, 20).map(function (x) {
@@ -137,6 +148,9 @@
     var rl = $('#co-real'); if (rl) rl.oninput = function () { S.realDraft = rl.value.slice(0, 3000); save(); };
     var rg = $('#co-real-go'); if (rg) rg.onclick = function () { askReal($('#co-real').value); };
     var sk = $('#co-skip'); if (sk) sk.onclick = function () { if (!askable()) return; S.current = null; save(); newScenario(); };
+    var tp = $('#co-tips'); if (tp) tp.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('[data-me-a], #me-send')) setTimeout(refreshWorked, 0);
+    });
   }
 
   function tick(secs) { if (waiting) waiting.secs = secs; var e = $('#co-secs'); if (e) e.textContent = secs + ' s'; }

@@ -163,6 +163,39 @@
     return out.slice(-(max || 6));
   }
 
+  /* Tips he marked "It worked" (About you: "Did you try it with her?"), newest first, no repeats,
+     excluding tips later flagged "Not for me". Kept in a recall list on #coach even after the 7-day
+     "This week, try" window passes. me: the wl.me.v1 state (or null). */
+  function workedTips(state, me, max) {
+    if (!me || !Array.isArray(me.feedback)) return [];
+    var byId = {}, notFit = {};
+    state.history.forEach(function (h) { if (h && h.id) byId[h.id] = h; });
+    me.feedback.forEach(function (f) {
+      if (f && f.part === 'coach' && f.kind === 'notfit' && /^tip:/.test(String(f.about || ''))) notFit[String(f.about).slice(4)] = 1;
+    });
+    var rows = [];
+    me.feedback.forEach(function (f, idx) {
+      if (!f || f.part !== 'coach' || f.kind !== 'after' || !/^tip:/.test(String(f.about || ''))) return;
+      if (!f.a || f.a.tried !== 'It worked') return;
+      var id = String(f.about).slice(4);
+      if (notFit[id]) return;
+      var h = byId[id], text = String((h && h.result && h.result.practice) || '').trim();
+      if (!text) return;
+      var at = f.edited || f.at || (h && h.at) || '';
+      var t = new Date(at).getTime();
+      rows.push({ text: text, skill: h.skill, id: h.id, at: at, _t: isNaN(t) ? 0 : t, _i: idx });
+    });
+    rows.sort(function (a, b) { return b._t - a._t || b._i - a._i; });
+    var seen = {}, out = [], cap = max || 8;
+    for (var i = 0; i < rows.length && out.length < cap; i++) {
+      var key = rows[i].text.toLowerCase();
+      if (seen[key]) continue;
+      seen[key] = 1;
+      out.push({ text: rows[i].text, skill: rows[i].skill, id: rows[i].id, at: rows[i].at });
+    }
+    return out;
+  }
+
   /* The graded current scenario goes into the history. */
   /* scn: the scenario that was answered (the request may come back after he moved on to another one). */
   function grade(state, answer, a, now, scn) {
@@ -203,7 +236,7 @@
   }
 
   var api = { SKILLS: SKILLS, CAN: CAN, toggleCan: toggleCan, setCanNote: setCanNote, canText: canText, defaults: defaults, ageMonths: ageMonths, ageText: ageText, skillStats: skillStats, suggestSkill: suggestSkill,
-    scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, practiseReal: practiseReal, tips: tips, tipNotes: tipNotes, cleanResult: cleanResult, validate: validate };
+    scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, practiseReal: practiseReal, tips: tips, tipNotes: tipNotes, workedTips: workedTips, cleanResult: cleanResult, validate: validate };
   root.CoachCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);
