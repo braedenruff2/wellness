@@ -25,6 +25,17 @@ const W = require('./lib/web.cjs');
     assert.strictEqual(s.sessions.length, 1); assert.strictEqual(s.sessions[0].date, '2026-11-17');
     assert.ok(s.sessions[0].sets[0].at.startsWith('2026-11-17') || new Date(s.sessions[0].sets[0].at).getDate() === 17);
   });
+  await t.step('a rest day logged while yesterday is picked goes on yesterday; today is still open', async () => {
+    await page.selectOption('#wl-logday', '2026-11-16').catch(() => {});
+    await page.goto(base + '#home'); await page.selectOption('#wl-logday', '2026-11-16');
+    await page.goto(base + '#workout'); await page.click('#wo-rest summary'); await page.click('[data-rest="Busy day"]');
+    const s = await st('wl.workout.v1');
+    assert.deepStrictEqual(Object.keys(s.rest), ['2026-11-16']);
+    assert.ok((await page.textContent('#wo-rest')).includes('Rest day logged: Busy day'));
+    await page.goto(base + '#home'); await page.selectOption('#wl-logday', '2026-11-17');
+    await page.goto(base + '#workout');
+    assert.strictEqual(!!(await page.$('#wo-rest')), false, 'yesterday has a workout: no rest choice');
+  });
   await t.step('a to-do ticked counts as done yesterday', async () => {
     await page.goto(base + '#todo');
     await page.fill('#td-new', 'call the bank'); await page.press('#td-new', 'Enter');
