@@ -73,13 +73,18 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     assert.strictEqual(await page.textContent('#dj-gentle'), '');
   });
 
-  await step('a line typed and the app closed at once is still saved (pagehide)', async () => {
+  await step('a line typed and left via hash change before 600 ms is still saved on leave', async () => {
     await page.goto(base + '#faith/day/2');
-    await page.fill('#dj', 'quick note');
-    await page.goto(base + '#faith/today');      // leaving the day screen before the 600 ms save
-    await page.evaluate(() => window.FCSaveNow());
+    // set value + fire input without blurring, then change hash straight away (like hardware Back)
+    await page.evaluate(() => {
+      const ta = document.getElementById('dj');
+      ta.focus();
+      ta.value = 'quick note';
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      location.hash = '#faith/today';
+    });
+    await page.waitForSelector('h1:text-is("Help my unbelief")');
     await page.goto(base + '#faith/day/2');
-    // blur fired on navigation, or FCSaveNow; either way it must be there
     assert.strictEqual(await page.inputValue('#dj'), 'quick note');
   });
 
@@ -141,6 +146,18 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     await page.clock.runFor(500);
     assert.strictEqual(await page.evaluate(() => window.__spoken.length), 1);
     assert.strictEqual(await page.textContent('#pp'), '\u23F8 Pause');
+    await page.click('#end');
+    // leaving during the 1.2 s bell delay cancels the old start timer so a newly opened session doesn't start early
+    await page.goto(base + '#faith/session/p/gratitude');
+    await page.evaluate(() => { window.__spoken.length = 0; });
+    await page.click('#pp');
+    await page.clock.runFor(900);
+    await page.goto(base + '#faith/session/p/pause');
+    await page.click('#pp');
+    await page.clock.runFor(500); // 1400 ms after first #pp, only 500 ms after second #pp: must still wait for full 1200 ms bell
+    assert.deepStrictEqual(await page.evaluate(() => window.__spoken), [], 'old bell timer did not start second session early');
+    await page.clock.runFor(800);
+    assert.strictEqual(await page.evaluate(() => window.__spoken.length), 1, 'second session starts after its own bell');
     await page.click('#end');
   });
 

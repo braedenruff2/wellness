@@ -19,7 +19,7 @@
   var S = store.load();
   var view = null;
   var native = window.FCAndroid || null;   // the Android app's bridge (absent in a browser)
-  var player = null, session = null, quietTimer = null;
+  var player = null, session = null, quietTimer = null, startTimer = null, journalTimer = null;
 
   function save() { store.save(S); }
   var finishedAt = -1e9;
@@ -248,7 +248,9 @@
     bell();
     player.from = from || 0;
     // a paused-before-it-began player stays paused; Resume starts it (core.js Player.pause in 'idle')
-    setTimeout(function () { if (player && player.phase === 'idle') player.start(); }, S.settings.bell ? 1200 : 0);
+    clearTimeout(startTimer);
+    var cur = player;
+    startTimer = setTimeout(function () { startTimer = null; if (player === cur && player.phase === 'idle') player.start(); }, S.settings.bell ? 1200 : 0);
     pp.textContent = '\u23F8 Pause'; pp.dataset.state = 'playing';
   }
 
@@ -348,6 +350,8 @@
   }
   function leave() {
     clearInterval(quietTimer);
+    clearTimeout(startTimer); startTimer = null;
+    if (journalTimer) { clearTimeout(journalTimer); journalTimer = null; saveNow(); }
     if (player) { player.stop(); player = null; keepAwake(false); }
   }
   var lastParts = ['today'];
@@ -375,14 +379,14 @@
   }
 
   function journalSaver(ta) {
-    var tmr = null, out = $('#dj-saved'), gentle = $('#dj-gentle');
+    var out = $('#dj-saved'), gentle = $('#dj-gentle');
     function commit() {
-      clearTimeout(tmr);
+      clearTimeout(journalTimer); journalTimer = null;
       C.setDayJournal(S, +ta.dataset.day, ta.value, logNow()); save();
-      out.textContent = ta.value.trim() ? 'Saved' : '';
-      gentle.innerHTML = C.soundsHeavy(ta.value) ? heavyNote() : '';
+      if (out && out.isConnected) out.textContent = ta.value.trim() ? 'Saved' : '';
+      if (gentle && gentle.isConnected) gentle.innerHTML = C.soundsHeavy(ta.value) ? heavyNote() : '';
     }
-    ta.addEventListener('input', function () { out.textContent = ''; clearTimeout(tmr); tmr = setTimeout(commit, 600); });
+    ta.addEventListener('input', function () { out.textContent = ''; clearTimeout(journalTimer); journalTimer = setTimeout(commit, 600); });
     ta.addEventListener('blur', commit);
   }
 
@@ -513,7 +517,7 @@
     on('#rem-off', function (el) { el.onclick = function () { try { native.setReminder(-1, -1); } catch (e) {} S.settings.reminder = ''; save(); route(); }; });
   }
 
-  function saveNow() { var ta = view && view.querySelector('#dj'); if (ta) { C.setDayJournal(S, +ta.dataset.day, ta.value, logNow()); } save(); }
+  function saveNow() { clearTimeout(journalTimer); journalTimer = null; var ta = view && view.querySelector('#dj'); if (ta) { C.setDayJournal(S, +ta.dataset.day, ta.value, logNow()); } save(); }
   window.FCReminderPermission = function (granted) {
     toast(granted ? 'Reminder set for ' + S.settings.reminder : 'Notifications are off, so the reminder can\u2019t show');
     if (location.hash === '#faith/settings') route(['settings']);
