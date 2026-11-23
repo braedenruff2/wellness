@@ -385,4 +385,23 @@ t('progress numbers: a sheet row for a day also logged in the app counts once; 0
   s.history.push({ date: '2026-11-19', ex: 'Plank', sets: [30, 30], w: null, from: 'sheet' });
   assert.strictEqual(W.performances(s, 'Plank').length, 1);
 });
+t('0-set imported sheet rows never count as workout days; imported workout days exclude rest days', () => {
+  const s = W.defaults();
+  // 0-only history row on Mon 16 Nov: must not count in weekStats, fourWeeks, today, coach, or offerTwo
+  s.history.push({ date: '2026-11-16', ex: 'Pushups', sets: [0, 0, 0], w: null, from: 'sheet' });
+  assert.strictEqual(W.weekStats(s, at(18, 9)).thisWeek, 0);
+  assert.strictEqual(W.weekStats(s, at(18, 9)).total, 0);
+  assert.strictEqual(W.fourWeeks(s, at(18, 9)).find((d) => d.date === '2026-11-16').kind, 'none');
+  assert.strictEqual(W.today(s, at(16, 12)).done, false);
+  assert.strictEqual(W.today(s, at(17, 9)).done, false, 'not "worked out yesterday"');
+  assert.ok(!/Done for today/.test(W.coach(s, at(16, 12))), W.coach(s, at(16, 12)));
+  // importSheetCsv skips 0-only rows and strips 0 cells from mixed rows
+  const csv = 'Date,Day,Exercise,Set 1,Set 2,Set 3,Set 4,Weight\n2026-11-17,Tue,Pushups,0,0,0,,\n2026-11-18,Wed,Pushups,12,0,10,,\n';
+  assert.strictEqual(W.importSheetCsv(s, csv), 1, '0-only row skipped on import');
+  assert.deepStrictEqual(W.last(s, 'Pushups').sets, [12, 10]);
+  // restThisWeek excludes days with a valid imported sheet workout
+  W.logRest(s, '2026-11-18', 'Busy day', at(18, 8));
+  W.logRest(s, '2026-11-19', 'Tired', at(19, 8));
+  assert.deepStrictEqual(W.restThisWeek(s, at(19, 12)), [{ date: '2026-11-19', why: 'Tired' }]);
+});
 console.log(n + ' workout unit tests passed');

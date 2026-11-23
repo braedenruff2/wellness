@@ -76,7 +76,7 @@
     if (targetOf(state) !== 3) return false;
     if (state.twoAsked && (new Date(iso(now)) - new Date(state.twoAsked)) / 864e5 < 28) return false;
     var ws = weekStart(now), worked = {}, busy = 0;
-    sessionsWithSets(state).forEach(function (x) { worked[x.date] = 1; }); state.history.forEach(function (h) { worked[h.date] = 1; });
+    sessionsWithSets(state).forEach(function (x) { worked[x.date] = 1; }); historyWithSets(state).forEach(function (h) { worked[h.date] = 1; });
     for (var w = 1; w <= 3; w++) {
       var a = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7 * w)), b = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7 * (w - 1)));
       var n = Object.keys(worked).filter(function (d) { return d >= a && d < b; }).length;
@@ -105,7 +105,7 @@
   function restThisWeek(state, now) {
     now = now || new Date();
     var ws = weekStart(now), a = iso(ws), b = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + 7)), t = iso(now);
-    var worked = {}; sessionsWithSets(state).forEach(function (s) { worked[s.date] = 1; });
+    var worked = {}; sessionsWithSets(state).forEach(function (s) { worked[s.date] = 1; }); historyWithSets(state).forEach(function (h) { worked[h.date] = 1; });
     return Object.keys(state.rest || {}).sort().filter(function (d) { return d >= a && d < b && d <= t && !worked[d] && restOn(state, d); })
       .map(function (d) { return { date: d, why: state.rest[d].why }; });
   }
@@ -142,6 +142,7 @@
   function newId(now) { return (now || new Date()).getTime().toString(36) + '-' + (++idn); }
 
   function sessionsWithSets(state) { return state.sessions.filter(function (s) { return s.sets && s.sets.length; }); }
+  function historyWithSets(state) { return (state.history || []).filter(function (h) { return h && Array.isArray(h.sets) && h.sets.some(function (v) { return +v > 0; }); }); }
 
   /* The next day in the rotation: the one after the most recent session (on or before now's day) with sets. */
   function nextDay(state, now) {
@@ -331,7 +332,7 @@
     var wsDate = weekStart(now), ws = iso(wsDate), nextWs = iso(new Date(wsDate.getFullYear(), wsDate.getMonth(), wsDate.getDate() + 7));
     var days = {};
     sessionsWithSets(state).forEach(function (s) { days[s.date] = 1; });
-    state.history.forEach(function (h) { days[h.date] = 1; });
+    historyWithSets(state).forEach(function (h) { days[h.date] = 1; });
     var thisWeek = Object.keys(days).filter(function (d) { return d >= ws && d < nextWs; }).length;
     // weeks in a row (before this one) with at least 2 workouts
     var streak = 0, w = weekStart(now);
@@ -350,7 +351,7 @@
   function fourWeeks(state, now) {
     now = now || new Date();
     var ws = weekStart(now), todayIso = iso(now), days = {}, out = [];
-    sessionsWithSets(state).forEach(function (s) { days[s.date] = 1; }); state.history.forEach(function (h) { days[h.date] = 1; });
+    sessionsWithSets(state).forEach(function (s) { days[s.date] = 1; }); historyWithSets(state).forEach(function (h) { days[h.date] = 1; });
     for (var i = 0; i < 28; i++) {
       var d = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 21 + i)), why = restOn(state, d);
       out.push(d > todayIso ? { date: d, kind: 'future' } : days[d] ? { date: d, kind: 'workout' } : why ? { date: d, kind: 'rest', why: why } : { date: d, kind: 'none' });
@@ -396,7 +397,7 @@
     now = now || new Date();
     var st = weekStats(state, now), dow = (now.getDay() + 6) % 7, todayIso = iso(now); // 0 = Monday
     var done = sessionsWithSets(state).filter(function (s) { return s.date <= todayIso; });
-    var hist = state.history.filter(function (h) { return h.date <= todayIso; });
+    var hist = historyWithSets(state).filter(function (h) { return h.date <= todayIso; });
     var lastSess = done.length ? done[done.length - 1].date : null;
     var lastHist = hist.length ? hist[hist.length - 1].date : null;
     var lastDate = lastSess && lastHist ? (lastSess > lastHist ? lastSess : lastHist) : (lastSess || lastHist);
@@ -437,7 +438,7 @@
   function today(state, now) {
     now = now || new Date();
     var d = iso(now), y = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
-    var dates = {}; sessionsWithSets(state).forEach(function (s) { dates[s.date] = 1; }); state.history.forEach(function (h) { dates[h.date] = 1; });
+    var dates = {}; sessionsWithSets(state).forEach(function (s) { dates[s.date] = 1; }); historyWithSets(state).forEach(function (h) { dates[h.date] = 1; });
     var open = openSession(state, now);
     if (open) return { done: false, text: 'in progress (' + PROGRAM[open.day].title + ')' };
     if (dates[d]) return { done: true, text: 'workout done' };
@@ -479,7 +480,7 @@
     rows.slice(1).forEach(function (r) {
       var date = (r[0] || '').trim(), ex = (r[2] || '').trim();
       if (!/^\d{4}-\d\d-\d\d$/.test(date) || !ex || ex === 'Rest') return;
-      var sets = r.slice(3, 7).map(function (v) { return String(v).trim(); }).filter(function (v) { return v !== '' && !isNaN(+v); }).map(Number);
+      var sets = r.slice(3, 7).map(function (v) { return String(v).trim(); }).filter(function (v) { return v !== '' && +v > 0; }).map(Number);
       if (!sets.length) return;
       var name = RENAME[ex] || ex;
       var w = parseFloat(String(r[7] || '').replace(/[^\d.]/g, ''));
