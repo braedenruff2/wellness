@@ -81,7 +81,7 @@
       '<button class="link small" id="td-notime">No reminder</button>' +
       (t.repeat ? '' : '<button class="chip" id="td-hour">In 1 hour</button>') + '</div>' +
       '<div class="row" style="margin-top:10px"><button class="primary" id="td-save">Save</button><button id="td-cancel">Cancel</button><span class="grow"></span><button class="link" id="td-del">Delete</button></div>';
-    var li = $('li[data-id="' + t.id + '"]');
+    var li = $$('li[data-id]').filter(function (x) { return x.dataset.id === t.id; })[0];
     (li || view).appendChild(d);
     var due = t.due || '', rep = t.repeat || '';
     $$('[data-due]', d).forEach(function (b) { b.onclick = function () { due = b.dataset.due; $('#td-date').value = due; $$('[data-due]', d).forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
@@ -90,7 +90,12 @@
     $('#td-save').onclick = function () {
       var txt = $('#td-edit').value.trim(); if (!txt) return;
       var at = $('#td-time').value; at = /^\d\d:\d\d$/.test(at) ? at : null;
-      t.text = txt; t.due = due || (rep || at ? today : null); t.repeat = rep || null; t.at = at; t.due = T.firstDue(t); if (T.MONTH_STEP[t.repeat] && t.due) t.mday = +t.due.slice(8, 10); else delete t.mday; save(); render();
+      var d0 = due;
+      if (!d0 && (rep || at)) {
+        var now0 = new Date(), hm0 = ('0' + now0.getHours()).slice(-2) + ':' + ('0' + now0.getMinutes()).slice(-2);
+        d0 = !rep && at && at <= hm0 ? T.addDays(today, 1) : today;
+      }
+      t.text = txt; t.due = d0 || null; t.repeat = rep || null; t.at = at; t.due = T.firstDue(t); if (T.MONTH_STEP[t.repeat] && t.due) t.mday = +t.due.slice(8, 10); else delete t.mday; save(); render();
       if (at) WL.toast('Reminder at ' + T.fmtTime(at) + ', ' + fmtDue(t.due));
     };
     $('#td-notime').onclick = function () { $('#td-time').value = ''; };

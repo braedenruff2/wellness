@@ -253,6 +253,8 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     await page.fill('#j-search', 'LAUGH');
     assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 1);
     assert.ok(/1 found/.test(await page.textContent('#j-found')));
+    await page.fill('#j-search', 'delete');
+    assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 0, 'search ignores the Delete button label');
     await page.fill('#j-search', '');
     assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 6);
   });

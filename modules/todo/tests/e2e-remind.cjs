@@ -38,6 +38,17 @@ const W = require('../../../tests/lib/web.cjs');
     await page.click('#td-notime'); await page.click('#td-save');
     l = await last();
     assert.strictEqual(l.length, 1); assert.ok(!l.some((x) => x.includes('fix the gate')));
+    // setting a past time of day (8:00 when clock is 10:00) on an undated one-off task schedules tomorrow so the alarm actually rings
+    await page.click('li:has-text("fix the gate") [data-more]');
+    await page.click('[data-due=""]');
+    await page.fill('#td-time', '08:00');
+    await page.click('#td-save');
+    l = await last();
+    const gate = l.find((x) => x.endsWith('\tfix the gate'));
+    assert.ok(gate, 'past-time reminder moved to tomorrow and sent to Android: ' + JSON.stringify(l));
+    assert.strictEqual(+gate.split('\t')[0], new Date(2026, 10, 19, 8, 0).getTime());
+    await page.click('li:has-text("fix the gate") [data-more]');
+    await page.click('#td-notime'); await page.click('#td-save');
   });
   await t.step('ticking a task takes its reminder away', async () => {
     await page.click('li:has-text("call Mom") [data-tick]');

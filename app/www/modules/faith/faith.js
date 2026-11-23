@@ -449,7 +449,10 @@
     on('#voice-toggle', function (el) { el.onclick = function () { S.settings.voice = !S.settings.voice; save(); route(); }; });
     on('#j-search', function (el) { el.oninput = function () {
       var q = el.value.trim().toLowerCase(), n = 0;
-      [].forEach.call(document.querySelectorAll('#j-list > li'), function (li) { var hit = !q || li.textContent.toLowerCase().indexOf(q) >= 0; li.hidden = !hit; if (hit) n++; });
+      [].forEach.call(document.querySelectorAll('#j-list > li'), function (li) {
+        var txt = ['.kind', '.when', 'p'].map(function (s) { var x = li.querySelector(s); return x ? x.textContent : ''; }).join(' ').toLowerCase();
+        var hit = !q || txt.indexOf(q) >= 0; li.hidden = !hit; if (hit) n++;
+      });
       $('#j-found').textContent = q ? ' ' + n + ' found' : '';
     }; });
     [].forEach.call(document.querySelectorAll('[data-jtab]'), function (b) { b.onclick = function () { location.hash = '#faith/journal/' + b.dataset.jtab; }; });
