@@ -187,3 +187,6 @@ p.ok { color: var(--good); } p.no { color: var(--warn); }
 .tb { flex: 1; background: var(--accent, #6b8e7f); border-radius: 2px; min-width: 3px; }
 .tb.none { background: none; text-align: center; line-height: 1; align-self: flex-end; opacity: .5; }
 .c-bars { display: flex; max-width: 12em; height: 1.6em; margin-top: .3em; }
+
+/* disclosure openers ("Not training today?", "How", ...) are tap targets too */
+summary { min-height: 44px; box-sizing: border-box; padding: 10px 0; cursor: pointer; }
