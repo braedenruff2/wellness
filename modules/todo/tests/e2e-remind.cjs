@@ -81,6 +81,11 @@ const W = require('../../../tests/lib/web.cjs');
     await page.reload();
     assert.ok(await page.evaluate((id) => !!JSON.parse(localStorage.getItem('wl.todo.v1')).tasks.find((x) => x.id === id).done, bins));
     assert.ok(!(await page.textContent('main')).includes('bins') || (await page.textContent('main')).indexOf('bins') > (await page.textContent('main')).indexOf('done in the last'));
+    // stale notification tap for an already-ticked task on a later day still tops up repeating reminders
+    const before = (await page.evaluate(() => window.__todo)).length;
+    await page.clock.fastForward(2 * 86400000);
+    await page.evaluate((id) => { window.__ticked = Date.now() + '\t' + id + '\n'; window.FCTodoTicked(); }, bins);
+    assert.strictEqual((await page.evaluate(() => window.__todo)).length, before + 1, 'repeating reminders topped up even when tap was a no-op');
   });
   await t.step('no console errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('to-do reminders');

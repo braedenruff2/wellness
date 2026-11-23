@@ -185,7 +185,7 @@
     if (!lines) { syncAlarms(); return; }
     S = store.load();
     var got = T.applyTicked(S, lines);
-    if (!got.length) return;
+    if (!got.length) { syncAlarms(); return; }
     save();
     if (starting) return; // the first screen draws after this
     WL.toast('Done: ' + got.map(function (t) { return t.text; }).join(', '));
