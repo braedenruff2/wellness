@@ -471,7 +471,20 @@ def summarize(days=7, today=None):
     return "\n".join(lines)
 
 
-# ------------------------------------------------------------------ Claude (his own Claude Code CLI)
+# ------------------------------------------------------------------ Claude & Gemini backup (his own CLIs)
+CLAUDE_RESET_DAY = 2   # Wednesday (0=Mon .. 6=Sun), noon local time
+CLAUDE_RESET_HOUR = 12
+GEMINI_RESET_DAY = 0   # Monday, start of day local time
+GEMINI_RESET_HOUR = 0
+GEMINI_TOOLS = {"WebSearch": "google_web_search", "WebFetch": "web_fetch"}
+AI_STATE_FILE = "ai_state.json"
+ai_state_lock = threading.Lock()
+
+
+class UsageLimitError(RuntimeError):
+    """Raised when Claude or Gemini rejects a request because its usage/quota is used up."""
+
+
 def find_claude():
     env = os.environ.get("WELLNESS_CLAUDE")
     if env: return env if os.path.exists(env) else shutil.which(env)
@@ -482,6 +495,89 @@ def find_claude():
               os.path.join(os.environ.get("APPDATA", ""), "npm", "claude.cmd")):
         if p and os.path.exists(p): return p
     return None
+
+
+def find_gemini():
+    env = os.environ.get("WELLNESS_GEMINI")
+    if env: return env if os.path.exists(env) else shutil.which(env)
+    found = shutil.which("gemini")
+    if found: return found
+    home = os.path.expanduser("~")
+    for p in (os.path.join(os.environ.get("APPDATA", ""), "npm", "gemini.cmd"),
+              os.path.join(home, ".local", "bin", "gemini.exe"),
+              os.path.join(home, ".local", "bin", "gemini"),
+              os.path.join(home, ".npm-global", "bin", "gemini")):
+        if p and os.path.exists(p): return p
+    return None
+
+
+def _local_now(now=None):
+    if now is None: return datetime.datetime.now().astimezone()
+    return now.astimezone() if now.tzinfo else now.astimezone()
+
+
+def next_reset(weekday, hour=0, now=None):
+    """Next local occurrence of (weekday 0=Mon..6=Sun, hour:00) strictly after now (DST-safe)."""
+    n = _local_now(now)
+    days = (weekday - n.weekday()) % 7
+    d = n.date() + datetime.timedelta(days=days)
+    cand = datetime.datetime(d.year, d.month, d.day, hour, 0, 0).astimezone()
+    if cand <= n:
+        d = d + datetime.timedelta(days=7)
+        cand = datetime.datetime(d.year, d.month, d.day, hour, 0, 0).astimezone()
+    return cand
+
+
+def is_usage_limit(msg):
+    """True when a Claude or Gemini error means usage/quota is exhausted (not an auth or syntax error)."""
+    m = str(msg or "").lower()
+    return any(k in m for k in (
+        "429", "rate limit", "rate_limit", "usage limit", "limit reached", "hit your limit",
+        "out of usage", "out of extra usage", "weekly limit", "5-hour limit", "you've reached your",
+        "quota", "resource_exhausted", "resource exhausted", "too many requests", "exhausted your capacity"
+    ))
+
+
+def read_ai_state():
+    with ai_state_lock:
+        st = read_json(AI_STATE_FILE, {})
+        return st if isinstance(st, dict) else {}
+
+
+def is_exhausted(st, provider, now=None):
+    raw = (st or {}).get(provider + "_until")
+    if not isinstance(raw, str) or not raw: return False
+    try:
+        until = datetime.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if until.tzinfo is None: until = until.astimezone()
+        return _local_now(now) < until
+    except ValueError:
+        return False
+
+
+def mark_exhausted(provider, now=None):
+    until = (next_reset(CLAUDE_RESET_DAY, CLAUDE_RESET_HOUR, now) if provider == "claude"
+             else next_reset(GEMINI_RESET_DAY, GEMINI_RESET_HOUR, now))
+    with ai_state_lock:
+        st = read_json(AI_STATE_FILE, {})
+        if not isinstance(st, dict): st = {}
+        st[provider + "_until"] = until.isoformat()
+        write_json(AI_STATE_FILE, st)
+    return until
+
+
+def ai_status(now=None):
+    st = read_ai_state()
+    c_out = is_exhausted(st, "claude", now)
+    g_out = is_exhausted(st, "gemini", now)
+    c_ok = bool(find_claude()) and not c_out
+    g_ok = bool(find_gemini()) and not g_out
+    prov = "claude" if c_ok else ("gemini" if g_ok else "none")
+    return {
+        "provider": prov,
+        "claudeUntil": st.get("claude_until") if c_out else None,
+        "geminiUntil": st.get("gemini_until") if g_out else None,
+    }
 
 
 SKILLS = ["Connection", "Calm under stress", "Sleep", "Feeding", "Play and learning", "Safety", "Routines",
@@ -584,10 +680,13 @@ def run_claude(prompt, tools):
     if not isinstance(env, dict):
         tail = (r.stderr or out or "").strip().splitlines()[-3:]
         said = " ".join(tail)[:300]
+        if said and is_usage_limit(said): raise UsageLimitError(explain_error(said))
         if said and explain_error(said) != "Claude: " + said: raise RuntimeError(explain_error(said))
         raise RuntimeError("Claude didn't answer" + (": " + said if said else f" (exit {r.returncode})"))
     if env.get("is_error") or env.get("subtype", "success") != "success":
-        raise RuntimeError(explain_error(str(env.get("result") or env.get("subtype") or "error")))
+        raw = str(env.get("result") or env.get("subtype") or "error")
+        if is_usage_limit(raw): raise UsageLimitError(explain_error(raw))
+        raise RuntimeError(explain_error(raw))
     return parse_answer(str(env.get("result") or "")), secs
 
 
@@ -597,9 +696,121 @@ def explain_error(msg):
     if "401" in m or "authenticate" in m or "oauth" in m or "revoked" in m or "not logged in" in m or "/login" in m:
         return ("Claude Code on your PC needs you to sign in again (its login ran out). On the PC, double-click "
                 "\"Sign in to Claude Code.bat\" in the wellness folder, then try again.")
-    if "429" in m or "rate limit" in m or "usage limit" in m or "limit reached" in m:
-        return "Your Claude usage limit is reached for now; it resets in a few hours. Try again then."
+    if is_usage_limit(msg):
+        return "Your Claude usage limit is reached for now; it resets on Wednesday."
     return "Claude: " + msg[:300]
+
+
+def gemini_tools_arg(tools):
+    """Map Claude tool names (WebSearch,WebFetch) to Gemini CLI tool names."""
+    out = []
+    for t in str(tools or "").split(","):
+        g = GEMINI_TOOLS.get(t.strip())
+        if g and g not in out: out.append(g)
+    return ",".join(out)
+
+
+def explain_gemini_error(msg):
+    """Gemini CLI's error, in words he can act on."""
+    m = str(msg or "").lower()
+    if any(k in m for k in ("401", "403", "unauthenticated", "authenticate", "oauth", "not logged in", "credentials", "sign in", "/login")):
+        return ("Gemini CLI on your PC needs you to sign in again. On the PC, double-click "
+                "\"Sign in to Gemini.bat\" in the wellness folder, then try again.")
+    if is_usage_limit(msg):
+        return "Your Gemini usage limit is reached for now; it resets on Monday."
+    return "Gemini: " + str(msg or "")[:300]
+
+
+def run_gemini(prompt, tools):
+    """Run Gemini CLI (@google/gemini-cli) headless with the prompt on stdin and JSON output."""
+    exe = find_gemini()
+    if not exe: raise RuntimeError("Gemini CLI isn't on this PC (or not on PATH). Install @google/gemini-cli and sign in once, then try again.")
+    work = progress("claude-work", "README.txt")
+    if not os.path.exists(work):
+        with open(work, "w", encoding="utf-8") as f:
+            f.write("Working folder for the Wellness app's AI requests. Safe to empty.\n")
+    args = [exe, "-p", "Follow the instructions from stdin and return only the requested JSON object.", "--output-format", "json"]
+    gtools = gemini_tools_arg(tools)
+    if gtools: args += ["--allowed-tools", gtools]
+    t0 = time.time()
+    r = subprocess.run(args, input=prompt, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       cwd=os.path.dirname(work), timeout=CLAUDE_TIMEOUT,
+                       creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    secs = round(time.time() - t0, 1)
+    out = (r.stdout or "").strip()
+    try: env = json.loads(out)
+    except ValueError: env = None
+    if isinstance(env, dict):
+        if env.get("error"):
+            err = env["error"]
+            raw = str(err.get("message") if isinstance(err, dict) else err)
+            if is_usage_limit(raw): raise UsageLimitError(explain_gemini_error(raw))
+            raise RuntimeError(explain_gemini_error(raw))
+        if env.get("is_error"):
+            raw = str(env.get("result") or env.get("response") or "error")
+            if is_usage_limit(raw): raise UsageLimitError(explain_gemini_error(raw))
+            raise RuntimeError(explain_gemini_error(raw))
+        text = env.get("response") if isinstance(env.get("response"), str) else (env.get("result") if isinstance(env.get("result"), str) else None)
+        if text is not None:
+            if not text.strip() and r.returncode != 0:
+                tail = (r.stderr or "").strip().splitlines()[-3:]
+                said = " ".join(tail)[:300]
+                if said and is_usage_limit(said): raise UsageLimitError(explain_gemini_error(said))
+                raise RuntimeError(explain_gemini_error(said) if said else f"Gemini didn't answer (exit {r.returncode})")
+            return parse_answer(text), secs
+        if r.returncode == 0 and env:
+            return env, secs
+    tail = (r.stderr or out or "").strip().splitlines()[-3:]
+    said = " ".join(tail)[:300]
+    if r.returncode == 0 and out:
+        parsed = parse_answer(out)
+        if not (len(parsed) == 1 and "text" in parsed): return parsed, secs
+    if said and is_usage_limit(said): raise UsageLimitError(explain_gemini_error(said))
+    if said and explain_gemini_error(said) != "Gemini: " + said: raise RuntimeError(explain_gemini_error(said))
+    raise RuntimeError("Gemini didn't answer" + (": " + said if said else f" (exit {r.returncode})"))
+
+
+def run_ai(prompt, tools, now=None):
+    """Run Claude first; if Claude's usage is used up, switch to Gemini and keep using Gemini until Claude resets
+    on Wednesday (noon local time). If Gemini's usage is also used up, remember it until Gemini resets on Monday."""
+    st = read_ai_state()
+    claude_out = is_exhausted(st, "claude", now)
+    gemini_out = is_exhausted(st, "gemini", now)
+
+    def try_gemini(claude_limited):
+        if gemini_out:
+            if claude_limited or claude_out:
+                raise UsageLimitError("Both Claude (resets Wednesday) and Gemini (resets Monday) have reached their usage limit for now.")
+            raise UsageLimitError("Your Gemini usage limit is reached for now; it resets on Monday.")
+        if not find_gemini():
+            if claude_limited or claude_out:
+                raise UsageLimitError("Your Claude usage limit is reached (resets Wednesday). Install Gemini CLI (or run \"Sign in to Gemini.bat\") on your PC to use Gemini as a backup.")
+            raise RuntimeError("Claude Code isn't on this PC (or not on PATH). Install it and sign in once, then try again.")
+        try:
+            ans, secs = run_gemini(prompt, tools)
+            return ans, secs, "gemini"
+        except UsageLimitError:
+            mark_exhausted("gemini", now)
+            if claude_limited or claude_out:
+                raise UsageLimitError("Both Claude (resets Wednesday) and Gemini (resets Monday) have reached their usage limit for now.")
+            raise
+        except Exception as ge:
+            if claude_limited:
+                raise RuntimeError("Claude's usage limit is reached (resets Wednesday), and the Gemini backup failed: " + str(ge))
+            raise
+
+    if claude_out:
+        return try_gemini(claude_limited=False)
+    if not find_claude():
+        if find_gemini() and not gemini_out:
+            return try_gemini(claude_limited=False)
+        raise RuntimeError("Claude Code isn't on this PC (or not on PATH). Install it and sign in once, then try again.")
+    try:
+        ans, secs = run_claude(prompt, tools)
+        return ans, secs, "claude"
+    except UsageLimitError:
+        mark_exhausted("claude", now)
+        return try_gemini(claude_limited=True)
 
 
 def parse_answer(text):
@@ -660,26 +871,30 @@ class Jobs:
     def _run(cls, jid, task, inp, prompt, tools):
         with cls.run_lock:
             try:
-                ans, secs = run_claude(prompt, tools)
-                res = {"state": "done", "answer": ans, "secs": secs}
-                cls.remember(task, inp, ans)
+                ans, secs, provider = run_ai(prompt, tools)
+                res = {"state": "done", "answer": ans, "secs": secs, "provider": provider}
+                cls.remember(task, inp, ans, provider)
             except subprocess.TimeoutExpired:
-                res = {"state": "error", "error": "Claude took too long (over %d s)" % CLAUDE_TIMEOUT}
+                res = {"state": "error", "error": "The AI request took too long (over %d s)" % CLAUDE_TIMEOUT}
             except Exception as e:                                       # noqa: BLE001 (any failure goes to the phone)
                 res = {"state": "error", "error": str(e)[:400]}
         with cls.lock:
             cls.jobs[jid].update(res); cls.jobs[jid]["t"] = time.time()
-        print(f"{now_iso()} {task}: {res['state']}" + (f" in {res.get('secs')} s" if "secs" in res else f" ({res.get('error')})"), flush=True)
+        who = f" ({res['provider']})" if "provider" in res else ""
+        print(f"{now_iso()} {task}{who}: {res['state']}" + (f" in {res.get('secs')} s" if "secs" in res else f" ({res.get('error')})"), flush=True)
 
     @staticmethod
-    def remember(task, inp, ans):
-        """Coach answers are kept on the PC too (progress over time, for him and for Claude's runs)."""
+    def remember(task, inp, ans, provider="claude"):
+        """Coach answers are kept on the PC too (progress over time, for him and for autopilot runs)."""
         if task == "weekly-plan":
             # kept on the PC (his progress folder) so autopilot runs and later plans can see what was planned
-            with activity_lock: append_lines(progress("plans", "weekly.jsonl"), [{"at": now_iso(), "answer": ans}])
+            rec = {"at": now_iso(), "answer": ans}
+            if provider != "claude": rec["provider"] = provider
+            with activity_lock: append_lines(progress("plans", "weekly.jsonl"), [rec])
             return
         if not task.startswith("coach"): return
         rec = {"at": now_iso(), "task": task, "input": {k: v for k, v in inp.items() if k != "summary"}, "answer": ans}
+        if provider != "claude": rec["provider"] = provider
         with activity_lock: append_lines(progress("coach", "history.jsonl"), [rec])
 
     @classmethod
@@ -789,7 +1004,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self.reply(200, {"app": "wellness", "version": VERSION})
         if not self.authed(): return
         if p[0] == "/v1/health":
+            st = ai_status()
             return self.reply(200, {"app": "wellness", "version": VERSION, "claude": bool(find_claude()),
+                                    "gemini": bool(find_gemini()), "provider": st["provider"],
+                                    "claudeUntil": st["claudeUntil"], "geminiUntil": st["geminiUntil"],
                                     "name": socket.gethostname()})
         if p[0] == "/v1/app/version":
             try:
@@ -926,7 +1144,7 @@ def serve():
     threading.Thread(target=restart_on_update, args=(float(os.environ.get("WELLNESS_UPDATE_CHECK", "20")),), daemon=True).start()
     os.makedirs(PROGRESS, exist_ok=True)
     print(f"{now_iso()} Wellness PC link ready on port {PORT}; Claude Code: {find_claude() or 'NOT FOUND'}; "
-          f"progress folder: {PROGRESS}", flush=True)
+          f"Gemini CLI: {find_gemini() or 'not installed'}; progress folder: {PROGRESS}", flush=True)
     httpd.serve_forever()
 
 

@@ -100,3 +100,12 @@
 - Added `[any]` tasks 61 (workout 0-set imported sheet rows), 62 (`FCTodoTicked` `syncAlarms` fallback), and 63 (`FCCore.journalText` timestamp sort + edge tests) to `.autopilot/cloud-plan.md`.
 - Tested: full `node tests/run-all.cjs` (all 58 suites passed, 0 skipped, including Playwright e2e, Java, Python `test_pc.py`, and `privacy`) after every code commit.
 - Next: cross-review Claude's tasks 57 and 58 once landed, then claim and tackle tasks 61–63 (`[any]`) in order.
+
+## 2026-11-23 17:02 AST (User request: Gemini CLI backup for Claude usage limits)
+- Implemented automatic Gemini CLI backup in `pc/wellness_pc.py` for all PC link AI requests (`/v1/ask`: Parenting scenarios/grading/advice, Tagalog checks, Home advice, weekly plans):
+  - When Claude returns a usage/quota/rate limit error, the PC link records `claude_until` (next Wednesday 12:00 local time, DST-safe) in `ai_state.json`, immediately retries the same request with Gemini CLI (`gemini -p ... --output-format json`, mapping `WebSearch,WebFetch` to `google_web_search,web_fetch`), and routes subsequent requests directly to Gemini until Wednesday noon.
+  - If Gemini also hits a usage/quota limit, `gemini_until` is persisted until Monday 00:00 local time (DST-safe); once Monday arrives, Gemini resumes automatically while Claude waits for Wednesday noon.
+  - Extended `/v1/health` with `gemini`, `provider`, `claudeUntil`, and `geminiUntil` and updated `#link` ("Check the PC" in `app/www/modules/link/link.js`) to display Gemini backup status.
+  - Added `Sign in to Gemini.bat` and updated `README.md`.
+- Added unit and end-to-end tests in `pc/test/test_pc.py` (reset schedule across Wed/Mon & DST, fallback on same request, staying on Gemini without calling Claude, tool mapping, both-exhausted -> Mon Gemini reset -> Wed Claude reset, and missing-Gemini error) and `modules/link/tests/e2e.cjs`.
+- Tested: full `node tests/run-all.cjs` (all 58 suites passed, 0 skipped).

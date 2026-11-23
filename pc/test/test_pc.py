@@ -30,6 +30,10 @@ import json, os, sys
 p = sys.stdin.read()
 args = sys.argv[1:]
 open(os.environ.get("WELLNESS_FAKE_ARGS", sys.argv[0] + '.args'), 'w', encoding='utf-8').write(json.dumps(args))
+if os.environ.get("WELLNESS_CLAUDE_CALLS"):
+    open(os.environ["WELLNESS_CLAUDE_CALLS"], "a", encoding="utf-8").write("1\\n")
+if 'LIMIT-CLAUDE' in p:
+    print(json.dumps({"type": "result", "subtype": "success", "is_error": True, "result": "You've reached your weekly usage limit (429 rate limit)"})); sys.exit(1)
 if 'FAIL-PLEASE' in p:
     print(json.dumps({"type": "result", "subtype": "error_max_turns", "is_error": True, "result": ""})); sys.exit(1)
 if 'REVOKED' in p:
@@ -57,7 +61,38 @@ if os.name == "nt":
 else:
     os.chmod(FAKE, os.stat(FAKE).st_mode | stat.S_IEXEC)
 os.environ["WELLNESS_FAKE_ARGS"] = FAKE + ".args"
+os.environ["WELLNESS_CLAUDE_CALLS"] = FAKE + ".calls"
 os.environ["WELLNESS_CLAUDE"] = FAKE
+
+# a stand-in for Gemini CLI (`gemini -p ... --output-format json`)
+FAKE_G_PY = os.path.join(TMP, "gemini.py" if os.name == "nt" else "gemini")
+FAKE_G = os.path.join(TMP, "gemini.cmd") if os.name == "nt" else FAKE_G_PY
+with open(FAKE_G_PY, "w", encoding="utf-8") as f:
+    f.write("""#!/usr/bin/env python3
+import json, os, sys
+p = sys.stdin.read()
+args = sys.argv[1:]
+open(os.environ.get("WELLNESS_GEMINI_ARGS", sys.argv[0] + '.args'), 'w', encoding='utf-8').write(json.dumps(args))
+if os.environ.get("WELLNESS_GEMINI_CALLS"):
+    open(os.environ["WELLNESS_GEMINI_CALLS"], "a", encoding="utf-8").write("1\\n")
+if 'LIMIT-GEMINI' in p:
+    print(json.dumps({"error": {"type": "QuotaError", "message": "429 RESOURCE_EXHAUSTED: quota exceeded"}})); sys.exit(1)
+if 'AUTH-GEMINI' in p:
+    print(json.dumps({"error": {"message": "401 unauthenticated credentials"}})); sys.exit(1)
+if 'Grade a dad' in p:
+    ans = '```json\\n{"score": 8, "verdict": "Gemini graded.", "good": ["calm"], "improve": ["pause"], "better": "b", "why": "w", "practice": "p", "sources": []}\\n```'
+else:
+    ans = json.dumps({"headline": "from gemini", "points": ["backup ok"], "next": "keep going"})
+print(json.dumps({"response": ans, "stats": {"totalTokens": 42}}))
+""")
+if os.name == "nt":
+    with open(FAKE_G, "w", encoding="utf-8") as f:
+        f.write(f'@echo off\r\n"{sys.executable}" "{FAKE_G_PY}" %*\r\n')
+else:
+    os.chmod(FAKE_G, os.stat(FAKE_G).st_mode | stat.S_IEXEC)
+os.environ["WELLNESS_GEMINI_ARGS"] = FAKE_G + ".args"
+os.environ["WELLNESS_GEMINI_CALLS"] = FAKE_G + ".calls"
+os.environ["WELLNESS_GEMINI"] = os.path.join(TMP, "no-such-gemini")  # turned on explicitly in the backup tests below
 
 sys.path.insert(0, os.path.join(HERE, ".."))
 import wellness_pc as W  # noqa: E402
@@ -437,6 +472,98 @@ os.environ["WELLNESS_CLAUDE"] = os.path.join(TMP, "no-such-claude")
 st, r = ask("advice", {})
 check("no Claude Code: says how to fix it", r.get("state") == "error" and "Claude Code" in r.get("error", ""), r)
 os.environ["WELLNESS_CLAUDE"] = FAKE
+
+# ---------------------------------------------------------------- Gemini backup & reset schedule (Wed Claude / Mon Gemini)
+_r_tue = W.next_reset(W.CLAUDE_RESET_DAY, W.CLAUDE_RESET_HOUR, datetime.datetime(2026, 11, 24, 18, 0))
+check("Claude reset from Tue evening -> Wed noon", (_r_tue.year, _r_tue.month, _r_tue.day, _r_tue.hour, _r_tue.weekday()) == (2026, 11, 25, 12, 2), _r_tue)
+_r_wed_am = W.next_reset(W.CLAUDE_RESET_DAY, W.CLAUDE_RESET_HOUR, datetime.datetime(2026, 11, 25, 9, 0))
+check("Claude reset from Wed 9am -> same Wed noon", (_r_wed_am.day, _r_wed_am.hour) == (25, 12), _r_wed_am)
+_r_wed_noon = W.next_reset(W.CLAUDE_RESET_DAY, W.CLAUDE_RESET_HOUR, datetime.datetime(2026, 11, 25, 12, 0))
+check("Claude reset at/after Wed noon -> next Wed noon", (_r_wed_noon.month, _r_wed_noon.day, _r_wed_noon.hour) == (12, 2, 12), _r_wed_noon)
+_r_sun = W.next_reset(W.GEMINI_RESET_DAY, W.GEMINI_RESET_HOUR, datetime.datetime(2026, 11, 29, 22, 0))
+check("Gemini reset from Sun night -> Mon 00:00", (_r_sun.month, _r_sun.day, _r_sun.hour, _r_sun.weekday()) == (11, 30, 0, 0), _r_sun)
+_r_mon = W.next_reset(W.GEMINI_RESET_DAY, W.GEMINI_RESET_HOUR, datetime.datetime(2026, 11, 30, 0, 0))
+check("Gemini reset at Mon 00:00 -> next Mon 00:00", (_r_mon.month, _r_mon.day, _r_mon.hour, _r_mon.weekday()) == (12, 7, 0, 0), _r_mon)
+_r_dst = W.next_reset(W.CLAUDE_RESET_DAY, W.CLAUDE_RESET_HOUR, datetime.datetime(2026, 10, 31, 15, 0))
+check("Claude reset across DST end (1 Nov 2026) stays Wed 12:00 local", (_r_dst.month, _r_dst.day, _r_dst.hour) == (11, 4, 12), _r_dst)
+check("is_usage_limit: catches quota/429, ignores auth/syntax",
+      W.is_usage_limit("429 rate limit") and W.is_usage_limit("RESOURCE_EXHAUSTED") and W.is_usage_limit("weekly usage limit")
+      and not W.is_usage_limit("401 OAuth revoked") and not W.is_usage_limit("Invalid API key"))
+check("gemini_tools_arg maps web search/fetch", W.gemini_tools_arg("WebSearch,WebFetch") == "google_web_search,web_fetch" and W.gemini_tools_arg("") == "")
+
+# Claude limit with no Gemini installed -> clear error mentioning Wednesday + Gemini backup
+st, r = ask("advice", {"question": "LIMIT-CLAUDE"})
+check("Claude limit without Gemini CLI names Wednesday reset and Gemini backup",
+      r.get("state") == "error" and "Wednesday" in r.get("error", "") and "Gemini" in r.get("error", ""), r)
+W.write_json(W.AI_STATE_FILE, {})  # reset state before enabling Gemini
+
+# Enable Gemini backup CLI
+os.environ["WELLNESS_GEMINI"] = FAKE_G
+for p in (FAKE + ".calls", FAKE_G + ".calls"):
+    if os.path.exists(p): os.remove(p)
+
+# 1. Claude hits usage limit -> same request succeeds on Gemini, and persists claude_until until Wednesday
+st, r = ask("advice", {"question": "LIMIT-CLAUDE"})
+check("Claude limit falls back to Gemini on the same request",
+      r.get("state") == "done" and r.get("provider") == "gemini" and r["answer"].get("headline") == "from gemini", r)
+g_args = json.load(open(FAKE_G + ".args"))
+check("Gemini advice call has --output-format json and no --allowed-tools",
+      "--output-format" in g_args and "json" in g_args and "--allowed-tools" not in g_args, g_args)
+st_h, h, _ = req("GET", "/v1/health", token=token)
+check("health reports Gemini backup active until Wednesday",
+      st_h == 200 and h.get("gemini") is True and h.get("provider") == "gemini" and bool(h.get("claudeUntil")), h)
+
+# 2. Next request skips Claude completely and stays on Gemini (grading gets google_web_search,web_fetch)
+c_before = len(open(FAKE + ".calls").read().splitlines()) if os.path.exists(FAKE + ".calls") else 0
+st, r = ask("coach-grade", {"child": "Kid", "age": "11 months", "scenario": "S", "question": "Q", "answer": "I pause"})
+c_after = len(open(FAKE + ".calls").read().splitlines()) if os.path.exists(FAKE + ".calls") else 0
+check("stays on Gemini without calling Claude again",
+      c_after == c_before and r.get("state") == "done" and r.get("provider") == "gemini" and r["answer"].get("score") == 8, (c_before, c_after, r))
+g_args = json.load(open(FAKE_G + ".args"))
+check("Gemini grading maps tools to google_web_search,web_fetch",
+      "--allowed-tools" in g_args and g_args[g_args.index("--allowed-tools") + 1] == "google_web_search,web_fetch", g_args)
+hist_last = json.loads(open(os.path.join(TMP, "progress", "coach", "history.jsonl"), encoding="utf-8").read().splitlines()[-1])
+check("coach history records provider=gemini", hist_last.get("provider") == "gemini", hist_last)
+
+# 3. Gemini also hits its usage limit -> remembers Monday reset, tells user both resets
+st, r = ask("advice", {"question": "LIMIT-GEMINI"})
+check("both limits hit: names Wednesday (Claude) and Monday (Gemini)",
+      r.get("state") == "error" and "Wednesday" in r.get("error", "") and "Monday" in r.get("error", ""), r)
+ai_st = W.read_ai_state()
+check("ai_state.json stores both claude_until and gemini_until", bool(ai_st.get("claude_until")) and bool(ai_st.get("gemini_until")), ai_st)
+
+# 4. Time-travel: Thu Claude limit -> Sat Gemini limit -> Sun both out -> Mon Gemini resets -> Wed noon Claude resets
+W.write_json(W.AI_STATE_FILE, {})
+thu = datetime.datetime(2026, 11, 26, 10, 0)
+sat = datetime.datetime(2026, 11, 28, 15, 0)
+sun = datetime.datetime(2026, 11, 29, 12, 0)
+mon = datetime.datetime(2026, 11, 30, 0, 5)
+wed_before = datetime.datetime(2026, 12, 2, 11, 59)
+wed_reset = datetime.datetime(2026, 12, 2, 12, 0)
+ans, _, prov = W.run_ai("LIMIT-CLAUDE practical coach", "", now=thu)
+check("Thu: Claude limit switches to Gemini (until Wed Dec 2 noon)", prov == "gemini" and W.read_ai_state()["claude_until"].startswith("2026-12-02T12:00:00"), W.read_ai_state())
+try:
+    W.run_ai("LIMIT-GEMINI practical coach", "", now=sat)
+    check("Sat: Gemini limit recorded for Mon Nov 30", False)
+except W.UsageLimitError as e:
+    check("Sat: Gemini limit recorded for Mon Nov 30", "Monday" in str(e) and W.read_ai_state()["gemini_until"].startswith("2026-11-30T00:00:00"), (str(e), W.read_ai_state()))
+g_before = len(open(FAKE_G + ".calls").read().splitlines())
+try:
+    W.run_ai("practical coach", "", now=sun)
+    check("Sun: both still exhausted (neither CLI called)", False)
+except W.UsageLimitError:
+    g_after = len(open(FAKE_G + ".calls").read().splitlines())
+    check("Sun: both still exhausted (neither CLI called)", g_after == g_before)
+ans, _, prov = W.run_ai("practical coach", "", now=mon)
+check("Mon 00:05: Gemini resets while Claude waits for Wed -> uses Gemini", prov == "gemini" and ans.get("headline") == "from gemini", (prov, ans))
+ans, _, prov = W.run_ai("practical coach", "", now=wed_before)
+check("Wed 11:59: still on Gemini just before Claude noon reset", prov == "gemini", prov)
+ans, _, prov = W.run_ai("practical coach", "", now=wed_reset)
+check("Wed 12:00: Claude resets -> automatically back on Claude", prov == "claude", prov)
+
+# Clean up Gemini state/env for remaining tests
+W.write_json(W.AI_STATE_FILE, {})
+os.environ["WELLNESS_GEMINI"] = os.path.join(TMP, "no-such-gemini")
 
 # an updated wellness_pc.py restarts the running server (exit 3 -> start-pc.cmd starts the new code)
 import subprocess as sp

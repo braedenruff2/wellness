@@ -27,7 +27,7 @@ const FAKE_PC = `
         else if (op === 'post' && a === '/v1/ask') { pc.asks.push(JSON.parse(b)); out = JSON.stringify({ job: 'j' + pc.asks.length }); }
         else if (op === 'get' && a.indexOf('/v1/job') === 0 && window.__failPoll) { window.__failPoll--; ok = false; out = 'could not reach the PC'; }
         else if (op === 'get' && a.indexOf('/v1/job') === 0) { var k = pc.asks[+a.split('=j')[1] - 1]; k.polls = (k.polls || 0) + 1; out = JSON.stringify(k.polls < 2 ? { state: 'running' } : { state: 'done', answer: ANSWERS[k.task] }); }
-        else if (op === 'get' && a === '/v1/health') out = '{"app":"wellness","claude":true}';
+        else if (op === 'get' && a === '/v1/health') out = JSON.stringify(window.__health || { app: 'wellness', claude: true });
         else { ok = false; out = 'not found'; }
         save();
         Promise.resolve().then(function () { window.FCPcDone(id, ok, out); });
@@ -287,6 +287,14 @@ const FAKE_PC = `
     assert.strictEqual(await bars.count(), 1, 'only the skill with two or more scores');
     assert.strictEqual(await bars.locator('.tb').count(), 4);
     assert.ok(/oldest first: 7, 4, 6, 8/.test(await bars.getAttribute('aria-label')), await bars.getAttribute('aria-label'));
+  });
+  await t.step('Check the PC reports Gemini backup status when Claude usage is used up', async () => {
+    await page.goto(base + '#link');
+    await page.evaluate(() => { window.__health = { app: 'wellness', claude: true, gemini: true, provider: 'gemini', claudeUntil: '2026-11-25T12:00:00-04:00' }; });
+    await page.click('#lk-test');
+    await page.waitForSelector('#lk-msg.ok');
+    assert.ok((await page.textContent('#lk-msg')).includes('Using Gemini backup until Claude resets Wednesday'), await page.textContent('#lk-msg'));
+    await page.evaluate(() => { window.__health = null; });
   });
   await t.step('unpair needs two taps', async () => {
     await page.goto(base + '#link');

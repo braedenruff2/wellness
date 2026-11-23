@@ -112,8 +112,15 @@
     var te = $('#lk-test');
     if (te) te.onclick = function () {
       msg('Checking…');
-      pc.get('/v1/health').then(function (h) { msg('The PC answered. ' + (h.claude ? 'Claude Code is ready on it.' : 'Claude Code was not found on it: install it and sign in once.'), h.claude ? 'ok' : 'no'); },
-        function (e) { msg(e.message, 'no'); });
+      pc.get('/v1/health').then(function (h) {
+        var ready = !!(h.claude || h.gemini);
+        var text = h.claude && h.gemini && h.provider === 'gemini' ? 'Using Gemini backup until Claude resets Wednesday.'
+          : h.claude && h.gemini ? 'Claude Code is ready on it (Gemini backup ready).'
+          : h.claude ? 'Claude Code is ready on it.'
+          : h.gemini ? 'Gemini CLI is ready on it (Claude Code was not found).'
+          : 'Claude Code was not found on it: install it and sign in once.';
+        msg('The PC answered. ' + text, ready ? 'ok' : 'no');
+      }, function (e) { msg(e.message, 'no'); });
     };
     var ad = $('#lk-advice');
     if (ad) ad.onclick = function () { askAdvice(($('#lk-q') || {}).value || ''); };
