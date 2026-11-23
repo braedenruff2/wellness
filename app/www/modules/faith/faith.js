@@ -325,7 +325,9 @@
       '<div style="margin-top:8px">' + chips('minutes', [2, 5, 10], st.minutes, ['2 min', '5 min', '10 min']) + '</div>' +
       '<div style="margin-top:8px">' + chips('bell', ['true', 'false'], String(st.bell), ['Soft bell', 'No bell']) + '</div>' +
       '<div class="row" style="margin-top:10px"><button id="test-voice">Test the voice</button></div></div>' +
-      (native && native.setReminder ? reminderHtml() : '');
+      (native && native.setReminder ? reminderHtml() : '') +
+      '<div class="card ui"><h3>Your journal</h3><p class="meta">Save everything you wrote (journal, awe moments, thanks) and your prayer list as a text file you can keep or print. It stays on your phone.</p>' +
+      '<button id="fc-export-text">Save my journal as text</button></div>';
   }
 
   function reminderHtml() {
@@ -396,6 +398,9 @@
     });
     if (h && h[0] !== 'session') shortOnce = null; // the shorter prayer is for the one session it was picked for
     on('#fc-short', function (el) { el.onclick = function () { shortOnce = +el.dataset.n; }; });
+    on('#fc-export-text', function (el) { el.onclick = function () {
+      WL.saveFile('faith-journal-' + C.isoDate(new Date()) + '.txt', C.journalText(S, function (n) { var d = day(+n); return d ? d.title : ''; }, new Date()));
+    }; });
     on('#forget-resume', function (el) { el.onclick = function () { S.resume = null; save(); $('#resume').remove(); }; });
     on('#dj', function (el) { journalSaver(el); });
     on('#finish', function (el) { el.onclick = function () {

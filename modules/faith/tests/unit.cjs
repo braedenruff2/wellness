@@ -427,4 +427,22 @@ t('doneInLast: days finished earlier in the week still count after walkAgain sta
   assert.strictEqual(C.doneInLast(s, 7, new Date(2026, 10, 18, 20)), 3, 'an odd round is skipped');
 });
 
+t('journalText: newest first, kinds and day titles, multi-line text kept, prayer list; empty journal says so', () => {
+  const s = C.defaults();
+  assert.ok(/No entries yet/.test(C.journalText(s, null, new Date(2026, 10, 23, 9))));
+  C.addEntry(s, 'awe', 'Stars over the bay', null, new Date(2026, 10, 19, 3, 5));
+  C.addEntry(s, 'journal', 'Line one\r\nLine two', 4, new Date(2026, 10, 21, 7, 9));
+  C.addEntry(s, 'gratitude', 'Warm socks', null, new Date(2026, 10, 22, 21, 0));
+  C.addEntry(s, 'journal', 'Free note', null, new Date(2026, 10, 20, 12, 0));
+  C.addPrayer(s, 'Her sleep', new Date(2026, 10, 18, 9));
+  const txt = C.journalText(s, (n) => (n === 4 ? 'While it was still dark' : ''), new Date(2026, 10, 23, 9, 30));
+  const lines = txt.split('\n');
+  assert.strictEqual(lines[0], 'My journal (Wellness app), saved 2026-11-23 09:30');
+  const heads = lines.filter((l) => / · /.test(l));
+  assert.deepStrictEqual(heads, ['2026-11-22 21:00 · Thanks', '2026-11-21 07:09 · Day 4: While it was still dark', '2026-11-20 12:00 · Journal', '2026-11-19 03:05 · Awe moment']);
+  assert.ok(txt.includes('Line one\nLine two') && !txt.includes('\r'));
+  assert.ok(/Prayer list\n\n- Her sleep \(since 2026-11-18\)/.test(txt), txt);
+  assert.deepStrictEqual(C.journalText(s, null, new Date(2026, 10, 23)).split('\n').filter((l) => / · Day 4$/.test(l)).length, 1, 'no title function: just the day number');
+});
+
 console.log(n + ' unit tests passed');

@@ -102,6 +102,14 @@ final class Sync {
     }
 
     /** Clean display name for a chosen sync file or answers sheet. */
+    /** The type a file saved into Downloads is marked with (Android adds an extension that matches it). */
+    static String mimeFor(String name) {
+        String n = name == null ? "" : name.toLowerCase(java.util.Locale.ROOT);
+        if (n.endsWith(".txt")) return "text/plain";
+        if (n.endsWith(".md")) return "text/markdown";
+        return "application/json";
+    }
+
     static String cleanName(String name) { return cleanName(name, DEFAULT_NAME); }
 
     static String cleanName(String name, String fallback) {

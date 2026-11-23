@@ -42,6 +42,14 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#faith/today'); await page.waitForSelector('#pray-card');
     assert.strictEqual(!!(await page.$('#fc-short')), false);
   });
-  await t.step('no overflow, no errors', async () => { await t.noOverflow(['#faith/today']); assert.deepStrictEqual(t.errors, []); });
+  await t.step('Faith settings: "Save my journal as text" saves a .txt with the entries', async () => {
+    await page.goto(base + '#faith/journal'); await page.fill('#new-entry', 'Grateful for a quiet evening.'); await page.click('#add-entry');
+    await page.goto(base + '#faith/settings');
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.click('#fc-export-text')]);
+    assert.ok(/^faith-journal-2026-11-2\d\.txt$/.test(dl.suggestedFilename()), dl.suggestedFilename());
+    const txt = require('fs').readFileSync(await dl.path(), 'utf8');
+    assert.ok(/^My journal \(Wellness app\)/.test(txt) && txt.includes('Grateful for a quiet evening.'), txt.slice(0, 300));
+  });
+  await t.step('no overflow, no errors', async () => { await t.noOverflow(['#faith/today', '#faith/settings']); assert.deepStrictEqual(t.errors, []); });
   await t.close('faith short tonight');
 })().catch((e) => { console.error(e); process.exit(1); });

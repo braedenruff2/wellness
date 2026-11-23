@@ -404,7 +404,31 @@
     return settings.theme;
   }
 
+  /* His journal and prayer list as plain text to keep (Faith settings > Save my journal as text). Newest first.
+     dayTitle(n) -> the day's title (or ''). Dates are the phone's local time, written the same everywhere. */
+  function journalText(state, dayTitle, now) {
+    function two(n) { return (n < 10 ? '0' : '') + n; }
+    function when(at) { var d = new Date(at); return isNaN(d) ? '' : d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate()) + ' ' + two(d.getHours()) + ':' + two(d.getMinutes()); }
+    var KIND = { awe: 'Awe moment', gratitude: 'Thanks' };
+    var out = ['My journal (Wellness app), saved ' + when((now || new Date()).toISOString()), ''];
+    var items = (state.journal || []).slice().sort(function (a, b) { return a.at < b.at ? 1 : a.at > b.at ? -1 : 0; });
+    if (!items.length) out.push('(No entries yet.)', '');
+    items.forEach(function (e) {
+      var label = KIND[e.kind] || (e.day ? 'Day ' + e.day + (dayTitle && dayTitle(e.day) ? ': ' + dayTitle(e.day) : '') : 'Journal');
+      out.push(when(e.at) + ' · ' + label, String(e.text || '').replace(/\r\n?/g, '\n'), '');
+    });
+    var open = (state.prayers || []).filter(function (p) { return !p.answered; }), done = (state.prayers || []).filter(function (p) { return p.answered; });
+    if (open.length || done.length) {
+      out.push('Prayer list', '');
+      open.forEach(function (p) { out.push('- ' + p.text + ' (since ' + when(p.at).slice(0, 10) + ')'); });
+      done.forEach(function (p) { out.push('- ' + p.text + ': answered or let go ' + when(p.answered).slice(0, 10) + (p.note ? ' (' + p.note + ')' : '')); });
+      out.push('');
+    }
+    return out.join('\n');
+  }
+
   var api = {
+    journalText: journalText,
     defaults: defaults, makeStore: makeStore, isoDate: isoDate, currentDay: currentDay, finishDay: finishDay,
     unfinishDay: unfinishDay, walkAgain: walkAgain, earlierDayJournal: earlierDayJournal, daysShowedUp: daysShowedUp, finishedToday: finishedToday, doneInLast: doneInLast, addEntry: addEntry,
     setDayJournal: setDayJournal, dayJournal: dayJournal, removeEntry: removeEntry, addPrayer: addPrayer, logSession: logSession, practicesThisWeek: practicesThisWeek,

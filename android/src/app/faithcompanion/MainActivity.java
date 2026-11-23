@@ -405,14 +405,14 @@ public class MainActivity extends Activity {
             });
         }
 
-        /** Saves a backup into Downloads. Returns where it went (shown to him), or "" on failure. */
+        /** Saves a backup (or a text export) into Downloads. Returns where it went (shown to him), or "" on failure. */
         @JavascriptInterface public String saveFile(String name, String text) {
             byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
             try {
                 if (Build.VERSION.SDK_INT >= 29) {
                     ContentValues v = new ContentValues();
                     v.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
-                    v.put(MediaStore.MediaColumns.MIME_TYPE, "application/json");
+                    v.put(MediaStore.MediaColumns.MIME_TYPE, Sync.mimeFor(name));
                     v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
                     Uri u = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
                     if (u == null) return "";

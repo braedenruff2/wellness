@@ -481,7 +481,7 @@
       return;
     }
     var a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    a.href = URL.createObjectURL(new Blob([text], { type: /\.txt$/i.test(name) ? 'text/plain' : 'application/json' }));
     a.download = name; document.body.appendChild(a); a.click(); a.remove();
     toast('Saved ' + name);
   }

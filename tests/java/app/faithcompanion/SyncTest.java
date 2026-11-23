@@ -153,6 +153,10 @@ public class SyncTest {
         ok(Sync.friendlyAnswersError(new FileNotFoundException("missing")).contains("answers sheet"), "answers not found error");
         ok(Sync.friendlyAnswersError(new IOException("virtual document not openable")).contains("export"), "answers virtual error");
 
+        ok("text/plain".equals(Sync.mimeFor("faith-journal-2026-11-23.txt")), "txt -> text/plain");
+        ok("application/json".equals(Sync.mimeFor("wellness-backup-2026-11-23.json")), "json backup");
+        ok("application/json".equals(Sync.mimeFor(null)), "null name -> json");
+        ok("text/plain".equals(Sync.mimeFor("JOURNAL.TXT")), "case-insensitive");
         System.out.println("SyncTest ok");
     }
 }
