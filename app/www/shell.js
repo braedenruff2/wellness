@@ -23,9 +23,25 @@
         if (!raw) return d;
         try { var s = JSON.parse(raw); if (!s || typeof s !== 'object') return d; for (var k in d) if (!(k in s)) s[k] = d[k]; return s; } catch (e) { return d; }
       },
-      save: function (s) { var raw = JSON.stringify(s); mem = raw; return lsSet(key, raw); },
+      save: function (s) {
+        var raw = JSON.stringify(s); mem = raw;
+        var ok = lsSet(key, raw);
+        if (!ok) saveFailed(key); else if (saveFail && saveFail.key === key) saveFail = null;
+        return ok;
+      },
       key: key
     };
+  }
+
+  /* A save the phone refused (storage full or blocked): until it saves again, what changed lives only in memory and
+     is lost when the app closes. Say so once per session, and on Home and in Settings while it lasts. */
+  var saveFail = null, saveFailToasted = false;
+  function saveFailed(key) {
+    saveFail = { key: key, at: Date.now() };
+    if (!saveFailToasted) { saveFailToasted = true; setTimeout(function () { try { toast('Couldn’t save on this phone (its storage for the app is full or blocked). Save a backup in Settings now.'); } catch (e) {} }, 0); }
+  }
+  function saveFailHtml(id) {
+    return saveFail ? '<div class="card ui gentle" id="' + id + '"><p><b>The last change couldn’t be saved on this phone.</b> Its storage for the app is full or blocked, so changes since then are kept only until the app closes. Save a backup now (Settings), then tell Claude.</p></div>' : '';
   }
 
   var shellStore = store(SKEY, function () { return { theme: null, textSize: null }; });
@@ -261,7 +277,7 @@
 
   function home() {
     var h = '<div class="meta ui">' + esc(greeting()) + ' · ' + esc(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>' +
-      '<h1>Today</h1>' + todayList() + weekCard() + (syncNudge() || backupNudge());
+      '<h1>Today</h1>' + saveFailHtml('wl-savefail') + todayList() + weekCard() + (syncNudge() || backupNudge());
     order.forEach(function (id) {
       var m = modules[id];
       if (!m.card) return;
@@ -285,6 +301,7 @@
     h += voiceHtml();
     h += updateHtml();
     h += syncHtml();
+    h += saveFailHtml('wl-savefail-s');
     h += '<div class="card ui"><h3>Backup</h3><p class="meta">Everything lives only on this phone. Save a backup file now and then (all parts of the app in one file).' +
       (SH.lastBackup ? ' Last saved ' + esc(new Date(SH.lastBackup).toLocaleDateString()) + '.' : '') + (backupDue() ? ' <b>It’s been a while: save one now.</b>' : '') + '</p>' +
       '<div class="row"><button id="wl-export">Save a backup</button><label class="btn" for="wl-import">Restore a backup</label><input type="file" id="wl-import" accept=".json,application/json" class="sr"></div></div>';
