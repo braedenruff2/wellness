@@ -112,4 +112,15 @@ t('stats: logging for an earlier day ignores sessions on later dates', () => {
   const st = K.stats(s, new Date(2026, 10, 20, 18));
   assert.strictEqual(st.weekMins, 5); assert.strictEqual(st.weekDays, 1);
 });
+t('mind racing at night lately: grounding at bedtime, back-to-sleep after midnight; daytime unchanged', () => {
+  const s = K.defaults();
+  const d = (h) => new Date(2026, 10, 23, h, 0);
+  assert.strictEqual(K.suggest(s, d(22), { racing: true }), 'ground');
+  assert.strictEqual(K.suggest(s, new Date(2026, 10, 24, 2, 0), { racing: true }), 'night');
+  assert.notStrictEqual(K.suggest(s, d(22), {}), 'ground');
+  assert.strictEqual(K.suggest(s, d(14), { racing: true }), K.suggest(s, d(14), {}));
+  // done today already: not suggested again
+  K.record(s, 'ground', 3, 3, 2, d(21));
+  assert.notStrictEqual(K.suggest(s, d(22), { racing: true }), 'ground');
+});
 console.log(n + ' calm unit tests passed');

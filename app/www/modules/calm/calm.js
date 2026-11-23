@@ -11,7 +11,7 @@
   function sopts() {
     var M = window.WLMe; if (!M) return {};
     var l = M.calmLikes(), pl = M.planFor('calm');
-    return { score: l.score, tooLong: l.tooLong, rough: M.rough(), prefer: pl && pl.prefer ? pl.prefer : [] };
+    return { score: l.score, tooLong: l.tooLong, rough: M.rough(), racing: !!l.racing, prefer: pl && pl.prefer ? pl.prefer : [] };
   }
   function fit(id, text) { return window.WLMe ? ' ' + WLMe.fitLink('calm', id, text) : ''; }
   /* pick: a length chosen on the practice's own start screen, for that session only (the saved default stays). */
@@ -36,17 +36,21 @@
 
   /* The top of Calm: what to do today. One short practice a day is the goal; once it's done, say so plainly and
      offer a different one only as an extra. */
+  function racingLine() {
+    var hr = new Date().getHours(), o = sopts();
+    return o.racing && (hr >= 21 || hr < 5) ? '<p class="meta ui" id="c-racing">Your mind has been racing at night lately. Write down what’s on it first: <a href="#faith/journal/journal">a few lines in your journal</a>, then the practice.</p>' : '';
+  }
   function todayCard() {
     var t = K.today(S), sug = practice(K.suggest(S, null, sopts()));
     if (!t.done) {
       return '<div class="card" id="c-today"><div class="meta ui">Today’s practice · not done yet</div><h3 style="margin:.2em 0">' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3>' +
         '<p class="meta ui">' + esc(sug.when) + '. One short practice a day is all Calm asks; ' + (window.WLMe && WLMe.rough() ? 'after a rough night, a short one.' : 'this one fits the time of day.') + '</p>' +
-        '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + '">Begin</a><span class="grow"></span>' + fit(sug.id, sug.title) + '</div></div>';
+        '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + '">Begin</a><span class="grow"></span>' + fit(sug.id, sug.title) + '</div>' + racingLine() + '</div>';
     }
     var names = t.ids.map(function (id) { return practice(id).title; }).filter(function (x, i, a) { return a.indexOf(x) === i; });
     return '<div class="card" id="c-today"><div class="meta ui">Today</div><h3 style="margin:.2em 0">✓ Done for today</h3>' +
       '<p class="ui">' + esc(names.join(', ')) + ' · ' + Math.max(1, t.mins) + ' min. That’s today’s practice. Nothing else you need to do; come back tomorrow.</p>' +
-      '<p class="meta ui">If things get hard later, the one-minute reset helps. Want more now? <a href="#calm/s/' + sug.id + '">' + esc(sug.title) + ' (' + mins(sug) + ' min)</a> is a different one.</p></div>';
+      '<p class="meta ui">If things get hard later, the one-minute reset helps. Want more now? <a href="#calm/s/' + sug.id + '">' + esc(sug.title) + ' (' + mins(sug) + ' min)</a> is a different one.</p>' + racingLine() + '</div>';
   }
 
   function list() {

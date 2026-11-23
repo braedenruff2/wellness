@@ -226,7 +226,7 @@
 
   window.WLMe = {
     askHtml: askHtml, fitLink: fitLink, planLine: planLine, rough: function () { return K.rough(S, new Date()); },
-    calmLikes: function () { return K.calmLikes(S); }, planFor: function (part) { return K.planFor(S, part, new Date()); }, state: function () { return S; }
+    calmLikes: function () { return K.calmLikes(S, new Date()); }, planFor: function (part) { return K.planFor(S, part, new Date()); }, state: function () { return S; }
   };
 
   WL.register({

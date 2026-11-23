@@ -263,4 +263,16 @@ t('forPlan: check-in window uses local calendar dates (late evening west of UTC 
   const f = K.forPlan(s, new Date(2026, 10, 20, 23, 30));
   assert.deepStrictEqual(Object.keys(f.checkins).sort(), ['2026-11-06', '2026-11-20']);
 });
+t('calmLikes.racing: a night calm answer with "Mind racing" in the last 7 days, among the last two night answers', () => {
+  const s = K.defaults();
+  const f = (at, a) => s.feedback.push({ id: 'calm/after/x' + at.getTime(), at: at.toISOString(), part: 'calm', about: 'sleep@' + at.toISOString(), kind: 'after', a });
+  assert.strictEqual(K.calmLikes(s, new Date(2026, 10, 23, 12)).racing, false);
+  f(new Date(2026, 10, 20, 22, 21), { helped: 'Not really', block: ['Mind racing'] });
+  assert.strictEqual(K.calmLikes(s, new Date(2026, 10, 23, 12)).racing, true);
+  f(new Date(2026, 10, 21, 15, 0), { helped: 'A bit', block: ['Nothing'] }); // daytime: doesn't count either way
+  assert.strictEqual(K.calmLikes(s, new Date(2026, 10, 23, 12)).racing, true);
+  assert.strictEqual(K.calmLikes(s, new Date(2026, 10, 28, 12)).racing, false, 'over a week ago');
+  f(new Date(2026, 10, 22, 22, 37), {}); f(new Date(2026, 10, 23, 23, 0), { helped: 'A lot' });
+  assert.strictEqual(K.calmLikes(s, new Date(2026, 10, 24, 12)).racing, false, 'two newer night answers without it');
+});
 console.log(n + ' me unit tests passed');

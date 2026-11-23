@@ -121,7 +121,8 @@
 
   /* Calm practices scored from his answers: helped a lot +2, a bit +1, not really -1; "not for me" -3.
      tooLong: practices where "Too long" got in the way. */
-  function calmLikes(state) {
+  /* racing: in the last 7 days, one of his last two calm answers given at night (21:00-05:00) named "Mind racing". */
+  function calmLikes(state, now) {
     var score = {}, tooLong = {};
     state.feedback.forEach(function (f) {
       if (f.part !== 'calm') return;
@@ -131,7 +132,11 @@
       if (h) score[id] = (score[id] || 0) + (h === 'A lot' ? 2 : h === 'A bit' ? 1 : -1);
       if (Array.isArray(f.a.block) && f.a.block.indexOf('Too long') >= 0) tooLong[id] = 1;
     });
-    return { score: score, tooLong: tooLong };
+    now = now || new Date();
+    var since = new Date(now.getTime() - 7 * 864e5).toISOString();
+    var night = state.feedback.filter(function (f) { var h = new Date(f.at).getHours(); return f.part === 'calm' && f.kind === 'after' && (h >= 21 || h < 5); }).slice(-2);
+    var racing = night.some(function (f) { return f.at >= since && Array.isArray(f.a.block) && f.a.block.indexOf('Mind racing') >= 0; });
+    return { score: score, tooLong: tooLong, racing: racing };
   }
 
   function lastN(state, part, kind, n) { return state.feedback.filter(function (f) { return f.part === part && f.kind === kind; }).slice(-n); }

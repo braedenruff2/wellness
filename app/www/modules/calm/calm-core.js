@@ -283,6 +283,7 @@
     var h = now.getHours(), t = today(state, now), sc = opts.score || {}, pref = opts.prefer || [], long = opts.tooLong || {};
     if (!state.sessions.length && h >= 5 && h < 22 && !pref.length && (sc.sigh || 0) > -2 && !opts.rough) return 'sigh';
     var base = fits(h);
+    if (opts.racing && h >= 21 && base.indexOf('ground') < 0) base = base.concat('ground');
     if (opts.rough && h >= 5 && h < 22) base = ['sigh', 'slow', 'ground'].concat(base.filter(function (id) { return ['sigh', 'slow', 'ground'].indexOf(id) < 0; }));
     var pool = base.filter(function (id) { return t.ids.indexOf(id) < 0; });
     if (!pool.length) pool = fits(9).filter(function (id) { return t.ids.indexOf(id) < 0; });
@@ -297,6 +298,8 @@
     function rank(id) {
       var r = (sc[id] || 0) + (pref.indexOf(id) >= 0 ? 3 : 0) - (long[id] ? 1 : 0);
       if (opts.rough && ['sigh', 'slow', 'ground'].indexOf(id) >= 0) r += 4;
+      // his mind has been racing at night lately: grounding at bedtime, the back-to-sleep practice after midnight
+      if (opts.racing && ((h >= 21 && id === 'ground') || (h < 5 && id === 'night'))) r += 6;
       return r;
     }
     // liked (or planned) ones lead, but not every day: a practice done in the last 2 days drops behind fresh ones
