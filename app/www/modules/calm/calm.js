@@ -14,7 +14,25 @@
     return { score: l.score, tooLong: l.tooLong, rough: M.rough(), prefer: pl && pl.prefer ? pl.prefer : [] };
   }
   function fit(id, text) { return window.WLMe ? ' ' + WLMe.fitLink('calm', id, text) : ''; }
-  function mins(p) { return p.fixed ? p.minutes : (p.kind === 'pacer' || p.kind === 'timer' ? S.settings.minutes : p.minutes); }
+  /* pick: a length chosen on the practice's own start screen, for that session only (the saved default stays). */
+  var pick = null;
+  function mins(p) {
+    if (!p.fixed && pick && pick.id === p.id) return pick.m;
+    return p.fixed ? p.minutes : (p.kind === 'pacer' || p.kind === 'timer' ? S.settings.minutes : p.minutes);
+  }
+  /* Lengths offered on the start screen: the list's lengths for breathing and the timer; for a guided practice its
+     usual length with a shorter and a longer one (the quiet stretches; the words stay the same). */
+  function lengths(p) {
+    if (p.fixed) return [];
+    if (p.kind === 'pacer' || p.kind === 'timer') return [3, 5, 10, 15, 20];
+    var a = Math.max(2, Math.round(p.minutes * 0.6)), c = Math.round(p.minutes * 1.5);
+    return a < p.minutes ? [a, p.minutes, c] : [p.minutes, c];
+  }
+  function lengthChips(p) {
+    var ls = lengths(p); if (!ls.length) return '';
+    return '<div class="chips" id="c-len" role="group" aria-label="Length" style="justify-content:center;margin:6px 0">' + ls.map(function (m) {
+      return '<button class="chip" data-len="' + m + '" aria-pressed="' + (mins(p) === m) + '">' + m + ' min</button>'; }).join('') + '</div>';
+  }
 
   /* The top of Calm: what to do today. One short practice a day is the goal; once it's done, say so plainly and
      offer a different one only as an extra. */
@@ -67,6 +85,7 @@
         : '<div class="line" id="c-line">' + esc(p.blurb || '') + '</div>') +
       '<div class="meta" id="c-left" style="text-align:center;min-height:1.4em"></div>' +
       rating('c-before', 'How stressed are you right now?') +
+      lengthChips(p) +
       '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">▶ Begin · ' + mins(p) + ' min</button></div>' +
       '<div id="c-after" hidden>' + rating('c-after-r', 'And now?') + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button></div></div></div>';
   }
@@ -99,6 +118,7 @@
     run = { p: p, start: Date.now(), pausedFor: 0, paused: false, before: before };
     WL.keepAwake(true); WL.bell();
     var pp = $('#c-pp'); pp.textContent = '⏸ Pause'; pp.dataset.state = 'playing';
+    var lc = $('#c-len'); if (lc) lc.hidden = true;
     $('#c-before').hidden = true;
     var progress = function () {
       var e = elapsed();
@@ -124,7 +144,7 @@
       frame();
     } else if (p.kind === 'guided') {
       // a different wording each time through (counted before this session is saved)
-      var steps = G.scaleScript(K.scriptFor(p, K.timesDone(S, p.id)), p.minutes, S.settings.rate);
+      var steps = G.scaleScript(K.scriptFor(p, K.timesDone(S, p.id)), mins(p), S.settings.rate);
       run.player = new G.Player(steps, {
         speak: function (t, done) { WL.speech.speak(t, done, { voice: S.settings.voice, rate: S.settings.rate }); },
         stopSpeech: function () { WL.speech.stop(); },
@@ -141,6 +161,11 @@
   }
 
   function wireSession(p) {
+    $$('#c-len [data-len]').forEach(function (b) { b.onclick = function () {
+      pick = { id: p.id, m: +b.dataset.len };
+      $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+      $('#c-pp').textContent = '▶ Begin · ' + pick.m + ' min';
+    }; });
     $$('#c-before [data-r]').forEach(function (b) { b.onclick = function () { run = run || { p: p }; run.before = +b.dataset.r; $$('#c-before [data-r]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
     var after = null;
     $$('#c-after-r [data-r]').forEach(function (b) { b.onclick = function () { after = +b.dataset.r; $$('#c-after-r [data-r]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
@@ -174,7 +199,8 @@
   function route(parts, v) {
     if (v) view = v;
     leave();
-    if (parts && parts[0] === 's' && practice(parts[1])) { var p = practice(parts[1]); view.innerHTML = sessionHtml(p); wireSession(p); return; }
+    if (parts && parts[0] === 's' && practice(parts[1])) { var p = practice(parts[1]); if (pick && pick.id !== p.id) pick = null; view.innerHTML = sessionHtml(p); wireSession(p); return; }
+    pick = null; // back on the list: the next session starts at the usual length
     view.innerHTML = list();
     $$('[data-min]').forEach(function (b) { b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route([]); }; });
     $('#cv').onclick = function () { S.settings.voice = !S.settings.voice; save(); route([]); };
