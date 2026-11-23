@@ -411,7 +411,13 @@
     function when(at) { var d = new Date(at); return isNaN(d) ? '' : d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate()) + ' ' + two(d.getHours()) + ':' + two(d.getMinutes()); }
     var KIND = { awe: 'Awe moment', gratitude: 'Thanks' };
     var out = ['My journal (Wellness app), saved ' + when((now || new Date()).toISOString()), ''];
-    var items = (state.journal || []).slice().sort(function (a, b) { return a.at < b.at ? 1 : a.at > b.at ? -1 : 0; });
+    var items = (state.journal || []).slice().sort(function (a, b) {
+      var ta = Date.parse(a && a.at), tb = Date.parse(b && b.at);
+      if (isNaN(ta) && isNaN(tb)) return 0;
+      if (isNaN(ta)) return 1;
+      if (isNaN(tb)) return -1;
+      return tb - ta;
+    });
     if (!items.length) out.push('(No entries yet.)', '');
     items.forEach(function (e) {
       var label = KIND[e.kind] || (e.day ? 'Day ' + e.day + (dayTitle && dayTitle(e.day) ? ': ' + dayTitle(e.day) : '') : 'Journal');
@@ -421,7 +427,7 @@
     if (open.length || done.length) {
       out.push('Prayer list', '');
       open.forEach(function (p) { out.push('- ' + p.text + ' (since ' + when(p.at).slice(0, 10) + ')'); });
-      done.forEach(function (p) { out.push('- ' + p.text + ': answered or let go ' + when(p.answered).slice(0, 10) + (p.note ? ' (' + p.note + ')' : '')); });
+      done.forEach(function (p) { var note = String(p.note || '').trim(); out.push('- ' + p.text + ': answered or let go ' + when(p.answered).slice(0, 10) + (note ? ' (' + note + ')' : '')); });
       out.push('');
     }
     return out.join('\n');

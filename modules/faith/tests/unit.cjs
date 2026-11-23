@@ -445,4 +445,17 @@ t('journalText: newest first, kinds and day titles, multi-line text kept, prayer
   assert.deepStrictEqual(C.journalText(s, null, new Date(2026, 10, 23)).split('\n').filter((l) => / · Day 4$/.test(l)).length, 1, 'no title function: just the day number');
 });
 
+t('journalText: mixed timezone offsets sort strictly newest-first; answered prayers with/without note', () => {
+  const s = C.defaults();
+  // 20:00-04:00 is 2026-11-23T00:00:00Z (1 hour NEWER than 2026-11-22T23:00:00Z, even though lexicographically smaller)
+  s.journal.push({ id: 'a', at: '2026-11-22T23:00:00.000Z', kind: 'journal', text: 'Earlier UTC' });
+  s.journal.push({ id: 'b', at: '2026-11-22T20:00:00-04:00', kind: 'journal', text: 'Newer offset' });
+  s.prayers.push({ id: 'p1', at: '2026-11-18T12:00:00.000Z', text: 'Sleep', answered: '2026-11-20T12:00:00.000Z', note: '   ' });
+  s.prayers.push({ id: 'p2', at: '2026-11-18T12:00:00.000Z', text: 'Work', answered: '2026-11-21T12:00:00.000Z', note: '  Went smoothly  ' });
+  const txt = C.journalText(s, null, new Date(2026, 10, 23, 9, 0));
+  assert.ok(txt.indexOf('Newer offset') < txt.indexOf('Earlier UTC'), 'timestamp sort beats string order:\n' + txt);
+  assert.ok(txt.includes('- Sleep: answered or let go 2026-11-20\n'), 'whitespace-only prayer note omitted');
+  assert.ok(txt.includes('- Work: answered or let go 2026-11-21 (Went smoothly)\n'), 'trimmed prayer note included');
+});
+
 console.log(n + ' unit tests passed');
