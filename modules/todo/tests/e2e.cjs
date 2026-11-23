@@ -48,12 +48,17 @@ const W = require('../../../tests/lib/web.cjs');
     assert.ok(!/Today[\s\S]*buy diapers/.test(await page.textContent('main')));
     assert.ok((await page.textContent('main')).includes('2 done in the last 7 days'));
   });
-  await t.step('edit: rename, set a date, delete needs two taps', async () => {
+  await t.step('edit: rename, set a date, Enter saves, Escape cancels, delete needs two taps', async () => {
+    await page.click('li:has-text("fix the gate") [data-more]');
+    await page.fill('#td-edit', 'unsaved rename');
+    await page.press('#td-edit', 'Escape');
+    assert.strictEqual(await page.$('#td-sheet'), null, 'Escape closes edit sheet without saving');
+    assert.ok((await page.textContent('main')).includes('fix the gate') && !(await page.textContent('main')).includes('unsaved rename'));
     await page.click('li:has-text("fix the gate") [data-more]');
     await page.fill('#td-edit', 'fix the garden gate');
     await page.click('[data-due]:has-text("Today")');
-    await page.click('#td-save');
-    assert.ok(/Today[\s\S]*fix the garden gate/.test(await page.textContent('main')));
+    await page.press('#td-edit', 'Enter');
+    assert.ok(/Today[\s\S]*fix the garden gate/.test(await page.textContent('main')), 'Enter saves edit sheet');
     await page.click('li:has-text("fix the garden gate") [data-more]');
     await page.click('#td-del'); assert.ok((await page.textContent('main')).includes('garden gate'));
     await page.click('#td-del'); assert.ok(!(await page.textContent('main')).includes('garden gate'));

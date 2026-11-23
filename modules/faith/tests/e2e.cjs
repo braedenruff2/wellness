@@ -364,6 +364,26 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     assert.ok((await page.textContent('#reading')).includes('Mark 5:35-43'));
     await page.goBack();
     await page.waitForSelector('h1:text-is("The path")');
+    assert.strictEqual(await page.$('#path-jump'), null, 'no jump chip during Week 1');
+    // once past Week 1 (days 1-7 done), Jump to Day 8 appears and targets #path-cur
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('fc.v1'));
+      for (let i = 1; i <= 7; i++) s.done[i] = '2026-11-18';
+      localStorage.setItem('fc.v1', JSON.stringify(s));
+      window.FC.reload();
+    });
+    await page.goto(base + '#faith/more'); await page.goto(base + '#faith/path');
+    await page.waitForSelector('#path-jump');
+    assert.strictEqual(await page.textContent('#path-jump'), 'Jump to Day 8');
+    assert.ok((await page.textContent('#path-cur')).includes('Day 8'));
+    await page.click('#path-jump');
+    // restore days 3-7 undone so subsequent steps see the same state
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('fc.v1'));
+      for (let i = 3; i <= 7; i++) delete s.done[i];
+      localStorage.setItem('fc.v1', JSON.stringify(s));
+      window.FC.reload();
+    });
   });
 
   await step('a double-tap on "I’ve spent time with today" leaves the day done; "Mark as not done" still works after', async () => {

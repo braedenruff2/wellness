@@ -134,6 +134,8 @@
 - Tested: full `node tests/run-all.cjs` (all 58 suites passed, 0 skipped) after every code commit.
 - Done 64 (`4b19754`): added `#wo-areas` area filter chips (All / Legs / Push / Pull / Core / Walk) on `#workout/history` filtering `.wo-ex` cards live; added e2e test in `modules/workout/tests/e2e.cjs`.
 - Done 65 (`34e210c`): added `#p-search` prayer list search (when 6+ prayers, ignoring button labels) and one-tap `.p-undo` ("Move back to praying") on `#faith/journal/prayers`; added e2e tests in `modules/faith/tests/e2e.cjs`.
-- Done 66: added collapsible `#c-recent` ("Recent sessions") `<details>` card at the bottom of `#calm` listing the last 10 sessions newest-first with minutes and stress ratings (plus safe `titleOf` helper); added e2e test in `modules/calm/tests/e2e.cjs`.
-- Added `[any]` tasks 67 (Tagalog `#tagalog/words` search), 68 (Parenting Past practice search + Show all), and 69 (Faith Path jump-to-current + To-do edit Enter/Escape) to `.autopilot/cloud-plan.md`.
-- Next: implement tasks 67–69 (`[any]`) in order.
+- Done 66 (`e1f1d0d`): added collapsible `#c-recent` ("Recent sessions") `<details>` card at the bottom of `#calm` listing the last 10 sessions newest-first with minutes and stress ratings (plus safe `titleOf` helper); added e2e test in `modules/calm/tests/e2e.cjs`.
+- Done 67 (`2d95996`): added `#tl-word-search` on `#tagalog/words` (when 10+ words met) filtering Tagalog and English across `#tl-hard` and `#tl-all` and hiding empty section cards; added e2e test in `modules/tagalog/tests/e2e.cjs`.
+- Done 68 (`391d90a`): added `#co-hist-search` (by title or skill across full history, including items past 20) and `#co-hist-more` ("Show all") button on `#coach` Past practice; added e2e test in `modules/coach/tests/e2e.cjs`.
+- Done 69: added `#path-jump` ("Jump to Day N") on `#faith/path` past Week 1 targeting `#path-cur`, and added Enter-to-save / Escape-to-cancel in `#todo` edit sheet (`#td-edit`); added e2e tests in `modules/faith/tests/e2e.cjs` and `modules/todo/tests/e2e.cjs`.
+- Next: cross-review Claude's tasks 57 and 58 once landed, and continue auditing edge cases, tests, and usability.

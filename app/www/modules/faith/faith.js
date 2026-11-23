@@ -298,10 +298,11 @@
     var cur = C.currentDay(S, TOTAL);
     var h = '<h1>The path</h1><p class="meta ui">You\u2019ve spent time with ' + Object.keys(S.done).length + ' of the ' + TOTAL + ' days' +
       (S.round > 1 ? ' on this ' + ordinal(S.round) + ' walk' : '') + '. Go in order or jump around; it\u2019s yours.</p>';
+    if (cur > 7 && cur <= TOTAL) h += '<div class="chips jump ui"><button class="chip" id="path-jump" data-jump="path-cur">Jump to Day ' + cur + '</button></div>';
     CONTENT.weeks.forEach(function (w) {
       h += '<div class="card"><h2>Week ' + w.n + ': ' + esc(w.title) + '</h2><ul class="list">';
       DAYS.filter(function (d) { return d.n >= w.days[0] && d.n <= w.days[1]; }).forEach(function (d) {
-        h += '<li><a href="#faith/day/' + d.n + '"><span class="meta ui">Day ' + d.n + ' \u00b7 ' + esc(d.label) + '</span> ' + (S.done[d.n] ? '<span class="tick">\u2713</span>' : d.n === cur ? '<span class="meta ui">\u2190 next</span>' : '') +
+        h += '<li' + (d.n === cur ? ' id="path-cur"' : '') + '><a href="#faith/day/' + d.n + '"><span class="meta ui">Day ' + d.n + ' \u00b7 ' + esc(d.label) + '</span> ' + (S.done[d.n] ? '<span class="tick">\u2713</span>' : d.n === cur ? '<span class="meta ui">\u2190 next</span>' : '') +
           '<br>' + esc(d.title) + '</a></li>';
       });
       h += '</ul></div>';

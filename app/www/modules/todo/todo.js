@@ -110,7 +110,12 @@
       if (this.dataset.armed) { T.remove(S, t.id); save(); render(); WL.toast('Deleted'); return; }
       this.dataset.armed = 1; this.textContent = 'Tap again to delete';
     };
-    $('#td-edit').focus();
+    var ed = $('#td-edit');
+    ed.onkeydown = function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); $('#td-save').click(); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); d.remove(); }
+    };
+    ed.focus();
   }
 
   // after a tick the list redraws and the next task's box lands under the finger: the second tap of a double-tap
