@@ -126,6 +126,24 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     assert.ok(!(await page.$('#me-plan-queued')) && !(await page.$('#lk-queued')));
     await page.goto(base + '#me');
     assert.ok((await page.textContent('#view')).includes('Rest first this week'));
+    // a cloud advice answer arriving while a new PC advice request is in flight still saves the cloud answer (never { waiting: 0 })
+    await page.goto(base + '#home');
+    await page.evaluate(() => {
+      const orig = window.FCAndroid.pcRequest;
+      window.__holdPc = [];
+      window.FCAndroid.pcRequest = function (id, op, a, b) {
+        if (op === 'post' && a === '/v1/ask') { window.__holdPc.push(id); return; }
+        orig(id, op, a, b);
+      };
+    });
+    await page.click('[data-advice]');
+    await page.waitForSelector('text=Claude is thinking');
+    await cloudAnswers({ 'adv-race': { task: 'advice', answer: { headline: 'Fresh cloud advice', points: ['p'], next: 'n' } } });
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.pc.v1')).advice);
+    assert.strictEqual(saved && saved.answer && saved.answer.headline, 'Fresh cloud advice');
+    await page.evaluate(() => { window.__holdPc.forEach((id) => window.FCPcDone(id, false, "couldn't reach the PC")); });
+    await page.waitForSelector('text=Fresh cloud advice');
+    await page.reload();
   });
   await t.step('Tagalog: a queued check shows on the Tagalog page when it is answered; Done clears it', async () => {
     await page.evaluate(() => { const i = { task: 'Say: I am drinking water', expected: 'Umiinom ako ng tubig', answer: 'ako umiinom tubig' }; WL.pc.queue('tagalog-check', i, i); });

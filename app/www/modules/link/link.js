@@ -152,8 +152,14 @@
   }
   // an answer from the cloud run (the PC wasn't answering) shows like the PC's
   if (pc.onCloudAnswer) pc.onCloudAnswer('advice', function (e, a) {
-    if (!adviceBusy) advice = e ? { error: e } : { answer: a || {}, at: new Date().toISOString() };
-    if (!e) keep(); draw();
+    if (!e) {
+      var rec = { answer: a || {}, at: new Date().toISOString() };
+      var P = pc.settings(); P.advice = rec; pc.save();
+      if (!adviceBusy) advice = rec;
+    } else if (!adviceBusy) {
+      advice = { error: e };
+    }
+    draw();
   });
   function keep() { var P = pc.settings(); P.advice = advice; pc.save(); }
   function draw() {

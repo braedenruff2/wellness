@@ -140,6 +140,7 @@
       var c = ck[d]; if (!c || !/^\d{4}-\d\d-\d\d$/.test(d)) return;
       var at = okDate(c.at) ? c.at : localNoon(d), data = {};
       ['sleep', 'wakes', 'energy', 'mood', 'day'].forEach(function (k) { if (c[k] != null) data[k] = c[k]; });
+      if (!Object.keys(data).length && !c.note) return;
       var ev = { id: 'checkin/' + d + (okDate(c.edited) ? '/e' + Date.parse(c.edited) : ''), at: at, part: 'checkin', kind: 'checkin', data: data };
       if (c.note) ev.text = cut(c.note, 600);
       out.push(ev);

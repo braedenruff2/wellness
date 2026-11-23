@@ -151,4 +151,16 @@ t('faith: days finished earlier in the week stay in activity log with the same i
   assert.strictEqual(after[0].data.round, 1);
   assert.strictEqual(after[2].data.round, 2);
 });
+t('check-ins: empty legacy check-in objects without answers or notes are not emitted', () => {
+  const me = {
+    checkins: {
+      '2026-11-18': { at: '2026-11-18T12:00:00.000Z', edited: '2026-11-18T12:05:00.000Z' },
+      '2026-11-19': { at: '2026-11-19T12:00:00.000Z', sleep: '6–7 h' }
+    },
+    feedback: []
+  };
+  const ev = A.collect({ 'wl.me.v1': me }, {}, now).filter((e) => e.part === 'checkin');
+  assert.strictEqual(ev.length, 1);
+  assert.strictEqual(ev[0].id, 'checkin/2026-11-19');
+});
 console.log(n + ' activity tests passed');
