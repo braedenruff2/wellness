@@ -193,6 +193,28 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     await page.goto(base + '#tagalog/review'); await page.goto(base + '#tagalog');
     assert.strictEqual(await page.locator('#tl-voice-nudge').count(), 0, 'hidden once ready');
   });
+  await t.step('Listen while walking and Play all cancel cleanly on stop, restart, and leaving the screen', async () => {
+    await page.goto(base + '#tagalog/l/2026-11-18/1');
+    await page.waitForSelector('#tl-walk');
+    await page.evaluate(() => { window.__spoken = []; window.__cancels = 0; });
+    // Start walking, let 1st utterance finish (enters 900ms pause), stop, and immediately restart:
+    // the stale pause timer from run #1 must NOT fire alongside run #2
+    await page.click('#tl-walk');
+    await page.clock.runFor(100);
+    await page.click('#tl-walk'); // stop during pause
+    await page.click('#tl-walk'); // restart right away
+    await page.clock.runFor(950); // past old timer, right into run #2's 2nd item
+    const spoken = await page.evaluate(() => window.__spoken.map((x) => x.text));
+    // Run #1 spoke item 0; run #2 spoke item 0 + item 1 (3 total, NOT 4 from overlapping timers)
+    assert.strictEqual(spoken.length, 3, 'no overlapping walk loop after quick stop/restart: ' + JSON.stringify(spoken));
+    // Leaving the lesson cancels speech immediately and prevents any later scheduled lines
+    const cancelsBefore = await page.evaluate(() => window.__cancels || 0);
+    await page.goto(base + '#home');
+    await page.clock.runFor(4000);
+    const afterLeave = await page.evaluate(() => ({ c: window.__cancels || 0, n: window.__spoken.length }));
+    assert.ok(afterLeave.c > cancelsBefore, 'leave() cancelled speech');
+    assert.strictEqual(afterLeave.n, 3, 'no speech fired after leaving lesson');
+  });
   await t.step('no overflow, no errors', async () => {
     await page.evaluate(() => { window.__voiceState.tagalogVoice = 'missing'; });
     await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#tagalog/words', '#settings/voice', '#home']);

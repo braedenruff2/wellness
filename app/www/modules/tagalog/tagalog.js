@@ -3,8 +3,9 @@
   'use strict';
   var T = window.TagalogCore, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   var store = WL.store('wl.tagalog.v1', T.defaults);
-  var S = store.load(), view = null;
+  var S = store.load(), view = null, playTok = 0, playTimer = null;
   function save() { store.save(S); }
+  function stopAudio() { playTok++; clearTimeout(playTimer); playTimer = null; WL.speech.stop(); }
   /* Lessons say {child}; the phone fills in her name from Parenting setup, or "Baby" (lib/personal.js). */
   var P = window.WLPersonal, filled = typeof WeakMap === 'function' ? new WeakMap() : null, filledFor = null;
   function personal(p) {
@@ -264,6 +265,7 @@
 
   function route(parts, v) {
     if (v) view = v;
+    stopAudio();
     parts = parts || [];
     if (!S.settings) S.settings = { slow: true };
     if (parts[0] === 'l') {
@@ -272,22 +274,28 @@
         view.innerHTML = lessonHtml(f.pack, f.lesson); wireHear(view);
         var en = $('#tl-en'); if (en) en.onclick = function () { var on = en.getAttribute('aria-pressed') !== 'true'; en.setAttribute('aria-pressed', on); $$('.dlg .en').forEach(function (x) { x.hidden = !on; }); };
         var pl = $('#tl-play'); if (pl) pl.onclick = function () {
-          var lines = f.lesson.dialogue.map(function (d) { return d.tl; }), k = 0;
-          (function next() { if (k < lines.length && location.hash.indexOf('#tagalog/l/') === 0) WL.speech.speak(lines[k++], function () { setTimeout(next, 600); }, { lang: 'fil-PH', rate: S.settings.slow ? 0.8 : 1 }); })();
+          stopAudio();
+          var wkBtn = $('#tl-walk'); if (wkBtn && wkBtn.getAttribute('aria-pressed') === 'true') { wkBtn.setAttribute('aria-pressed', 'false'); wkBtn.textContent = '🎧 Listen while walking'; }
+          var tok = playTok, here = location.hash, lines = f.lesson.dialogue.map(function (d) { return d.tl; }), k = 0;
+          (function next() {
+            if (tok !== playTok || location.hash !== here || k >= lines.length) return;
+            WL.speech.speak(lines[k++], function () { if (tok === playTok) playTimer = setTimeout(next, 600); }, { lang: 'fil-PH', rate: S.settings.slow ? 0.8 : 1 });
+          })();
         };
         // hands-free: each word in Tagalog, its meaning, the Tagalog again (time to repeat it), then the conversation
         var wk = $('#tl-walk'); if (wk) wk.onclick = function () {
-          if (wk.getAttribute('aria-pressed') === 'true') { wk.setAttribute('aria-pressed', 'false'); wk.textContent = '🎧 Listen while walking'; WL.speech.stop(); return; }
+          if (wk.getAttribute('aria-pressed') === 'true') { wk.setAttribute('aria-pressed', 'false'); wk.textContent = '🎧 Listen while walking'; stopAudio(); return; }
+          stopAudio();
           wk.setAttribute('aria-pressed', 'true'); wk.textContent = '■ Stop listening';
-          var here = location.hash, rate = S.settings.slow ? 0.8 : 1, seq = [];
+          var tok = playTok, here = location.hash, rate = S.settings.slow ? 0.8 : 1, seq = [];
           f.lesson.words.forEach(function (w) { seq.push([w.tl, 'fil-PH', 900], [w.en, '', 900], [w.tl, 'fil-PH', 2500]); });
           (f.lesson.dialogue || []).forEach(function (d) { seq.push([d.tl, 'fil-PH', 1500]); });
           var k = 0;
           (function next() {
-            if (location.hash !== here || wk.getAttribute('aria-pressed') !== 'true') return;
+            if (tok !== playTok || location.hash !== here || wk.getAttribute('aria-pressed') !== 'true') return;
             if (k >= seq.length) { wk.setAttribute('aria-pressed', 'false'); wk.textContent = '🎧 Listen again'; return; }
             var it = seq[k++];
-            WL.speech.speak(it[0], function () { setTimeout(next, it[2]); }, it[1] ? { lang: it[1], rate: rate } : { rate: 1 });
+            WL.speech.speak(it[0], function () { if (tok === playTok) playTimer = setTimeout(next, it[2]); }, it[1] ? { lang: it[1], rate: rate } : { rate: 1 });
           })();
         };
         runExercises(f.pack, f.lesson);
@@ -346,7 +354,7 @@
 
   WL.register({
     id: 'tagalog', title: 'Tagalog', short: 'Tagalog', icon: '💬', nav: true, storageKeys: [store.key], settingsLink: '#tagalog/settings',
-    route: route, card: card,
+    route: route, leave: stopAudio, card: card,
     week: function () { var st = T.stats(S); return st.weekLessons ? st.weekLessons + ' Tagalog lesson' + (st.weekLessons === 1 ? '' : 's') : ''; },
     today: function () {
       var d = T.iso(new Date()), lessonToday = Object.keys(S.done).some(function (k) { return T.iso(new Date(S.done[k])) === d; });
