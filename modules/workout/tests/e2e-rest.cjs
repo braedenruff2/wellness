@@ -23,6 +23,12 @@ const Wb = require('../../../tests/lib/web.cjs');
     const li = await page.textContent('.today-list');
     assert.ok(/Move: rest day \(sore\)/.test(li), li);
   });
+  await t.step('Sunday afternoon "Your week" names the rest day he chose', async () => {
+    await page.clock.setSystemTime(new Date(2026, 10, 22, 15, 0)); await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#wl-week');
+    const w = await page.textContent('#wl-week');
+    assert.ok(/1 rest day you chose/.test(w), w);
+    await page.clock.setSystemTime(new Date(2026, 10, 22, 19, 0));
+  });
   await t.step('it survives a reload; Undo brings the choice back', async () => {
     await page.goto(base + '#workout'); await page.reload();
     await page.click('#wo-rest-undo');

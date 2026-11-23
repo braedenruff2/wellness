@@ -263,7 +263,11 @@
 
   WL.register({
     id: 'workout', title: 'Workout', short: 'Move', icon: '❁', nav: true,
-    week: function () { var n = W.weekStats(S, new Date()).thisWeek; return n ? n + ' workout' + (n === 1 ? '' : 's') : ''; },
+    week: function () {
+      var d = new Date(), n = W.weekStats(S, d).thisWeek, r = W.restThisWeek(S, d).length;
+      var t = n ? n + ' workout' + (n === 1 ? '' : 's') : '';
+      return r ? (t ? t + ', ' : '') + r + ' rest day' + (r === 1 ? '' : 's') + ' you chose' : t;
+    },
     today: function () { var t = W.today(S, new Date()); return t.done ? { label: 'Move: ' + t.text, done: true, href: '#workout' } : { label: 'Move: ' + t.text, done: false, href: '#workout' }; },
     storageKeys: [store.key], settingsLink: '#workout/settings',
     route: route, leave: leave, card: card,
