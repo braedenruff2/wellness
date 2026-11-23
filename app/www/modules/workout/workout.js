@@ -161,19 +161,29 @@
         var card = b.closest('.ex'), idx = +card.dataset.i, k = +b.dataset.edit, row = card.querySelector('.editrow');
         var open = W.openSession(S, now()); if (!open) return;
         var set = open.sets.filter(function (x) { return x.i === idx; })[k]; if (!set) return;
+        var exDef = W.EX[set.ex], showWt = set.w != null || (exDef && exDef.track === 'reps' && exDef.load);
         row.hidden = false;
         row.innerHTML = '<div class="row"><span class="meta">Set ' + (k + 1) + '</span><input type="number" inputmode="numeric" class="ed-val" value="' + esc(set.val) + '" aria-label="Fixed number">' +
-          (set.w != null ? '<input type="number" inputmode="decimal" class="ed-wt" value="' + esc(set.w) + '" aria-label="Weight in lb"><span class="meta">lb</span>' : '') +
+          (showWt ? '<input type="number" inputmode="decimal" class="ed-wt" value="' + esc(set.w != null ? set.w : '') + '" aria-label="Weight in lb"><span class="meta">lb</span>' : '') +
           '<button class="primary ed-save">Save</button><button class="ed-del">Remove</button><button class="link ed-cancel">Cancel</button></div>';
         var v = row.querySelector('.ed-val'); v.focus(); v.select();
         var wt = row.querySelector('.ed-wt');
         var y = function () { var sy = window.scrollY; renderToday(); window.scrollTo(0, sy); };
-        row.querySelector('.ed-save').onclick = function () {
+        var doSave = function () {
           if (!(+v.value > 0)) { v.focus(); return; }
           W.editSet(S, idx, k, v.value, wt ? wt.value : undefined, now()); save(); y(); WL.toast('Set ' + (k + 1) + ' fixed: ' + (+v.value));
         };
+        var doCancel = function () { row.hidden = true; row.innerHTML = ''; };
+        row.querySelector('.ed-save').onclick = doSave;
         row.querySelector('.ed-del').onclick = function () { W.editSet(S, idx, k, 0, undefined, now()); save(); y(); WL.toast('Set ' + (k + 1) + ' removed'); };
-        row.querySelector('.ed-cancel').onclick = function () { row.hidden = true; row.innerHTML = ''; };
+        row.querySelector('.ed-cancel').onclick = doCancel;
+        [v, wt].forEach(function (inp) {
+          if (!inp) return;
+          inp.onkeydown = function (ev) {
+            if (ev.key === 'Enter') { ev.preventDefault(); doSave(); }
+            else if (ev.key === 'Escape') { ev.preventDefault(); doCancel(); }
+          };
+        });
       };
     });
     var ro = $('#wo-reopen'); if (ro) ro.onclick = function () { W.reopen(S, ro.dataset.id); save(); dayChoice = null; renderToday(); WL.toast('Carrying on: log the next set'); };

@@ -113,6 +113,12 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     await page.clock.runFor(10 * 60000);
     const still = await page.evaluate(() => JSON.parse(localStorage.getItem('fc.v1')).resume.step);
     assert.strictEqual(still, mid, 'nothing moves while paused');
+    // skipping while paused resumes playback and re-enables keepAwake
+    await page.evaluate(() => { window.__awake = []; const orig = WL.keepAwake; WL.keepAwake = (on) => { window.__awake.push(on); orig(on); }; });
+    await page.click('#skip');
+    assert.strictEqual(await page.textContent('#pp'), '⏸ Pause');
+    assert.deepStrictEqual(await page.evaluate(() => window.__awake), [true], 'keepAwake re-enabled on skip from pause');
+    await page.click('#pp'); // pause again
     await page.click('#pp'); // resume
     await page.clock.runFor(10 * 60000);
     await page.waitForSelector('#end-finish');

@@ -50,6 +50,24 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok((await page.textContent('#toast')).includes('fixed'));
     await page.click('#ex-0 [data-edit="0"]'); await page.click('#ex-0 .ed-cancel');
     assert.ok(await page.isHidden('#ex-0 .editrow'));
+    // Escape cancels edit; blank-weight set on a weighted exercise still shows weight input and Enter saves
+    await page.click('#ex-0 [data-edit="0"]');
+    await page.press('#ex-0 .ed-val', 'Escape');
+    assert.ok(await page.isHidden('#ex-0 .editrow'), 'Escape closes edit row');
+    await page.fill('#ex-0 .val', '10');
+    await page.fill('#ex-0 .wt', '');
+    await page.click('#ex-0 .logbtn');
+    await page.click('#ex-0 [data-edit="1"]');
+    assert.ok(await page.isVisible('#ex-0 .ed-wt'), 'weight input shown on weighted exercise even if logged blank');
+    await page.fill('#ex-0 .ed-wt', '15');
+    await page.press('#ex-0 .ed-wt', 'Enter');
+    const savedW = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.workout.v1'));
+      const open = s.sessions.find((x) => !x.end);
+      return open.sets[open.sets.length - 1].w;
+    });
+    assert.strictEqual(savedW, 15, 'Enter in edit weight saves updated weight');
+    await page.click('#wo-undo');
   });
   await t.step('a long break (50 min, then 3 hours) does not cut the workout off', async () => {
     await page.clock.runFor(50 * 60000);

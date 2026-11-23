@@ -440,8 +440,8 @@
         else if (st === 'paused') { player.resume(); el.textContent = '\u23F8 Pause'; el.dataset.state = 'playing'; keepAwake(true); }
         else if (st === 'done') location.hash = session.kind === 'day' ? '#faith/day/' + session.id : '#faith/pray';
       };
-      $('#skip').onclick = function () { if (!player) return; player.skip(); if ($('#pp').dataset.state === 'paused') { $('#pp').textContent = '\u23F8 Pause'; $('#pp').dataset.state = 'playing'; } };
-      $('#back').onclick = function () { if (!player) return; player.back(); if ($('#pp').dataset.state === 'paused') { $('#pp').textContent = '\u23F8 Pause'; $('#pp').dataset.state = 'playing'; } };
+      $('#skip').onclick = function () { if (!player) return; player.skip(); if ($('#pp').dataset.state === 'paused') { $('#pp').textContent = '\u23F8 Pause'; $('#pp').dataset.state = 'playing'; keepAwake(true); } };
+      $('#back').onclick = function () { if (!player) return; player.back(); if ($('#pp').dataset.state === 'paused') { $('#pp').textContent = '\u23F8 Pause'; $('#pp').dataset.state = 'playing'; keepAwake(true); } };
       $('#end').onclick = function () {
         if (player && player.phase !== 'ended') { S.resume = { kind: session.kind, id: session.id, step: player.place(), at: Date.now() }; save(); }
         if (player) player.stop(); player = null; keepAwake(false);
