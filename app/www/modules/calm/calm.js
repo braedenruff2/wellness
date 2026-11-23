@@ -172,7 +172,12 @@
     }; });
     $$('#c-before [data-r]').forEach(function (b) { b.onclick = function () { run = run || { p: p }; run.before = +b.dataset.r; $$('#c-before [data-r]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
     var after = null;
-    $$('#c-after-r [data-r]').forEach(function (b) { b.onclick = function () { after = +b.dataset.r; $$('#c-after-r [data-r]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
+    $$('#c-after-r [data-r]').forEach(function (b) { b.onclick = function () {
+      after = +b.dataset.r;
+      $$('#c-after-r [data-r]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+      // save straight away so tapping Back or closing the app never drops the after-stress rating
+      if (run && run.done && run.rec) { run.rec.after = after; run.rec.rated = new Date().toISOString(); save(); }
+    }; });
     $('#c-pp').onclick = function () {
       var b = this, st = b.dataset.state;
       if (!st) return begin(p);

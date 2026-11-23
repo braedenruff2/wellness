@@ -26,7 +26,6 @@ const W = require('./lib/web.cjs');
     assert.ok(s.sessions[0].sets[0].at.startsWith('2026-11-17') || new Date(s.sessions[0].sets[0].at).getDate() === 17);
   });
   await t.step('a rest day logged while yesterday is picked goes on yesterday; today is still open', async () => {
-    await page.selectOption('#wl-logday', '2026-11-16').catch(() => {});
     await page.goto(base + '#home'); await page.selectOption('#wl-logday', '2026-11-16');
     await page.goto(base + '#workout'); await page.click('#wo-rest summary'); await page.click('[data-rest="Busy day"]');
     const s = await st('wl.workout.v1');

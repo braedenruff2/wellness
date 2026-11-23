@@ -39,6 +39,13 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(!(await page.isVisible('#c-after')), 'resumed, not over yet');
     await page.clock.fastForward(6 * 60000); await page.clock.runFor(1000);
     assert.ok(await page.isVisible('#c-after'));
+    // tapping an after-stress rating saves immediately even if he leaves with Back instead of tapping Done
+    await page.click('#c-after-r [data-r="1"]');
+    await page.goBack();
+    await page.waitForSelector('.list');
+    const st2 = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions[1]);
+    assert.strictEqual(st2.after, 1, 'after-stress rating persisted without tapping Done');
+    assert.ok(st2.rated, 'rated timestamp saved');
   });
   await t.step('guided body scan speaks its lines; ending early after 30 s still counts', async () => {
     await page.evaluate(() => { window.__spoken.length = 0; });
