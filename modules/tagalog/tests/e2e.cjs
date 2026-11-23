@@ -20,6 +20,7 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
   await page.goto(base + '#tagalog');
   await t.step('today shows lesson 1', async () => {
     assert.ok((await page.textContent('main')).includes('Po, opo and greeting elders'));
+    assert.strictEqual(await page.locator('#tl-voice-nudge').count(), 0, 'no voice nudge without native bridge');
   });
   await t.step('a lesson: hear a word in Filipino, then answer every exercise', async () => {
     await page.click('a[href="#tagalog/l/2026-11-18/1"]');
@@ -164,8 +165,37 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     await page.click('#tl-fetch'); await page.clock.runFor(500);
     assert.strictEqual(GOT.n, n0 + 1, 'now downloaded with that hash: not fetched again');
   });
+  await t.step('Filipino-voice nudge shows when native voiceStatus reports tagalogVoice missing and links to Settings > Voice', async () => {
+    await page.addInitScript(() => {
+      window.__voiceState = {
+        english: 'nice', tagalog: 'nice', pcVoice: true, sid: 6, kokoro: 'ready', tagalogVoice: 'missing',
+        downloading: '', progress: '', error: '', last: '', speakers: [{ sid: 6, name: 'Nicole (soft, calm)' }]
+      };
+      window.FCAndroid = {
+        voiceStatus: () => JSON.stringify(window.__voiceState),
+        voiceSet: () => {},
+        voiceDownload: () => {}
+      };
+    });
+    await page.reload();
+    await page.goto(base + '#tagalog');
+    await page.waitForSelector('#tl-voice-nudge');
+    assert.ok((await page.textContent('#tl-voice-nudge')).includes('Filipino voice'));
+    await page.click('#tl-voice-nudge a[href="#settings/voice"]');
+    await page.waitForSelector('#wl-voice #wl-dl-tagalog');
+    await page.evaluate(() => { window.__voiceState.downloading = 'tagalog'; });
+    await page.goto(base + '#tagalog');
+    assert.strictEqual(await page.locator('#tl-voice-nudge').count(), 0, 'hidden while downloading');
+    await page.evaluate(() => { window.__voiceState.downloading = ''; window.__voiceState.tagalog = 'phone'; });
+    await page.goto(base + '#tagalog/review'); await page.goto(base + '#tagalog');
+    assert.strictEqual(await page.locator('#tl-voice-nudge').count(), 0, 'hidden when phone voice chosen');
+    await page.evaluate(() => { window.__voiceState.tagalog = 'nice'; window.__voiceState.tagalogVoice = 'ready'; });
+    await page.goto(base + '#tagalog/review'); await page.goto(base + '#tagalog');
+    assert.strictEqual(await page.locator('#tl-voice-nudge').count(), 0, 'hidden once ready');
+  });
   await t.step('no overflow, no errors', async () => {
-    await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#tagalog/words', '#home']);
+    await page.evaluate(() => { window.__voiceState.tagalogVoice = 'missing'; });
+    await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#tagalog/words', '#settings/voice', '#home']);
     assert.deepStrictEqual(t.errors, []);
   });
   await t.close('tagalog browser');

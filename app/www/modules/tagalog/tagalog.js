@@ -51,9 +51,19 @@
       }).join('') + (c.length ? '<div class="row"><button class="link" id="tl-checks-clear">Done, clear these</button></div>' : '') + '</div>';
   }
 
+  function voiceNudgeHtml() {
+    var n = WL.native;
+    if (!n || !n.voiceStatus) return '';
+    try {
+      var v = JSON.parse(n.voiceStatus());
+      if (!v || v.tagalogVoice !== 'missing' || v.downloading === 'tagalog' || v.tagalog === 'phone') return '';
+    } catch (e) { return ''; }
+    return '<p class="meta ui" id="tl-voice-nudge">Using the phone’s voice for Tagalog. <a href="#settings/voice">Download the Filipino voice</a> in Settings › Voice for a natural accent.</p>';
+  }
+
   function home() {
     var all = packs(), nx = T.nextLesson(S, all), st = T.stats(S);
-    var h = subnav('') + '<h1>Tagalog</h1><p class="meta ui">' + esc(T.advice(S, all)) + '</p>';
+    var h = subnav('') + '<h1>Tagalog</h1><p class="meta ui">' + esc(T.advice(S, all)) + '</p>' + voiceNudgeHtml();
     h += checksHtml();
     if (st.due) h += '<div class="card ui"><div class="row"><div class="grow"><b>' + st.due + '</b> word' + (st.due === 1 ? '' : 's') + ' to review</div><a class="btn primary" href="#tagalog/review">Review</a></div></div>';
     if (nx) h += '<div class="card"><div class="meta ui">Week ' + esc(nx.pack.week || '') + ' · ' + esc(nx.pack.title) + ' · lesson ' + nx.lesson.day + ' of ' + nx.pack.lessons.length + '</div>' +

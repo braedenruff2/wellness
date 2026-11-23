@@ -513,7 +513,7 @@
     });
     drawLogDay();
     if (!m || !m.keepScroll) window.scrollTo(0, 0);
-    if (id === 'settings' && parts[1] === 'sync') { var sc = $('#wl-sync'); if (sc && sc.scrollIntoView) sc.scrollIntoView(); }
+    if (id === 'settings' && (parts[1] === 'sync' || parts[1] === 'voice')) { var sc = $('#wl-' + parts[1]); if (sc && sc.scrollIntoView) sc.scrollIntoView(); }
   }
 
   function start() {
