@@ -8,6 +8,7 @@ const Wb = require('../../../tests/lib/web.cjs');
   await page.goto(base + '#calm');
   await t.step('list with a suggestion, every practice and the faith link', async () => {
     assert.strictEqual(await page.locator('.list li').count(), await page.evaluate(() => window.CalmCore.PRACTICES.length));
+    assert.strictEqual(await page.$('#c-recent'), null, 'no recent sessions card before first session');
     assert.ok(await page.isVisible('a[href="#faith/pray"]'));
   });
   await t.step('one-minute reset: rate, breathe, finish, rate again, saved', async () => {
@@ -63,6 +64,13 @@ const Wb = require('../../../tests/lib/web.cjs');
     const top = await page.textContent('#c-today');
     assert.ok(/Done for today/.test(top), top);
     assert.ok(/One-minute reset/.test(top), top);
+    // collapsible Recent sessions lists newest first with minutes and stress ratings
+    await page.click('#c-recent summary');
+    const rec = await page.locator('#c-recent li').allTextContents();
+    assert.strictEqual(rec.length, 3);
+    assert.ok(/Body scan/.test(rec[0]), rec[0]);
+    assert.ok(/Box breathing/.test(rec[1]) && /stress now 1/.test(rec[1]), rec[1]);
+    assert.ok(/One-minute reset/.test(rec[2]) && /stress 4→2/.test(rec[2]), rec[2]);
     await page.goto(base + '#home');
     assert.ok(/Done for today/.test(await page.textContent('.home-card[data-module="calm"]')));
   });

@@ -132,4 +132,8 @@
 - Fixed (`a9661a8`): `app/www/modules/todo/todo.js` schedules undated one-off edit-sheet reminders whose time already passed today for tomorrow (matching `quickParse`) and avoids CSS selector interpolation on `t.id`; `app/www/modules/faith/faith.js` `#j-search` searches entry content/date/kind without matching the `Delete` button label.
 - Added `[any]` tasks 64 (Workout Progress area filter chips), 65 (Faith Prayer list search + undo answered), and 66 (Calm recent sessions summary) to `.autopilot/cloud-plan.md`.
 - Tested: full `node tests/run-all.cjs` (all 58 suites passed, 0 skipped) after every code commit.
-- Next: claim and implement tasks 64–66 (`[any]`) in order.
+- Done 64 (`4b19754`): added `#wo-areas` area filter chips (All / Legs / Push / Pull / Core / Walk) on `#workout/history` filtering `.wo-ex` cards live; added e2e test in `modules/workout/tests/e2e.cjs`.
+- Done 65 (`34e210c`): added `#p-search` prayer list search (when 6+ prayers, ignoring button labels) and one-tap `.p-undo` ("Move back to praying") on `#faith/journal/prayers`; added e2e tests in `modules/faith/tests/e2e.cjs`.
+- Done 66: added collapsible `#c-recent` ("Recent sessions") `<details>` card at the bottom of `#calm` listing the last 10 sessions newest-first with minutes and stress ratings (plus safe `titleOf` helper); added e2e test in `modules/calm/tests/e2e.cjs`.
+- Added `[any]` tasks 67 (Tagalog `#tagalog/words` search), 68 (Parenting Past practice search + Show all), and 69 (Faith Path jump-to-current + To-do edit Enter/Escape) to `.autopilot/cloud-plan.md`.
+- Next: implement tasks 67–69 (`[any]`) in order.

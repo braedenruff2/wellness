@@ -7,6 +7,7 @@
   var run = null; // {p, start, end, raf, timer, player, paused, pausedAt, before}
   function save() { store.save(S); }
   function practice(id) { return K.PRACTICES.filter(function (p) { return p.id === id; })[0]; }
+  function titleOf(id) { var p = practice(id); return p ? p.title : String(id || ''); }
   /* What he told the app (modules/me): practices that helped or didn't, too long, a rough night, the weekly plan. */
   function sopts() {
     var M = window.WLMe; if (!M) return {};
@@ -47,7 +48,7 @@
         '<p class="meta ui">' + esc(sug.when) + '. One short practice a day is all Calm asks; ' + (window.WLMe && WLMe.rough() ? 'after a rough night, a short one.' : 'this one fits the time of day.') + '</p>' +
         '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + '">Begin</a><span class="grow"></span>' + fit(sug.id, sug.title) + '</div>' + racingLine() + '</div>';
     }
-    var names = t.ids.map(function (id) { return practice(id).title; }).filter(function (x, i, a) { return a.indexOf(x) === i; });
+    var names = t.ids.map(titleOf).filter(function (x, i, a) { return a.indexOf(x) === i; });
     return '<div class="card" id="c-today"><div class="meta ui">Today</div><h3 style="margin:.2em 0">✓ Done for today</h3>' +
       '<p class="ui">' + esc(names.join(', ')) + ' · ' + Math.max(1, t.mins) + ' min. That’s today’s practice. Nothing else you need to do; come back tomorrow.</p>' +
       '<p class="meta ui">If things get hard later, the one-minute reset helps. Want more now? <a href="#calm/s/' + sug.id + '">' + esc(sug.title) + ' (' + mins(sug) + ' min)</a> is a different one.</p>' + racingLine() + '</div>';
@@ -71,8 +72,19 @@
     }).join('') + '</ul>';
     h += '<div class="card ui"><b>' + st.weekMins + '</b> min this week on ' + st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') + ' · ' + st.total + ' sessions in all' +
       (st.avgDrop != null ? '<br><span class="meta">Stress before → after, average change: ' + (st.avgDrop >= 0 ? '−' : '+') + Math.abs(st.avgDrop).toFixed(1) + ' (from ' + st.rated + ' rated sessions)</span>' : '') + '</div>';
+    h += recentHtml();
     h += '<p class="meta ui">Christian meditation (breath prayer, Lectio Divina, quiet prayer) is in <a href="#faith/pray">Faith › Pray</a>.</p>';
     return h;
+  }
+
+  function recentHtml() {
+    if (!S.sessions.length) return '';
+    var items = S.sessions.slice(-10).reverse();
+    return '<details class="card ui" id="c-recent"><summary>Recent sessions (' + items.length + ')</summary><ul class="me-g">' + items.map(function (s) {
+      var d = s.date ? (function () { var p = s.date.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })() : '';
+      var rating = s.before && s.after ? ' · stress ' + s.before + '→' + s.after : s.after ? ' · stress now ' + s.after : '';
+      return '<li><b>' + esc(titleOf(s.id)) + '</b> <span class="meta">' + esc(d) + ' · ' + Math.max(1, Math.round(s.mins || 0)) + ' min' + esc(rating) + '</span></li>';
+    }).join('') + '</ul></details>';
   }
 
   function rating(id, label) {
@@ -218,7 +230,7 @@
 
   function card() {
     var t = K.today(S), sug = practice(K.suggest(S, null, sopts()));
-    if (t.done) return '<div class="meta ui">Calm</div><h3>✓ Done for today</h3><p class="meta ui">' + esc(practice(t.ids[0]).title) + (t.count > 1 ? ' and ' + (t.count - 1) + ' more' : '') + ' · ' + Math.max(1, t.mins) + ' min. Nothing else needed today.</p>' +
+    if (t.done) return '<div class="meta ui">Calm</div><h3>✓ Done for today</h3><p class="meta ui">' + esc(titleOf(t.ids[0])) + (t.count > 1 ? ' and ' + (t.count - 1) + ' more' : '') + ' · ' + Math.max(1, t.mins) + ' min. Nothing else needed today.</p>' +
       '<div class="row ui"><a class="btn" href="#calm">Calm</a></div>';
     return '<div class="meta ui">Calm · today’s practice</div><h3>' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3><p class="meta ui">' + esc(K.advice(S)) + '</p>' +
       '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + '">Begin</a><a class="btn" href="#calm">All practices</a></div>';
