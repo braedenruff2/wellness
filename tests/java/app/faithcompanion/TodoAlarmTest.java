@@ -18,6 +18,18 @@ public class TodoAlarmTest {
         ok(TodoAlarm.at(two, 700).size() == 2, "both 7 pm reminders");
         ok(TodoAlarm.at(two, 650).isEmpty(), "none at another time");
 
+        // Doze/inexact delivery delay: reminders between `when` and `now` are all surfaced oldest-first,
+        // and the next alarm starts strictly after `now` (never skipping them or double-firing at `now`)
+        String delayed = "900\td@d\tlater\n750\tb@d\tduring delay\n700\ta@d\tfirst\n800\tc@d\tat boundary";
+        java.util.List<TodoAlarm.Entry> win = TodoAlarm.dueBetween(delayed, 700, 800);
+        ok(win.size() == 3 && win.get(0).id.equals("a@d") && win.get(1).id.equals("b@d") && win.get(2).id.equals("c@d"), "delayed window sorted");
+        ok(TodoAlarm.next(delayed, 800).id.equals("d@d"), "next alarm strictly after through boundary");
+        ok(TodoAlarm.dueBetween(delayed, 900, 700).isEmpty(), "inverted window is empty");
+
+        // hasReminders: "#open\t" alone must not trigger Android's POST_NOTIFICATIONS prompt on a fresh app
+        ok(!TodoAlarm.hasReminders(null) && !TodoAlarm.hasReminders("") && !TodoAlarm.hasReminders("#open\t"), "no reminders when only #open");
+        ok(TodoAlarm.hasReminders("100\ta@d\tx\n#open\ta"), "hasReminders true when a reminder exists");
+
         // open set
         ok(TodoAlarm.open("100\ta@d\tx") == null, "older page: no #open line = keep snoozes");
         ok(TodoAlarm.open("100\ta@d\tx\n#open\ta,b").contains("b"), "#open parsed");

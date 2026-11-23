@@ -50,12 +50,21 @@ public class TodoAlarm extends BroadcastReceiver {
         return out;
     }
 
-    /** All reminders set for exactly `when` (two tasks at 7 pm both show). */
-    static List<Entry> at(String lines, long when) {
+    /** True when the page's lines contain at least one reminder (ignoring "#open\t" and blank lines). */
+    static boolean hasReminders(String lines) { return !parse(lines).isEmpty(); }
+
+    /** All reminders due between `from` and `to` (inclusive), oldest first (catches two tasks at the same minute,
+     *  and any reminders whose time passed while Doze/inexact delivery delayed the alarm). */
+    static List<Entry> dueBetween(String lines, long from, long to) {
         List<Entry> out = new ArrayList<>();
-        for (Entry e : parse(lines)) if (e.when == when) out.add(e);
+        if (from > to) return out;
+        for (Entry e : parse(lines)) if (e.when >= from && e.when <= to) out.add(e);
+        out.sort((a, b) -> Long.compare(a.when, b.when));
         return out;
     }
+
+    /** All reminders set for exactly `when` (two tasks at 7 pm both show). */
+    static List<Entry> at(String lines, long when) { return dueBetween(lines, when, when); }
 
     static String task(String id) { return id == null ? "" : id.replaceAll("@.*$", ""); }
     /** The reminder's date from its id ("task@2026-11-19"), or null (a snooze: "task@snooze"). */
@@ -176,10 +185,11 @@ public class TodoAlarm extends BroadcastReceiver {
         long now = System.currentTimeMillis();
         if (FIRE.equals(i.getAction())) {
             long when = i.getLongExtra("when", now);
-            List<Entry> due = at(all(c), when);
+            long through = Math.max(when, now);
+            List<Entry> due = dueBetween(all(c), when, through);
             if (due.isEmpty()) show(c, i.getStringExtra("id"), i.getStringExtra("text"));
             for (Entry e : due) show(c, e.id, e.text);
-            arm(c, Math.max(when, now - 1));
+            arm(c, through);
         } else if (SNOOZE.equals(i.getAction())) {
             String id = task(i.getStringExtra("id")), text = known(c, id, i.getStringExtra("text"));
             ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(notifId(id));

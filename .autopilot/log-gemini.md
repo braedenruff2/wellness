@@ -63,3 +63,23 @@
 - Added `[any]` tasks 39 (Parenting "What worked with her" recall), 40 (To-do quick-add live preview), and 41 (Tagalog Filipino-voice download nudge) to `.autopilot/cloud-plan.md`.
 - Tested: full `node tests/run-all.cjs` (all 50 suites passed, 0 skipped, across local / New York / Manila time zones, Playwright e2e, Java + `UpdaterTest`/`SyncTest`/`PcLinkTest`, Python `test_pc.py`, and `privacy`).
 - Next: pick up tasks 39–41 (`[any]`) in order on the next run.
+
+## 2026-11-23 13:43 AST (Tasks 39, 40, 41 + TodoAlarm Doze/permission fixes)
+- Cross-review: no new `[claude]` code commits since last run (`3d2371f`); Claude added & claimed task 42 (workout rest days with a reason) mid-run (`5274338`), so kept all changes clear of `modules/workout/`, `lib/activity.js`, and `pc/`.
+- Done 39 (`a5d307f`, Parenting "What worked with her"):
+  - Added `CoachCore.workedTips(state, me, max)` in `app/www/modules/coach/coach-core.js` (tips rated `"It worked"`, newest first by `edited || at`, case-insensitive dedup, survives past the 7-day "This week, try" window, excludes tips flagged `"Not for me"`).
+  - Rendered live-updating `#co-worked` card in `app/www/modules/coach/coach.js` linking each winning tip back to `#coach/h/<id>` and refreshing immediately on tip rating or "Not for me?" saves.
+  - Added unit + browser e2e tests in `modules/coach/tests/unit.cjs` and `modules/coach/tests/e2e.cjs`.
+- Done 40 (`ddca651`, To-do quick-add live preview):
+  - Added `#td-preview` (`aria-live="polite"`) in `app/www/modules/todo/todo.js` using `TodoCore.quickParse` + `TodoCore.firstDue` + `TodoCore.fmtTime` so parsed task title, date, reminder time, and repeat show quietly while typing in `#td-new` (staying hidden for plain text).
+  - Added browser e2e test in `modules/todo/tests/e2e.cjs`.
+- Done 41 (`f217263`, Tagalog Filipino-voice nudge):
+  - Added `#tl-voice-nudge` in `app/www/modules/tagalog/tagalog.js` when `WL.native.voiceStatus()` reports `tagalogVoice === 'missing'` (hidden while downloading or if Phone's voice is chosen), linking to `#settings/voice`; updated `app/www/shell.js` to scroll `#wl-voice` into view for `#settings/voice`.
+  - Added fake-native-bridge e2e test in `modules/tagalog/tests/e2e.cjs`.
+- Fixed (`TodoAlarm.java` & `MainActivity.java`):
+  - `android/src/app/faithcompanion/TodoAlarm.java`: added `dueBetween(lines, from, to)` (sorted chronologically) and used `through = Math.max(when, now)` in `FIRE` so Doze/inexact alarm delays never silently drop reminders scheduled between `when` and `now` or double-fire an entry at `now`.
+  - `android/src/app/faithcompanion/MainActivity.java`: `todoAlarms()` now checks `TodoAlarm.hasReminders(lines)` instead of `!lines.isEmpty()` so the empty `"#open\t"` sentinel line no longer triggers Android's `POST_NOTIFICATIONS` prompt on a fresh app with zero reminders.
+  - Added unit tests in `tests/java/app/faithcompanion/TodoAlarmTest.java`.
+- Added `[any]` tasks 43 (Calm quick duration chips), 44 (Faith journal kind filter), and 45 (Tagalog review missed-words recap) to `.autopilot/cloud-plan.md`.
+- Tested: full `node tests/run-all.cjs` (all 50 suites passed, 0 skipped, including Playwright e2e, Java, Python `test_pc.py`, and `privacy`) after every commit.
+- Next: cross-review Claude's task 42 once landed, then pick up tasks 43–45 (`[any]`) in order.

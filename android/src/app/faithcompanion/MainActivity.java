@@ -560,7 +560,7 @@ public class MainActivity extends Activity {
         /** Every coming to-do reminder ("when<TAB>id<TAB>text" lines); "" clears them. */
         @JavascriptInterface public void todoAlarms(String lines) {
             TodoAlarm.set(getApplicationContext(), lines);
-            if (lines != null && !lines.isEmpty() && Build.VERSION.SDK_INT >= 33
+            if (TodoAlarm.hasReminders(lines) && Build.VERSION.SDK_INT >= 33
                     && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
                     && !getSharedPreferences("asked", MODE_PRIVATE).getBoolean("notif-todo", false)) {
                 getSharedPreferences("asked", MODE_PRIVATE).edit().putBoolean("notif-todo", true).apply();
