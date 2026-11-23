@@ -348,6 +348,11 @@
     var yIso = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
     if (restOn(state, yIso) === 'Sore') return 'Still sore? Do two sets of each today and keep the weights the same; moving usually eases it. If it still hurts to move, rest one more day.';
     if (gap != null && gap > 10) return 'It’s been ' + gap + ' days. Start easy today: do two sets of each, not three.';
+    // the first workouts back (1-2 in the last 4 weeks): soreness is normal and drops after a couple of weeks; leave reps in reserve
+    var from28 = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28)), recent = {};
+    done.forEach(function (x) { if (x.date >= from28) recent[x.date] = 1; }); hist.forEach(function (x) { if (x.date >= from28) recent[x.date] = 1; });
+    var nRecent = Object.keys(recent).length;
+    if (gap != null && nRecent >= 1 && nRecent <= 2 && st.thisWeek < st.target) return 'Early days back: stop each set 2–3 reps before you have to. Feeling sore after the first workouts is normal and gets much less within a couple of weeks.';
     if (st.thisWeek >= st.target) return 'Three this week. Anything more is a bonus: a stroller walk counts.';
     var left = st.target - st.thisWeek, daysLeft = 7 - dow;
     var rests = restThisWeek(state, now).length;

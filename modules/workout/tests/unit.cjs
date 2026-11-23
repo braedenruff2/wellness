@@ -277,4 +277,19 @@ t('rest days with a reason: done for the day, kind coach line, not a workout, un
   const old = W.validate({ sessions: [] }); assert.strictEqual(old.rest, undefined); assert.strictEqual(W.restOn(old, '2026-11-22'), null);
   assert.deepStrictEqual(W.restThisWeek(old, at(22, 9)), []);
 });
+t('early days back: after the first 1-2 workouts in 4 weeks, leave reps in reserve; then the usual line', () => {
+  const s = W.defaults();
+  assert.ok(!/Early days/.test(W.coach(s, at(19, 9))), 'nothing logged yet: no early-days line');
+  W.logSet(s, 'A', 0, 17, 10, at(19, 9)); W.endSession(s, at(19, 10));
+  assert.ok(/Done for today/.test(W.coach(s, at(19, 12))));
+  assert.ok(/Early days back/.test(W.coach(s, at(20, 9))) && /normal/.test(W.coach(s, at(20, 9))));
+  W.logRest(s, '2026-11-21', 'Sore', at(21, 9));
+  assert.ok(/Still sore/.test(W.coach(s, at(22, 9))), 'the day after "Sore" wins');
+  W.logSet(s, 'B', 0, 10, 10, at(24, 9)); W.endSession(s, at(24, 10));
+  assert.ok(/Early days back/.test(W.coach(s, at(25, 9))), 'second workout back');
+  W.logSet(s, 'C', 0, 10, 10, at(26, 9)); W.endSession(s, at(26, 10));
+  assert.ok(!/Early days back/.test(W.coach(s, at(27, 9))), W.coach(s, at(27, 9)));
+  // a long gap still says "start easy" first
+  assert.ok(/It’s been/.test(W.coach(s, new Date(2026, 11, 10, 9))));
+});
 console.log(n + ' workout unit tests passed');
