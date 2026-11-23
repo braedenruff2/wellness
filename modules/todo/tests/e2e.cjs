@@ -6,6 +6,21 @@ const W = require('../../../tests/lib/web.cjs');
   const t = await W.open();
   const { page, base } = t;
   await page.goto(base + '#todo');
+  await t.step('quick-add shows live preview for parsed date, repeat and time, stays hidden for plain text', async () => {
+    const pv = page.locator('#td-preview');
+    assert.strictEqual(await pv.isVisible(), false, 'hidden when empty');
+    await page.fill('#td-new', 'call friend');
+    assert.strictEqual(await pv.isVisible(), false, 'hidden when no date/repeat/time parsed');
+    await page.fill('#td-new', 'bins every thursday at 7pm');
+    assert.strictEqual(await pv.isVisible(), true, 'shown when parsed');
+    const txt = await pv.textContent();
+    assert.ok(txt.includes('“bins”') && txt.includes('🔔 7 pm') && txt.includes('↻ every Thursday'), txt);
+    await page.fill('#td-new', 'call Mom tomorrow');
+    const txt2 = await pv.textContent();
+    assert.ok(txt2.includes('“call Mom”') && txt2.includes('tomorrow'), txt2);
+    await page.fill('#td-new', '');
+    assert.strictEqual(await pv.isVisible(), false, 'hidden again when cleared');
+  });
   await t.step('add tasks with dates from plain words', async () => {
     for (const x of ['call Mom tomorrow', 'stretch every day', 'buy diapers today', 'fix the gate']) { await page.fill('#td-new', x); await page.press('#td-new', 'Enter'); }
     const txt = await page.textContent('main');

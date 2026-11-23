@@ -54,6 +54,7 @@
     T.tidy(S); save();
     var g = T.groups(S), adv = T.advice(S);
     var h = '<h1>To do</h1><div class="card ui"><form id="td-form" class="row"><input type="text" id="td-new" class="grow" placeholder="Add a task (e.g. call Mom tomorrow)" autocomplete="off" aria-label="New task"><button class="primary" type="submit">Add</button></form>' +
+      '<p class="meta" id="td-preview" aria-live="polite" hidden style="margin:.45em 0 0"></p>' +
       '<p class="meta" style="margin:.5em 0 0">Ends like “tomorrow”, “fri”, “24/12”, “dec 24”, “in 3 days”, “next week”, “every day” or “every monday” set the date; “at 3pm” adds a reminder.</p></div>';
     if (adv) h += '<p class="gentle ui">' + esc(adv) + (g.overdue.length ? ' <button class="link" id="td-move">Move overdue to today</button>' : '') + '</p>';
     h += '<div class="card">' + (list('Overdue', g.overdue, true) + list('Today', g.today) + list('Coming up', g.upcoming) + list('Any time', g.someday) || '<p class="meta ui">Nothing to do. ✨</p>') + '</div>';
@@ -111,7 +112,21 @@
   // (click detail 2+) must not tick it too
   function secondTap(e) { return !!(e && e.detail > 1); }
 
+  function updatePreview() {
+    var pv = $('#td-preview'), inp = $('#td-new');
+    if (!pv || !inp) return;
+    var q = T.quickParse(inp.value);
+    if (!q.text || (!q.due && !q.repeat && !q.at)) { pv.hidden = true; pv.textContent = ''; return; }
+    var due = T.firstDue(q), parts = [];
+    if (due) parts.push(fmtDue(due));
+    if (q.at) parts.push('🔔 ' + T.fmtTime(q.at));
+    if (q.repeat) parts.push('↻ ' + repLabel({ due: due, repeat: q.repeat }));
+    pv.textContent = 'Will add: “' + q.text + '” · ' + parts.join(' ');
+    pv.hidden = false;
+  }
+
   function wire() {
+    var ni = $('#td-new'); if (ni) ni.oninput = updatePreview;
     $('#td-form').onsubmit = function (e) {
       e.preventDefault();
       var inp = $('#td-new'), t = T.add(S, inp.value);
