@@ -285,4 +285,39 @@ t('busyday: a check-in note about visitors / a party / a busy day -> one small-d
   K.notFit(s, 'home', 'guide:busyday', 'x', ['Too generic'], '', now);
   assert.ok(!K.guidance(s, now, 10).some((x) => x.key === 'busyday'), 'Not for me hides it');
 });
+t('un-tapped quick answers and empty check-ins are ignored; checkinNote validates/trims; today notes stay in Home top 3', () => {
+  const s = K.defaults(), now = new Date(2026, 10, 22, 10);
+  // tapping and un-tapping a workout quick answer leaves {a: {}} so the PC hears it was cleared,
+  // but must not mask the previous pain answer or inflate answer counts
+  K.answer(s, 'workout', 'w1', 'pain', 'Yes, I stopped', D(20));
+  K.answer(s, 'workout', 'w2', 'hard', 'Easy', D(21));
+  K.answer(s, 'workout', 'w2', 'hard', 'Easy', D(21)); // cleared -> a: {}
+  assert.ok(K.guidance(s, now, 10).some((g) => g.key === 'wpain'), 'empty un-tapped entry does not mask pain');
+  // tapping and un-tapping a 3rd faith answer must not make 2 hard-to-focus answers reach f.length >= 3
+  const f = K.defaults();
+  K.answer(f, 'faith', 'd1', 'felt', 'Hard to focus', D(19));
+  K.answer(f, 'faith', 'd2', 'felt', 'Hard to focus', D(20));
+  K.answer(f, 'faith', 'd3', 'felt', 'Peaceful', D(21));
+  K.answer(f, 'faith', 'd3', 'felt', 'Peaceful', D(21)); // cleared
+  assert.ok(!K.guidance(f, now, 10).some((g) => g.key === 'faithfocus'), 'cleared faith answer does not count');
+  // checkinNote validates date, trims to 120 days, and cleared check-ins are excluded from recentCheckins
+  const n = K.defaults();
+  assert.strictEqual(K.checkinNote(n, 'not-a-date', 'hi', now), null);
+  K.checkinNote(n, '2026-11-22', 'temporary', now);
+  assert.strictEqual(K.recentCheckins(n, now, 7).length, 1);
+  K.checkinNote(n, '2026-11-22', '', now);
+  assert.strictEqual(K.recentCheckins(n, now, 7).length, 0, 'cleared note-only check-in not counted');
+  for (let i = 0; i < 130; i++) K.checkinNote(n, K.iso(new Date(2026, 0, 1 + i)), 'note ' + i, now);
+  assert.ok(Object.keys(n.checkins).length <= 120, 'checkinNote trims to 120 days');
+  // today's sick/busyday note shows in Home's default top 3 even alongside 3+ multi-day rules
+  const busy = K.defaults();
+  for (let d = 16; d <= 22; d++) K.checkin(busy, '2026-11-' + d, 'sleep', '4–5 h', D(d));
+  K.answer(busy, 'workout', 'w1', 'pain', 'Yes, I stopped', D(21));
+  K.answer(busy, 'calm', 'slow@1', 'helped', 'A lot', D(20));
+  K.answer(busy, 'calm', 'slow@2', 'helped', 'A lot', D(21));
+  K.checkinNote(busy, '2026-11-22', 'family visiting today', now);
+  assert.ok(K.guidance(busy, now, 3).some((g) => g.key === 'busyday'), 'busyday visible in Home top 3');
+  K.checkinNote(busy, '2026-11-22', 'baby has a fever', now);
+  assert.ok(K.guidance(busy, now, 3).some((g) => g.key === 'sick'), 'sick visible in Home top 3');
+});
 console.log(n + ' me unit tests passed');

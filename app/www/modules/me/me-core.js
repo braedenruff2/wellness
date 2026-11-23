@@ -92,6 +92,12 @@
 
   function trim(state) { if (state.feedback.length > 600) state.feedback = state.feedback.slice(-600); }
 
+  function trimCheckins(state) {
+    var days = Object.keys(state.checkins).sort();
+    while (days.length > 120) delete state.checkins[days.shift()];
+  }
+  function hasCheckin(c) { return !!c && (!!c.note || CHECKIN.some(function (q) { return c[q.k] != null; })); }
+
   /* Daily check-in, one tap per question (tap again to clear). */
   function checkin(state, day, k, v, now) {
     var q = qFor(CHECKIN, k);
@@ -100,14 +106,16 @@
     var c = state.checkins[day] || (state.checkins[day] = { at: now.toISOString() });
     if (c[k] === v) delete c[k]; else c[k] = v;
     c.edited = now.toISOString();
-    var days = Object.keys(state.checkins).sort();
-    while (days.length > 120) delete state.checkins[days.shift()];
+    trimCheckins(state);
     return c;
   }
   function checkinNote(state, day, text, now) {
-    var c = state.checkins[day] || (state.checkins[day] = { at: (now || new Date()).toISOString() });
+    if (!/^\d{4}-\d\d-\d\d$/.test(day)) return null;
+    now = now || new Date();
+    var c = state.checkins[day] || (state.checkins[day] = { at: now.toISOString() });
     c.note = cut(String(text || '').trim(), 600); if (!c.note) delete c.note;
-    c.edited = (now || new Date()).toISOString();
+    c.edited = now.toISOString();
+    trimCheckins(state);
     return c;
   }
   function checkinDone(c) { return !!c && CHECKIN.every(function (q) { return c[q.k] != null; }); }
@@ -139,10 +147,14 @@
     return { score: score, tooLong: tooLong, racing: racing };
   }
 
-  function lastN(state, part, kind, n) { return state.feedback.filter(function (f) { return f.part === part && f.kind === kind; }).slice(-n); }
+  function lastN(state, part, kind, n) {
+    return state.feedback.filter(function (f) {
+      return f.part === part && f.kind === kind && (kind !== 'after' || (f.a && Object.keys(f.a).length > 0));
+    }).slice(-n);
+  }
   function recentCheckins(state, now, days) {
     now = now || new Date(); var out = [];
-    for (var i = 0; i < days; i++) { var d = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)), c = state.checkins[d]; if (c) out.push(c); }
+    for (var i = 0; i < days; i++) { var d = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i)), c = state.checkins[d]; if (hasCheckin(c)) out.push(c); }
     return out;
   }
 
@@ -155,6 +167,9 @@
     state.feedback.forEach(function (f) { if (f.kind === 'notfit' && /^guide:/.test(f.about) && f.at >= since) hidden[f.about.slice(6)] = 1; });
     var today = state.checkins[iso(now)], week = recentCheckins(state, now, 7);
     if (rough(state, now)) out.push({ key: 'rough', part: 'home', text: 'Rough night. Keep today small: the one-minute reset, a shorter workout (or rest), and lie down when she naps if you can.' });
+    // today's explicit check-in note (sick/teething or busy day) belongs near the top so multi-day trends never hide it on Home
+    if (today && today.note && /\b(sick|fever|teeth|teething)\b/i.test(today.note)) out.push({ key: 'sick', part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
+    else if (today && today.note && /\b(family|party|parties|visit|visits|visiting|visitors|guests|busy|hosting|birthday)\b/i.test(today.note)) out.push({ key: 'busyday', part: 'home', text: 'A full day with people around: keep it small. The one-minute reset between things, and a rest day from Move is fine (it won’t count as missed).' });
     var low = week.filter(function (c) { return c.mood === 'Low'; }).length;
     if (low >= 4) out.push({ key: 'lowmood', part: 'home', text: 'Your mood has been low on ' + low + ' of the last ' + week.length + ' check-ins. That’s worth sharing with someone you trust, or your doctor; 811 can help too.' });
     else if (week.length >= 3) {
@@ -174,7 +189,7 @@
     if (lw && lw.a.pain === 'Yes, I stopped') out.push({ key: 'wpain', part: 'workout', text: 'Last workout you stopped for pain. Next time skip or lighten that exercise, and if it keeps hurting, ask a doctor or physio.' });
     else if (lw && lw.a.hard === 'Too hard') out.push({ key: 'whard', part: 'workout', text: 'Last workout felt too hard: keep the same weights next time and aim for the bottom of each rep range.' });
     else if (w.length >= 2 && w.slice(-2).every(function (f) { return f.a.hard === 'Easy'; })) out.push({ key: 'weasy', part: 'workout', text: 'Your last two workouts felt easy: add a couple of reps, or the next weight up, where the app says you’re ready.' });
-    var cl = calmLikes(state), best = Object.keys(cl.score).filter(function (k) { return cl.score[k] >= 3; }).sort(function (a, b) { return cl.score[b] - cl.score[a]; })[0];
+    var cl = calmLikes(state, now), best = Object.keys(cl.score).filter(function (k) { return cl.score[k] >= 3; }).sort(function (a, b) { return cl.score[b] - cl.score[a]; })[0];
     if (best) {
       var CC = typeof CalmCore !== 'undefined' ? CalmCore : root.CalmCore, cp = CC && CC.PRACTICES.filter(function (x) { return x.id === best; })[0];
       out.push({ key: 'calmbest', part: 'calm', text: 'What helps you most so far: ' + (cp ? cp.title.toLowerCase() : best) + '. Calm suggests it more often.', id: best });
@@ -197,8 +212,6 @@
     good.forEach(function (x) { (Array.isArray(x.a.stood) ? x.a.stood : []).forEach(function (k) { if (k !== 'Nothing much') stood[k] = (stood[k] || 0) + 1; }); });
     var top = Object.keys(stood).sort(function (a, b) { return stood[b] - stood[a]; })[0];
     if (good.length >= 2 && top && stood[top] >= 2 && hard < 2) out.push({ key: 'faithstood', part: 'faith', text: 'When prayer has felt close lately, ' + top.toLowerCase() + ' stood out. Give it a little more time: ' + ({ 'The Scripture': 'read the passage twice, slowly, before you pray.', 'The prayer': 'stay with the prayer and add your own words to it.', 'The quiet': 'set the guided prayer to 10 min for longer silences.', 'The reflection': 'write a line after the Think part.' })[top] });
-    if (today && today.note && /\b(sick|fever|teeth|teething)\b/i.test(today.note)) out.push({ key: 'sick', part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
-    else if (today && today.note && /\b(family|party|parties|visit|visits|visiting|visitors|guests|busy|hosting|birthday)\b/i.test(today.note)) out.push({ key: 'busyday', part: 'home', text: 'A full day with people around: keep it small. The one-minute reset between things, and a rest day from Move is fine (it won’t count as missed).' });
     return out.filter(function (g) { return !hidden[g.key]; }).slice(0, max || 3);
   }
 
