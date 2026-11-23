@@ -1,5 +1,13 @@
 # Cloud log
 
+## 2026-11-23 13:35-14:30 AST (cloud run; PC reachable)
+- Cross-reviewed Gemini's c28de7e (coalesced resync), 5eb02f9 (pastRounds in activity, Tagalog stats bound), 176e99e (Updater), 3d2371f (forPlan local dates), ddca651 (to-do preview), f217263 (voice nudge): sound, nothing to fix.
+- Drive: wellness-sync.json synced today; no queued requests.
+- Done 42: Move > Today "Not training today?" (Busy day / Sore / Tired / Sick / Planned rest, Undo). Logged rest = done on Home's today list, its own coach line (Sore: normal soreness + sharp pain = rest/doctor/physio; next day "two sets of each"), "A busy week (N rest days logged)", Sunday "Your week" names them. activity.js sends rest-day (undone: <id>/x, PC drops it); pc summary lists them as "not missed workouts"; advice + weekly-plan prompts say never call him inconsistent for them.
+- Done: coach line for the first 1-2 workouts in 4 weeks: stop each set 2-3 reps short; soreness after the first workouts is normal.
+- Tested: full suite after each change, all 51 pass, none skipped (new modules/workout/tests/e2e-rest.cjs; unit in 3 zones; link unit; test_pc). APK 0.1.20261123.1753 (real key, cert 6795e499...).
+- Check on the phone: Move > Today > "Not training today?" > Sore: Home shows "Move: rest day (sore)"; tomorrow's Move line says two sets of each.
+
 ## 2026-11-21 11:10 AST (cloud run; PC awake but no folder connected to the session)
 - Cross-reviewed Gemini's 5961e84 (prepare skips ids already in the answers sheet), 59804d0 (live {child} refresh, doneInLast bounds, DST-safe ageText), 2ae2c5b (--good tick, 44 px links), 4534aeb (coach guards + e2e): sound, nothing to fix.
 - Drive: wellness-sync.json is syncing from the phone; no queued requests, so nothing to answer.
