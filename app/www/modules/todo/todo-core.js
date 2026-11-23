@@ -93,16 +93,14 @@
   }
   function quickParse(text, now) {
     now = now || new Date();
-    var t = String(text || '').trim(), today = iso(now), due = null, repeat = null, at = null, r, tm, bare = false, evening = false;
-    if ((tm = takeTime(t))) { at = tm.at; bare = tm.bare; t = tm.rest; }
-    if ((r = takeRepeat(t, now, today))) { repeat = r.repeat; due = r.due; t = r.rest; }
-    if ((r = takeDay(t, now, today))) { due = r.due; evening = !!r.evening; t = r.rest; }
-    if (!at && (tm = takeTime(t))) {                 // "call Mom at 3pm tomorrow": the time came before the date
-      at = tm.at; bare = tm.bare; t = tm.rest;
-      if (!due && !repeat) {
-        if ((r = takeRepeat(t, now, today))) { repeat = r.repeat; due = r.due; t = r.rest; }
-        if ((r = takeDay(t, now, today))) { due = r.due; evening = !!r.evening; t = r.rest; }
-      }
+    var t = String(text || '').trim(), today = iso(now), due = null, dueExplicit = false, repeat = null, at = null, r, tm, bare = false, evening = false;
+    // peel time, repeat and date off the end in any order (e.g. "rent every month on dec 1 at 9am", "take pills tomorrow at 8am every day")
+    for (var pass = 0; pass < 3; pass++) {
+      var changed = false;
+      if (!at && (tm = takeTime(t))) { at = tm.at; bare = tm.bare; t = tm.rest; changed = true; }
+      if (!repeat && (r = takeRepeat(t, now, today))) { repeat = r.repeat; if (!dueExplicit) due = r.due; t = r.rest; changed = true; }
+      if (!dueExplicit && (r = takeDay(t, now, today))) { due = r.due; dueExplicit = true; evening = !!r.evening; t = r.rest; changed = true; }
+      if (!changed) break;
     }
     if (at && bare && evening) at = pad(+at.slice(0, 2) % 12 + 12) + at.slice(2);   // "tonight at 7" = 19:00
     if (at && !due) { due = today; if (!repeat && at <= hm(now)) due = addDays(today, 1); }  // "3pm" already gone: tomorrow

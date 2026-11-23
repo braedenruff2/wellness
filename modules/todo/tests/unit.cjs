@@ -328,4 +328,13 @@ t('doneInLast: bounded at now so an earlier-day window ignores later completions
   assert.strictEqual(T.doneInLast(s, 7, new Date(2026, 10, 18, 12)), 2);
   assert.strictEqual(T.doneInLast(s, 7, new Date(2026, 10, 21, 12)), 3);
 });
+t('quickParse: date, repeat and reminder time combine cleanly in any order', () => {
+  assert.deepStrictEqual(T.quickParse('pay rent every month dec 1', wed), { text: 'pay rent', due: '2026-12-01', repeat: 'monthly', at: null });
+  assert.deepStrictEqual(T.quickParse('pay rent every month on dec 1 at 9am', wed), { text: 'pay rent', due: '2026-12-01', repeat: 'monthly', at: '09:00' });
+  assert.deepStrictEqual(T.quickParse('pay rent on dec 1 at 9am every month', wed), { text: 'pay rent', due: '2026-12-01', repeat: 'monthly', at: '09:00' });
+  assert.deepStrictEqual(T.quickParse('water plants every 2 weeks tomorrow', wed), { text: 'water plants', due: '2026-11-19', repeat: 'biweekly', at: null });
+  assert.deepStrictEqual(T.quickParse('take pills tomorrow at 8am every day', wed), { text: 'take pills', due: '2026-11-19', repeat: 'daily', at: '08:00' });
+  const s = T.defaults(), r = T.add(s, 'pay rent every month dec 1', null, wed);
+  assert.strictEqual(r.mday, 1, 'monthly mday uses explicit start date');
+});
 console.log(n + ' to-do unit tests passed');
