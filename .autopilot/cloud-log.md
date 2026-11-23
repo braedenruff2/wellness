@@ -1,5 +1,11 @@
 # Cloud log
 
+## 2026-11-23 15:40-16:25 AST (first run, continued; a second Claude run ("run2") is active and takes tasks from the bottom)
+- Done 54: Move 2 or 3 workouts a week (Setup chips; Today offers 2 once after 2 busy weeks of the last 3; Not now = 4 weeks). run2 then sent the setting to the activity log/prompts.
+- Done 52 (e2e only, no bug), 53 (<summary> openers were 22 px: now 44 px everywhere; tests/e2e-a11y-new.cjs), 51 (Faith settings "Save my journal as text"; Sync.mimeFor so Android saves .txt as text/plain), 43 (Calm length chips per session, e2e-length), 46 ("Sore from last time?" on Move 1-3 days after a workout; coach lines; activity + summary).
+- Tested: full suite after each, 58 suites pass, none skipped.
+- Check on the phone: Move the day after a workout shows "Sore from last time?"; Calm start screens have length chips; Faith settings > Save my journal as text lands in Downloads as .txt.
+
 ## 2026-11-23 14:30-15:40 AST (same run, continued)
 - Done: training on a day logged as rest clears that rest day (restRemoved -> PC drops it); pc summary skips un-tapped (empty) quick answers.
 - Done 49: logs were already capped at runtime; tests/storage-size.cjs (120 heavy days 1.4M chars; caps hold for a year, 2.8M). New: a save the phone refuses (quota/blocked) shows a toast once and a card on Home + Settings until a save of that part works (tests/e2e-savefail.cjs).
