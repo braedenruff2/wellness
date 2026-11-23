@@ -85,6 +85,17 @@ const Wb = require('../../../tests/lib/web.cjs');
     const vol = await page.$('#wo-volume');
     assert.ok(vol, 'weekly sets shown after logging'); assert.ok(/legs \d+ \(\d+\) · push/.test(await vol.textContent()), 'weekly sets line');
     assert.strictEqual(await page.locator('[data-me-fit][data-about="balance"]').count(), 1, '"Not for me?" on the balance line');
+    // area filter chips filter exercise progress cards live
+    await page.waitForSelector('#wo-areas');
+    const allCount = await page.locator('.wo-ex:not([hidden])').count();
+    assert.strictEqual(allCount, 3, 'All shows all 3 exercises (2 legs + 1 push)');
+    await page.click('#wo-areas [data-area="push"]');
+    assert.strictEqual(await page.locator('.wo-ex:not([hidden])').count(), 1);
+    assert.ok((await page.locator('.wo-ex:not([hidden])').first().textContent()).includes('Pushups'));
+    await page.click('#wo-areas [data-area="legs"]');
+    assert.strictEqual(await page.locator('.wo-ex:not([hidden])').count(), 2);
+    await page.click('#wo-areas [data-area=""]');
+    assert.strictEqual(await page.locator('.wo-ex:not([hidden])').count(), 3);
   });
   await t.step('after Christmas the Move screen asks about the adjustable dumbbells; "Yes" switches the advice to adding weight', async () => {
     await page.goto(base + '#workout');

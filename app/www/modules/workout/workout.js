@@ -226,17 +226,34 @@
     var h = subnav('history') + '<h1>Progress</h1><div class="card ui"><div class="row"><div class="grow"><b>' + st.thisWeek + '</b> of ' + st.target + ' this week</div>' + weekDots() + '</div>' +
       '<p class="meta" style="margin:.4em 0 0">' + (st.streak ? st.streak + ' week' + (st.streak > 1 ? 's' : '') + ' in a row with 2+ workouts. ' : '') + st.total + ' workout days logged in all.</p>' + monthRow() + volume() + '</div>';
     var names = Object.keys(W.EX);
-    var rows = names.map(function (n) { return { n: n, p: W.performances(S, n) }; }).filter(function (x) { return x.p.length; });
+    var rows = names.map(function (n) { return { n: n, p: W.performances(S, n), area: W.AREA[n] || 'other' }; }).filter(function (x) { return x.p.length; });
     if (!rows.length) return h + '<p class="meta ui">Log a workout, or import your sheet under Setup, and your progress shows here.</p>';
+    var areas = W.AREAS.concat('other').filter(function (a) { return rows.some(function (x) { return x.area === a; }); });
+    if (areas.length >= 2) {
+      var label = function (a) { return a === 'other' ? 'Walk' : a.charAt(0).toUpperCase() + a.slice(1); };
+      h += '<div class="chips ui" id="wo-areas" role="group" aria-label="Filter by area" style="margin-bottom:12px">' +
+        '<button class="chip" data-area="" aria-pressed="true">All</button>' +
+        areas.map(function (a) { return '<button class="chip" data-area="' + a + '" aria-pressed="false">' + label(a) + '</button>'; }).join('') + '</div>';
+    }
     rows.forEach(function (x) {
       var tot = x.p.map(function (p) { return p.sets.reduce(function (a, b) { return a + +b; }, 0) * (p.w || 1); });
       var best = x.p.reduce(function (b, p) { var m = Math.max.apply(null, p.sets); return m > b.m ? { m: m, p: p } : b; }, { m: 0 });
       var lp = x.p[x.p.length - 1], e = W.EX[x.n];
-      h += '<div class="card"><div class="row"><h3 class="grow" style="margin:0">' + esc(x.n) + '</h3>' + sparkline(tot.slice(-12)) + '</div>' +
+      h += '<div class="card wo-ex" data-area="' + esc(x.area) + '"><div class="row"><h3 class="grow" style="margin:0">' + esc(x.n) + '</h3>' + sparkline(tot.slice(-12)) + '</div>' +
         '<p class="meta ui" style="margin:.3em 0 0">Last ' + esc(lp.date) + ': ' + lp.sets.join('/') + (lp.w ? ' @ ' + lp.w + ' lb' : '') + ' ' + unit(e) +
         ' · best set ' + best.m + (best.p.w ? ' @ ' + best.p.w + ' lb' : '') + ' · ' + x.p.length + ' times</p></div>';
     });
     return h;
+  }
+
+  function wireHistory() {
+    $$('#wo-areas [data-area]').forEach(function (b) {
+      b.onclick = function () {
+        var area = b.dataset.area;
+        $$('#wo-areas [data-area]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+        $$('.wo-ex').forEach(function (c) { c.hidden = !!area && c.dataset.area !== area; });
+      };
+    });
   }
 
   function settings() {
@@ -280,7 +297,7 @@
     if (v) view = v;
     leave();
     var p = parts && parts[0] || '';
-    if (p === 'history') { view.innerHTML = history(); }
+    if (p === 'history') { view.innerHTML = history(); wireHistory(); }
     else if (p === 'settings') { view.innerHTML = settings(); wireSettings(); }
     else renderToday();
   }
