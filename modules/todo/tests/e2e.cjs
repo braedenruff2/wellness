@@ -20,6 +20,15 @@ const W = require('../../../tests/lib/web.cjs');
     assert.ok(txt2.includes('“call Mom”') && txt2.includes('tomorrow'), txt2);
     await page.fill('#td-new', '');
     assert.strictEqual(await pv.isVisible(), false, 'hidden again when cleared');
+    assert.strictEqual(await pv.textContent(), '', 'preview text cleared');
+    // preview also resets cleanly right after submitting #td-form
+    await page.fill('#td-new', 'water plants tomorrow');
+    assert.strictEqual(await pv.isVisible(), true, 'preview visible before submit');
+    await page.press('#td-new', 'Enter');
+    assert.strictEqual(await pv.isVisible(), false, 'preview hidden after submit');
+    assert.strictEqual(await pv.textContent(), '', 'preview text empty after submit');
+    await page.click('li:has(.task-text:text-is("water plants")) [data-more]');
+    await page.click('#td-del'); await page.click('#td-del');
   });
   await t.step('add tasks with dates from plain words', async () => {
     for (const x of ['call Mom tomorrow', 'stretch every day', 'buy diapers today', 'fix the gate']) { await page.fill('#td-new', x); await page.press('#td-new', 'Enter'); }
@@ -53,7 +62,12 @@ const W = require('../../../tests/lib/web.cjs');
     await page.fill('#td-edit', 'unsaved rename');
     await page.press('#td-edit', 'Escape');
     assert.strictEqual(await page.$('#td-sheet'), null, 'Escape closes edit sheet without saving');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('aria-label')), 'Options for fix the gate', 'Escape restores focus to task options button');
     assert.ok((await page.textContent('main')).includes('fix the gate') && !(await page.textContent('main')).includes('unsaved rename'));
+    await page.click('li:has-text("fix the gate") [data-more]');
+    await page.click('#td-cancel');
+    assert.strictEqual(await page.$('#td-sheet'), null, 'Cancel closes edit sheet');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('aria-label')), 'Options for fix the gate', 'Cancel restores focus to task options button');
     await page.click('li:has-text("fix the gate") [data-more]');
     await page.fill('#td-edit', 'fix the garden gate');
     await page.click('[data-due]:has-text("Today")');
@@ -68,6 +82,7 @@ const W = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.$('#td-hour'), null, 'no "In 1 hour" button on a done task');
     await page.press('#td-time', 'Escape');
     assert.strictEqual(await page.$('#td-sheet'), null, 'Escape on #td-time closes edit sheet');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('aria-label')), 'Options for buy diapers', 'Escape from #td-time restores focus to options button');
     await page.click('#td-showdone');
   });
   await t.step('Home shows what is due and can tick it', async () => {

@@ -65,7 +65,7 @@
     wire();
   }
 
-  function sheet(t) {
+  function sheet(t, trigger) {
     var old = $('#td-sheet'); if (old) old.remove();
     var d = document.createElement('div');
     d.id = 'td-sheet'; d.className = 'card ui sheet';
@@ -106,12 +106,16 @@
       save(); render();
       WL.toast('Reminder at ' + T.fmtTime(t.at) + ', ' + fmtDue(t.due));
     };
-    $('#td-cancel').onclick = function () { d.remove(); };
+    var close = function () {
+      d.remove();
+      if (trigger && trigger.isConnected && trigger.focus) try { trigger.focus(); } catch (e) {}
+    };
+    $('#td-cancel').onclick = close;
     $('#td-del').onclick = function () {
       if (this.dataset.armed) { T.remove(S, t.id); save(); render(); WL.toast('Deleted'); return; }
       this.dataset.armed = 1; this.textContent = 'Tap again to delete';
     };
-    d.onkeydown = function (ev) { if (ev.key === 'Escape') { ev.preventDefault(); d.remove(); } };
+    d.onkeydown = function (ev) { if (ev.key === 'Escape') { ev.preventDefault(); close(); } };
     var ed = $('#td-edit');
     ed.onkeydown = function (ev) {
       if (ev.key === 'Enter') { ev.preventDefault(); $('#td-save').click(); }
@@ -152,7 +156,7 @@
         save(); render();
       };
     });
-    $$('[data-more]').forEach(function (b) { b.onclick = function () { var t = T.find(S, b.dataset.more); if (t) sheet(t); }; });
+    $$('[data-more]').forEach(function (b) { b.onclick = function () { var t = T.find(S, b.dataset.more); if (t) sheet(t, b); }; });
     var mv = $('#td-move'); if (mv) mv.onclick = function () { var k = T.moveOverdueToToday(S); save(); render(); WL.toast(k + ' moved to today'); };
     var sd = $('#td-showdone'); if (sd) sd.onclick = function () { showDone = !showDone; render(); };
   }
