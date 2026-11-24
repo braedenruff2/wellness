@@ -89,7 +89,7 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     // his "Not for me?" on last week's tip goes with the request, so Claude doesn't suggest it again
     await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.coach.v1'));
       WLMe.state().feedback.push({ id: 'coach/notfit/x', at: new Date().toISOString(), part: 'coach', about: 'tip:' + c.history[0].id, kind: 'notfit', a: { reasons: [] }, shown: 'p', note: 'She already does this' }); });
-    await page.fill('#co-real', 'She screams in the car seat every time since last week. I have tried songs.');
+    await page.fill('#co-real', '  She screams in the car seat every time since last week. I have tried songs.\n');
     await page.click('#co-real-go');
     await page.waitForSelector('#co-queued');
     assert.ok((await page.textContent('#co-queued')).includes('Advice: “She screams in the car seat'));
@@ -98,6 +98,7 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     await cloudAnswers({ [r[0].id]: { task: 'coach-advice', answer: { title: 'Car seat protests', skill: 'Crying and comfort', summary: 's', steps: ['one', 'two', 'three'], say: [], avoid: [], why: 'w', watch: '', sources: [] } } });
     await page.waitForFunction(() => JSON.parse(localStorage.getItem('wl.coach.v1')).history.length === 2);
     assert.ok((await page.textContent('#view')).includes('Car seat protests'));
+    assert.strictEqual((await coach()).realDraft, '', 'realDraft cleared even with leading/trailing whitespace');
   });
   await t.step('a cloud error shows plainly', async () => {
     await page.click('#co-new');
@@ -246,6 +247,20 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     await page.waitForTimeout(100);
     assert.ok(!(await page.textContent('.home-card[data-module="link"]')).includes('Stale advice'));
     assert.strictEqual(await page.evaluate(() => Object.keys(WL.driveSync.answers()).length), 0);
+  });
+  await t.step('an expired queued request (>7 days old) is also removed from Drive sync so it never stays stuck pending', async () => {
+    await page.evaluate(() => {
+      const r = WL.pc.queue('advice', { question: 'Old unanswered question' });
+      const p = WL.pc.settings();
+      p.cloud[r.id].at = '2026-11-01T10:00:00.000Z';
+      WL.pc.save();
+    });
+    assert.strictEqual(await page.evaluate(() => WL.driveSync.status().pendingRequests), 1);
+    await page.evaluate(() => WL.pc.deliver());
+    assert.strictEqual(await page.evaluate(() => WL.pc.queued().length), 0, 'expired request pruned from pc.cloud');
+    assert.strictEqual(await page.evaluate(() => WL.driveSync.status().pendingRequests), 0, 'expired request also removed from driveSync');
+    await page.evaluate(() => WL.driveSync.sync());
+    assert.strictEqual((await reqs('advice')).length, 0, 'expired request no longer written to wellness-sync.json');
   });
   await t.step('Cancel drops a waiting request (parenting, Home advice, weekly plan, Tagalog) and a late answer is not shown', async () => {
     await page.goto(base + '#coach');

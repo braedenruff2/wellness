@@ -167,7 +167,13 @@
   function deliver() {
     var d = WL.driveSync; if (!d || !d.answers) return 0;
     var all = d.answers(), n = 0, old = Date.now() - 7 * 864e5;
-    Object.keys(cloud()).forEach(function (id) { if (!(id in all) && Date.parse(cloud()[id].at) < old) { delete cloud()[id]; store.save(P); } });
+    Object.keys(cloud()).forEach(function (id) {
+      if (!(id in all) && Date.parse(cloud()[id].at) < old) {
+        delete cloud()[id];
+        if (d.cancelRequest) d.cancelRequest(id);
+        store.save(P);
+      }
+    });
     Object.keys(all).forEach(function (id) {
       var c = cloud()[id], a = all[id] || {};
       var task = (c && c.task) || (typeof a.task === 'string' ? a.task : '');

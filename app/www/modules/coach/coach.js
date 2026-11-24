@@ -236,7 +236,7 @@
       if (e) return cloudDone(e);
       if (!m || !m.answer) return cloudDone();
       try { K.addReal(S, m.answer, a); } catch (x) { return cloudDone(x.message); }
-      if (S.realDraft === m.answer) S.realDraft = ''; cloudDone();
+      if (String(S.realDraft || '').trim().slice(0, 3000) === m.answer) S.realDraft = ''; cloudDone();
     });
   }
   function queuedHtml() {
