@@ -287,7 +287,7 @@
       var o = { at: cut(c.at || '', 40) };
       CHECKIN.forEach(function (q) { if (q.opts.indexOf(c[q.k]) >= 0) o[q.k] = c[q.k]; });
       if (c.note) o.note = cut(c.note, 600); if (c.edited) o.edited = cut(c.edited, 40);
-      d.checkins[k] = o;
+      if (hasCheckin(o)) d.checkins[k] = o;
     });
     if (s.plan) d.plan = s.plan.at ? (function () { var p = cleanPlan(s.plan); if (p) p.at = cut(s.plan.at, 40); return p; })() : null;
     if (typeof s.planTried === 'string' && /^\d{4}-\d\d-\d\d$/.test(s.planTried)) d.planTried = s.planTried;

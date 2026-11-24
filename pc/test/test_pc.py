@@ -614,6 +614,14 @@ check("old enough: the full window", "Active on 1 of 7 days." in sm and "log sta
 # an evening event filed under the next UTC day (old-style file name) still counts from its local day
 W.append_lines(W.day_file("2026-11-18"), [{"id": "a0", "at": "2026-11-18T01:30:00Z", "part": "faith", "kind": "awe"}])
 check("old-style file: local day wins", W.first_day() == "2026-11-17", W.first_day())
+# impossible calendar dates never crash save_events
+check("clean_event rejects impossible date 2026-02-30", W.clean_event({"id": "bad1", "at": "2026-02-30T10:00:00Z", "part": "faith", "kind": "awe"}) is None)
+check("clean_event rejects impossible date 2026-99-99", W.clean_event({"id": "bad2", "at": "2026-99-99", "part": "faith", "kind": "awe"}) is None)
+check("clean_event rejects bad time suffix", W.clean_event({"id": "bad3", "at": "2026-11-20T99:99:99Z", "part": "faith", "kind": "awe"}) is None)
+check("save_events ignores impossible dates without crashing", W.save_events([
+    {"id": "bad1", "at": "2026-02-30T10:00:00Z", "part": "faith", "kind": "awe"},
+    {"id": "good1", "at": "2026-11-21T15:00:00Z", "part": "faith", "kind": "awe"}
+]) == 1)
 W.PROGRESS = _old
 
 # forget

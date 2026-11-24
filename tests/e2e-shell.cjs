@@ -88,12 +88,12 @@ const W = require('./lib/web.cjs');
       const skipped1 = WL.restoreText(JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': JSON.stringify({ theme: 'purple', textSize: 99, nudged: 'bad' }) } }));
       WL.applyLook();
       const sh1 = JSON.parse(localStorage.getItem('wl.shell.v1'));
-      const skipped2 = WL.restoreText(JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': '{not json' } }));
+      const skipped2 = WL.restoreText(JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': '{not json', 'wl.pc.v1': '123' } }));
       return { skipped1, sh1, skipped2 };
     });
     assert.deepStrictEqual(res.skipped1, []);
     assert.deepStrictEqual(res.sh1, { theme: 'auto', textSize: 1 });
-    assert.deepStrictEqual(res.skipped2, ['Settings']);
+    assert.deepStrictEqual(res.skipped2, ['Settings', 'PC link']);
   });
   await t.step('failed Android saveFile does not record lastBackup', async () => {
     const p2 = await page.context().newPage();

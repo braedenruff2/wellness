@@ -418,4 +418,26 @@ t('logSet and editSet ignore NaN or negative weights cleanly', () => {
   assert.strictEqual(s.sessions[0].sets[1].w, null);
   assert.strictEqual(s.weights['Bulgarian Split Squats'], 15, 'bad edit weight does not corrupt saved weight');
 });
+t('validate drops invalid weights, non-positive sets, and 0-only imported history rows', () => {
+  const v = W.validate({
+    equipment: 'adjustable',
+    weights: { Pushups: -5, 'One-Arm Rows': 15 },
+    sessions: [{ id: 's1', date: '2026-11-20', day: 'A', start: '2026-11-20T10:00:00Z', end: null, sets: [
+      { i: 0, ex: 'One-Arm Rows', n: 1, val: 0, w: 10, at: '2026-11-20T10:01:00Z' },
+      { i: 0, ex: 'One-Arm Rows', n: 2, val: -3, w: 10, at: '2026-11-20T10:02:00Z' },
+      { i: 0, ex: 'One-Arm Rows', n: 3, val: 12, w: -4, at: '2026-11-20T10:03:00Z' }
+    ] }],
+    history: [
+      { date: '2026-11-10', ex: 'Pushups', sets: [0, 0, 0], w: null },
+      { date: '2026-11-11', ex: 'One-Arm Rows', sets: [12, 0, -1, 10], w: -2 }
+    ]
+  });
+  assert.deepStrictEqual(v.weights, { 'One-Arm Rows': 15 });
+  assert.strictEqual(v.sessions[0].sets.length, 1);
+  assert.strictEqual(v.sessions[0].sets[0].val, 12);
+  assert.strictEqual(v.sessions[0].sets[0].w, null);
+  assert.strictEqual(v.history.length, 1);
+  assert.deepStrictEqual(v.history[0].sets, [12, 10]);
+  assert.strictEqual(v.history[0].w, null);
+});
 console.log(n + ' workout unit tests passed');

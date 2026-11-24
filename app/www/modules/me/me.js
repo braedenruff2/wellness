@@ -73,7 +73,7 @@
     if (b.dataset.meCk) {
       var c = K.checkin(S, today(), b.dataset.k, b.dataset.v, new Date()); if (!c) return; save();
       $$('[data-me-ck][data-k="' + b.dataset.k + '"]').forEach(function (x) { x.setAttribute('aria-pressed', c[b.dataset.k] === x.dataset.v); });
-      if (K.checkinDone(c)) { var card = b.closest('.home-card'); setTimeout(function () { if (card) { card.innerHTML = cardHtml(); wireCard(card); } if (WL.refreshToday) WL.refreshToday(); }, 400); }
+      if (K.checkinDone(c)) { var card = b.closest('.home-card'); setTimeout(function () { if (card && card.isConnected) { card.innerHTML = cardHtml(); wireCard(card); } if (WL.refreshToday) WL.refreshToday(); }, 400); }
     }
   });
 

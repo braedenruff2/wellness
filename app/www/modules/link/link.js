@@ -182,7 +182,7 @@
     wireCard: function (el) { el.addEventListener('click', function (e) { if (e.target.closest('[data-advice]')) askAdvice(''); }); },
     validate: function (k, raw) {
       // a restored backup keeps the settings but sends everything again (the PC skips what it already has)
-      try { var o = JSON.parse(raw); return JSON.stringify({ sent: {}, lastSync: null, lastError: null, lastSent: 0, journalText: !!o.journalText, weekSent: null }); } catch (e) { return null; }
+      try { var o = JSON.parse(raw); if (!o || typeof o !== 'object' || Array.isArray(o)) return null; return JSON.stringify({ sent: {}, lastSync: null, lastError: null, lastSent: 0, journalText: !!o.journalText, weekSent: null }); } catch (e) { return null; }
     },
     reload: function () { pc.reload(); advice = null; }
   });

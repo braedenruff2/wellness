@@ -506,7 +506,7 @@
     if (typeof s.dbAsked === 'string' && dateRe.test(s.dbAsked)) d.dbAsked = s.dbAsked;
     if (s.target === 2) d.target = 2;
     if (typeof s.twoAsked === 'string' && dateRe.test(s.twoAsked)) d.twoAsked = s.twoAsked;
-    Object.keys(s.weights || {}).forEach(function (k) { if (EX[k] && typeof s.weights[k] === 'number') d.weights[k] = s.weights[k]; });
+    Object.keys(s.weights || {}).forEach(function (k) { var w = cleanWeight(s.weights[k]); if (EX[k] && typeof s.weights[k] === 'number' && w != null) d.weights[k] = w; });
     Object.keys(s.next || {}).forEach(function (k) { if (EX[k] && typeof s.next[k] === 'string') d.next[k] = s.next[k]; });
     if (s.rest && typeof s.rest === 'object') Object.keys(s.rest).sort().slice(-200).forEach(function (k) {
       var r = s.rest[k]; if (dateRe.test(k) && r && REST_REASONS.indexOf(r.why) >= 0 && typeof r.at === 'string' && !isNaN(Date.parse(r.at))) { if (!d.rest) d.rest = {}; d.rest[k] = { why: r.why, at: r.at }; }
@@ -521,16 +521,18 @@
     s.sessions.forEach(function (x) {
       if (!x || !dateRe.test(x.date) || !PROGRAM[x.day] || !Array.isArray(x.sets)) return;
       d.sessions.push({ id: String(x.id || newId()), date: x.date, day: x.day, start: String(x.start || ''), end: x.end ? String(x.end) : null,
-        sets: x.sets.filter(function (t) { return t && EX[t.ex] && typeof t.val === 'number'; }).map(function (t) {
-          var o = { i: +t.i || 0, ex: t.ex, n: +t.n || 1, val: t.val, w: typeof t.w === 'number' ? t.w : null, at: String(t.at || '') };
+        sets: x.sets.filter(function (t) { return t && EX[t.ex] && typeof t.val === 'number' && isFinite(t.val) && t.val > 0; }).map(function (t) {
+          var o = { i: +t.i || 0, ex: t.ex, n: +t.n || 1, val: t.val, w: typeof t.w === 'number' ? cleanWeight(t.w) : null, at: String(t.at || '') };
           if (typeof t.edited === 'string' && !isNaN(Date.parse(t.edited))) o.edited = t.edited;
           return o;
         }), removed: (Array.isArray(x.removed) ? x.removed : []).filter(function (r) { return r && typeof r.at === 'string' && !isNaN(Date.parse(r.at)); })
           .slice(-50).map(function (r) { return { at: r.at, i: +r.i || 0 }; }) });
     });
     (Array.isArray(s.history) ? s.history : []).forEach(function (h) {
-      if (h && dateRe.test(h.date) && typeof h.ex === 'string' && Array.isArray(h.sets))
-        d.history.push({ date: h.date, ex: h.ex.slice(0, 60), sets: h.sets.filter(function (v) { return typeof v === 'number'; }), w: typeof h.w === 'number' ? h.w : null, from: 'sheet' });
+      if (h && dateRe.test(h.date) && typeof h.ex === 'string' && Array.isArray(h.sets)) {
+        var sets = h.sets.filter(function (v) { return typeof v === 'number' && isFinite(v) && v > 0; });
+        if (sets.length) d.history.push({ date: h.date, ex: h.ex.slice(0, 60), sets: sets, w: typeof h.w === 'number' ? cleanWeight(h.w) : null, from: 'sheet' });
+      }
     });
     return d;
   }

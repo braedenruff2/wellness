@@ -263,6 +263,11 @@ def clean_event(e):
     if not (isinstance(eid, str) and 0 < len(eid) <= 120 and isinstance(at, str) and DATE_RE.match(at)
             and part in PARTS and isinstance(kind, str) and 0 < len(kind) <= 40):
         return None
+    try:
+        datetime.date.fromisoformat(at[:10])
+        if len(at) > 10: datetime.datetime.fromisoformat(at.replace("Z", "+00:00"))
+    except ValueError:
+        return None
     out = {"id": eid, "at": at[:40], "part": part, "kind": kind}
     if isinstance(e.get("text"), str): out["text"] = e["text"][:MAX_TEXT]
     if isinstance(e.get("data"), dict):

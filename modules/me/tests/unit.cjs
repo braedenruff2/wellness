@@ -329,5 +329,8 @@ t('un-tapped quick answers and empty check-ins are ignored; checkinNote validate
   assert.ok(K.guidance(busy, now, 3).some((g) => g.key === 'busyday'), 'busyday visible in Home top 3');
   K.checkinNote(busy, '2026-11-22', 'baby has a fever', now);
   assert.ok(K.guidance(busy, now, 3).some((g) => g.key === 'sick'), 'sick visible in Home top 3');
+  // validate drops empty ghost check-in objects while keeping populated ones
+  const v = K.validate({ feedback: [], checkins: { '2026-11-20': { at: '2026-11-20T10:00:00Z' }, '2026-11-21': { at: '2026-11-21T10:00:00Z', mood: 'OK' } } });
+  assert.deepStrictEqual(Object.keys(v.checkins), ['2026-11-21']);
 });
 console.log(n + ' me unit tests passed');
