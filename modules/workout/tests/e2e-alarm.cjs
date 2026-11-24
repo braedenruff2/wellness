@@ -40,13 +40,19 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.clock.runFor(76000);
     assert.strictEqual(await page.evaluate(() => window.__beeps) - before, 1);
   });
-  await t.step('back long after the end (the alarm went): no second beep', async () => {
+  await t.step('back long after the end (the alarm went): no second beep, catches up cleanly on wake', async () => {
     await page.fill('#ex-2 .val', '10'); await page.click('#ex-2 .logbtn');
     const before = await page.evaluate(() => window.__oscs);
-    // the screen was off (no page timers ran), then it comes back 200 s later: the timer fires once, far past the end
-    await page.clock.fastForward(200000);
-    await page.clock.runFor(1000);
+    // the screen was off (no page timers ran), then wakes 200 s later via visibilitychange: catches up to Go, 0 beeps, hides cleanly
+    await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); });
+    const nowMs = await page.evaluate(() => Date.now());
+    await page.clock.setSystemTime(nowMs + 200000);
+    await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); });
+    assert.strictEqual(await page.textContent('#rest-time'), 'Go');
     assert.strictEqual(await page.evaluate(() => window.__oscs) - before, 0);
+    await page.clock.runFor(3000);
+    assert.strictEqual(await page.evaluate(() => window.__oscs) - before, 0);
+    assert.ok(!(await page.isVisible('#restbar')), '#restbar hides cleanly after wake catch-up');
   });
   await t.step('a second rest end reuses the same AudioContext (never hits WebView 6-context cap)', async () => {
     const beforeCtx = await page.evaluate(() => window.__beeps);

@@ -50,10 +50,13 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok((await page.textContent('#toast')).includes('fixed'));
     await page.click('#ex-0 [data-edit="0"]'); await page.click('#ex-0 .ed-cancel');
     assert.ok(await page.isHidden('#ex-0 .editrow'));
-    // Escape cancels edit; blank-weight set on a weighted exercise still shows weight input and Enter saves
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-edit')), '0', 'Cancel restores focus to set chip');
+    // Escape anywhere inside .editrow (including buttons) cancels edit and restores focus to set chip
     await page.click('#ex-0 [data-edit="0"]');
-    await page.press('#ex-0 .ed-val', 'Escape');
-    assert.ok(await page.isHidden('#ex-0 .editrow'), 'Escape closes edit row');
+    await page.focus('#ex-0 .ed-save');
+    await page.keyboard.press('Escape');
+    assert.ok(await page.isHidden('#ex-0 .editrow'), 'Escape on button inside editrow closes it');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-edit')), '0', 'Escape restores focus to set chip');
     await page.fill('#ex-0 .val', '10');
     await page.fill('#ex-0 .wt', '');
     await page.click('#ex-0 .logbtn');
@@ -131,6 +134,11 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#home');
     await page.clock.runFor(30000);
     assert.ok(!(await page.isVisible('#restbar')));
+    // returning to #workout after rest expired while away catches up cleanly without interval crash
+    await page.goto(base + '#workout');
+    assert.strictEqual(await page.textContent('#rest-time'), 'Go');
+    await page.clock.runFor(3000);
+    assert.ok(!(await page.isVisible('#restbar')), '#restbar hides cleanly after returning past expiry');
   });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#workout', '#workout/history', '#workout/settings']);

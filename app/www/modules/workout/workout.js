@@ -4,7 +4,7 @@
   var W = window.WorkoutCore, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   var store = WL.store('wl.workout.v1', W.defaults);
   var S = store.load(), view = null, dayChoice = null;
-  var rest = null, restTimer = null, clockTimer = null; // rest = {end, label, next, set}
+  var rest = null, restTimer = null, restHideTimer = null, clockTimer = null; // rest = {end, label, next, set}
   function save() { store.save(S); }
 
   function fmt(secs) { secs = Math.max(0, Math.round(secs)); var m = Math.floor(secs / 60), s = secs % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
@@ -98,10 +98,12 @@
   function showRest() {
     var bar = $('#restbar'); if (!bar) return;
     clearInterval(restTimer);
+    clearTimeout(restHideTimer); restHideTimer = null;
     if (!rest) { bar.hidden = true; return; }
     bar.hidden = false;
     $('#rest-label').textContent = rest.label;
     var tick = function () {
+      if (!rest) { clearInterval(restTimer); return; }
       var left = (rest.end - Date.now()) / 1000;
       if (left <= 0) {
         // (back after the screen was off: the phone's alarm already beeped, don't beep again)
@@ -109,13 +111,13 @@
         $('#rest-time').textContent = 'Go';
         var nx = rest.next != null ? $('#ex-' + rest.next) : null;
         rest = null;
-        setTimeout(function () { var b = $('#restbar'); if (b && !rest) b.hidden = true; }, 2500);
+        restHideTimer = setTimeout(function () { restHideTimer = null; var b = $('#restbar'); if (b && !rest) b.hidden = true; }, 2500);
         if (nx) nx.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
       $('#rest-time').textContent = fmt(left);
     };
-    tick(); restTimer = setInterval(tick, 250);
+    tick(); if (rest) restTimer = setInterval(tick, 250);
   }
 
   function clock() {
@@ -173,15 +175,21 @@
           if (!(+v.value > 0)) { v.focus(); return; }
           W.editSet(S, idx, k, v.value, wt ? wt.value : undefined, now()); save(); y(); WL.toast('Set ' + (k + 1) + ' fixed: ' + (+v.value));
         };
-        var doCancel = function () { row.hidden = true; row.innerHTML = ''; };
+        var doCancel = function () {
+          row.onkeydown = null;
+          row.hidden = true; row.innerHTML = '';
+          if (b && b.isConnected && b.focus) try { b.focus(); } catch (e) {}
+        };
         row.querySelector('.ed-save').onclick = doSave;
         row.querySelector('.ed-del').onclick = function () { W.editSet(S, idx, k, 0, undefined, now()); save(); y(); WL.toast('Set ' + (k + 1) + ' removed'); };
         row.querySelector('.ed-cancel').onclick = doCancel;
+        row.onkeydown = function (ev) {
+          if (ev.key === 'Escape') { ev.preventDefault(); doCancel(); }
+        };
         [v, wt].forEach(function (inp) {
           if (!inp) return;
           inp.onkeydown = function (ev) {
             if (ev.key === 'Enter') { ev.preventDefault(); doSave(); }
-            else if (ev.key === 'Escape') { ev.preventDefault(); doCancel(); }
           };
         });
       };
@@ -311,7 +319,10 @@
     else if (p === 'settings') { view.innerHTML = settings(); wireSettings(); }
     else renderToday();
   }
-  function leave() { clearInterval(restTimer); clearInterval(clockTimer); }
+  function leave() { clearInterval(restTimer); clearTimeout(restHideTimer); restHideTimer = null; clearInterval(clockTimer); }
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && rest && $('#restbar')) showRest();
+  });
 
   function card() {
     var open = W.openSession(S, now()), day = open ? open.day : W.nextDay(S, now()), plan = W.PROGRAM[day];
