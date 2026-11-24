@@ -171,7 +171,7 @@
     S.planTried = today();
     if (p) { S.plan = p; WL.toast('Your plan for this week is ready'); }
     save(); redrawCard();
-    if (view && location.hash.indexOf('#me') === 0) route([], view);
+    if (view && location.hash.indexOf('#me') === 0 && !$('#me-sheet') && !(document.activeElement && document.activeElement.id === 'me-ck-note')) route([], view);
   });
 
   /* One line of the weekly plan for a part's screen ('' if none). */

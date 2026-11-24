@@ -142,6 +142,15 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     assert.ok(!(await page.$('#me-plan-queued')) && !(await page.$('#lk-queued')));
     await page.goto(base + '#me');
     assert.ok((await page.textContent('#view')).includes('Rest first this week'));
+    // a cloud weekly-plan arriving while typing in #me-ck-note on #me does not yank focus away from the note input
+    await page.focus('#me-ck-note');
+    await page.fill('#me-ck-note', 'typing a note');
+    await cloudAnswers({ 'plan-note-guard': { task: 'weekly-plan', answer: { headline: 'Keep writing uninterrupted', parts: { home: { focus: 'Gentle pace', why: 'busy week' } }, check: 'How are you feeling?' } } });
+    await page.waitForTimeout(50);
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'me-ck-note', '#me-ck-note kept focus when cloud plan arrived');
+    assert.strictEqual(await page.inputValue('#me-ck-note'), 'typing a note');
+    await page.goto(base + '#home'); await page.goto(base + '#me');
+    assert.ok((await page.textContent('#view')).includes('Keep writing uninterrupted'), 'new cloud plan shows on next render');
     // a cloud advice answer arriving while a new PC advice request is in flight still saves the cloud answer (never { waiting: 0 })
     await page.goto(base + '#home');
     await page.evaluate(() => {
