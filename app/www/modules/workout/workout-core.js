@@ -335,11 +335,11 @@
   function weekStart(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
   function weekStats(state, now) {
     now = now || new Date();
-    var wsDate = weekStart(now), ws = iso(wsDate), nextWs = iso(new Date(wsDate.getFullYear(), wsDate.getMonth(), wsDate.getDate() + 7));
+    var wsDate = weekStart(now), ws = iso(wsDate), todayIso = iso(now), nextWs = iso(new Date(wsDate.getFullYear(), wsDate.getMonth(), wsDate.getDate() + 7));
     var days = {};
     sessionsWithSets(state).forEach(function (s) { days[s.date] = 1; });
     historyWithSets(state).forEach(function (h) { days[h.date] = 1; });
-    var thisWeek = Object.keys(days).filter(function (d) { return d >= ws && d < nextWs; }).length;
+    var thisWeek = Object.keys(days).filter(function (d) { return d >= ws && d < nextWs && d <= todayIso; }).length;
     // weeks in a row (before this one) with at least 2 workouts
     var streak = 0, w = weekStart(now);
     for (;;) {
@@ -374,12 +374,12 @@
   var AREAS = ['legs', 'push', 'pull', 'core'], AREA_TARGET = { legs: 6, push: 6, pull: 6, core: 3 };
   function weekVolume(state, now) {
     now = now || new Date();
-    var ws = weekStart(now), a = iso(ws), nextWs = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + 7)), b = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7));
+    var ws = weekStart(now), a = iso(ws), todayIso = iso(now), nextWs = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + 7)), b = iso(new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7));
     var out = { thisWeek: {}, lastWeek: {} };
     AREAS.forEach(function (k) { out.thisWeek[k] = 0; out.lastWeek[k] = 0; });
     function add(date, ex, n) {
       var area = AREA[ex]; if (!area || !n) return;
-      if (date >= a && date < nextWs) out.thisWeek[area] += n; else if (date >= b && date < a) out.lastWeek[area] += n;
+      if (date >= a && date < nextWs && date <= todayIso) out.thisWeek[area] += n; else if (date >= b && date < a) out.lastWeek[area] += n;
     }
     state.sessions.forEach(function (s) { (s.sets || []).forEach(function (x) { if (+x.val > 0) add(s.date, x.ex, 1); }); });
     var dup = appDone(state);

@@ -440,4 +440,16 @@ t('validate drops invalid weights, non-positive sets, and 0-only imported histor
   assert.deepStrictEqual(v.history[0].sets, [12, 10]);
   assert.strictEqual(v.history[0].w, null);
 });
+t('weekStats and weekVolume bound this week at now so later-week workouts do not leak into earlier days of the same week', () => {
+  const s = W.defaults();
+  // Mon 26 Oct, Wed 28 Oct, Sun 1 Nov (DST end day)
+  W.logSet(s, 'A', 0, 12, 10, new Date(2026, 9, 26, 9)); W.endSession(s, new Date(2026, 9, 26, 9, 30));
+  W.logSet(s, 'B', 0, 12, 10, new Date(2026, 9, 28, 9)); W.endSession(s, new Date(2026, 9, 28, 9, 30));
+  W.logSet(s, 'C', 0, 12, 10, new Date(2026, 10, 1, 10)); W.endSession(s, new Date(2026, 10, 1, 10, 30));
+  assert.strictEqual(W.weekStats(s, new Date(2026, 9, 31, 23, 59)).thisWeek, 2, 'Sat 23:59 does not count Sun workout');
+  assert.strictEqual(W.weekVolume(s, new Date(2026, 9, 31, 23, 59)).thisWeek.legs, 2, 'Sat 23:59 volume ignores Sun set');
+  assert.strictEqual(W.today(s, new Date(2026, 9, 31, 23, 59)).done, false, 'Sat does not claim 3 this week before Sun');
+  assert.strictEqual(W.weekStats(s, new Date(2026, 10, 1, 12, 0)).thisWeek, 3, 'Sun noon counts all 3');
+  assert.strictEqual(W.weekStats(s, new Date(2026, 10, 2, 0, 0)).thisWeek, 0, 'Mon 00:00 resets week to 0');
+});
 console.log(n + ' workout unit tests passed');

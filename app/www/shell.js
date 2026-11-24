@@ -282,7 +282,14 @@
   }
   function refreshToday() { var el = document.getElementById('wl-today'); if (el) el.outerHTML = todayList(); }
 
+  var homeStamp = '';
+  function makeHomeStamp(now) {
+    now = now || new Date();
+    var h = now.getHours();
+    return isoDate(now) + '|' + (h >= 20 ? 'e' : now.getDay() === 0 && h >= 12 ? 'w' : 'd');
+  }
   function home() {
+    homeStamp = makeHomeStamp();
     var h = '<div class="meta ui">' + esc(greeting()) + ' · ' + esc(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>' +
       '<h1>Today</h1>' + saveFailHtml('wl-savefail') + todayList() + weekCard() + (syncNudge() || backupNudge());
     order.forEach(function (id) {
@@ -584,6 +591,11 @@
       if (document.hidden) {
         order.forEach(function (id) { if (modules[id].saveNow) modules[id].saveNow(); });
         if (WL.driveSync) WL.driveSync.autoSync();
+      } else {
+        applyLook();
+        var id = ((location.hash || '#home').slice(1).split('/')[0]) || 'home';
+        var editing = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+        if (!current && id !== 'settings' && !$('#me-sheet') && !editing && makeHomeStamp() !== homeStamp) route();
       }
     });
     if (WL.driveSync) {
