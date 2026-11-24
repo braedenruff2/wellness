@@ -71,6 +71,24 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     await page.click('#tl-ex [data-o="no"]');
     assert.ok((await page.textContent('#tl-fb')).includes('Answer: yes (polite)'));
   });
+  await t.step('ang/ng word-order mistake in a lesson shows a specific word-order hint instead of plain wrong', async () => {
+    await page.goto(base + '#tagalog/l/2026-11-18/5');
+    // Skip first 2 exercises (mc, listen) to reach exercise 3: type "Ang sarap ng adobo!" (accepts "masarap ang adobo")
+    await page.click('#tl-ex .opt'); await page.click('#tl-next');
+    await page.click('#tl-ex .opt'); await page.click('#tl-next');
+    await page.fill('#tl-in', 'Ang adobo masarap');
+    await page.click('#tl-check');
+    const fb = await page.textContent('#tl-order');
+    assert.ok(fb.includes('Right words; in Tagalog the doer comes after the verb: masarap ang adobo'), fb);
+    await page.click('#tl-next');
+    // Also check a plain wrong typed answer on exercise 6 ("Pakiabot po ng kanin."): wrong words -> plain Answer
+    await page.click('#tl-ex .opt'); await page.click('#tl-next'); // ex 4 mc
+    await page.click('#tl-check'); await page.click('#tl-next'); // ex 5 build
+    await page.fill('#tl-in', 'Ng kanin pakiabot po');
+    await page.click('#tl-check');
+    const fb2 = await page.textContent('#tl-order');
+    assert.ok(fb2.includes('Right words; in Tagalog the doer comes after the verb: Pakiabot po ng kanin.'), fb2);
+  });
   await t.step('next day: lesson 2 is next and the words are due for review', async () => {
     await page.clock.runFor(86400e3);
     await page.goto(base + '#tagalog');

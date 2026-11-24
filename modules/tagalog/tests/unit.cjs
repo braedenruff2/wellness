@@ -163,4 +163,43 @@ t('stats: weekly counts and accuracy are bounded at now so earlier-day lookups i
   assert.strictEqual(nowSt.weekAccuracy, 0.5);
 });
 
+t('orderHint: real pack sentences with same words in wrong ang/ng/si/ni order get a specific word-order hint', () => {
+  const p = packs[0];
+  // Lesson 3 build: "Umiinom ng gatas ang baby."
+  const l3Drink = p.lessons[2].exercises.find((e) => /Umiinom ng gatas ang baby/.test(e.answer));
+  assert.ok(l3Drink, 'found Lesson 3 sentence');
+  assert.ok(!T.check(l3Drink, 'Ang baby umiinom ng gatas.'));
+  assert.strictEqual(T.orderHint(l3Drink, 'Ang baby umiinom ng gatas.'), 'Right words; in Tagalog the doer comes after the verb: Umiinom ng gatas ang baby.');
+  assert.strictEqual(T.orderHint(l3Drink, 'Umiinom ang baby ng gatas'), 'Right words; in Tagalog the doer comes after the verb: Umiinom ng gatas ang baby.');
+  assert.strictEqual(T.orderHint(l3Drink, 'Umiinom ng gatas ang baby.'), '', 'already right -> no hint');
+  assert.strictEqual(T.orderHint(l3Drink, 'Ang baby umiinom ng tubig.'), '', 'different word -> no hint');
+
+  // Lesson 4 build: "Uminom ng gatas si {child} kanina."
+  const l4Drank = p.lessons[3].exercises.find((e) => /Uminom ng gatas si/.test(e.answer));
+  assert.ok(l4Drank, 'found Lesson 4 sentence');
+  assert.strictEqual(T.orderHint(l4Drank, 'Si {child} uminom ng gatas kanina.'), 'Right words; in Tagalog the doer comes after the verb: ' + l4Drank.answer);
+
+  // Lesson 5 type: "Ang sarap ng adobo!" (accepts "masarap ang adobo") and "Pakiabot po ng kanin."
+  const l5Adobo = p.lessons[4].exercises.find((e) => /Ang sarap ng adobo/.test(e.answer));
+  const l5Rice = p.lessons[4].exercises.find((e) => /Pakiabot po ng kanin/.test(e.answer));
+  assert.ok(l5Adobo && l5Rice, 'found Lesson 5 sentences');
+  assert.strictEqual(T.orderHint(l5Adobo, 'ng adobo ang sarap'), 'Right words; in Tagalog the doer comes after the verb: Ang sarap ng adobo!');
+  assert.strictEqual(T.orderHint(l5Adobo, 'Ang adobo masarap'), 'Right words; in Tagalog the doer comes after the verb: masarap ang adobo');
+  assert.strictEqual(T.orderHint(l5Rice, 'Ng kanin pakiabot ho!'), 'Right words; in Tagalog the doer comes after the verb: Pakiabot po ng kanin.');
+
+  // Lesson 3 dialogue sentence as a type exercise: "Kumakain si Baby ng saging."
+  const exEat = { type: 'type', answer: 'Kumakain si Baby ng saging.' };
+  assert.strictEqual(T.orderHint(exEat, 'Si Baby kumakain ng saging'), 'Right words; in Tagalog the doer comes after the verb: Kumakain si Baby ng saging.');
+
+  // Non-triggers: 2-word exclamation, no ang/ng/si/ni markers, mc/listen, empty, poOptional
+  const l2Cute = p.lessons[1].exercises.find((e) => /Ang cute/.test(e.answer));
+  assert.strictEqual(T.orderHint(l2Cute, 'cute ang'), '', '2-word exclamation does not trigger doer-after-verb hint');
+  const l7Thanks = p.lessons[6].exercises.find((e) => /Salamat po, Lola/.test(e.answer));
+  assert.strictEqual(T.orderHint(l7Thanks, 'Lola salamat po'), '', 'sentence without ang/ng/si/ni does not trigger');
+  assert.strictEqual(T.orderHint({ type: 'mc', answer: 'Umiinom ng gatas ang baby.' }, 'Ang baby umiinom ng gatas.'), '', 'mc ignored');
+  assert.strictEqual(T.orderHint(l5Rice, ''), '', 'empty ignored');
+  const optRice = Object.assign({}, l5Rice, { poOptional: true });
+  assert.strictEqual(T.orderHint(optRice, 'ng kanin pakiabot'), 'Right words; in Tagalog the doer comes after the verb: Pakiabot po ng kanin.');
+});
+
 console.log(n + ' tagalog unit tests passed');

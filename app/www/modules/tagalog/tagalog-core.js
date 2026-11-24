@@ -58,10 +58,32 @@
     return !!ex.poOptional && ok.map(noPo).indexOf(noPo(g)) >= 0;
   }
   function noPo(s) { return s.replace(/\b(po|ho)\b/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function normHo(s) { return norm(s).replace(/\bho\b/g, 'po'); }
+  function sortedWords(s) { return s ? s.split(' ').sort().join(' ') : ''; }
   /* Right, but without the "po" the answer has: a gentle note (only on poOptional exercises). */
   function missedPo(ex, given) {
     var g = norm(given);
     return !!ex.poOptional && check(ex, given) && !/\b(po|ho)\b/.test(g);
+  }
+  /* Same words as the answer (or an accepted answer) in a different order, on an ang/ng/si/ni sentence:
+     give a specific word-order hint instead of plain wrong. */
+  function orderHint(ex, given) {
+    if (!ex || !ex.answer || ex.type === 'mc' || ex.type === 'listen') return '';
+    if (check(ex, given)) return '';
+    var g = normHo(given);
+    if (!g) return '';
+    var gw = g.split(' ');
+    if (gw.length < 3) return '';
+    var gKey = sortedWords(g), gNoPo = ex.poOptional ? sortedWords(noPo(g)) : '';
+    var cands = [ex.answer].concat(ex.accept || []);
+    for (var i = 0; i < cands.length; i++) {
+      var c = normHo(cands[i]);
+      if (!/\b(ang|ng|si|ni)\b/.test(c)) continue;
+      var match = (c.split(' ').length === gw.length && sortedWords(c) === gKey) ||
+        (!!ex.poOptional && noPo(c).split(' ').length >= 3 && sortedWords(noPo(c)) === gNoPo);
+      if (match) return 'Right words; in Tagalog the doer comes after the verb: ' + (i === 0 ? ex.answer : cands[i]);
+    }
+    return '';
   }
 
   function allPacks(state, bundled) {
@@ -221,7 +243,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, orderHint: orderHint, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;
