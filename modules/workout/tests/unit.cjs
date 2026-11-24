@@ -477,4 +477,27 @@ t('bestSet: heaviest weight wins (then highest reps at that weight); unweighted 
   s.history.push({ date: '2026-11-15', ex: 'Pushups', sets: [99], w: null, from: 'sheet' });
   assert.deepStrictEqual(W.bestSet(s, 'Pushups'), { val: 19, w: null, date: '2026-11-15' });
 });
+t('earlier-day bounds & out-of-order sessions: coach, weekStats.total, fourWeeks, offerTwo, askSore, nextDay ignore future dates', () => {
+  const s = W.defaults();
+  // Unsorted sessions (Nov 18 stored before Nov 10, plus a future Nov 25 session)
+  s.sessions.push(
+    { id: 'f1', date: '2026-11-25', day: 'C', start: at(25, 9).toISOString(), end: at(25, 9, 30).toISOString(), sets: [{ i: 0, ex: 'Pushups', n: 1, val: 12, w: null, at: at(25, 9).toISOString() }] },
+    { id: 's2', date: '2026-11-18', day: 'B', start: at(18, 9).toISOString(), end: at(18, 9, 30).toISOString(), sets: [{ i: 0, ex: 'Pushups', n: 1, val: 12, w: null, at: at(18, 9).toISOString() }] },
+    { id: 's1', date: '2026-11-10', day: 'A', start: at(10, 9).toISOString(), end: at(10, 9, 30).toISOString(), sets: [{ i: 0, ex: 'Pushups', n: 1, val: 12, w: null, at: at(10, 9).toISOString() }] }
+  );
+  // Viewing Nov 19: latest workout <= Nov 19 is Nov 18 (Day B), NOT Nov 10 (even though Nov 10 is last in array) and NOT Nov 25 (future)
+  assert.strictEqual(W.nextDay(s, at(19, 9)), 'C', 'nextDay picks max date <= now even if unsorted');
+  assert.strictEqual(W.askSore(s, at(19, 9)), true, 'askSore sees gap=1 from Nov 18');
+  assert.strictEqual(W.weekStats(s, at(19, 9)).total, 2, 'total excludes future Nov 25 session');
+  assert.ok(/Early days back/.test(W.coach(s, at(19, 9))), 'coach counts only 2 workouts <= Nov 19: ' + W.coach(s, at(19, 9)));
+  // Viewing Nov 19: Nov 20+ are marked future in fourWeeks
+  const fw = W.fourWeeks(s, at(19, 9));
+  assert.strictEqual(fw.find((d) => d.date === '2026-11-18').kind, 'workout');
+  assert.strictEqual(fw.find((d) => d.date === '2026-11-20').kind, 'future');
+  // DST spring-forward (8 Mar 2026 in North America): fourWeeks has 28 distinct dates with no gap or duplicate
+  const spring = W.fourWeeks(s, new Date(2026, 2, 15, 12));
+  assert.strictEqual(new Set(spring.map((d) => d.date)).size, 28);
+  assert.strictEqual(spring[0].date, '2026-02-16');
+  assert.strictEqual(spring[27].date, '2026-03-15');
+});
 console.log(n + ' workout unit tests passed');

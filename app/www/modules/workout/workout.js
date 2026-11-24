@@ -38,15 +38,15 @@
   /* Logged for the day picked on Home ("Log for an earlier day"), or now. */
   function now() { return WL.logNow ? WL.logNow() : new Date(); }
 
-  function weekDots() {
-    var st = W.weekStats(S), h = '<span class="dots" aria-label="' + st.thisWeek + ' of ' + st.target + ' workouts this week">';
+  function weekDots(when) {
+    var st = W.weekStats(S, when), h = '<span class="dots" aria-label="' + st.thisWeek + ' of ' + st.target + ' workouts this week">';
     for (var i = 0; i < Math.max(st.target, st.thisWeek); i++) h += '<span class="dot' + (i < st.thisWeek ? ' on' : '') + '"></span>';
     return h + '</span>';
   }
 
   function today() {
     var open = W.openSession(S, now()), day = open ? open.day : (dayChoice || W.nextDay(S, now())), plan = W.PROGRAM[day];
-    var h = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">' + esc(plan.title) + '</h1>' + weekDots() + '</div>';
+    var h = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">' + esc(plan.title) + '</h1>' + weekDots(now()) + '</div>';
     var M = window.WLMe, co = W.coach(S, now());
     h += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + day, co) : '') + '</p>';
     if (M) h += M.planLine('workout');

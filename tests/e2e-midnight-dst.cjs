@@ -216,6 +216,93 @@ const T = {
     assert.strictEqual(await page.$('#wl-week'), null, 'Your week hidden on Monday resume');
   });
 
+  await t.step('DST spring-forward (Sun 8 Mar 2026 in America/Halifax, 23-hour day): midnight, 01:59->03:00 jump, Your week, and Mon reset', async () => {
+    const S = {
+      sunPrev2355: '2026-03-02T03:55:00.000Z', // Sun 1 Mar 23:55 AST (Mon in UTC; PREVIOUS week)
+      mon0005:     '2026-03-02T04:05:00.000Z', // Mon 2 Mar 00:05 AST (start of spring-forward week)
+      sat2355:     '2026-03-08T03:55:00.000Z', // Sat 7 Mar 23:55 AST (Sun in UTC)
+      sat2359:     '2026-03-08T03:59:00.000Z', // Sat 7 Mar 23:59 AST
+      sun0000:     '2026-03-08T04:00:00.000Z', // Sun 8 Mar 00:00 AST
+      sun0159:     '2026-03-08T05:59:00.000Z', // Sun 8 Mar 01:59 AST (1 min before spring-forward)
+      sun0300:     '2026-03-08T06:00:00.000Z', // Sun 8 Mar 03:00 ADT (immediately after spring-forward)
+      sun1159:     '2026-03-08T14:59:00.000Z', // Sun 8 Mar 11:59 ADT
+      sun1200:     '2026-03-08T15:00:00.000Z', // Sun 8 Mar 12:00 ADT (Your week appears)
+      sun2359:     '2026-03-09T02:59:00.000Z', // Sun 8 Mar 23:59 ADT (Mon in UTC)
+      mon0000:     '2026-03-09T03:00:00.000Z'  // Mon 9 Mar 00:00 ADT
+    };
+    await page.evaluate((ts) => {
+      const fc = JSON.parse(localStorage.getItem('fc.v1') || '{}');
+      fc.done = { 1: '2026-03-01', 2: '2026-03-02', 3: '2026-03-07' };
+      localStorage.setItem('fc.v1', JSON.stringify(fc));
+      localStorage.setItem('wl.calm.v1', JSON.stringify({
+        sessions: [
+          { id: 'sigh', date: '2026-03-01', at: ts.sunPrev2355, mins: 1, before: null, after: null },
+          { id: 'slow', date: '2026-03-02', at: ts.mon0005, mins: 5, before: null, after: null },
+          { id: 'box', date: '2026-03-07', at: ts.sat2355, mins: 3, before: null, after: null }
+        ],
+        settings: { voice: true, rate: 0.9, minutes: 5, tick: false }
+      }));
+      localStorage.setItem('wl.workout.v1', JSON.stringify({
+        equipment: 'fixed10', weights: {}, history: [], next: {},
+        rest: { '2026-03-05': { why: 'Planned rest', at: ts.mon0005 } },
+        sessions: [
+          { id: 'sp0', date: '2026-03-01', day: 'A', start: ts.sunPrev2355, end: ts.sunPrev2355, sets: [{ i: 0, ex: 'Pushups', n: 1, val: 12, w: null, at: ts.sunPrev2355 }] },
+          { id: 'sp1', date: '2026-03-02', day: 'B', start: ts.mon0005, end: ts.mon0005, sets: [{ i: 0, ex: 'Pushups', n: 1, val: 12, w: null, at: ts.mon0005 }] },
+          { id: 'sp2', date: '2026-03-07', day: 'C', start: ts.sat2355, end: ts.sat2355, sets: [{ i: 0, ex: 'Pushups', n: 1, val: 12, w: null, at: ts.sat2355 }] }
+        ]
+      }));
+      localStorage.setItem('wl.tagalog.v1', JSON.stringify({
+        packs: {}, done: { '2026-11-18/1': ts.sunPrev2355, '2026-11-18/2': ts.mon0005 },
+        cards: {}, answers: [], reviews: [], source: '', lastCheck: null, settings: { slow: true }
+      }));
+      localStorage.setItem('wl.todo.v1', JSON.stringify({
+        tasks: [
+          { id: 'sp-t1', text: 'daily stretch', due: '2026-03-08', done: null, created: ts.sat2355, repeat: 'daily', at: null }
+        ]
+      }));
+      localStorage.setItem('wl.me.v1', JSON.stringify({
+        feedback: [], plan: null, skipped: {},
+        checkins: { '2026-03-07': { at: ts.sat2355, sleep: '7 h+', wakes: '0', energy: 'Good', mood: 'Good', day: 'Good' } }
+      }));
+      Object.values(WL.modules).forEach((m) => m.reload && m.reload());
+    }, S);
+
+    await gotoHomeAt(S.sat2359);
+    let txt = await page.textContent('#wl-today');
+    assert.ok(!/daily stretch/.test(txt), 'Sun 8 Mar task not due at Sat 23:59 AST: ' + txt);
+    assert.ok(/Move: workout done/.test(txt) && /Faith: day 3 done/.test(txt), txt);
+
+    // At 01:59 AST (1 min before clocks spring to 03:00 ADT): complete daily repeat -> next due must be 2026-03-09 (not skipped)
+    await gotoHomeAt(S.sun0159);
+    txt = await page.textContent('#wl-today');
+    assert.ok(/To do: daily stretch/.test(txt) && /Move: rest day \(worked out yesterday\)/.test(txt), txt);
+    await page.evaluate(() => {
+      const td = JSON.parse(localStorage.getItem('wl.todo.v1'));
+      TodoCore.complete(td, 'sp-t1', new Date());
+      localStorage.setItem('wl.todo.v1', JSON.stringify(td));
+    });
+    // Jump 1 minute across spring-forward (01:59 AST -> 03:00 ADT): still Sun 2026-03-08, daily repeat is due Mon 2026-03-09
+    await gotoHomeAt(S.sun0300);
+    const nextDue = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.todo.v1')).tasks.find((x) => !x.done).due);
+    assert.strictEqual(nextDue, '2026-03-09', 'daily repeat across 23-hour DST day lands on Mon 9 Mar');
+    assert.strictEqual(await page.$('#wl-week'), null, 'Your week hidden at 03:00 ADT');
+
+    // Sun 11:59 ADT -> 12:00 ADT: Your week appears and counts Mon-Sun accurately (ignoring prev Sun 23:55 AST)
+    await gotoHomeAt(S.sun1159);
+    assert.strictEqual(await page.$('#wl-week'), null, 'hidden at 11:59 ADT');
+    await gotoHomeAt(S.sun1200);
+    const w = await page.textContent('#wl-week');
+    assert.ok(/2 faith days/.test(w) && /2 days of calm \(8 min\)/.test(w) && /2 workouts, 1 rest day you chose/.test(w) && /1 Tagalog lesson/.test(w) && /1 to-do done/.test(w), w);
+
+    // Sun 23:59 ADT (already Mon 9 Mar in UTC) still Sunday; Mon 00:00 ADT flips to Monday
+    await gotoHomeAt(S.sun2359);
+    assert.ok(await page.$('#wl-week'), 'Your week still visible at Sun 23:59 ADT');
+    await gotoHomeAt(S.mon0000);
+    assert.strictEqual(await page.$('#wl-week'), null, 'Your week hidden at Mon 00:00 ADT');
+    const monTxt = await page.textContent('#wl-today');
+    assert.ok(/To do: daily stretch/.test(monTxt) && /Move: Full body A/.test(monTxt), monTxt);
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('midnight-dst browser');
 })().catch((e) => { console.error(e); process.exit(1); });

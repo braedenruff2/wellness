@@ -115,9 +115,9 @@
     now = now || new Date();
     var d = iso(now);
     if (openSession(state, now) || (state.sore && state.sore[d]) || restOn(state, d)) return false;
-    var done = sessionsWithSets(state).filter(function (x) { return x.date <= d; });
-    if (!done.length || done[done.length - 1].date === d) return false;
-    var gap = Math.round((new Date(d) - new Date(done[done.length - 1].date)) / 864e5);
+    var last = latestByDate(sessionsWithSets(state).filter(function (x) { return x.date <= d; }));
+    if (!last || last.date === d) return false;
+    var gap = Math.round((new Date(d) - new Date(last.date)) / 864e5);
     return gap >= 1 && gap <= 3;
   }
   function setSore(state, day, level, now) {
@@ -143,16 +143,20 @@
 
   function sessionsWithSets(state) { return state.sessions.filter(function (s) { return s.sets && s.sets.length; }); }
   function historyWithSets(state) { return (state.history || []).filter(function (h) { return h && Array.isArray(h.sets) && h.sets.some(function (v) { return +v > 0; }); }); }
+  function latestByDate(arr) {
+    var best = null;
+    arr.forEach(function (x) { if (!best || x.date >= best.date) best = x; });
+    return best;
+  }
 
   /* The next day in the rotation: the one after the most recent session (on or before now's day) with sets. */
   function nextDay(state, now) {
     var open = openSession(state, now);
     if (open) return open.day;
     var day = iso(now || new Date());
-    var done = sessionsWithSets(state).filter(function (s) { return s.date <= day; });
-    if (!done.length) return 'A';
-    var last = done[done.length - 1].day;
-    return ORDER[(ORDER.indexOf(last) + 1) % ORDER.length] || 'A';
+    var last = latestByDate(sessionsWithSets(state).filter(function (s) { return s.date <= day; }));
+    if (!last) return 'A';
+    return ORDER[(ORDER.indexOf(last.day) + 1) % ORDER.length] || 'A';
   }
 
   /* The workout in progress for now's day: not finished, and started that day (or, past midnight, sets within the
@@ -368,7 +372,7 @@
       if (n >= 2) streak++; else break;
       if (streak > 520) break;
     }
-    return { thisWeek: thisWeek, target: targetOf(state), streak: streak, total: Object.keys(days).length };
+    return { thisWeek: thisWeek, target: targetOf(state), streak: streak, total: Object.keys(days).filter(function (d) { return d <= todayIso; }).length };
   }
 
   /* The last 4 weeks (Monday 3 weeks ago to this Sunday), one entry per day: kind 'workout' | 'rest' (a rest day he
@@ -423,9 +427,9 @@
     var st = weekStats(state, now), dow = (now.getDay() + 6) % 7, todayIso = iso(now); // 0 = Monday
     var done = sessionsWithSets(state).filter(function (s) { return s.date <= todayIso; });
     var hist = historyWithSets(state).filter(function (h) { return h.date <= todayIso; });
-    var lastSess = done.length ? done[done.length - 1].date : null;
-    var lastHist = hist.length ? hist[hist.length - 1].date : null;
-    var lastDate = lastSess && lastHist ? (lastSess > lastHist ? lastSess : lastHist) : (lastSess || lastHist);
+    var lastSess = latestByDate(done), lastHist = latestByDate(hist);
+    var lastSessDate = lastSess ? lastSess.date : null, lastHistDate = lastHist ? lastHist.date : null;
+    var lastDate = lastSessDate && lastHistDate ? (lastSessDate > lastHistDate ? lastSessDate : lastHistDate) : (lastSessDate || lastHistDate);
     var gap = lastDate ? Math.round((new Date(todayIso) - new Date(lastDate)) / 864e5) : null;
     var open = openSession(state, now);
     if (open) return 'In progress: ' + open.sets.length + ' set' + (open.sets.length === 1 ? '' : 's') + ' so far. Keep going.';
