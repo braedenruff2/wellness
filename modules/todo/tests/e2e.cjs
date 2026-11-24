@@ -62,6 +62,13 @@ const W = require('../../../tests/lib/web.cjs');
     await page.click('li:has-text("fix the garden gate") [data-more]');
     await page.click('#td-del'); assert.ok((await page.textContent('main')).includes('garden gate'));
     await page.click('#td-del'); assert.ok(!(await page.textContent('main')).includes('garden gate'));
+    // done task edit sheet hides "In 1 hour" and Escape closes from any field in the sheet
+    await page.click('#td-showdone');
+    await page.click('li.is-done:has-text("buy diapers") [data-more]');
+    assert.strictEqual(await page.$('#td-hour'), null, 'no "In 1 hour" button on a done task');
+    await page.press('#td-time', 'Escape');
+    assert.strictEqual(await page.$('#td-sheet'), null, 'Escape on #td-time closes edit sheet');
+    await page.click('#td-showdone');
   });
   await t.step('Home shows what is due and can tick it', async () => {
     await page.goto(base + '#todo');

@@ -79,7 +79,7 @@
       }).join('') + '</div>' +
       '<div class="row" style="margin-top:8px"><label for="td-time" class="meta">Remind me at</label><input type="time" id="td-time" value="' + esc(t.at || '') + '">' +
       '<button class="link small" id="td-notime">No reminder</button>' +
-      (t.repeat ? '' : '<button class="chip" id="td-hour">In 1 hour</button>') + '</div>' +
+      (t.repeat || t.done ? '' : '<button class="chip" id="td-hour">In 1 hour</button>') + '</div>' +
       '<div class="row" style="margin-top:10px"><button class="primary" id="td-save">Save</button><button id="td-cancel">Cancel</button><span class="grow"></span><button class="link" id="td-del">Delete</button></div>';
     var li = $$('li[data-id]').filter(function (x) { return x.dataset.id === t.id; })[0];
     (li || view).appendChild(d);
@@ -102,7 +102,8 @@
     var hr = $('#td-hour');
     if (hr) hr.onclick = function () {  // saves at once: the quickest "not now, remind me soon"
       var txt = $('#td-edit').value.trim(); if (txt) t.text = txt;
-      T.remindIn(S, t.id, 60); save(); render();
+      if (!T.remindIn(S, t.id, 60)) return;
+      save(); render();
       WL.toast('Reminder at ' + T.fmtTime(t.at) + ', ' + fmtDue(t.due));
     };
     $('#td-cancel').onclick = function () { d.remove(); };
@@ -110,10 +111,10 @@
       if (this.dataset.armed) { T.remove(S, t.id); save(); render(); WL.toast('Deleted'); return; }
       this.dataset.armed = 1; this.textContent = 'Tap again to delete';
     };
+    d.onkeydown = function (ev) { if (ev.key === 'Escape') { ev.preventDefault(); d.remove(); } };
     var ed = $('#td-edit');
     ed.onkeydown = function (ev) {
       if (ev.key === 'Enter') { ev.preventDefault(); $('#td-save').click(); }
-      else if (ev.key === 'Escape') { ev.preventDefault(); d.remove(); }
     };
     ed.focus();
   }
