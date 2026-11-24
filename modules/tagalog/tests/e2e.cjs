@@ -33,7 +33,21 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
       const ex = exs[i];
       if (ex.type === 'mc' || ex.type === 'listen') await page.click(`#tl-ex [data-o="${ex.answer.replace(/"/g, '\\"')}"]`);
       if (ex.type === 'type') { await page.fill('#tl-in', ex.answer.toLowerCase()); await page.press('#tl-in', 'Enter'); } // Enter used to skip the feedback
-      if (ex.type === 'build') { for (const w of ex.answer.split(' ')) await page.click(`#tl-ex .word:not([disabled]):text-is("${w}")`); await page.click('#tl-check'); }
+      if (ex.type === 'build') {
+        const ws = ex.answer.split(' ');
+        // tap an out-of-order word first, then tap it in #tl-built to pull just that word back
+        if (ws.length >= 2) {
+          await page.click(`#tl-ex .word:not([disabled]):text-is("${ws[1]}")`);
+          const placed = page.locator('#tl-built .built-w').first();
+          const box = await placed.boundingBox();
+          assert.ok(box && box.height >= 44, 'placed build word chip is >= 44px tall: ' + JSON.stringify(box));
+          await placed.click();
+          assert.strictEqual(await page.locator('#tl-built .built-w').count(), 0, 'tapping placed word removes it back to bank');
+        }
+        for (const w of ws) await page.click(`#tl-ex .word:not([disabled]):text-is("${w}")`);
+        await page.click('#tl-check');
+        assert.strictEqual(await page.locator('#tl-built .built-w').first().isDisabled(), true, 'placed words disabled after check');
+      }
       assert.ok((await page.textContent('#tl-fb')).includes('Right'), 'exercise ' + (i + 1));
       await page.click('#tl-next');
     }

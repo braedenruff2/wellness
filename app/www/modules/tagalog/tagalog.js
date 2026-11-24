@@ -156,7 +156,7 @@
         };
         if (ex.type !== 'mc' || /[a-z]/.test(ex.answer) && ex.type !== 'listen') { /* hear the Tagalog answer when there is one */ }
         if (ex.type === 'type' || ex.type === 'build') say(ex.answer);
-        $$('.opt', box).forEach(function (b) { b.disabled = true; if (b.dataset.o === ex.answer) b.classList.add('right'); });
+        $$('.opt, .built-w', box).forEach(function (b) { b.disabled = true; if (b.dataset.o === ex.answer) b.classList.add('right'); });
         $('#tl-next').onclick = function () { i++; show(); };
         $('#tl-next').focus();
       }
@@ -165,7 +165,14 @@
       if (ex.type === 'build') {
         var picked = [];
         var words = shuffle(ex.words, i + 3);
-        var draw = function () { $('#tl-built').textContent = picked.map(function (k) { return words[k]; }).join(' ') || '…'; $$('.word', box).forEach(function (b) { b.disabled = answered || picked.indexOf(+b.dataset.k) >= 0; }); };
+        var draw = function () {
+          var el = $('#tl-built');
+          el.innerHTML = picked.length
+            ? picked.map(function (k, pos) { return '<button type="button" class="chip built-w" data-pos="' + pos + '" aria-label="Remove ' + esc(words[k]) + '"' + (answered ? ' disabled' : '') + '>' + esc(words[k]) + '</button>'; }).join(' ')
+            : '<span class="meta">…</span>';
+          $$('.built-w', el).forEach(function (b) { b.onclick = function () { if (!answered) { picked.splice(+b.dataset.pos, 1); draw(); } }; });
+          $$('.word', box).forEach(function (b) { b.disabled = answered || picked.indexOf(+b.dataset.k) >= 0; });
+        };
         $$('.word', box).forEach(function (b) { b.onclick = function () { picked.push(+b.dataset.k); draw(); }; });
         $('#tl-clear').onclick = function () { if (!answered) { picked = []; draw(); } };
         $('#tl-check').onclick = function () { done(picked.map(function (k) { return words[k]; }).join(' ')); };

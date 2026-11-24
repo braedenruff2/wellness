@@ -156,7 +156,7 @@ body.in-session { padding-bottom: 0; }
 #tl-ex .opts:has(.word) { flex-direction: row; flex-wrap: wrap; }
 .opt.right { border-color: var(--good); background: color-mix(in srgb, var(--good) 18%, var(--card)); }
 .opt.wrong { border-color: var(--warn); }
-.built { min-height: 48px; border-bottom: 2px solid var(--line); padding: 10px 4px; font-size: 1.1em; margin: 6px 0; }
+.built { min-height: 48px; border-bottom: 2px solid var(--line); padding: 10px 4px; font-size: 1.1em; margin: 6px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 p.ok { color: var(--good); } p.no { color: var(--warn); }
 .flash .big { font-size: 1.6em; margin: .4em 0; }
 .hear { font-size: 1.1em; }
