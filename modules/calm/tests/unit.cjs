@@ -42,9 +42,18 @@ t('stats, stress change, advice and suggestions', () => {
   assert.strictEqual(K.suggest(s, new Date(2026, 10, 19, 7)), 'walk');
 });
 t('validate drops unknown practices and bad numbers', () => {
-  const v = K.validate({ sessions: [{ id: 'slow', date: '2026-11-18', mins: 5, before: 3 }, { id: 'x', date: '2026-11-18', mins: 5 }, { id: 'box', date: 'no', mins: 1 }, { id: 'box', date: '2026-11-18', mins: 9999 }], settings: { minutes: 7 } });
+  const v = K.validate({ sessions: [
+    { id: 'slow', date: '2026-11-18', mins: 5, before: 3 },
+    { id: 'x', date: '2026-11-18', mins: 5 },
+    { id: 'box', date: 'no', mins: 1 },
+    { id: 'box', date: '2026-11-18', mins: 9999 },
+    { id: 'box', date: '2026-11-18', mins: NaN },
+    { id: 'box', date: '2026-11-18', mins: Infinity }
+  ], settings: { minutes: 7 } });
   assert.strictEqual(v.sessions.length, 2); assert.strictEqual(v.sessions[1].mins, 240); assert.strictEqual(v.settings.minutes, 5);
   assert.strictEqual(K.validate(null), null);
+  const s = K.defaults();
+  assert.strictEqual(K.record(s, 'slow', NaN).mins, 0);
 });
 t('his report: after finishing the body scan, today is done and the suggestion is a different practice', () => {
   const s = K.defaults(), at = new Date(2026, 10, 19, 15);

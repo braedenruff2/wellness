@@ -116,9 +116,16 @@
 
   function elapsed() { return run ? ((run.paused ? run.pausedAt : Date.now()) - run.start - run.pausedFor) / 1000 : 0; }
 
+  function loggedMins() {
+    var e = Math.max(0, elapsed());
+    if (!run || !run.total) return e / 60;
+    var cap = run.p && run.p.kind !== 'guided' ? run.total : Math.max(run.total * 2, 1800);
+    return Math.min(e, cap) / 60;
+  }
+
   function finish() {
     if (!run) return;
-    var p = run.p, m = elapsed() / 60, before = run.before;
+    var p = run.p, m = loggedMins(), before = run.before;
     stopRun(); WL.bell();
     var rec = K.record(S, p.id, m, before, null, WL.logNow ? WL.logNow() : null); save(); // saved straight away; "Done" only adds the after rating
     run = { p: p, done: true, mins: m, before: before, rec: rec };
@@ -131,7 +138,7 @@
   function begin(p) {
     var total = mins(p) * 60, before = run && run.before;
     stopRun();
-    run = { p: p, start: Date.now(), pausedFor: 0, paused: false, before: before };
+    run = { p: p, start: Date.now(), pausedFor: 0, paused: false, before: before, total: total };
     WL.keepAwake(true); WL.bell();
     var pp = $('#c-pp'); pp.textContent = '⏸ Pause'; pp.dataset.state = 'playing';
     var lc = $('#c-len'); if (lc) lc.hidden = true;
@@ -221,8 +228,9 @@
   // ending early (✕, Android back, another tab) still counts the minutes you did, if at least half a minute
   function saveEarly() {
     if (run && !run.done && run.start && elapsed() >= 30) {
-      K.record(S, run.p.id, elapsed() / 60, run.before, null, WL.logNow ? WL.logNow() : null); save();
-      WL.toast('Saved ' + Math.max(1, Math.round(elapsed() / 60)) + ' min');
+      var m = loggedMins();
+      K.record(S, run.p.id, m, run.before, null, WL.logNow ? WL.logNow() : null); save();
+      WL.toast('Saved ' + Math.max(1, Math.round(m)) + ' min');
     }
   }
   function leave() {

@@ -240,7 +240,8 @@
 
   function record(state, practiceId, mins, before, after, now) {
     now = now || new Date();
-    var s = { id: practiceId, date: iso(now), at: now.toISOString(), mins: Math.max(0, Math.round(mins * 10) / 10),
+    var m = isFinite(mins) ? Math.max(0, Math.round(mins * 10) / 10) : 0;
+    var s = { id: practiceId, date: iso(now), at: now.toISOString(), mins: m,
       before: before >= 1 && before <= 5 ? before : null, after: after >= 1 && after <= 5 ? after : null };
     state.sessions.push(s);
     return s;
@@ -326,7 +327,7 @@
     if (!s || !Array.isArray(s.sessions)) return null;
     var d = defaults(), ids = PRACTICES.map(function (p) { return p.id; });
     s.sessions.forEach(function (x) {
-      if (x && ids.indexOf(x.id) >= 0 && /^\d{4}-\d\d-\d\d$/.test(x.date) && typeof x.mins === 'number')
+      if (x && ids.indexOf(x.id) >= 0 && /^\d{4}-\d\d-\d\d$/.test(x.date) && typeof x.mins === 'number' && isFinite(x.mins))
         d.sessions.push({ id: x.id, date: x.date, at: String(x.at || ''), mins: Math.max(0, Math.min(240, x.mins)),
           before: [1, 2, 3, 4, 5].indexOf(x.before) >= 0 ? x.before : null, after: [1, 2, 3, 4, 5].indexOf(x.after) >= 0 ? x.after : null,
           rated: typeof x.rated === 'string' && !isNaN(Date.parse(x.rated)) ? x.rated : undefined });

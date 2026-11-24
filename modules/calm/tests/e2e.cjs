@@ -123,6 +123,17 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#calm'); await page.click('#ctk');
     assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).settings.tick), false);
   });
+  await t.step('waking up hours after a timer/pacer ended caps logged minutes at the chosen length', async () => {
+    await page.goto(base + '#calm/s/timer');
+    await page.click('#c-len [data-len="3"]');
+    await page.click('#c-pp');
+    await page.clock.fastForward(2 * 3600e3);
+    await page.clock.runFor(1000);
+    assert.ok(await page.isVisible('#c-after'));
+    const ss = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions);
+    assert.strictEqual(ss[ss.length - 1].mins, 3, 'logged 3 min, not 120 min: ' + ss[ss.length - 1].mins);
+    await page.click('#c-save');
+  });
   await t.step('Home card, no overflow, no errors', async () => {
     await page.goto(base + '#home');
     assert.ok((await page.textContent('.home-card[data-module="calm"]')).length > 10);
