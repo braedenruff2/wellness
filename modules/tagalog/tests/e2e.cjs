@@ -21,6 +21,10 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
   await t.step('today shows lesson 1', async () => {
     assert.ok((await page.textContent('main')).includes('Po, opo and greeting elders'));
     assert.strictEqual(await page.locator('#tl-voice-nudge').count(), 0, 'no voice nudge without native bridge');
+    // before any lesson is finished, mixed practice shows an empty-state message cleanly
+    await page.goto(base + '#tagalog/practice');
+    assert.ok((await page.textContent('main')).includes('Finish a lesson first'));
+    await page.goto(base + '#tagalog');
   });
   await t.step('a lesson: hear a word in Filipino, then answer every exercise', async () => {
     await page.click('a[href="#tagalog/l/2026-11-18/1"]');
@@ -138,18 +142,41 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     const sp = await page.evaluate(() => window.__spoken[window.__spoken.length - 1]);
     assert.deepStrictEqual(sp, { text: first, lang: 'fil-PH' });
   });
-  await t.step('mixed practice: the missed exercise comes first; finishing offers another 8', async () => {
+  await t.step('mixed practice: the missed exercise comes first; Enter advances, build chips remove, and finishing offers another 8', async () => {
     await page.goto(base + '#tagalog');
     assert.ok((await page.textContent('main')).includes('Mixed practice'));
     await page.click('a[href="#tagalog/practice"]');
     const first = pack.lessons[0].exercises[0];
     assert.ok((await page.textContent('#tl-ex')).includes(first.prompt), 'the one answered wrong earlier');
     const n = Math.min(8, pack.lessons[0].exercises.length);
+    let sawBuild = false, sawType = false;
     for (let i = 0; i < n; i++) {
+      assert.ok((await page.textContent('#tl-ex')).includes((i + 1) + ' of ' + n), 'on exercise ' + (i + 1));
       const b = await page.$('#tl-ex .opt:not(.word)');
-      if (b) await b.click(); else { const inp = await page.$('#tl-in'); if (inp) await inp.fill('x'); await page.click('#tl-check'); }
-      await page.click('#tl-next');
+      if (b) {
+        await b.click();
+      } else if (await page.$('#tl-in')) {
+        sawType = true;
+        await page.fill('#tl-in', 'opo');
+        await page.press('#tl-in', 'Enter'); // submits typed answer and focuses #tl-next
+      } else if (await page.$('#tl-built')) {
+        sawBuild = true;
+        await page.locator('#tl-ex .word').first().click();
+        assert.strictEqual(await page.locator('#tl-built .built-w').count(), 1, 'placed one chip in practice build');
+        await page.locator('#tl-built .built-w').first().click();
+        assert.strictEqual(await page.locator('#tl-built .built-w').count(), 0, 'tapped chip removed back to bank in practice build');
+        const words = page.locator('#tl-ex .word');
+        const wc = await words.count();
+        for (let k = 0; k < wc; k++) await words.nth(k).click();
+        await page.click('#tl-check');
+        assert.strictEqual(await page.locator('#tl-built .built-w').first().isDisabled(), true, 'placed chips disabled after check');
+        assert.strictEqual(await page.locator('#tl-clear').isDisabled(), true, 'Clear disabled after check');
+        assert.strictEqual(await page.locator('#tl-check').isDisabled(), true, 'Check disabled after check');
+      }
+      assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'tl-next', '#tl-next focused after check');
+      await page.keyboard.press('Enter'); // Enter advances to next exercise (or summary)
     }
+    assert.ok(sawBuild && sawType, 'practised both build and type exercises');
     assert.ok(new RegExp('of ' + n + ' right').test(await page.textContent('#tl-ex')));
     const before = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).answers.length);
     await page.click('#tl-more');
@@ -157,6 +184,40 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.ok(before >= n + 1, 'practice answers are recorded');
     const done = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('wl.tagalog.v1')).done));
     assert.deepStrictEqual(done, ['2026-11-18/1'], 'practice never marks a lesson done');
+  });
+  await t.step('mixed practice edge cases: finished lessons with 0 or 1 exercise handle cleanly without crashing', async () => {
+    const saved = await page.evaluate(() => localStorage.getItem('wl.tagalog.v1'));
+    // Finished lesson with 0 exercises (or pack removed): #tagalog hides Mixed practice, #tagalog/practice shows empty state
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.tagalog.v1'));
+      s.done = { '2099-01-01/1': '2026-11-18T10:00:00.000Z' };
+      localStorage.setItem('wl.tagalog.v1', JSON.stringify(s));
+      window.WL.modules.tagalog.reload();
+    });
+    await page.goto(base + '#tagalog');
+    assert.ok(!(await page.textContent('main')).includes('Mixed practice'), 'Mixed practice card hidden when 0 exercises available');
+    await page.goto(base + '#tagalog/practice');
+    assert.ok((await page.textContent('main')).includes('Finish a lesson first'), 'empty state shown when finished lesson has no exercises');
+    // Finished lesson with only 1 exercise: runs 1 of 1 and finishes cleanly
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.tagalog.v1'));
+      s.packs = s.packs || {};
+      s.packs['2099-01-01'] = {
+        id: '2099-01-01', week: 9, title: 'Mini',
+        lessons: [{ day: 1, title: 'Tiny', intro: 'One item', words: [{ tl: 'opo', en: 'yes' }],
+          exercises: [{ type: 'mc', prompt: 'Say yes politely', answer: 'opo', options: ['opo', 'hindi'] }] }]
+      };
+      localStorage.setItem('wl.tagalog.v1', JSON.stringify(s));
+      window.WL.modules.tagalog.reload();
+    });
+    await page.goto(base + '#tagalog');
+    await page.goto(base + '#tagalog/practice');
+    assert.ok((await page.textContent('#tl-ex')).includes('1 of 1'), 'runs minimal 1-exercise practice set');
+    await page.click('#tl-ex [data-o="opo"]');
+    await page.keyboard.press('Enter');
+    assert.ok((await page.textContent('#tl-ex')).includes('1 of 1 right'), 'finishes 1-exercise practice cleanly');
+    // restore previous state
+    await page.evaluate((raw) => { localStorage.setItem('wl.tagalog.v1', raw); window.WL.modules.tagalog.reload(); }, saved);
   });
   await t.step('next week downloads from GitHub (bad ids ignored); Send my week saves a summary', async () => {
     await page.goto(base + '#tagalog/settings');

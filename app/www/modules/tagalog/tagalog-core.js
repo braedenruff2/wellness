@@ -154,10 +154,10 @@
       if (!a.ok) wrong[k] = (wrong[k] || 0) + 1;
     });
     var pool = [];
-    packs.forEach(function (p) {
-      p.lessons.forEach(function (l) {
+    (packs || []).forEach(function (p) {
+      ((p && p.lessons) || []).forEach(function (l) {
         if (!state.done[p.id + '/' + l.day]) return;
-        l.exercises.forEach(function (ex, j) {
+        (l.exercises || []).forEach(function (ex) {
           var k = p.id + '/' + l.day + '/' + String(ex.prompt || ex.say || '').slice(0, 120);
           pool.push({ pack: p, lesson: l, ex: ex, wrong: wrong[k] || 0, last: last[k] || '', order: pool.length });
         });

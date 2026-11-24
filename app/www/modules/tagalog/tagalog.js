@@ -72,7 +72,7 @@
     if (nx) h += '<div class="card"><div class="meta ui">Week ' + esc(nx.pack.week || '') + ' · ' + esc(nx.pack.title) + ' · lesson ' + nx.lesson.day + ' of ' + nx.pack.lessons.length + '</div>' +
       '<h3 style="margin:.2em 0">' + esc(nx.lesson.title) + '</h3><p class="meta ui">' + esc(nx.lesson.intro) + '</p>' +
       '<a class="btn primary ui" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Start lesson · about 10 min</a></div>';
-    if (Object.keys(S.done).length) h += '<div class="card ui"><div class="row"><div class="grow"><b>Mixed practice</b><div class="meta">8 exercises from lessons you’ve done, the ones you missed first</div></div><a class="btn' + (nx ? '' : ' primary') + '" href="#tagalog/practice">Practise</a></div></div>';
+    if (T.practiceSet(S, all, 1).length) h += '<div class="card ui"><div class="row"><div class="grow"><b>Mixed practice</b><div class="meta">8 exercises from lessons you’ve done, the ones you missed first</div></div><a class="btn' + (nx ? '' : ' primary') + '" href="#tagalog/practice">Practise</a></div></div>';
     h += '<div class="card ui"><div class="row"><span class="grow">Words met <b>' + st.words + '</b> · known well <b>' + st.known + '</b></span>' + (st.words ? '<a class="btn" href="#tagalog/words">Your words</a>' : '') + '</div>' +
       '<div class="meta">This week: ' + st.weekLessons + ' lesson' + (st.weekLessons === 1 ? '' : 's') + ', practised on ' + st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') +
       (st.weekAccuracy != null ? ', ' + Math.round(st.weekAccuracy * 100) + '% of answers right' : '') + '</div></div>';
@@ -159,7 +159,7 @@
         };
         if (ex.type !== 'mc' || /[a-z]/.test(ex.answer) && ex.type !== 'listen') { /* hear the Tagalog answer when there is one */ }
         if (ex.type === 'type' || ex.type === 'build') say(ex.answer);
-        $$('.opt, .built-w', box).forEach(function (b) { b.disabled = true; if (b.dataset.o === ex.answer) b.classList.add('right'); });
+        $$('.opt, .built-w, #tl-clear, #tl-check', box).forEach(function (b) { b.disabled = true; if (b.dataset.o === ex.answer) b.classList.add('right'); });
         $('#tl-next').onclick = function () { i++; show(); };
         $('#tl-next').focus();
       }

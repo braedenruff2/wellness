@@ -71,6 +71,16 @@ t('practiceSet: exercises from finished lessons only, most-missed first, then le
   assert.ok(set.every((x) => x.lesson === l1 || x.lesson === l2), 'only finished lessons');
   assert.strictEqual(set[2].lesson, l2, 'never-answered before answered: ' + set[2].ex.prompt);
   assert.strictEqual(T.practiceSet(s, packs, 3).length, 3);
+  // finished lessons with missing/empty exercises or a missing pack never crash
+  const emptyS = T.defaults();
+  emptyS.done['2026-01-01/1'] = d.toISOString();
+  emptyS.done['2026-01-01/2'] = d.toISOString();
+  emptyS.done['2025-01-01/1'] = d.toISOString();
+  const sparsePack = { id: '2026-01-01', title: 'Sparse', lessons: [{ day: 1, title: 'No ex', intro: 'x', words: [] }, { day: 2, title: 'Empty ex', intro: 'x', words: [], exercises: [] }] };
+  assert.deepStrictEqual(T.practiceSet(emptyS, [sparsePack], 8), [], 'no exercises -> empty set');
+  sparsePack.lessons.push({ day: 3, title: 'One ex', intro: 'x', words: [], exercises: [{ type: 'mc', prompt: 'p', answer: 'a', options: ['a', 'b'] }] });
+  emptyS.done['2026-01-01/3'] = d.toISOString();
+  assert.strictEqual(T.practiceSet(emptyS, [sparsePack], 8).length, 1, 'minimal 1-exercise lesson');
 });
 t('stats, advice and the weekly summary for the Wednesday run', () => {
   const s = T.defaults(), d = new Date(2026, 10, 18, 9);
