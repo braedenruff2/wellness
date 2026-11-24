@@ -270,6 +270,38 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     await page.fill('#tl-word-search', '');
     assert.strictEqual(await page.locator('#tl-hard li:not([hidden]), #tl-all li:not([hidden])').count(), total);
   });
+  await t.step('review keyboard shortcuts: Space/Enter reveal and 1/2 rate (respecting 400 ms guard), cleaned up on leave', async () => {
+    await page.clock.runFor(5 * 86400e3);
+    await page.goto(base + '#tagalog/review');
+    await page.waitForSelector('#tl-show');
+    const nrev = () => page.evaluate(() => (JSON.parse(localStorage.getItem('wl.tagalog.v1')).reviews || []).length);
+    const before = await nrev();
+    // Space reveals the answer; immediate '1' is blocked by the 400 ms double-tap guard
+    await page.keyboard.press('Space');
+    assert.ok(await page.isVisible('#tl-ans') && await page.isVisible('#tl-no'), 'Space revealed card');
+    await page.keyboard.press('1');
+    assert.strictEqual(await nrev(), before, '1 ignored within 400 ms guard');
+    await page.clock.runFor(450);
+    await page.keyboard.press('1');
+    assert.strictEqual(await nrev(), before + 1, '1 recorded Not yet after 400 ms');
+    const r1 = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).reviews.slice(-1)[0]);
+    assert.strictEqual(r1.right, false);
+    // Card 2: Enter reveals, 2 marks Got it
+    await page.waitForSelector('#tl-show');
+    await page.keyboard.press('Enter');
+    assert.ok(await page.isVisible('#tl-ans') && await page.isVisible('#tl-yes'), 'Enter revealed card 2');
+    await page.clock.runFor(450);
+    await page.keyboard.press('2');
+    assert.strictEqual(await nrev(), before + 2, '2 recorded Got it');
+    const r2 = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).reviews.slice(-1)[0]);
+    assert.strictEqual(r2.right, true);
+    // Leaving review removes the key listener cleanly
+    await page.goto(base + '#tagalog');
+    await page.keyboard.press('Space');
+    await page.keyboard.press('1');
+    await page.keyboard.press('2');
+    assert.strictEqual(await nrev(), before + 2, 'shortcuts inactive after leaving review');
+  });
   await t.step('no overflow, no errors', async () => {
     await page.evaluate(() => { window.__voiceState.tagalogVoice = 'missing'; });
     await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#tagalog/words', '#settings/voice', '#home']);

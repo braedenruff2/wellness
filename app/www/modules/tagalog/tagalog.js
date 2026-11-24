@@ -4,9 +4,10 @@
   var T = window.TagalogCore, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   function logNow() { return WL.logNow ? WL.logNow() : new Date(); }
   var store = WL.store('wl.tagalog.v1', T.defaults);
-  var S = store.load(), view = null, playTok = 0, playTimer = null;
+  var S = store.load(), view = null, playTok = 0, playTimer = null, reviewKey = null;
   function save() { store.save(S); }
-  function stopAudio() { playTok++; clearTimeout(playTimer); playTimer = null; WL.speech.stop(); }
+  function clearReviewKey() { if (reviewKey) { document.removeEventListener('keydown', reviewKey); reviewKey = null; } }
+  function stopAudio() { playTok++; clearTimeout(playTimer); playTimer = null; WL.speech.stop(); clearReviewKey(); }
   /* Lessons say {child}; the phone fills in her name from Parenting setup, or "Baby" (lib/personal.js). */
   var P = window.WLPersonal, filled = typeof WeakMap === 'function' ? new WeakMap() : null, filledFor = null;
   function personal(p) {
@@ -225,8 +226,28 @@
 
   function runReview() {
     var due = T.dueCards(S), i = 0, el = $('#tl-card'), missed = []; if (!el) return;
+    clearReviewKey();
+    reviewKey = function (ev) {
+      if (!el.isConnected) { clearReviewKey(); return; }
+      if (ev.metaKey || ev.ctrlKey || ev.altKey || $('#me-sheet')) return;
+      var tag = ev.target && ev.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (ev.key === ' ' || ev.key === 'Enter') {
+        var sh = $('#tl-show', el);
+        if (!sh || ((tag === 'BUTTON' || tag === 'A') && ev.target !== sh)) return;
+        ev.preventDefault(); sh.click();
+      } else if (ev.key === '1') {
+        var no = $('#tl-no', el);
+        if (no) { ev.preventDefault(); no.click(); }
+      } else if (ev.key === '2') {
+        var yes = $('#tl-yes', el);
+        if (yes) { ev.preventDefault(); yes.click(); }
+      }
+    };
+    document.addEventListener('keydown', reviewKey);
     function show() {
       if (i >= due.length) {
+        clearReviewKey();
         // the words he said "Not yet" to, once more with their sound (they come back tomorrow anyway)
         var miss = missed.filter(function (k, j) { return missed.indexOf(k) === j && S.cards[k]; });
         el.innerHTML = '<p class="ui"><b>All done.</b> See you tomorrow.</p>' + (miss.length ? '<div id="tl-missed"><p class="meta ui">Once more before you go (they’re back tomorrow):</p><ul class="list">' +
