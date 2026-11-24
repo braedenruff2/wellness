@@ -8,6 +8,26 @@ const W = require('./lib/web.cjs');
 (async () => {
   const t = await W.open({ time: new Date(2026, 10, 23, 10, 0) });
   const { page, base } = t;
+  await page.addInitScript(() => {
+    window.__drive = {
+      configured: true, name: 'wellness-sync.json', lastSync: Date.UTC(2026, 10, 22, 15, 0),
+      error: 'Google Drive refused writes', answersConfigured: false, answersName: '',
+      answersError: 'Could not read wellness-answers'
+    };
+    window.FCAndroid = {
+      syncStatus: () => JSON.stringify({
+        configured: window.__drive.configured, name: window.__drive.name, lastSync: window.__drive.lastSync,
+        error: window.__drive.error, busy: false,
+        answersConfigured: window.__drive.answersConfigured, answersName: window.__drive.answersName,
+        answersError: window.__drive.answersError
+      }),
+      syncPick: () => {}, syncPickRestore: () => {}, syncPickAnswers: () => {},
+      syncForgetAnswers: () => {}, syncForget: () => {},
+      syncRead: (id) => Promise.resolve().then(() => window.FCSyncDone && window.FCSyncDone(id, true, '')),
+      syncReadAnswers: (id) => Promise.resolve().then(() => window.FCSyncDone && window.FCSyncDone(id, false, window.__drive.answersError)),
+      syncWrite: (id) => Promise.resolve().then(() => window.FCSyncDone && window.FCSyncDone(id, false, window.__drive.error))
+    };
+  });
   await page.goto(base + '#home');
   const look = (ts, theme) => page.evaluate(([ts, theme]) => localStorage.setItem('wl.shell.v1', JSON.stringify({ theme, textSize: ts })), [ts, theme]);
   const seed = () => page.evaluate(() => {
@@ -63,6 +83,11 @@ const W = require('./lib/web.cjs');
       checkins: {}, skipped: {}, plan: null,
       feedback: [{ id: 'f1', at: '2026-11-22T12:00:00.000Z', date: '2026-11-22', part: 'coach', kind: 'after', about: 'tip:h20', a: { tried: 'It worked' } }]
     }));
+    localStorage.setItem('wl.sync.v1', JSON.stringify({
+      requests: [{ id: 'q1', task: 'advice', input: { question: 'How to pace workouts this week?' }, at: '2026-11-23T12:00:00.000Z' }],
+      answers: {}, acked: []
+    }));
+    localStorage.setItem('wl.pc.v1', JSON.stringify({ sent: {}, journalText: false, cloud: { q1: { task: 'advice', at: '2026-11-23T12:00:00.000Z' } } }));
     if (window.WL && WL.modules) Object.keys(WL.modules).forEach((k) => { if (WL.modules[k].reload) WL.modules[k].reload(); });
   });
   const small = async (sel) => page.$$eval(sel, (els) => els.filter((e) => e.offsetParent !== null)
@@ -71,7 +96,7 @@ const W = require('./lib/web.cjs');
     const rgb = (s) => (s.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
     const lum = (c) => { c = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
     const bg = (e) => { while (e) { const b = getComputedStyle(e).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return rgb(b); e = e.parentElement; } return [255, 255, 255]; };
-    const sels = ['p', '.meta', 'b', 'a', 'button', 'summary', 'input[type="search"]', 'textarea'].map((s) => rootSel + ' ' + s).join(', ');
+    const sels = ['p', '.meta', '.no', 'b', 'a', 'button', 'summary', 'input[type="search"]', 'textarea'].map((s) => rootSel + ' ' + s).join(', ');
     return Array.from(document.querySelectorAll(sels)).filter((e) => {
       if (e.offsetParent === null) return false;
       if (e.tagName === 'INPUT' || e.tagName === 'TEXTAREA') return true;
@@ -145,10 +170,28 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#co-hist-search, #co-hist-more'), []);
       await t.noOverflow(['#coach']);
     });
+    await t.step('text size ' + ts + ': Settings Drive sync errors, Home #wl-sync-nudge & Link unpaired #lk-advice-card', async () => {
+      await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-err'); await page.waitForSelector('#wl-sync-ans-err');
+      assert.deepStrictEqual(await small('#wl-sync button'), []);
+      await t.noOverflow(['#settings']);
+      await page.goto(base + '#home'); await page.waitForSelector('#wl-sync-nudge');
+      assert.deepStrictEqual(await small('#wl-sync-nudge a, #wl-sync-nudge button'), []);
+      await t.noOverflow(['#home']);
+      // Also check #wl-sync-nudge with 0 waiting requests (includes the "Not now" link button)
+      await page.evaluate(() => { WL.driveSync.cancelRequest('q1'); });
+      await page.goto(base + '#settings'); await page.goto(base + '#home'); await page.waitForSelector('#wl-sync-later');
+      assert.deepStrictEqual(await small('#wl-sync-nudge a, #wl-sync-nudge button'), []);
+      await t.noOverflow(['#home']);
+      // Restore queued request and check unpaired Drive-sync #lk-advice-card on #link
+      await page.evaluate(() => { WL.driveSync.enqueue('advice', { question: 'How to pace workouts this week?' }, 'q1'); });
+      await page.goto(base + '#link'); await page.waitForSelector('#lk-advice-card'); await page.waitForSelector('#lk-queued');
+      assert.deepStrictEqual(await small('#lk-advice-card button, #lk-advice-card textarea'), []);
+      await t.noOverflow(['#link']);
+    });
   }
   for (const theme of ['light', 'dark', 'night']) {
     const min = theme === 'night' ? 3 : 4.5;
-    await t.step(theme + ': text contrast on Move, Progress, Faith prayers, Calm/#me-sheet, Tagalog words/build, Parenting', async () => {
+    await t.step(theme + ': text contrast on Move, Progress, Faith prayers, Calm/#me-sheet, Tagalog words/build, Parenting, Settings/Home/Link sync states', async () => {
       await look(1, theme); await seed(); await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('#wo-two');
       await page.click('#wo-rest summary');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #workout');
@@ -168,6 +211,16 @@ const W = require('./lib/web.cjs');
       await page.goto(base + '#coach'); await page.waitForSelector('#co-hist-search'); await page.waitForSelector('#co-worked');
       assert.deepStrictEqual((await contrast('#co-worked')).filter((x) => x.r < min), [], theme + ' #co-worked');
       assert.deepStrictEqual((await contrast('#co-hist')).filter((x) => x.r < min), [], theme + ' #co-hist');
+      await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-err'); await page.waitForSelector('#wl-sync-ans-err');
+      assert.deepStrictEqual((await contrast('#wl-sync')).filter((x) => x.r < min), [], theme + ' #wl-sync');
+      await page.evaluate(() => { window.__drive.configured = false; });
+      await page.goto(base + '#home'); await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-err');
+      assert.deepStrictEqual((await contrast('#wl-sync')).filter((x) => x.r < min), [], theme + ' #wl-sync unconfigured');
+      await page.evaluate(() => { window.__drive.configured = true; });
+      await page.goto(base + '#home'); await page.waitForSelector('#wl-sync-nudge');
+      assert.deepStrictEqual((await contrast('#wl-sync-nudge')).filter((x) => x.r < min), [], theme + ' #wl-sync-nudge');
+      await page.goto(base + '#link'); await page.waitForSelector('#lk-advice-card'); await page.waitForSelector('#lk-queued');
+      assert.deepStrictEqual((await contrast('#lk-advice-card')).filter((x) => x.r < min), [], theme + ' #lk-advice-card');
     });
   }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
