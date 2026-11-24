@@ -123,8 +123,11 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.$('#wo-db'), null);
     assert.ok(/go up to 15 lb/.test(await page.textContent('#ex-0 .adv')));
   });
-  await t.step('leaving during a rest stops the timer (no beep on another screen)', async () => {
-    await page.fill('#ex-0 .val', '9'); await page.click('#ex-0 .logbtn');
+  await t.step('leaving during a rest stops the timer (no beep on another screen); Progress shows weight-aware best set', async () => {
+    await page.fill('#ex-0 .val', '9'); await page.fill('#ex-0 .wt', '15'); await page.click('#ex-0 .logbtn');
+    await page.goto(base + '#workout/history');
+    const rdl = await page.locator('.wo-ex', { hasText: 'Single Leg RDL' }).textContent();
+    assert.ok(/best set 9 @ 15 lb/.test(rdl), 'heavier 15 lb set beats earlier 15 reps @ 10 lb: ' + rdl);
     await page.goto(base + '#home');
     await page.clock.runFor(30000);
     assert.ok(!(await page.isVisible('#restbar')));

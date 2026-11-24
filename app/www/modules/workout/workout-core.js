@@ -302,6 +302,25 @@
     var p = performances(state, name).filter(function (x) { return !exceptSession || x.session !== exceptSession; });
     return p.length ? p[p.length - 1] : null;
   }
+  /* Best single set for an exercise across app sessions and non-duplicate sheet rows: heaviest weight first,
+     then highest reps/sec/min at that weight. Returns {val, w, date} or null. */
+  function bestSet(state, name) {
+    var best = null, dup = appDone(state);
+    function consider(val, w, date) {
+      val = +val; if (!(val > 0)) return;
+      var wt = w > 0 ? +w : 0;
+      var bw = best && best.w > 0 ? best.w : 0;
+      if (!best || wt > bw || (wt === bw && val > best.val)) best = { val: val, w: wt || null, date: date };
+    }
+    (state.history || []).forEach(function (h) {
+      if (h.ex === name && !dup[h.date + '|' + name] && Array.isArray(h.sets))
+        h.sets.forEach(function (v) { consider(v, h.w, h.date); });
+    });
+    (state.sessions || []).forEach(function (s) {
+      (s.sets || []).forEach(function (x) { if (x.ex === name) consider(x.val, x.w, s.date); });
+    });
+    return best;
+  }
 
   function ready(item, lastPerf) {
     var e = EX[item.ex];
@@ -539,7 +558,7 @@
 
   var api = { fourWeeks: fourWeeks, SORE_LEVELS: SORE_LEVELS, askSore: askSore, setSore: setSore, soreOn: soreOn, targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
-    last: last, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
+    last: last, bestSet: bestSet, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     validate: validate, iso: iso };
   root.WorkoutCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

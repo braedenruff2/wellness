@@ -247,11 +247,11 @@
     }
     rows.forEach(function (x) {
       var tot = x.p.map(function (p) { return p.sets.reduce(function (a, b) { return a + +b; }, 0) * (p.w || 1); });
-      var best = x.p.reduce(function (b, p) { var m = Math.max.apply(null, p.sets); return m > b.m ? { m: m, p: p } : b; }, { m: 0 });
+      var best = W.bestSet(S, x.n);
       var lp = x.p[x.p.length - 1], e = W.EX[x.n];
       h += '<div class="card wo-ex" data-area="' + esc(x.area) + '"><div class="row"><h3 class="grow" style="margin:0">' + esc(x.n) + '</h3>' + sparkline(tot.slice(-12)) + '</div>' +
         '<p class="meta ui" style="margin:.3em 0 0">Last ' + esc(lp.date) + ': ' + lp.sets.join('/') + (lp.w ? ' @ ' + lp.w + ' lb' : '') + ' ' + unit(e) +
-        ' · best set ' + best.m + (best.p.w ? ' @ ' + best.p.w + ' lb' : '') + ' · ' + x.p.length + ' times</p></div>';
+        (best ? ' · best set ' + best.val + (best.w ? ' @ ' + best.w + ' lb' : '') : '') + ' · ' + x.p.length + ' times</p></div>';
     });
     return h;
   }

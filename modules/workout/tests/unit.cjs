@@ -452,4 +452,29 @@ t('weekStats and weekVolume bound this week at now so later-week workouts do not
   assert.strictEqual(W.weekStats(s, new Date(2026, 10, 1, 12, 0)).thisWeek, 3, 'Sun noon counts all 3');
   assert.strictEqual(W.weekStats(s, new Date(2026, 10, 2, 0, 0)).thisWeek, 0, 'Mon 00:00 resets week to 0');
 });
+t('bestSet: heaviest weight wins (then highest reps at that weight); unweighted uses highest reps; sheet dedup and edits respected', () => {
+  const s = W.defaults();
+  assert.strictEqual(W.bestSet(s, 'Bulgarian Split Squats'), null);
+  // Sheet: 15/15/15 @ 10 lb
+  s.history.push({ date: '2026-11-10', ex: 'Bulgarian Split Squats', sets: [15, 15, 15], w: 10, from: 'sheet' });
+  assert.deepStrictEqual(W.bestSet(s, 'Bulgarian Split Squats'), { val: 15, w: 10, date: '2026-11-10' });
+  // Step up to 15 lb for 8 reps (fewer reps, heavier weight -> new best)
+  W.logSet(s, 'A', 0, 8, 15, at(15, 9));
+  assert.deepStrictEqual(W.bestSet(s, 'Bulgarian Split Squats'), { val: 8, w: 15, date: '2026-11-15' });
+  // Within the same session, 10 @ 15 lb beats 8 @ 15 lb, and a lighter warmup 20 @ 10 lb does not replace it
+  W.logSet(s, 'A', 0, 10, 15, at(15, 9, 5));
+  W.logSet(s, 'A', 0, 20, 10, at(15, 9, 8));
+  assert.deepStrictEqual(W.bestSet(s, 'Bulgarian Split Squats'), { val: 10, w: 15, date: '2026-11-15' });
+  // Removing the 15 lb sets reverts bestSet back to 20 @ 10 lb
+  W.editSet(s, 0, 1, 0, undefined, at(15, 9, 10));
+  W.editSet(s, 0, 0, 0, undefined, at(15, 9, 11));
+  assert.deepStrictEqual(W.bestSet(s, 'Bulgarian Split Squats'), { val: 20, w: 10, date: '2026-11-15' });
+  // Unweighted exercise (Pushups): highest reps wins
+  W.logSet(s, 'A', 1, 16, null, at(15, 9, 12));
+  W.logSet(s, 'A', 1, 19, null, at(15, 9, 15));
+  assert.deepStrictEqual(W.bestSet(s, 'Pushups'), { val: 19, w: null, date: '2026-11-15' });
+  // Duplicate sheet row on same day as app session is ignored
+  s.history.push({ date: '2026-11-15', ex: 'Pushups', sets: [99], w: null, from: 'sheet' });
+  assert.deepStrictEqual(W.bestSet(s, 'Pushups'), { val: 19, w: null, date: '2026-11-15' });
+});
 console.log(n + ' workout unit tests passed');
