@@ -198,6 +198,7 @@
 
   function screenSession(kind, id, from) {
     var sc = sessionScript(kind, id);
+    shortOnce = null; // consumed by this single session even if he leaves straight to another tab
     if (!sc) return '<p>Not found. <a href="#faith/today">Back</a></p>';
     session = sc;
     document.body.classList.add('in-session');

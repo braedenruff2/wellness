@@ -32,11 +32,15 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#calm/s/slow'); await page.waitForSelector('#c-len');
     assert.deepStrictEqual((await chips()).find((c) => c[1]), [5, true]);
   });
-  await t.step('Body scan (8 min): 5 / 8 / 12; the longer one makes the guided session longer', async () => {
+  await t.step('Body scan (8 min): 5 / 8 / 12; the longer one makes the guided session longer, and leaving straight to Home clears the pick', async () => {
     await page.goto(base + '#calm/s/body'); await page.waitForSelector('#c-len');
     assert.deepStrictEqual((await chips()).map((c) => c[0]), [5, 8, 12]);
     await page.click('[data-len="12"]');
     assert.ok(/Begin · 12 min/.test(await page.textContent('#c-pp')));
+    // leaving straight to #home (without visiting #calm list) clears the one-session pick
+    await page.goto(base + '#home');
+    await page.goto(base + '#calm/s/body'); await page.waitForSelector('#c-len');
+    assert.ok(/Begin · 8 min/.test(await page.textContent('#c-pp')), 'default 8 min restored after leaving to Home');
   });
   await t.step('10 pm after a night answer "Mind racing": today card suggests grounding and links to the journal', async () => {
     await page.evaluate(() => {

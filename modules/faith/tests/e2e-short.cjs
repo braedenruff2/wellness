@@ -22,6 +22,14 @@ const Wb = require('../../../tests/lib/web.cjs');
     const st = await page.evaluate(() => JSON.parse(localStorage.getItem('fc.v1') || '{}').settings || {});
     assert.ok(!st.minutes || st.minutes === 5, JSON.stringify(st));
   });
+  await t.step('leaving straight to Home after a shorter session still returns to the normal length next time', async () => {
+    await page.goto(base + '#faith/today'); await page.waitForSelector('#fc-short');
+    await page.click('#fc-short'); await page.waitForSelector('.session');
+    assert.ok((await secs()) < normal - 60);
+    await page.goto(base + '#home');
+    await page.goto(base + '#faith/session/day/1'); await page.waitForSelector('.session');
+    assert.strictEqual(await secs(), normal, 'normal length restored even when leaving via #home');
+  });
   await t.step('back to Today, the normal button is the normal length again', async () => {
     await page.click('#end').catch(() => {});
     await page.goto(base + '#faith/today'); await page.waitForSelector('#pray-card');

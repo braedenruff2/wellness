@@ -227,14 +227,14 @@
   }
   function leave() {
     if (keyHandler) { document.removeEventListener('keydown', keyHandler); keyHandler = null; }
+    pick = null;
     saveEarly(); stopRun();
   }
 
   function route(parts, v) {
     if (v) view = v;
     leave();
-    if (parts && parts[0] === 's' && practice(parts[1])) { var p = practice(parts[1]); if (pick && pick.id !== p.id) pick = null; view.innerHTML = sessionHtml(p); wireSession(p); return; }
-    pick = null; // back on the list: the next session starts at the usual length
+    if (parts && parts[0] === 's' && practice(parts[1])) { var p = practice(parts[1]); view.innerHTML = sessionHtml(p); wireSession(p); return; }
     view.innerHTML = list();
     $$('[data-min]').forEach(function (b) { b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route([]); }; });
     $('#cv').onclick = function () { S.settings.voice = !S.settings.voice; save(); route([]); };
