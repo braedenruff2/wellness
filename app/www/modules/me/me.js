@@ -35,26 +35,42 @@
       (done ? 'Noted: not for you ✓' : 'Not for me?') + '</button>';
   }
 
-  function fitSheet(btn) {
+  var fitKey = null;
+  function closeFitSheet(trigger) {
+    if (fitKey) { document.removeEventListener('keydown', fitKey); fitKey = null; }
     var old = $('#me-sheet'); if (old) old.remove();
+    if (trigger && trigger.isConnected && trigger.focus) try { trigger.focus(); } catch (e) {}
+  }
+  window.addEventListener('hashchange', function () { closeFitSheet(); });
+
+  function fitSheet(btn) {
+    closeFitSheet();
+    var host = btn.closest('li, .card, p') || btn;
+    if (!host || !host.parentNode) return;
     var d = document.createElement('div');
     d.id = 'me-sheet'; d.className = 'card ui sheet';
     d.innerHTML = '<div class="meta">What doesn’t fit? (tap any)</div><div class="chips">' + K.REASONS.map(function (r) {
       return '<button class="chip" data-r="' + esc(r) + '" aria-pressed="false">' + esc(r) + '</button>'; }).join('') + '</div>' +
       '<label class="sr" for="me-note">What would fit you better?</label><textarea id="me-note" rows="2" placeholder="What would fit you better? (optional)"></textarea>' +
       '<div class="row" style="margin-top:8px"><button class="primary" id="me-send">Save</button><button id="me-cancel">Cancel</button></div>';
-    var host = btn.closest('li, .card, p') || btn;
     host.parentNode.insertBefore(d, host.nextSibling);
     $$('#me-sheet [data-r]').forEach(function (b) { b.onclick = function () { b.setAttribute('aria-pressed', b.getAttribute('aria-pressed') !== 'true'); }; });
-    $('#me-cancel').onclick = function () { d.remove(); };
+    $('#me-cancel').onclick = function () { closeFitSheet(btn); };
     $('#me-send').onclick = function () {
       var rs = $$('#me-sheet [data-r][aria-pressed="true"]').map(function (b) { return b.dataset.r; }), note = $('#me-note').value;
       if (!rs.length && !note.trim()) { WL.toast('Tap a reason or write a few words'); return; }
       K.notFit(S, btn.dataset.part, btn.dataset.about, btn.dataset.shown, rs, note, now()); save();
-      d.remove(); btn.textContent = 'Noted: not for you ✓';
+      btn.textContent = 'Noted: not for you ✓';
+      closeFitSheet(btn);
       WL.toast('Thanks. Your next weekly plan takes this into account.');
     };
-    var ta = $('#me-note'); if (ta && ta.scrollIntoView) try { d.scrollIntoView({ block: 'nearest' }); } catch (e) {}
+    fitKey = function (ev) {
+      if (!d.isConnected) { closeFitSheet(); return; }
+      if (ev.key === 'Escape') { ev.preventDefault(); closeFitSheet(btn); }
+    };
+    document.addEventListener('keydown', fitKey);
+    var first = $('#me-sheet [data-r]'); if (first && first.focus) try { first.focus(); } catch (e) {}
+    if (d.scrollIntoView) try { d.scrollIntoView({ block: 'nearest' }); } catch (e) {}
   }
 
   /* One click handler for every quick question, check-in chip and "Not for me?" anywhere in the app. */

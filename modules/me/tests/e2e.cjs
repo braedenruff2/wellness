@@ -109,6 +109,24 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(f && f.about === 'day:1:practice' && f.shown.length > 10, JSON.stringify(f));
     assert.ok(/Noted/.test(await page.textContent('#practice [data-me-fit]')));
   });
+  await t.step('"Not for me?" sheet closes on Escape (restoring focus) and cleans up on navigation', async () => {
+    await page.goto(base + '#faith/day/1');
+    const trigger = '#reflect [data-me-fit][data-about="day:1:think"]';
+    await page.click(trigger);
+    assert.ok(await page.isVisible('#me-sheet'));
+    // Focus inside note textarea, press Escape -> sheet closes and focus returns to trigger button
+    await page.focus('#me-note');
+    await page.keyboard.press('Escape');
+    assert.strictEqual(await page.$('#me-sheet'), null, 'Escape closes #me-sheet');
+    const focused = await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-about'));
+    assert.strictEqual(focused, 'day:1:think', 'focus restored to trigger button');
+    // Re-open, navigate away -> sheet is gone and subsequent Escape causes no error
+    await page.click(trigger);
+    assert.ok(await page.isVisible('#me-sheet'));
+    await page.goto(base + '#home');
+    assert.strictEqual(await page.$('#me-sheet'), null, 'sheet removed on navigation');
+    await page.keyboard.press('Escape');
+  });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#home', '#me', '#calm', '#workout', '#coach']);
     assert.deepStrictEqual(t.errors, []);
