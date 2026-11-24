@@ -296,12 +296,14 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     await page.click('.answered');
     await page.click('.ans-cancel');
     assert.ok(!(await page.textContent('main')).includes('Looking back'), 'Cancel leaves the prayer open');
-    // Escape in .ans-form closes the form without marking the prayer answered
+    assert.ok(await page.evaluate(() => document.activeElement && document.activeElement.classList.contains('answered')), 'Cancel restores focus to Answered / let go');
+    // Escape in .ans-form closes the form without marking the prayer answered and restores focus
     await page.click('.answered');
     await page.fill('.ans-note', 'not saving');
     await page.press('.ans-note', 'Escape');
     assert.strictEqual(await page.locator('.ans-form').count(), 0, 'Escape closed .ans-form');
     assert.ok(!(await page.textContent('main')).includes('Looking back'), 'Escape leaves prayer open');
+    assert.ok(await page.evaluate(() => document.activeElement && document.activeElement.classList.contains('answered')), 'Escape restores focus to Answered / let go');
     await page.click('.answered');
     await page.fill('.ans-note', 'She did, twice!');
     await page.click('.ans-save');
@@ -313,7 +315,7 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     await page.click('.p-undo');
     assert.ok(!(await page.textContent('main')).includes('Looking back'), 'moved back out of Looking back');
     assert.ok((await page.textContent('main')).includes('Baby sleeping through'), 'still in Praying for');
-    // with 6+ prayers, search filters both open and answered prayers without matching button labels
+    // with 6+ prayers, search filters both open and answered prayers without matching button labels and hides empty section cards
     await page.click('.answered'); await page.fill('.ans-note', 'slept 7 hours'); await page.click('.ans-save');
     for (const p of ['Patience at bedtime', 'My wife’s rest', 'Grandparents health', 'Work focus', 'Sunday church visit']) {
       await page.fill('#new-prayer', p); await page.press('#new-prayer', 'Enter');
@@ -321,13 +323,21 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     await page.waitForSelector('#p-search');
     await page.fill('#p-search', 'church');
     assert.strictEqual(await page.locator('.p-list > li:not([hidden])').count(), 1);
+    assert.strictEqual(await page.locator('#p-open-card').isHidden(), false, 'Praying for card stays visible on open hit');
+    assert.strictEqual(await page.locator('#p-ans-card').isHidden(), true, 'Looking back card hides when 0 answered hits');
     assert.ok(/1 found/.test(await page.textContent('#p-found')));
     await page.fill('#p-search', '7 hours');
     assert.strictEqual(await page.locator('.p-list > li:not([hidden])').count(), 1, 'matches answered prayer note');
+    assert.strictEqual(await page.locator('#p-open-card').isHidden(), true, 'Praying for card hides when 0 open hits');
+    assert.strictEqual(await page.locator('#p-ans-card').isHidden(), false, 'Looking back card stays visible on answered hit');
     await page.fill('#p-search', 'delete');
     assert.strictEqual(await page.locator('.p-list > li:not([hidden])').count(), 0, 'ignores action button labels');
+    assert.strictEqual(await page.locator('#p-open-card').isHidden(), true, 'Praying for card hides on 0 total hits');
+    assert.strictEqual(await page.locator('#p-ans-card').isHidden(), true, 'Looking back card hides on 0 total hits');
     await page.fill('#p-search', '');
     assert.strictEqual(await page.locator('.p-list > li:not([hidden])').count(), 6);
+    assert.strictEqual(await page.locator('#p-open-card').isHidden(), false, 'Praying for card reappears when search cleared');
+    assert.strictEqual(await page.locator('#p-ans-card').isHidden(), false, 'Looking back card reappears when search cleared');
   });
 
   await step('settings: night theme, text size; auto turns night on at 9pm', async () => {
