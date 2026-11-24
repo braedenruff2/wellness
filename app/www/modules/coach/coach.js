@@ -263,9 +263,10 @@
 
   function card() {
     if (!S.child.birth && !askable()) return '';
-    var st = K.skillStats(S).filter(function (s) { return s.n; }), last = S.history[S.history.length - 1];
+    var st = K.skillStats(S).filter(function (s) { return s.n; }), last = null;
+    for (var i = S.history.length - 1; i >= 0; i--) { if (S.history[i].result && S.history[i].result.score != null) { last = S.history[i]; break; } }
     return '<div class="meta ui">Parenting practice</div><h3>' + (S.current ? esc(S.current.title) : waiting ? 'Claude is on it…' : 'Practise a moment with ' + esc(S.child.name || 'her')) + '</h3>' +
-      (last && last.result && last.result.score != null ? '<p class="meta ui">Last: ' + last.result.score + '/10 in ' + esc(last.skill) + ' · ' + st.length + ' skill' + (st.length === 1 ? '' : 's') + ' practised</p>' : '') +
+      (last ? '<p class="meta ui">Last: ' + last.result.score + '/10 in ' + esc(last.skill) + ' · ' + st.length + ' skill' + (st.length === 1 ? '' : 's') + ' practised</p>' : '') +
       (function () { var t = K.tips(S, null, 1)[0]; return t && !S.current ? '<p class="ui" id="co-tip">Try this week: ' + esc(t.text) + '</p>' : ''; })() +
       '<div class="row ui"><a class="btn primary" href="#coach">' + (S.current ? 'Answer it' : 'Open') + '</a></div>';
   }

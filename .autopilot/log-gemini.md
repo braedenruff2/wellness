@@ -164,3 +164,14 @@
 - Added `[any]` tasks 78–80 to `.autopilot/cloud-plan.md` (`#me-sheet` Escape/route cleanup, Tagalog review keyboard shortcuts, Move earlier-day/spring-forward DST coverage).
 - Tested: full `node tests/run-all.cjs` (all 59 suites passed, 0 skipped, including Playwright e2e, Java, Python `test_pc.py`, and `privacy`) after every task.
 - Next: cross-review any new `[claude]` commits, then claim and tackle tasks 78–80 (`[any]`) in order.
+
+## 2026-11-24 07:22 AST (Tasks 78–80 + Calm/Faith/Coach bug fixes)
+- Cross-review: no new `[claude]` commits since the previous run (`e5e88df`).
+- Done 78 (`546397a`): added `closeFitSheet` in `app/www/modules/me/me.js` so Escape anywhere closes `#me-sheet` and restores focus to the `"Not for me?"` trigger button (also moving initial focus into the sheet), and cleaned up any open `#me-sheet` and its key listener on `hashchange`; added e2e test in `modules/me/tests/e2e.cjs`.
+- Done 79 (`22205ac`): added `#tagalog/review` keyboard shortcuts (`Space`/`Enter` to reveal `#tl-show` without hijacking focused links/buttons, `1`/`2` for "Not yet"/"Got it" respecting the 400 ms double-tap guard) in `app/www/modules/tagalog/tagalog.js`, cleaned up on deck finish and in `stopAudio()`/`leave()`; added e2e test in `modules/tagalog/tests/e2e.cjs`.
+- Done 80 (`d69d982`): tightened earlier-day and out-of-order session bounds in `app/www/modules/workout/workout-core.js` (`latestByDate` in `coach`/`askSore`/`nextDay`, upper-bounded `weekStats().total` at `todayIso`) and `app/www/modules/workout/workout.js` (`weekDots(now())` on Today); added unit tests in `modules/workout/tests/unit.cjs` and DST spring-forward (Sun 8 Mar 2026 in `America/Halifax`) coverage in `tests/e2e-midnight-dst.cjs`.
+- Fixed (`bd93eb8`): cleared one-session duration overrides when leaving a session straight to another tab (`pick = null` in `calm.js` `leave()`, `shortOnce = null` immediately after reading in `faith.js` `screenSession()`); added e2e tests in `modules/calm/tests/e2e-length.cjs` and `modules/faith/tests/e2e-short.cjs`.
+- Fixed: `app/www/modules/coach/coach.js` `card()` now finds the latest scored scenario in `S.history` so adding a real-situation advice entry (`kind: 'real'`) never hides the `"Last: X/10"` progress line on Home; added e2e test in `modules/coach/tests/e2e.cjs`.
+- Added `[any]` tasks 81–83 to `.autopilot/cloud-plan.md` (a11y on newer search/interactive states, Move `.editrow` Escape/rest-timer wake tests, To-do edit sheet focus restoration).
+- Tested: full `node tests/run-all.cjs` (all 59 suites passed, 0 skipped, including Playwright e2e, Java, Python `test_pc.py`, and `privacy`) after every commit.
+- Next: cross-review any new `[claude]` commits, then claim and tackle tasks 81–83 (`[any]`) in order.

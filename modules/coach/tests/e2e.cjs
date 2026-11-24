@@ -120,6 +120,10 @@ const W = require('../../../tests/lib/web.cjs');
     assert.ok(adv.includes('Diaper wrestling') && adv.includes('Hand her a special toy'), adv);
     await page.goto(base + '#coach/h/no-such-id');
     assert.ok((await page.textContent('#view')).includes('Not found'));
+    // Home Parenting card still shows the last scored scenario even when the newest history entry is a real-situation advice (h2)
+    await page.goto(base + '#home');
+    const cardTxt = await page.textContent('.home-card[data-module="coach"]');
+    assert.ok(cardTxt.includes('Last: 8/10 in Feeding'), 'Home card keeps last scored scenario past real-situation advice: ' + cardTxt);
   });
 
   await t.step('Past practice search finds items by title or skill (even past 20) and Show all reveals the rest', async () => {
