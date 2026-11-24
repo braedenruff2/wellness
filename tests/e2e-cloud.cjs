@@ -219,15 +219,24 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     await page.goto(base + '#home');
     assert.ok((await page.textContent('.home-card[data-module="link"]')).includes('Cloud advice'));
     // Unpaired with Drive sync on: #link still shows "Advice from Claude" so custom questions queue for the cloud
+    // Even if generic advice is already queued on Home, a custom question on #link is queued instead of silently dropped
+    await page.click('[data-advice]');
+    await page.waitForSelector('#lk-queued');
+    assert.strictEqual((await reqs('advice')).length, 1);
     await page.click('.home-card[data-module="link"] a[href="#link"]');
     await page.waitForSelector('#lk-advice-card #lk-q');
     await page.fill('#lk-q', 'How should I pace workouts after two rough nights?');
     await page.click('#lk-advice');
     await page.waitForSelector('#lk-queued');
+    await page.click('#lk-advice'); // same custom question twice still dedups
+    await page.waitForTimeout(50);
     const customReqs = await reqs('advice');
-    assert.strictEqual(customReqs.length, 1);
-    assert.strictEqual(customReqs[0].input.question, 'How should I pace workouts after two rough nights?');
-    await cloudAnswers({ [customReqs[0].id]: { task: 'advice', answer: { headline: 'Keep workouts light', points: ['Two sets is enough'], next: 'Rest today' } } });
+    assert.strictEqual(customReqs.length, 2, 'generic + custom advice both queued (and duplicate custom deduped)');
+    assert.strictEqual(customReqs[1].input.question, 'How should I pace workouts after two rough nights?');
+    await cloudAnswers({
+      [customReqs[0].id]: { task: 'advice', answer: { headline: 'General note', points: ['Steady'], next: 'Sleep' } },
+      [customReqs[1].id]: { task: 'advice', answer: { headline: 'Keep workouts light', points: ['Two sets is enough'], next: 'Rest today' } }
+    });
     await page.waitForFunction(() => /Keep workouts light/.test(document.getElementById('lk-adv').textContent));
     assert.ok(!(await page.$('#lk-queued')));
     await page.goto(base + '#home');

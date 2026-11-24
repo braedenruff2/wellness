@@ -136,8 +136,10 @@
      null when Drive sync isn't set up (then nothing can answer it). */
   function queue(task, input, meta) {
     if (!cloudOn()) return null;
-    // one waiting at a time for these (a new day's input is still the same question); others: one per input
-    var key = /^(weekly-plan|advice|coach-scenario)$/.test(task) ? task : JSON.stringify(input || {}).slice(0, 4000), mine = queued(task);
+    // one waiting at a time for generic weekly-plan/advice/scenario; custom advice questions dedup per question so they aren't dropped behind a generic tap
+    var qtext = task === 'advice' && input && typeof input.question === 'string' ? input.question.trim() : '';
+    var key = qtext ? 'advice:' + qtext.toLowerCase().slice(0, 300)
+      : /^(weekly-plan|advice|coach-scenario)$/.test(task) ? task : JSON.stringify(input || {}).slice(0, 4000), mine = queued(task);
     for (var i = 0; i < mine.length; i++) if (cloud()[mine[i].id].key === key) return { id: mine[i].id, task: task, at: mine[i].at };
     var r = WL.driveSync.enqueue(task, input || {});
     cloud()[r.id] = { task: task, at: r.at, key: key, meta: meta == null ? null : meta };
