@@ -150,3 +150,17 @@
 - Added `[any]` tasks 75–77 to `.autopilot/cloud-plan.md` (cloud-first custom advice question on `#link`, weight-aware best set on `#workout/history`, Escape on Faith answered-prayer form & guided session Space shortcut).
 - Tested: full `node tests/run-all.cjs` (all 58 suites passed, 0 skipped, including Playwright e2e, Java, Python `test_pc.py`, and `privacy`) after every task.
 - Next: cross-review Claude's tasks 57 and 58 once landed, then claim and tackle tasks 75–77 (`[any]`) in order.
+
+## 2026-11-24 02:32 AST (Tasks 57, 58, 75, 76, 77: Tagalog word-order hint, midnight/DST bug hunt, cloud-first custom advice, weight-aware best set, keyboard UX)
+- Cross-review: no new `[claude]` commits since the previous run (`8b2c87d`); prior claims on tasks 57 and 58 were >10 hours old (void per `agents.md` 8-hour rule), so claimed and completed all 5 remaining `[any]` tasks in order.
+- Done 57 (`beae0b9`): added `TagalogCore.orderHint(ex, given)` in `app/www/modules/tagalog/tagalog-core.js` for wrong-order answers with the exact same words on `ang`/`ng`/`si`/`ni` sentences (`"Right words; in Tagalog the doer comes after the verb: ..."`), wired `#tl-order` feedback in `app/www/modules/tagalog/tagalog.js`, and added real-pack unit + browser e2e tests in `modules/tagalog/tests/`.
+- Done 58 (`50e9b50`): audited Home's `#wl-today`, `#wl-week`, and every module's `today()`/`week()` in `America/Halifax` across 23:59/00:00 boundaries and DST end (Sun 1 Nov 2026, including the repeated 01:30 hour and late-night timestamps already on the next UTC date).
+  - Fixed `app/www/shell.js` to refresh Home on `visibilitychange` resume when crossing midnight, Sunday noon, or 8 pm (skipping if actively editing a field or sheet), and re-apply Auto theme on resume.
+  - Fixed `app/www/modules/workout/workout-core.js` `weekStats()` and `weekVolume()` to upper-bound `thisWeek` at `iso(now)` (consistent with `restThisWeek`, Faith, Calm, Tagalog, and To-do).
+  - Added `timezoneId` support in `tests/lib/web.cjs`, new suite `tests/e2e-midnight-dst.cjs`, and unit test in `modules/workout/tests/unit.cjs`.
+- Done 75 (`c600294`): updated `app/www/modules/link/link.js` to show the "Advice from Claude" card (`#lk-advice-card`) on `#link` when unpaired with Drive sync enabled (`WL.pc.canAsk()`) and added an "Ask a question" link on Home's link card so custom questions can be queued for the cloud run; added tests in `tests/e2e-cloud.cjs`.
+- Done 76 (`b659dfd`): added `WorkoutCore.bestSet(state, name)` (heaviest weight first, then highest reps/sec/min at that weight, respecting sheet dedup and set edits/removals) and wired it into `#workout/history` in `app/www/modules/workout/workout.js`; added unit + e2e tests in `modules/workout/tests/`.
+- Done 77: wired Escape to cancel `.ans-form` on `#faith/journal/prayers` and Space to pause/resume active Faith and Calm guided sessions (ignoring inputs/buttons/links and removing listeners cleanly in `leave()`); added tests in `modules/faith/tests/e2e.cjs` and `modules/calm/tests/e2e.cjs`.
+- Added `[any]` tasks 78–80 to `.autopilot/cloud-plan.md` (`#me-sheet` Escape/route cleanup, Tagalog review keyboard shortcuts, Move earlier-day/spring-forward DST coverage).
+- Tested: full `node tests/run-all.cjs` (all 59 suites passed, 0 skipped, including Playwright e2e, Java, Python `test_pc.py`, and `privacy`) after every task.
+- Next: cross-review any new `[claude]` commits, then claim and tackle tasks 78–80 (`[any]`) in order.

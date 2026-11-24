@@ -4,7 +4,7 @@
   var K = window.CalmCore, G = window.WLGuided, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   var store = WL.store('wl.calm.v1', K.defaults);
   var S = store.load(), view = null;
-  var run = null; // {p, start, end, raf, timer, player, paused, pausedAt, before}
+  var run = null, keyHandler = null; // {p, start, end, raf, timer, player, paused, pausedAt, before}
   function save() { store.save(S); }
   function practice(id) { return K.PRACTICES.filter(function (p) { return p.id === id; })[0]; }
   function titleOf(id) { var p = practice(id); return p ? p.title : String(id || ''); }
@@ -206,6 +206,16 @@
       stopRun(); location.hash = '#calm';
     };
     $('#c-end').onclick = function () { saveEarly(); stopRun(); location.hash = '#calm'; };
+    var pp = $('#c-pp');
+    keyHandler = function (ev) {
+      if (ev.key !== ' ' && ev.code !== 'Space') return;
+      var tag = ev.target && ev.target.tagName;
+      if (/^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(tag || '') || (ev.target && ev.target.isContentEditable)) return;
+      if (pp && pp.isConnected && !pp.hidden && (pp.dataset.state === 'playing' || pp.dataset.state === 'paused')) {
+        ev.preventDefault(); pp.click();
+      }
+    };
+    document.addEventListener('keydown', keyHandler);
   }
 
   // ending early (✕, Android back, another tab) still counts the minutes you did, if at least half a minute
@@ -215,7 +225,10 @@
       WL.toast('Saved ' + Math.max(1, Math.round(elapsed() / 60)) + ' min');
     }
   }
-  function leave() { saveEarly(); stopRun(); }
+  function leave() {
+    if (keyHandler) { document.removeEventListener('keydown', keyHandler); keyHandler = null; }
+    saveEarly(); stopRun();
+  }
 
   function route(parts, v) {
     if (v) view = v;

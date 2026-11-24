@@ -32,11 +32,17 @@ const Wb = require('../../../tests/lib/web.cjs');
   await t.step('pause stops the clock', async () => {
     await page.goto(base + '#calm/s/box');
     await page.click('#c-pp'); await page.clock.runFor(10000);
-    await page.click('#c-pp'); const left = await page.textContent('#c-left');
+    // Space pauses and resumes when focus is not on a button/input
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    await page.keyboard.press('Space');
+    assert.strictEqual(await page.getAttribute('#c-pp', 'data-state'), 'paused', 'Space pauses Calm session');
+    const left = await page.textContent('#c-left');
     await page.clock.runFor(10 * 60000);
     assert.strictEqual(await page.textContent('#c-left'), left);
     assert.ok(!(await page.isVisible('#c-after')));
-    await page.click('#c-pp'); await page.clock.runFor(5000);
+    await page.keyboard.press('Space');
+    assert.strictEqual(await page.getAttribute('#c-pp', 'data-state'), 'playing', 'Space resumes Calm session');
+    await page.clock.runFor(5000);
     assert.ok(!(await page.isVisible('#c-after')), 'resumed, not over yet');
     await page.clock.fastForward(6 * 60000); await page.clock.runFor(1000);
     assert.ok(await page.isVisible('#c-after'));

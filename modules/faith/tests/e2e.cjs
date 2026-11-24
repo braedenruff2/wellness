@@ -181,6 +181,12 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     await page.goto(base + '#faith/session/p/breath');
     await page.click('#pp');
     await page.clock.runFor(2000);
+    // Space toggles pause and resume when focus is not on a button or input
+    await page.evaluate(() => document.activeElement && document.activeElement.blur());
+    await page.keyboard.press('Space');
+    assert.strictEqual(await page.getAttribute('#pp', 'data-state'), 'paused', 'Space pauses Faith session');
+    await page.keyboard.press('Space');
+    assert.strictEqual(await page.getAttribute('#pp', 'data-state'), 'playing', 'Space resumes Faith session');
     await page.click('#skip'); await page.click('#skip');
     await page.clock.runFor(500);
     const at = await page.evaluate(() => JSON.parse(localStorage.getItem('fc.v1')).resume.step);
@@ -290,6 +296,12 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     await page.click('.answered');
     await page.click('.ans-cancel');
     assert.ok(!(await page.textContent('main')).includes('Looking back'), 'Cancel leaves the prayer open');
+    // Escape in .ans-form closes the form without marking the prayer answered
+    await page.click('.answered');
+    await page.fill('.ans-note', 'not saving');
+    await page.press('.ans-note', 'Escape');
+    assert.strictEqual(await page.locator('.ans-form').count(), 0, 'Escape closed .ans-form');
+    assert.ok(!(await page.textContent('main')).includes('Looking back'), 'Escape leaves prayer open');
     await page.click('.answered');
     await page.fill('.ans-note', 'She did, twice!');
     await page.click('.ans-save');

@@ -19,7 +19,7 @@
   var S = store.load();
   var view = null;
   var native = window.FCAndroid || null;   // the Android app's bridge (absent in a browser)
-  var player = null, session = null, quietTimer = null, startTimer = null, journalTimer = null;
+  var player = null, session = null, quietTimer = null, startTimer = null, journalTimer = null, keyHandler = null;
 
   function save() { store.save(S); }
   var finishedAt = -1e9;
@@ -354,6 +354,7 @@
     }).join('') + '</div>';
   }
   function leave() {
+    if (keyHandler) { document.removeEventListener('keydown', keyHandler); keyHandler = null; }
     clearInterval(quietTimer);
     clearTimeout(startTimer); startTimer = null;
     if (journalTimer) { clearTimeout(journalTimer); journalTimer = null; saveNow(); }
@@ -447,6 +448,15 @@
         if (player) player.stop(); player = null; keepAwake(false);
         history.length > 1 ? history.back() : (location.hash = '#faith/today');
       };
+      keyHandler = function (ev) {
+        if (ev.key !== ' ' && ev.code !== 'Space') return;
+        var tag = ev.target && ev.target.tagName;
+        if (/^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(tag || '') || (ev.target && ev.target.isContentEditable)) return;
+        if (el.isConnected && !el.hidden && (el.dataset.state === 'playing' || el.dataset.state === 'paused')) {
+          ev.preventDefault(); el.click();
+        }
+      };
+      document.addEventListener('keydown', keyHandler);
     } });
     [].forEach.call(document.querySelectorAll('[data-min]'), function (b) {
       b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route(); };
@@ -492,9 +502,11 @@
           var p = S.prayers.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!p) return;
           p.answered = logNow().toISOString(); p.note = inp.value.trim(); save(); route();
         };
+        var cancel = function () { f.remove(); row.style.display = ''; };
         f.querySelector('.ans-save').onclick = done;
         inp.onkeydown = function (ev) { if (ev.key === 'Enter') done(); };
-        f.querySelector('.ans-cancel').onclick = function () { f.remove(); row.style.display = ''; };
+        f.onkeydown = function (ev) { if (ev.key === 'Escape') { ev.preventDefault(); cancel(); } };
+        f.querySelector('.ans-cancel').onclick = cancel;
       };
     });
     on('#p-search', function (el) { el.oninput = function () {
