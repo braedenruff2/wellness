@@ -258,7 +258,8 @@
     now = now || new Date();
     if (!backupDue(now)) return '';
     var today = isoDate(now);
-    if (SH.nudged && SH.nudged !== today && now.getTime() - Date.parse(SH.nudged) < 7 * 864e5) return '';
+    var sinceNudge = SH.nudged ? Date.parse(today) - Date.parse(SH.nudged) : NaN;
+    if (SH.nudged && SH.nudged !== today && sinceNudge > 0 && sinceNudge < 7 * 864e5) return '';
     if (SH.nudged !== today) { SH.nudged = today; shellStore.save(SH); }
     // Drive sync worked before and has stopped: say when it last worked (newer than any backup file he saved)
     var ds = driveState(), synced = ds && ds.configured && ds.lastSync ? Date.parse(ds.lastSync) : 0;
@@ -529,7 +530,7 @@
     };
     var im = $('#wl-import');
     if (im) im.onchange = function () {
-      var f = im.files && im.files[0]; if (!f) return;
+      var f = im.files && im.files[0]; im.value = ''; if (!f) return;
       var r = new FileReader();
       r.onload = function () {
         try {

@@ -57,11 +57,31 @@ const W = require('./lib/web.cjs');
     assert.ok(await page.$('#wl-backup'), 'still there the same day');
     await at(11); await page.reload(); await page.waitForSelector('#wl-today');
     assert.strictEqual(await page.$('#wl-backup'), null, 'not every day');
+    // calendar-day 7-day cadence regardless of time of day / UTC offset
+    await page.clock.setSystemTime(new Date(2026, 11, 16, 23, 30)); await page.reload(); await page.waitForSelector('#wl-today');
+    assert.strictEqual(await page.$('#wl-backup'), null, 'still hidden on day 6 late evening');
+    await page.clock.setSystemTime(new Date(2026, 11, 17, 0, 30)); await page.reload(); await page.waitForSelector('#wl-today');
+    assert.ok(await page.$('#wl-backup'), 'reappears on day 7 early morning');
     await page.goto(base + '#settings');
     assert.ok(/It’s been a while/.test(await page.textContent('#view')));
     await Promise.all([page.waitForEvent('download'), page.click('#wl-export')]);
     await at(20); await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#wl-today');
     assert.strictEqual(await page.$('#wl-backup'), null, 'saved 9 days ago: no nudge');
+  });
+  await t.step('cancelling backup restore confirm resets #wl-import so picking the same file again works', async () => {
+    await page.goto(base + '#settings');
+    const payload = JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': JSON.stringify({ theme: 'dark', textSize: 1.15 }) } });
+    const file = { name: 'same-backup.json', mimeType: 'application/json', buffer: Buffer.from(payload) };
+    let confirms = 0;
+    const handler = async (dialog) => { confirms++; if (confirms === 1) await dialog.dismiss(); else await dialog.accept(); };
+    page.on('dialog', handler);
+    await page.setInputFiles('#wl-import', file);
+    await page.waitForFunction(() => document.getElementById('wl-import').value === '');
+    assert.notStrictEqual(await page.getAttribute('html', 'data-theme'), 'dark', 'cancelled first confirm');
+    await page.setInputFiles('#wl-import', file);
+    await page.waitForFunction(() => document.documentElement.getAttribute('data-theme') === 'dark');
+    page.off('dialog', handler);
+    assert.strictEqual(confirms, 2, 'same file triggered onchange a second time');
   });
   await t.step('restoreText validates wl.shell.v1 (sanitizes bad theme/textSize, skips corrupt JSON)', async () => {
     const res = await page.evaluate(() => {

@@ -293,7 +293,7 @@
     $$('[data-hard]').forEach(function (c) { c.onchange = function () { var n = c.dataset.hard; if (c.checked) S.next[n] = W.EX[n].hard; else delete S.next[n]; save(); }; });
     var f = $('#wo-csv');
     if (f) f.onchange = function () {
-      var file = f.files && f.files[0]; if (!file) return;
+      var file = f.files && f.files[0]; f.value = ''; if (!file) return;
       var r = new FileReader();
       r.onload = function () {
         try { var n = W.importSheetCsv(S, String(r.result)); save(); WL.toast(n ? 'Imported ' + n + ' exercises from the sheet' : 'Nothing new in that file'); route(['settings']); }
