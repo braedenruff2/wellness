@@ -31,18 +31,29 @@
     return '<div class="chips">' + found.map(function (f) { return '<button class="chip" data-host="' + esc(f.host) + '">' + esc(f.name || f.host) + ' (' + esc(f.host) + ')</button>'; }).join('') + '</div>';
   }
 
+  function adviceCardHtml(paired) {
+    advice = advice || pc.settings().advice || null;
+    return '<div class="card ui" id="lk-advice-card"><h3>Advice from Claude</h3><p class="meta">' +
+      (paired ? 'Claude reads the last two weeks of your log and suggests what would help most.'
+        : 'Claude reads the last two weeks of your log from Drive sync and answers on the next cloud run.') + '</p>' +
+      '<label for="lk-q">Anything on your mind? (optional)</label><textarea id="lk-q" rows="2"></textarea>' +
+      '<div class="row"><button class="primary" id="lk-advice"' + (adviceBusy ? ' disabled' : '') + '>Ask for advice</button></div><div id="lk-adv" aria-live="polite">' + adviceHtml() + '</div></div>';
+  }
+
   function render() {
     var st = pc.status(), P = pc.settings();
     var h = '<h1>PC link</h1><p class="ui meta">Your phone sends what you do in the app to your own PC (home Wi-Fi only), into Desktop\\wellness-progress. ' +
       'Claude on your PC reads it to suggest next steps and to coach you, using your own Claude Code. Nothing goes anywhere else.</p>';
-    if (!st.paired) { view.innerHTML = h + pairHtml(st) + logHtml(P); wire(); return; }
+    if (!st.paired) {
+      var canCloud = !!(pc.canAsk && pc.canAsk());
+      view.innerHTML = h + (canCloud ? adviceCardHtml(false) : '') + pairHtml(st) + logHtml(P);
+      wire(); return;
+    }
     h += '<div class="card ui"><h3>Paired with ' + esc(st.name || st.host) + '</h3>' +
       '<p class="meta">Last sent: ' + esc(ago(P.lastSync)) + (P.lastSync ? ' (' + (P.lastSent || 0) + ' new)' : '') +
       (P.lastError ? '<br><span class="no">Last try: ' + esc(P.lastError) + ' (' + esc(ago(P.lastErrorAt)) + ')</span>' : '') + '</p>' +
       '<div class="row"><button class="primary" id="lk-sync"' + (busy ? ' disabled' : '') + '>Send now</button><button id="lk-test">Check the PC</button></div><p id="lk-msg" class="meta" aria-live="polite"></p></div>';
-    h += '<div class="card ui"><h3>Advice from Claude</h3><p class="meta">Claude reads the last two weeks of your log and suggests what would help most.</p>' +
-      '<label for="lk-q">Anything on your mind? (optional)</label><textarea id="lk-q" rows="2"></textarea>' +
-      '<div class="row"><button class="primary" id="lk-advice">Ask for advice</button></div><div id="lk-adv" aria-live="polite">' + adviceHtml() + '</div></div>';
+    h += adviceCardHtml(true);
     h += logHtml(P);
     h += '<p class="ui"><button class="link" id="lk-forget">Unpair this phone</button></p>';
     view.innerHTML = h;
@@ -164,6 +175,7 @@
   function keep() { var P = pc.settings(); P.advice = advice; pc.save(); }
   function draw() {
     var el = document.getElementById('lk-adv'); if (el) el.innerHTML = adviceHtml();
+    var ad = document.getElementById('lk-advice'); if (ad) ad.disabled = adviceBusy;
     var c = document.querySelector('.home-card[data-module="link"]'); if (c) c.innerHTML = card();
   }
 
@@ -172,7 +184,7 @@
     if (!paired && !(pc.canAsk && pc.canAsk())) return '';
     advice = advice || pc.settings().advice || null;
     return '<div class="meta ui">' + (paired ? 'Claude on your PC' : 'Claude (answers from the cloud run)') + '</div><h3>Advice for this week</h3>' + adviceHtml() +
-      '<div class="row ui"><button class="primary" data-advice="1"' + (adviceBusy ? ' disabled' : '') + '>' + (advice && advice.answer ? 'Ask again' : 'Ask for advice') + '</button>' + (paired ? '<a class="btn" href="#link">PC link</a>' : '') + '</div>';
+      '<div class="row ui"><button class="primary" data-advice="1"' + (adviceBusy ? ' disabled' : '') + '>' + (advice && advice.answer ? 'Ask again' : 'Ask for advice') + '</button>' + (paired ? '<a class="btn" href="#link">PC link</a>' : '<a class="btn" href="#link">Ask a question</a>') + '</div>';
   }
 
   WL.register({

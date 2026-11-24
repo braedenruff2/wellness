@@ -218,6 +218,19 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     assert.strictEqual(await page.evaluate(() => WL.pc.queued().length), 0);
     await page.goto(base + '#home');
     assert.ok((await page.textContent('.home-card[data-module="link"]')).includes('Cloud advice'));
+    // Unpaired with Drive sync on: #link still shows "Advice from Claude" so custom questions queue for the cloud
+    await page.click('.home-card[data-module="link"] a[href="#link"]');
+    await page.waitForSelector('#lk-advice-card #lk-q');
+    await page.fill('#lk-q', 'How should I pace workouts after two rough nights?');
+    await page.click('#lk-advice');
+    await page.waitForSelector('#lk-queued');
+    const customReqs = await reqs('advice');
+    assert.strictEqual(customReqs.length, 1);
+    assert.strictEqual(customReqs[0].input.question, 'How should I pace workouts after two rough nights?');
+    await cloudAnswers({ [customReqs[0].id]: { task: 'advice', answer: { headline: 'Keep workouts light', points: ['Two sets is enough'], next: 'Rest today' } } });
+    await page.waitForFunction(() => /Keep workouts light/.test(document.getElementById('lk-adv').textContent));
+    assert.ok(!(await page.$('#lk-queued')));
+    await page.goto(base + '#home');
   });
   await t.step('an old answer the phone is not waiting for is dropped, not shown again', async () => {
     await cloudAnswers({ 'r-old-1': { task: 'advice', answer: { headline: 'Stale advice', points: ['x'], next: 'y' }, at: '2026-11-01T10:00:00Z' } });
@@ -282,6 +295,8 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     assert.ok(await page.$eval('#co-new', (b) => b.disabled));
     await page.goto(base + '#home');
     assert.ok(!(await page.$('.home-card[data-module="link"]')), 'no advice card without a way to answer');
+    await page.goto(base + '#link');
+    assert.strictEqual(await page.$('#lk-advice-card'), null, 'no advice card on #link without PC or Drive sync');
     const e = await page.evaluate(() => WL.pc.ask('advice', {}).then(() => '', (x) => (x.queued ? 'queued: ' : '') + x.message));
     assert.ok(/Pair the PC link first/.test(e) && !/queued/.test(e), e);
     await page.evaluate(() => { localStorage.removeItem('test.pc.unpaired'); localStorage.removeItem('test.drive.off'); });
@@ -297,6 +312,6 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     assert.ok(!(await page.$('#co-queued')));
     assert.strictEqual(await page.evaluate(() => WL.pc.queued().length), 0);
   });
-  await t.step('no errors, nothing overflows', async () => { await t.noOverflow(['#home', '#coach', '#tagalog', '#me']); assert.deepStrictEqual(t.errors, []); });
+  await t.step('no errors, nothing overflows', async () => { await t.noOverflow(['#home', '#coach', '#tagalog', '#me', '#link']); assert.deepStrictEqual(t.errors, []); });
   await t.close('cloud answers browser');
 })().catch((e) => { console.error(e); process.exit(1); });
