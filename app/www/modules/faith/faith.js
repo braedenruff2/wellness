@@ -476,7 +476,7 @@
     });
     on('#add-prayer', function (el) { {
       var inp = $('#new-prayer');
-      var add = function () { if (C.addPrayer(S, inp.value)) { save(); route(); toast('Added'); } else inp.focus(); };
+      var add = function () { if (C.addPrayer(S, inp.value, logNow())) { save(); route(); toast('Added'); } else inp.focus(); };
       el.onclick = add; inp.onkeydown = function (ev) { if (ev.key === 'Enter') add(); };
     } });
     [].forEach.call(document.querySelectorAll('.answered'), function (b) {
@@ -490,7 +490,7 @@
         var inp = f.querySelector('.ans-note'); inp.focus();
         var done = function () {
           var p = S.prayers.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!p) return;
-          p.answered = new Date().toISOString(); p.note = inp.value.trim(); save(); route();
+          p.answered = logNow().toISOString(); p.note = inp.value.trim(); save(); route();
         };
         f.querySelector('.ans-save').onclick = done;
         inp.onkeydown = function (ev) { if (ev.key === 'Enter') done(); };

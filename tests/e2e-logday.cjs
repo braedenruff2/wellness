@@ -42,11 +42,37 @@ const W = require('./lib/web.cjs');
     const s = await st('wl.todo.v1');
     assert.strictEqual(new Date(s.tasks.find((x) => x.text === 'call the bank').done).getDate(), 17);
   });
-  await t.step('a faith day marked done goes on yesterday', async () => {
+  await t.step('a faith day marked done and prayer added go on yesterday', async () => {
     await page.goto(base + '#faith/today');
     await page.click('#finish');
+    await page.goto(base + '#faith/journal/prayers');
+    await page.fill('#new-prayer', 'Strength for the week'); await page.click('#add-prayer');
+    await page.click('.answered'); await page.click('.ans-save');
     const s = await st('fc.v1') || await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (/faith|fc/.test(k)) return JSON.parse(localStorage.getItem(k)); return null; });
     assert.ok(s && Object.values(s.done || {}).includes('2026-11-17'), JSON.stringify(s && s.done));
+    assert.strictEqual(new Date(s.prayers[0].at).getDate(), 17, 'prayer added on yesterday');
+    assert.strictEqual(new Date(s.prayers[0].answered).getDate(), 17, 'prayer answered on yesterday');
+  });
+  await t.step('a Tagalog lesson, answers and review go on yesterday; today is untouched on Home', async () => {
+    await page.goto(base + '#tagalog/l/2026-11-18/1');
+    const exs = await page.evaluate(() => window.TL_PACKS[0].lessons[0].exercises);
+    for (const ex of exs) {
+      if (ex.type === 'mc' || ex.type === 'listen') await page.click(`#tl-ex [data-o="${ex.answer.replace(/"/g, '\\"')}"]`);
+      else if (ex.type === 'type') { await page.fill('#tl-in', ex.answer); await page.click('#tl-check'); }
+      else if (ex.type === 'build') { for (const w of ex.answer.split(' ')) await page.click(`#tl-ex .word:not([disabled]):text-is("${w}")`); await page.click('#tl-check'); }
+      await page.click('#tl-next');
+    }
+    let s = await st('wl.tagalog.v1');
+    assert.strictEqual(new Date(s.done['2026-11-18/1']).getDate(), 17, 'lesson done recorded on yesterday');
+    assert.ok(s.answers.every((a) => new Date(a.at).getDate() === 17), 'answers recorded on yesterday');
+    assert.ok(Object.values(s.cards).every((c) => c.due === '2026-11-18'), 'cards due next day (today)');
+    await page.goto(base + '#home');
+    assert.ok(!/Tagalog: lesson done/.test(await page.textContent('#wl-today')), 'Home today list still asks for today’s Tagalog');
+    // reviewing a due card while yesterday is picked records the review on yesterday
+    await page.goto(base + '#tagalog/review');
+    await page.click('#tl-show'); await page.clock.runFor(450); await page.click('#tl-yes');
+    s = await st('wl.tagalog.v1');
+    assert.strictEqual(new Date(s.reviews[0].at).getDate(), 17, 'review recorded on yesterday');
   });
   await t.step('"Back to today" ends it; after that everything is today again', async () => {
     await page.click('#logday-back');

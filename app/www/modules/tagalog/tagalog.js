@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   var T = window.TagalogCore, esc = WL.esc, $ = WL.$, $$ = WL.$$;
+  function logNow() { return WL.logNow ? WL.logNow() : new Date(); }
   var store = WL.store('wl.tagalog.v1', T.defaults);
   var S = store.load(), view = null, playTok = 0, playTimer = null;
   function save() { store.save(S); }
@@ -105,7 +106,7 @@
 
   function runExercises(pk, l) {
     runSet(l.exercises.map(function (ex) { return { pack: pk, lesson: l, ex: ex }; }), function (right, n) {
-      T.finishLesson(S, pk, l); save();
+      T.finishLesson(S, pk, l, logNow()); save();
       return '<p class="ui"><b>' + right + ' of ' + n + ' right.</b> ' + (right === n ? 'Excellent.' : right >= n * 0.6 ? 'Good work.' : 'Worth another go tomorrow.') +
         ' The words are now in your review.</p>' + (window.WLMe ? WLMe.askHtml('tagalog', pk.id + '/' + l.day, 'Quick question (optional): it shapes next week’s lessons') : '') + '<div class="row ui"><a class="btn primary" href="#tagalog">Done</a><button id="tl-again">Practice again</button></div>';
     });
@@ -135,7 +136,7 @@
         if (answered) return; answered = true;
         var ok = T.check(ex, given);
         if (ok) right++;
-        T.recordAnswer(S, pk, l, ex, ok, null, given); save();
+        T.recordAnswer(S, pk, l, ex, ok, logNow(), given); save();
         var askable = !ok && ex.type === 'type' && String(given || '').trim() && WL.pc && (WL.pc.canAsk ? WL.pc.canAsk() : WL.pc.ready());
         $('#tl-fb').innerHTML = '<p class="' + (ok ? 'ok' : 'no') + '">' + (ok ? '✓ Right!' : '✗ Answer: <b>' + esc(ex.answer) + '</b>') + '</p>' +
           (ok && T.missedPo(ex, given) ? '<p class="meta" id="tl-po">With an elder, add “po”: <b>' + esc(ex.answer) + '</b></p>' : '') +
@@ -236,8 +237,8 @@
         $('#tl-btns').innerHTML = '<button id="tl-no">Not yet</button><button class="primary" id="tl-yes">Got it</button>';
         // a double-tap on Show would land on "Not yet" (now where Show was): ignore taps for a moment
         var shownAt = Date.now(), late = function () { return Date.now() - shownAt >= 400; };
-        $('#tl-no').onclick = function () { if (!late()) return; T.review(S, k, false); save(); missed.push(k); i++; show(); };
-        $('#tl-yes').onclick = function () { if (!late()) return; T.review(S, k, true); save(); i++; show(); };
+        $('#tl-no').onclick = function () { if (!late()) return; T.review(S, k, false, logNow()); save(); missed.push(k); i++; show(); };
+        $('#tl-yes').onclick = function () { if (!late()) return; T.review(S, k, true, logNow()); save(); i++; show(); };
       };
     }
     show();
