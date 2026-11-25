@@ -439,6 +439,47 @@ const W = require('./lib/web.cjs');
       await page.evaluate(() => { window.__pcPaired = false; });
     });
   }
+  // 25 Nov UI: Tagalog hints (#tl-linker, #tl-alt), review example, Your words scores + Practise these, slow line, Calm #c-flat / .c-helped
+  for (const [ts, theme] of [[1, 'light'], [1.3, 'light'], [1, 'dark'], [1, 'night']]) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step('25 Nov UI at ' + ts + 'x ' + theme + ': targets, overflow, contrast', async () => {
+      await look(ts, theme); await seed();
+      const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
+      await page.goto(base + '#tagalog/l/2026-11-25/1'); await page.reload(); await page.waitForSelector('#tl-ex');
+      assert.deepStrictEqual(await small('.dlg [data-say-slow], .dlg [data-say]'), []);
+      await t.noOverflow(['#tagalog/l/2026-11-25/1']);
+      await page.click('#tl-ex .opt'); await page.click('#tl-next');
+      await page.click('#tl-check'); await page.click('#tl-next');
+      await page.fill('#tl-in', 'gusto ko mag-aral ng Tagalog'); await page.click('#tl-check'); await page.waitForSelector('#tl-linker');
+      assert.deepStrictEqual(await bad('#tl-fb'), [], theme + ' #tl-linker');
+      const o1 = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); assert.ok(o1 <= 2, '#tl-linker overflow ' + o1);
+      await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/l/2026-11-18/5'); await page.waitForSelector('#tl-ex');
+      await page.click('#tl-ex .opt'); await page.click('#tl-next'); await page.click('#tl-ex .opt'); await page.click('#tl-next');
+      await page.fill('#tl-in', 'Masarap ang adobo'); await page.click('#tl-check'); await page.waitForSelector('#tl-alt');
+      assert.deepStrictEqual(await bad('#tl-fb'), [], theme + ' #tl-alt');
+      await page.evaluate(() => {
+        const st = JSON.parse(localStorage.getItem('wl.tagalog.v1') || '{}');
+        st.cards = { ngayon: { en: 'now', box: 1, due: '2000-01-01', seen: 5, right: 2, wrong: 3, from: '' }, opo: { en: 'yes', box: 3, due: '2099-01-01', seen: 4, right: 4, wrong: 0, from: '' } };
+        localStorage.setItem('wl.tagalog.v1', JSON.stringify(st)); window.WL.modules.tagalog.reload();
+      });
+      await page.goto(base + '#tagalog/words'); await page.waitForSelector('.tl-score');
+      assert.deepStrictEqual(await small('#tl-practise-hard'), []);
+      assert.deepStrictEqual(await bad('#tl-hard'), [], theme + ' .tl-score');
+      await t.noOverflow(['#tagalog/words']);
+      await page.click('#tl-practise-hard'); await page.waitForSelector('#tl-show'); await page.click('#tl-show'); await page.waitForSelector('#tl-example');
+      assert.deepStrictEqual(await bad('#tl-card'), [], theme + ' #tl-example');
+      assert.deepStrictEqual(await small('#tl-example [data-say], #tl-no, #tl-yes'), []);
+      await page.evaluate(() => {
+        const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+        [20, 21, 22].forEach((d) => me.feedback.push({ id: 'calm/after/ground@x' + d, at: new Date(2026, 10, d, 21, 0).toISOString(), part: 'calm', kind: 'after', about: 'ground@x' + d, a: { helped: 'Not really', block: ['Nothing'] } }));
+        localStorage.setItem('wl.me.v1', JSON.stringify(me)); window.WL.modules.me && window.WL.modules.me.reload && window.WL.modules.me.reload();
+      });
+      await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-flat'); await page.waitForSelector('.c-helped');
+      assert.deepStrictEqual(await bad('#c-today'), [], theme + ' #c-flat');
+      assert.deepStrictEqual(await bad('.list'), [], theme + ' .c-helped');
+      await t.noOverflow(['#calm']);
+    });
+  }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y of new UI');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
