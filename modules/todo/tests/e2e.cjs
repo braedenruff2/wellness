@@ -74,7 +74,14 @@ const W = require('../../../tests/lib/web.cjs');
     await page.press('#td-edit', 'Enter');
     assert.ok(/Today[\s\S]*fix the garden gate/.test(await page.textContent('main')), 'Enter saves edit sheet');
     await page.click('li:has-text("fix the garden gate") [data-more]');
-    await page.click('#td-del'); assert.ok((await page.textContent('main')).includes('garden gate'));
+    await page.click('#td-del');
+    assert.strictEqual(await page.textContent('#td-del'), 'Tap again to delete', 'delete armed on first tap');
+    assert.ok((await page.textContent('main')).includes('garden gate'));
+    await page.clock.runFor(4100);
+    assert.strictEqual(await page.textContent('#td-del'), 'Delete', 'delete disarms after 4 seconds');
+    await page.click('#td-del');
+    assert.strictEqual(await page.textContent('#td-del'), 'Tap again to delete', 'tapping after disarm re-arms instead of deleting');
+    assert.ok((await page.textContent('main')).includes('garden gate'));
     await page.click('#td-del'); assert.ok(!(await page.textContent('main')).includes('garden gate'));
     // done task edit sheet hides "In 1 hour" and Escape closes from any field in the sheet
     await page.click('#td-showdone');
@@ -85,13 +92,18 @@ const W = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('aria-label')), 'Options for buy diapers', 'Escape from #td-time restores focus to options button');
     await page.click('#td-showdone');
   });
-  await t.step('Home shows what is due and can tick it', async () => {
+  await t.step('Home shows what is due and can tick it (including repeating toast)', async () => {
     await page.goto(base + '#todo');
     await page.fill('#td-new', 'email the daycare today'); await page.press('#td-new', 'Enter');
+    await page.fill('#td-new', 'vitamins every day'); await page.press('#td-new', 'Enter');
     await page.goto(base + '#home');
     const c = page.locator('.home-card[data-module="todo"]');
     assert.ok((await c.textContent()).includes('email the daycare'));
-    await c.locator('[data-tick]').first().click();
+    assert.ok((await c.textContent()).includes('vitamins'));
+    await c.locator('li:has-text("vitamins") [data-tick]').click();
+    assert.strictEqual(await page.textContent('#toast'), 'Done. Next: tomorrow', 'repeating task on Home shows Next toast');
+    assert.ok(!(await page.locator('.home-card[data-module="todo"]').textContent()).includes('vitamins'));
+    await c.locator('li:has-text("email the daycare") [data-tick]').click();
     assert.ok(!(await page.locator('.home-card[data-module="todo"]').textContent()).includes('email the daycare'));
   });
   await t.step('survives a reload; overdue tasks can be moved to today', async () => {

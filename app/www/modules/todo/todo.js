@@ -87,8 +87,10 @@
     $$('[data-due]', d).forEach(function (b) { b.onclick = function () { due = b.dataset.due; $('#td-date').value = due; $$('[data-due]', d).forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
     $('#td-date').onchange = function () { due = this.value; $$('[data-due]', d).forEach(function (x) { x.setAttribute('aria-pressed', x.dataset.due === due); }); };
     $$('[data-rep]', d).forEach(function (b) { b.onclick = function () { rep = b.dataset.rep; $$('[data-rep]', d).forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
+    var delTimer = null;
     $('#td-save').onclick = function () {
       var txt = $('#td-edit').value.trim(); if (!txt) return;
+      clearTimeout(delTimer);
       var at = $('#td-time').value; at = /^\d\d:\d\d$/.test(at) ? at : null;
       var d0 = due;
       if (!d0 && (rep || at)) {
@@ -103,17 +105,22 @@
     if (hr) hr.onclick = function () {  // saves at once: the quickest "not now, remind me soon"
       var txt = $('#td-edit').value.trim(); if (txt) t.text = txt;
       if (!T.remindIn(S, t.id, 60)) return;
+      clearTimeout(delTimer);
       save(); render();
       WL.toast('Reminder at ' + T.fmtTime(t.at) + ', ' + fmtDue(t.due));
     };
     var close = function () {
+      clearTimeout(delTimer);
       d.remove();
       if (trigger && trigger.isConnected && trigger.focus) try { trigger.focus(); } catch (e) {}
     };
     $('#td-cancel').onclick = close;
     $('#td-del').onclick = function () {
-      if (this.dataset.armed) { T.remove(S, t.id); save(); render(); WL.toast('Deleted'); return; }
-      this.dataset.armed = 1; this.textContent = 'Tap again to delete';
+      var btn = this;
+      if (btn.dataset.armed) { clearTimeout(delTimer); T.remove(S, t.id); save(); render(); WL.toast('Deleted'); return; }
+      btn.dataset.armed = 1; btn.textContent = 'Tap again to delete';
+      clearTimeout(delTimer);
+      delTimer = setTimeout(function () { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = 'Delete'; } }, 4000);
     };
     d.onkeydown = function (ev) { if (ev.key === 'Escape') { ev.preventDefault(); close(); } };
     var ed = $('#td-edit');
@@ -171,7 +178,15 @@
     return h + '<div class="row ui"><a class="btn" href="#todo">Open the list</a></div>';
   }
   function wireCard(el) {
-    $$('[data-tick]', el).forEach(function (b) { b.onclick = function (e) { if (secondTap(e)) return; T.complete(S, b.dataset.tick, logNow()); save(); WL.route(); }; });
+    $$('[data-tick]', el).forEach(function (b) {
+      b.onclick = function (e) {
+        if (secondTap(e)) return;
+        var t = T.find(S, b.dataset.tick); if (!t) return;
+        T.complete(S, t.id, logNow());
+        if (t.repeat) WL.toast('Done. Next: ' + fmtDue(t.due));
+        save(); WL.route();
+      };
+    });
     $$('[data-more]', el).forEach(function (b) { b.style.display = 'none'; });
   }
 
