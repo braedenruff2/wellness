@@ -480,6 +480,7 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     const p4 = await ctx4.newPage();
     p4.on('pageerror', (e) => errors.push(String(e)));
     await p4.addInitScript(FAKE_SPEECH);
+    await p4.clock.install({ time: new Date(2026, 11, 2, 10, 0) });
     // set the saved state before the app loads (a reload would save the open page's state over it on pagehide)
     await p4.addInitScript(() => {
       if (localStorage.getItem('fc.v1')) return;
@@ -492,6 +493,11 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     assert.ok((await p4.textContent('h1')).includes('walked the whole path'));
     await p4.click('#walk-again');
     assert.ok((await p4.textContent('#walk-again')).includes('Tap again'), 'first tap only arms it');
+    await p4.clock.runFor(4500);
+    assert.strictEqual(await p4.textContent('#walk-again'), 'Walk the path again', 'disarms after 4 seconds');
+    assert.ok((await p4.textContent('h1')).includes('walked the whole path'), 'still on completion screen after disarm');
+    await p4.click('#walk-again');
+    assert.ok((await p4.textContent('#walk-again')).includes('Tap again'), 'arms again after disarm');
     await p4.click('#walk-again');
     await p4.waitForSelector('h1:text-is("Help my unbelief")');
     assert.ok((await p4.textContent('#write')).includes('I want to believe.'), 'last time’s answer shown');

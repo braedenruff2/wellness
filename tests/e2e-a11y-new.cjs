@@ -69,7 +69,7 @@ const W = require('./lib/web.cjs');
     });
     localStorage.setItem('wl.tagalog.v1', JSON.stringify({ packs: {}, done: {}, cards, answers: [], reviews: [] }));
     localStorage.setItem('fc.v1', JSON.stringify({
-      done: {},
+      done: { 1: '2026-11-23' },
       journal: [
         { id: 'j1', at: '2026-11-22T09:00:00.000Z', kind: 'journal', text: 'Quiet morning before everyone woke up.' },
         { id: 'j2', at: '2026-11-21T20:00:00.000Z', kind: 'awe', text: 'Clear stars over the bay on the evening walk.' },
@@ -176,11 +176,14 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#p-search, .p-undo, .answered, .pdel'), []);
       await t.noOverflow(['#faith/journal/prayers']);
       await page.goto(base + '#faith/settings'); await page.waitForSelector('#fc-export-text');
-      assert.deepStrictEqual(await small('[data-set], #test-voice, #fc-export-text'), []);
+      assert.deepStrictEqual(await small('[data-set], #test-voice, #fc-export-text, a[href="#settings"]'), []);
       await t.noOverflow(['#faith/settings']);
+      await page.goto(base + '#faith/day/2'); await page.waitForSelector('a[href="#faith/path"]');
+      assert.deepStrictEqual(await small('a[href="#faith/path"]'), []);
+      await t.noOverflow(['#faith/day/2']);
       await page.clock.setSystemTime(new Date(2026, 10, 23, 22, 30));
-      await page.goto(base + '#faith/today'); await page.waitForSelector('#fc-short-wrap'); await page.waitForSelector('#fc-short');
-      assert.deepStrictEqual(await small('#fc-short-wrap a, #fc-short-wrap button, #pray-card a, #pray-card summary'), []);
+      await page.goto(base + '#faith/today'); await page.waitForSelector('.done-banner a'); await page.waitForSelector('#fc-short-wrap'); await page.waitForSelector('#fc-short');
+      assert.deepStrictEqual(await small('.done-banner a, #fc-short-wrap a, #fc-short-wrap button, #pray-card a, #pray-card summary'), []);
       await t.noOverflow(['#faith/today']);
       await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
     });
@@ -227,10 +230,13 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#tl-missed button'), []);
       await t.noOverflow(['#tagalog/review']);
     });
-    await t.step('text size ' + ts + ': Parenting #co-can-nudge, #co-cloud, #co-hist-search, #co-hist-more & #co-worked', async () => {
+    await t.step('text size ' + ts + ': Parenting #co-can-nudge, #co-cloud, #co-hist-search, #co-hist-more, #co-worked & #coach/h/:id Back', async () => {
       await page.goto(base + '#coach'); await page.waitForSelector('#co-can-nudge'); await page.waitForSelector('#co-cloud'); await page.waitForSelector('#co-hist-search'); await page.waitForSelector('#co-worked'); await page.waitForSelector('#co-hist-more');
       assert.deepStrictEqual(await small('#co-can-nudge a, #co-cloud a, a[href="#coach/setup"], #co-hist-search, #co-hist-more'), []);
       await t.noOverflow(['#coach']);
+      await page.goto(base + '#coach/h/h20'); await page.waitForSelector('a[href="#coach"]');
+      assert.deepStrictEqual(await small('a[href="#coach"]'), []);
+      await t.noOverflow(['#coach/h/h20']);
     });
     await t.step('text size ' + ts + ': Settings Voice, App updates, Drive sync errors, Home #wl-sync-nudge & Link unpaired #lk-advice-card', async () => {
       await page.evaluate(() => { window.__update.allowed = false; window.__update.ready = true; });
@@ -300,8 +306,11 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/journal/prayers');
       await page.goto(base + '#faith/settings'); await page.waitForSelector('#fc-export-text');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/settings');
+      await page.goto(base + '#faith/day/2'); await page.waitForSelector('a[href="#faith/path"]');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/day/2');
       await page.clock.setSystemTime(new Date(2026, 10, 23, 22, 30));
-      await page.goto(base + '#faith/today'); await page.waitForSelector('#fc-short-wrap');
+      await page.goto(base + '#faith/today'); await page.waitForSelector('.done-banner'); await page.waitForSelector('#fc-short-wrap');
+      assert.deepStrictEqual((await contrast('.done-banner')).filter((x) => x.r < min), [], theme + ' .done-banner');
       assert.deepStrictEqual((await contrast('#fc-short-wrap')).filter((x) => x.r < min), [], theme + ' #fc-short-wrap');
       await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
       await page.clock.setSystemTime(new Date(2026, 10, 23, 22, 30));
@@ -333,6 +342,8 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual((await contrast('#co-cloud')).filter((x) => x.r < min), [], theme + ' #co-cloud');
       assert.deepStrictEqual((await contrast('#co-worked')).filter((x) => x.r < min), [], theme + ' #co-worked');
       assert.deepStrictEqual((await contrast('#co-hist')).filter((x) => x.r < min), [], theme + ' #co-hist');
+      await page.goto(base + '#coach/h/h20'); await page.waitForSelector('a[href="#coach"]');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #coach/h/h20');
       await page.evaluate(() => { window.__update.allowed = false; window.__update.ready = true; });
       await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-err'); await page.waitForSelector('#wl-sync-ans-err');
       await page.waitForSelector('#wl-voice'); await page.waitForSelector('#wl-update');

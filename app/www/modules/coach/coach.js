@@ -125,7 +125,7 @@
     if (!S.child.birth || parts[0] === 'setup') { view.innerHTML = '<h1>Parenting practice</h1>' + setupHtml(); wireSetup(); return; }
     if (parts[0] === 'h') {
       var h = S.history.filter(function (x) { return x.id === parts[1]; })[0];
-      view.innerHTML = h ? (h.kind === 'real' ? adviceHtml(h) : resultHtml(h)) + '<p class="ui"><a href="#coach">Back</a></p>' : '<p>Not found. <a href="#coach">Back</a></p>';
+      view.innerHTML = h ? (h.kind === 'real' ? adviceHtml(h) : resultHtml(h)) + '<p class="ui"><a class="link" href="#coach">Back</a></p>' : '<p class="ui">Not found. <a class="link" href="#coach">Back</a></p>';
       var pr = $('#co-practise'); if (pr) pr.onclick = function () { K.practiseReal(S, pr.dataset.id); save(); location.hash = '#coach'; };
       return;
     }

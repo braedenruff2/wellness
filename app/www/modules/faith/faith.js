@@ -78,8 +78,8 @@
     html += resumeCard();
     if (window.WLMe) html += WLMe.planLine('faith');
     if (today && n <= TOTAL) {
-      html += '<div class="card done-banner ui"><b>You did day ' + today + ' today.</b> That\u2019s enough for one day. ' +
-        'Day ' + n + ' is below if you want it, or come back tomorrow. You could also <a href="#faith/pray">pray freely</a>.</div>';
+      html += '<div class="card done-banner ui"><p style="margin-bottom:4px"><b>You did day ' + today + ' today.</b> That\u2019s enough for one day. ' +
+        'Day ' + n + ' is below if you want it, or come back tomorrow.</p><div class="row"><a class="link" href="#faith/pray">Or pray freely</a></div></div>';
     }
     if (n > TOTAL) {
       html += '<h1>You\u2019ve walked the whole path.</h1><div class="card"><p>All ' + TOTAL + ' days' + (S.round > 1 ? ', for the ' + ordinal(S.round) + ' time' : '') +
@@ -122,7 +122,7 @@
       ? '<button class="link" id="undone" data-day="' + d.n + '">Mark as not done</button>'
       : '<button class="primary big" id="finish" data-day="' + d.n + '">I\u2019ve spent time with today \u2713</button>' +
         '<p class="meta" style="text-align:center;margin-top:8px">No streaks, no pressure. Missed days just wait for you.</p>') + '</div>';
-    if (!isToday) h += '<p class="ui"><a href="#faith/path">\u2190 All days</a></p>';
+    if (!isToday) h += '<p class="ui"><a class="link" href="#faith/path">\u2190 All days</a></p>';
     return h;
   }
 
@@ -199,7 +199,7 @@
   function screenSession(kind, id, from) {
     var sc = sessionScript(kind, id);
     shortOnce = null; // consumed by this single session even if he leaves straight to another tab
-    if (!sc) return '<p>Not found. <a href="#faith/today">Back</a></p>';
+    if (!sc) return '<p class="ui">Not found. <a class="link" href="#faith/today">Back</a></p>';
     session = sc;
     document.body.classList.add('in-session');
     return '<div class="session ui" data-secs="' + Math.round(C.scriptLength(sc.steps, S.settings.rate)) + '"><div class="row"><button class="link" id="end">\u2715 End</button><div class="grow meta" style="text-align:right">' + esc(sc.title) + '</div></div>' +
@@ -327,7 +327,7 @@
     function chips(name, vals, cur, labels) {
       return '<div class="chips">' + vals.map(function (v, i) { return '<button class="chip" data-set="' + name + '" data-val="' + v + '" aria-pressed="' + (String(cur) === String(v)) + '">' + (labels ? labels[i] : v) + '</button>'; }).join('') + '</div>';
     }
-    return '<h1>Faith settings</h1><p class="ui meta">Look, text size and backup are in the app\u2019s <a href="#settings">Settings</a>.</p><div class="card ui">' +
+    return '<h1>Faith settings</h1><div class="row ui" style="margin:0 0 8px;gap:4px 8px"><span class="meta">Look, text size and backup are in the app\u2019s</span><a class="link" href="#settings">Settings</a></div><div class="card ui">' +
       '<h3>Guided prayer</h3>' + chips('voice', ['true', 'false'], String(st.voice), ['Read aloud', 'Silent (text only)']) +
       '<div style="margin-top:8px">' + chips('rate', [0.75, 0.9, 1, 1.15], st.rate, ['Slower', 'Gentle', 'Normal', 'Faster']) + '</div>' +
       '<div style="margin-top:8px">' + chips('minutes', [2, 5, 10], st.minutes, ['2 min', '5 min', '10 min']) + '</div>' +
@@ -421,8 +421,10 @@
     // a double-tap on "I've spent time with today" would land on "Mark as not done" (drawn where it was)
     on('#undone', function (el) { el.onclick = function () { if (performance.now() - finishedAt < 700) return; C.unfinishDay(S, +el.dataset.day); save(); route(); }; });
     on('#walk-again', function (el) { el.onclick = function () {
-      if (!el.dataset.armed) { el.dataset.armed = 1; el.textContent = 'Tap again to start at day 1'; return; } // no accidental restarts
-      C.walkAgain(S); save(); toast('Day 1 again. Go gently.'); location.hash = '#faith/today'; route(['today']);
+      if (el.dataset.armed) { clearTimeout(el._t); C.walkAgain(S); save(); toast('Day 1 again. Go gently.'); location.hash = '#faith/today'; route(['today']); return; }
+      el.dataset.armed = 1; el.textContent = 'Tap again to start at day 1'; // no accidental restarts
+      clearTimeout(el._t);
+      el._t = setTimeout(function () { if (el.isConnected) { delete el.dataset.armed; el.textContent = 'Walk the path again'; } }, 4000);
     }; });
     on('#listen', function (el) { el.onclick = function () {
       var d = h[0] === 'day' ? day(+h[1]) : day(C.currentDay(S, TOTAL));
