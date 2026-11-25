@@ -1,0 +1,1093 @@
+{
+ "id": "2026-11-25",
+ "week": 2,
+ "title": "From hearing to speaking",
+ "level": "Understands some, starting to speak",
+ "made": "2026-11-25, written by Claude for week 2 from his week-1 summary (7/7 lessons, 90% accuracy, felt about right) and his conversation-practice error patterns",
+ "focus": "More speaking: base form after gusto/kailangan, pronouns in second place (hindi ako, palagi kaming) and kasama/numbers with na, his top conversation mistakes, plus last week's missed lines brought back.",
+ "lessons": [
+  {
+   "day": 1,
+   "title": "Gusto kong... (want to, need to)",
+   "intro": "Your top mix-up in conversation practice: 'Gusto kong binili' instead of 'Gusto kong bumili'. After gusto, ayaw, kailangan and puwede the verb stays in its plain base form, because the time is already in 'gusto'. This lesson drills it with things you really say at home.",
+   "words": [
+    {
+     "tl": "gusto kong + verb",
+     "en": "I want to ..."
+    },
+    {
+     "tl": "ayokong + verb",
+     "en": "I don't want to ..."
+    },
+    {
+     "tl": "kailangan kong + verb",
+     "en": "I need to ..."
+    },
+    {
+     "tl": "Puwede bang ...?",
+     "en": "Can we ...? / Is it okay to ...?"
+    },
+    {
+     "tl": "Ayoko na.",
+     "en": "I don't want any more / I've had enough."
+    },
+    {
+     "tl": "kumain",
+     "en": "to eat (base form)"
+    },
+    {
+     "tl": "matulog",
+     "en": "to sleep"
+    },
+    {
+     "tl": "magpahinga",
+     "en": "to rest"
+    },
+    {
+     "tl": "maligo",
+     "en": "to take a bath / shower"
+    },
+    {
+     "tl": "mag-aral",
+     "en": "to study"
+    },
+    {
+     "tl": "lumabas",
+     "en": "to go out"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Wife",
+     "tl": "Ano ang gusto mong gawin ngayong araw?",
+     "en": "What do you want to do today?"
+    },
+    {
+     "who": "You",
+     "tl": "Gusto kong magpahinga. Pagod ako.",
+     "en": "I want to rest. I'm tired."
+    },
+    {
+     "who": "Wife",
+     "tl": "Sige. Pero kailangan nating bumili ng gatas.",
+     "en": "Okay. But we need to buy milk."
+    },
+    {
+     "who": "You",
+     "tl": "Puwede bang mamaya na lang?",
+     "en": "Can it be later instead?"
+    },
+    {
+     "who": "Wife",
+     "tl": "Sige, mamaya na lang. Matulog ka muna.",
+     "en": "Okay, later then. Sleep first."
+    }
+   ],
+   "grammar": {
+    "title": "Base form after gusto, ayaw, kailangan, puwede",
+    "explain": "Gusto, ayaw, kailangan and puwede already carry the time, so the verb after them has no time of its own: like English 'want to buy', not 'want bought'. The base form: -um- verbs look like the done form (kumain, bumili, lumabas); mag- verbs keep mag- (maglaro, mag-aral, not nag-); ma- verbs keep ma- (matulog, maligo). Add the linker -ng to the word before the verb: gusto ko + ng = gusto kong, kailangan ko + ng = kailangan kong, ayoko + ng = ayokong. 'Binili' is wrong twice here: it has a time (done) and it is object focus.",
+    "examples": [
+     {
+      "tl": "Gusto kong bumili ng manga.",
+      "en": "I want to buy manga."
+     },
+     {
+      "tl": "Kailangan kong matulog.",
+      "en": "I need to sleep."
+     },
+     {
+      "tl": "Ayokong umalis.",
+      "en": "I don't want to leave."
+     },
+     {
+      "tl": "Puwede ba akong maglaro?",
+      "en": "Can I play?"
+     }
+    ]
+   },
+   "culture": "With your mother-in-law, start a request with 'Puwede po bang...?' (Is it okay if...?). It sounds gentle and respectful, and it uses the same base-form rule: 'Puwede po bang magpahinga muna ako?' (Is it okay if I rest first?).",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "I want to buy milk.",
+     "options": [
+      "Gusto kong bumili ng gatas.",
+      "Gusto kong binili ng gatas.",
+      "Gusto ko bumibili ng gatas.",
+      "Gusto kong bibili ng gatas."
+     ],
+     "answer": "Gusto kong bumili ng gatas."
+    },
+    {
+     "type": "build",
+     "prompt": "I need to sleep.",
+     "words": [
+      "matulog.",
+      "Kailangan",
+      "kong"
+     ],
+     "answer": "Kailangan kong matulog."
+    },
+    {
+     "type": "type",
+     "prompt": "I want to study Tagalog.",
+     "answer": "Gusto kong mag-aral ng Tagalog.",
+     "accept": [
+      "gusto kong mag-aral ng tagalog",
+      "gusto kong mag aral ng tagalog",
+      "gusto ko talagang mag-aral ng tagalog",
+      "gusto kong matuto ng tagalog"
+     ]
+    },
+    {
+     "type": "mc",
+     "prompt": "At the table, you're done eating: 'I don't want any more.'",
+     "options": [
+      "Ayoko na.",
+      "Ayoko pa.",
+      "Gusto ko pa.",
+      "Hindi pa."
+     ],
+     "answer": "Ayoko na."
+    },
+    {
+     "type": "listen",
+     "say": "Ayokong umalis.",
+     "options": [
+      "I don't want to leave.",
+      "I want to leave.",
+      "I need to leave.",
+      "I already left."
+     ],
+     "answer": "I don't want to leave."
+    }
+   ]
+  },
+  {
+   "day": 2,
+   "title": "Short words go second",
+   "intro": "In practice you said 'Palagi naglalaro kami' and 'Walang confidence ako'. Tagalog pulls short pronouns (ako, ka, siya, kami, ko, mo) up to second place, right after the first word. Last week 'Why is she crying?' tripped you up for the same reason.",
+   "words": [
+    {
+     "tl": "Hindi ako pagod.",
+     "en": "I'm not tired."
+    },
+    {
+     "tl": "Palagi kaming naglalaro.",
+     "en": "We always play."
+    },
+    {
+     "tl": "Wala akong tulog.",
+     "en": "I got no sleep."
+    },
+    {
+     "tl": "Bakit siya umiiyak?",
+     "en": "Why is she crying?"
+    },
+    {
+     "tl": "Gutom na ba siya?",
+     "en": "Is she hungry already?"
+    },
+    {
+     "tl": "Hindi pa siya kumakain.",
+     "en": "She hasn't eaten yet."
+    },
+    {
+     "tl": "baka",
+     "en": "maybe / might"
+    },
+    {
+     "tl": "inaantok",
+     "en": "sleepy"
+    },
+    {
+     "tl": "minsan",
+     "en": "sometimes"
+    },
+    {
+     "tl": "madalas",
+     "en": "often"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Lola",
+     "tl": "Bakit siya umiiyak?",
+     "en": "Why is she crying?"
+    },
+    {
+     "who": "You",
+     "tl": "Hindi ko po alam. Baka gutom na po siya.",
+     "en": "I don't know. Maybe she's hungry."
+    },
+    {
+     "who": "Lola",
+     "tl": "Kumain na ba siya?",
+     "en": "Has she eaten?"
+    },
+    {
+     "who": "You",
+     "tl": "Hindi pa po siya kumakain.",
+     "en": "She hasn't eaten yet."
+    },
+    {
+     "who": "Lola",
+     "tl": "Ay, kaya pala. Pakainin mo na siya.",
+     "en": "Oh, that's why. Feed her now."
+    }
+   ],
+   "grammar": {
+    "title": "Pronouns in second place",
+    "explain": "Short pronouns (ako, ka, siya, kami, tayo, sila, ko, mo, niya) and little words like na, pa, ba, po come right after the FIRST word of the sentence, even when that word is hindi, palagi, wala, bakit or baka. So: 'Hindi ako pagod', not 'Hindi pagod ako'. When the pronoun lands in front of a verb or noun after palagi or wala, it takes the linker -ng: kami becomes kaming, ako becomes akong.",
+    "examples": [
+     {
+      "tl": "Hindi ako pagod.",
+      "en": "I'm not tired."
+     },
+     {
+      "tl": "Palagi siyang masaya.",
+      "en": "She's always happy."
+     },
+     {
+      "tl": "Wala akong confidence.",
+      "en": "I don't have confidence."
+     },
+     {
+      "tl": "Bakit siya umiiyak?",
+      "en": "Why is she crying?"
+     }
+    ]
+   },
+   "culture": "When a baby cries, relatives start guessing out loud: 'Baka gutom' (maybe hungry), 'Baka inaantok' (maybe sleepy). Joining the guessing in Tagalog is an easy way into the conversation with Lola.",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "We always play.",
+     "options": [
+      "Palagi kaming naglalaro.",
+      "Palagi naglalaro kami.",
+      "Palagi kami naglalaro.",
+      "Naglalaro palagi kaming."
+     ],
+     "answer": "Palagi kaming naglalaro."
+    },
+    {
+     "type": "build",
+     "prompt": "Why is she crying?",
+     "words": [
+      "umiiyak?",
+      "siya",
+      "Bakit"
+     ],
+     "answer": "Bakit siya umiiyak?"
+    },
+    {
+     "type": "type",
+     "prompt": "I'm not tired.",
+     "answer": "Hindi ako pagod.",
+     "accept": [
+      "hindi ako pagod",
+      "hindi po ako pagod",
+      "di ako pagod"
+     ]
+    },
+    {
+     "type": "listen",
+     "say": "Wala akong tulog.",
+     "options": [
+      "I got no sleep.",
+      "I'm not sleepy.",
+      "I want to sleep.",
+      "She is sleeping."
+     ],
+     "answer": "I got no sleep."
+    },
+    {
+     "type": "build",
+     "prompt": "She hasn't eaten yet.",
+     "words": [
+      "kumakain.",
+      "siya",
+      "pa",
+      "Hindi"
+     ],
+     "answer": "Hindi pa siya kumakain."
+    }
+   ]
+  },
+  {
+   "day": 3,
+   "title": "When you don't understand",
+   "intro": "Lola lives with you, so you get Tagalog practice every day. These lines keep a conversation going when she talks too fast or uses a word you don't know, so you don't have to switch to English.",
+   "words": [
+    {
+     "tl": "Paki-ulit po.",
+     "en": "Please say it again."
+    },
+    {
+     "tl": "Dahan-dahan lang po.",
+     "en": "Slowly, please."
+    },
+    {
+     "tl": "Hindi ko po naintindihan.",
+     "en": "I didn't understand."
+    },
+    {
+     "tl": "Naiintindihan ko po.",
+     "en": "I understand."
+    },
+    {
+     "tl": "Ano po ang ibig sabihin ng ...?",
+     "en": "What does ... mean?"
+    },
+    {
+     "tl": "Paano po sabihin ang ... sa Tagalog?",
+     "en": "How do you say ... in Tagalog?"
+    },
+    {
+     "tl": "Nag-aaral pa po ako.",
+     "en": "I'm still learning."
+    },
+    {
+     "tl": "Tama po ba?",
+     "en": "Is that right?"
+    },
+    {
+     "tl": "biyenan",
+     "en": "parent-in-law"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Lola",
+     "tl": "Pakikuha mo nga ang bote sa kusina.",
+     "en": "Please get the bottle from the kitchen."
+    },
+    {
+     "who": "You",
+     "tl": "Paki-ulit po. Dahan-dahan lang po.",
+     "en": "Please say it again. Slowly, please."
+    },
+    {
+     "who": "Lola",
+     "tl": "Kunin mo ang bote. Sa kusina.",
+     "en": "Get the bottle. In the kitchen."
+    },
+    {
+     "who": "You",
+     "tl": "Ah, opo! Naiintindihan ko po.",
+     "en": "Ah, yes! I understand."
+    },
+    {
+     "who": "Lola",
+     "tl": "Magaling ka na, ah!",
+     "en": "You're getting good!"
+    },
+    {
+     "who": "You",
+     "tl": "Salamat po. Nag-aaral pa po ako.",
+     "en": "Thank you. I'm still learning."
+    }
+   ],
+   "grammar": {
+    "title": "Paki- means please",
+    "explain": "Put paki- in front of a verb root to ask nicely: ulit (again) becomes paki-ulit, abot (pass) becomes pakiabot, kuha (get) becomes pakikuha, sara (close) becomes pakisara. Add po for elders. The hyphen is only there before a vowel (paki-ulit); you'll also see it written pakiulit.",
+    "examples": [
+     {
+      "tl": "Paki-ulit po.",
+      "en": "Please say it again."
+     },
+     {
+      "tl": "Pakisara po ang pinto.",
+      "en": "Please close the door."
+     },
+     {
+      "tl": "Pakiabot po ng tubig.",
+      "en": "Please pass the water."
+     }
+    ]
+   },
+   "culture": "Filipino relatives often switch to English to be kind. If you want her to stay in Tagalog, say: 'Sa Tagalog po, para matuto ako.' (In Tagalog, please, so I can learn.) Most Lolas are delighted to become the teacher.",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "Your mother-in-law is talking too fast. You say:",
+     "options": [
+      "Dahan-dahan lang po.",
+      "Salamat po.",
+      "Busog na po ako.",
+      "Ingat po kayo."
+     ],
+     "answer": "Dahan-dahan lang po."
+    },
+    {
+     "type": "listen",
+     "say": "Hindi ko po naintindihan.",
+     "options": [
+      "I didn't understand.",
+      "I don't know.",
+      "I'm still learning.",
+      "Please say it again."
+     ],
+     "answer": "I didn't understand."
+    },
+    {
+     "type": "type",
+     "prompt": "Please say it again. (to an elder)",
+     "answer": "Paki-ulit po.",
+     "accept": [
+      "pakiulit po",
+      "paki-ulit po",
+      "paki ulit po",
+      "pakiulit ho"
+     ]
+    },
+    {
+     "type": "build",
+     "prompt": "I'm still learning. (to an elder)",
+     "words": [
+      "ako.",
+      "po",
+      "pa",
+      "Nag-aaral"
+     ],
+     "answer": "Nag-aaral pa po ako."
+    },
+    {
+     "type": "type",
+     "prompt": "How do you say 'bottle' in Tagalog? (to an elder)",
+     "answer": "Paano po sabihin ang bottle sa Tagalog?",
+     "accept": [
+      "paano po sabihin ang bottle sa tagalog",
+      "paano po sasabihin ang bottle sa tagalog",
+      "paano po sabihin sa tagalog ang bottle",
+      "ano po ang bottle sa tagalog",
+      "ano po sa tagalog ang bottle"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 4,
+   "title": "Every day with the baby",
+   "intro": "One verb form covers both 'is doing right now' and 'does every day'. Last week 'I'm eating now' and 'The baby is drinking milk' were misses, so they're back here alongside the baby's daily routine.",
+   "words": [
+    {
+     "tl": "gumigising",
+     "en": "wakes up / is waking up"
+    },
+    {
+     "tl": "kumakain",
+     "en": "eats / is eating"
+    },
+    {
+     "tl": "umiinom",
+     "en": "drinks / is drinking"
+    },
+    {
+     "tl": "naliligo",
+     "en": "takes a bath / is bathing"
+    },
+    {
+     "tl": "natutulog",
+     "en": "sleeps / is sleeping"
+    },
+    {
+     "tl": "naglalaro",
+     "en": "plays / is playing"
+    },
+    {
+     "tl": "nagpapalit ng diaper",
+     "en": "changes a diaper / is changing a diaper"
+    },
+    {
+     "tl": "araw-araw",
+     "en": "every day"
+    },
+    {
+     "tl": "tuwing umaga",
+     "en": "every morning"
+    },
+    {
+     "tl": "maaga",
+     "en": "early"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Lola",
+     "tl": "Anong oras gumigising si {child}?",
+     "en": "What time does {child} wake up?"
+    },
+    {
+     "who": "You",
+     "tl": "Maaga po. Alas-sais po.",
+     "en": "Early. Six o'clock."
+    },
+    {
+     "who": "Lola",
+     "tl": "Tapos, ano ang ginagawa ninyo?",
+     "en": "Then what do you two do?"
+    },
+    {
+     "who": "You",
+     "tl": "Umiinom po siya ng gatas, tapos naglalaro kami.",
+     "en": "She drinks her milk, then we play."
+    },
+    {
+     "who": "Lola",
+     "tl": "Naliligo ba siya araw-araw?",
+     "en": "Does she have a bath every day?"
+    },
+    {
+     "who": "You",
+     "tl": "Opo, tuwing umaga po.",
+     "en": "Yes, every morning."
+    }
+   ],
+   "grammar": {
+    "title": "Now and every day: the ongoing form",
+    "explain": "The ongoing form means both 'is doing now' and 'does regularly'. To make it, repeat the first syllable of the root. -um- verbs: kain becomes kumakain, inom becomes umiinom, gising becomes gumigising. mag- verbs change to nag-: laro becomes naglalaro, palit becomes nagpapalit. ma- verbs change to na-: tulog becomes natutulog, ligo becomes naliligo. Add ngayon (now) or araw-araw / tuwing ... (every ...) to make it clear.",
+    "examples": [
+     {
+      "tl": "Kumakain ako ngayon.",
+      "en": "I'm eating now."
+     },
+     {
+      "tl": "Umiinom ng gatas ang baby.",
+      "en": "The baby is drinking milk."
+     },
+     {
+      "tl": "Natutulog siya tuwing hapon.",
+      "en": "She naps every afternoon."
+     }
+    ]
+   },
+   "culture": "Clock times use Spanish-based numbers with alas-: alas-sais (6:00), alas-siyete (7:00), alas-otso (8:00). Tagalog numbers (isa, dalawa...) are for counting things. So it's 'alas-dos' for 2:00 but 'dalawang bote' for two bottles.",
+   "exercises": [
+    {
+     "type": "type",
+     "prompt": "I'm eating now.",
+     "answer": "Kumakain ako ngayon.",
+     "accept": [
+      "kumakain ako ngayon",
+      "ngayon kumakain ako",
+      "kumakain na ako",
+      "kumakain po ako ngayon"
+     ]
+    },
+    {
+     "type": "build",
+     "prompt": "The baby is drinking milk.",
+     "words": [
+      "baby.",
+      "gatas",
+      "Umiinom",
+      "ang",
+      "ng"
+     ],
+     "answer": "Umiinom ng gatas ang baby."
+    },
+    {
+     "type": "mc",
+     "prompt": "We play every day: Araw-araw kaming ___.",
+     "options": [
+      "naglalaro",
+      "naglaro",
+      "maglalaro",
+      "maglaro"
+     ],
+     "answer": "naglalaro"
+    },
+    {
+     "type": "listen",
+     "say": "Naliligo siya tuwing umaga.",
+     "options": [
+      "She has a bath every morning.",
+      "She sleeps every morning.",
+      "She had a bath this morning.",
+      "She'll have a bath tomorrow."
+     ],
+     "answer": "She has a bath every morning."
+    },
+    {
+     "type": "type",
+     "prompt": "She is sleeping.",
+     "answer": "Natutulog siya.",
+     "accept": [
+      "natutulog siya",
+      "natutulog na siya",
+      "tulog siya",
+      "tulog na siya",
+      "natutulog si {child}"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 5,
+   "title": "Kasama: who's with you",
+   "intro": "'Nagkasama ako si Kuya' and 'mag-kasama kami' came up three times in practice. Kasama isn't a verb; it means 'companion / together with'. Here's how to say who you're with and who lives with you, plus the in-law words.",
+   "words": [
+    {
+     "tl": "kasama",
+     "en": "companion / together with"
+    },
+    {
+     "tl": "Kasama ko si ...",
+     "en": "... is with me / I'm with ..."
+    },
+    {
+     "tl": "kami ni ...",
+     "en": "... and I"
+    },
+    {
+     "tl": "nakatira",
+     "en": "lives (somewhere)"
+    },
+    {
+     "tl": "Nakatira sa amin ang biyenan ko.",
+     "en": "My mother-in-law lives with us."
+    },
+    {
+     "tl": "asawa",
+     "en": "spouse (wife / husband)"
+    },
+    {
+     "tl": "hipag",
+     "en": "sister-in-law"
+    },
+    {
+     "tl": "bayaw",
+     "en": "brother-in-law"
+    },
+    {
+     "tl": "pamangkin",
+     "en": "niece / nephew"
+    },
+    {
+     "tl": "buong araw",
+     "en": "all day"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Tita",
+     "tl": "Sino ang kasama mo sa bahay?",
+     "en": "Who lives with you?"
+    },
+    {
+     "who": "You",
+     "tl": "Kasama ko po ang asawa ko at si {child}.",
+     "en": "My wife and {child}."
+    },
+    {
+     "who": "Tita",
+     "tl": "Nakatira pa ba sa inyo ang nanay niya?",
+     "en": "Is her mother still living with you?"
+    },
+    {
+     "who": "You",
+     "tl": "Opo, nakatira po sa amin ang biyenan ko.",
+     "en": "Yes, my mother-in-law lives with us."
+    },
+    {
+     "who": "Tita",
+     "tl": "Mabuti naman, may tumutulong sa iyo.",
+     "en": "Good, someone's helping you."
+    },
+    {
+     "who": "You",
+     "tl": "Opo. Pero ako ang kasama ni {child} buong araw.",
+     "en": "Yes. But I'm the one with {child} all day."
+    }
+   ],
+   "grammar": {
+    "title": "Kasama ko si ... (not nagkasama ako)",
+    "explain": "Kasama works like a noun: 'my companion'. So the person who is with you takes si/ang, and you take a ng-pronoun: 'Kasama ko si Kuya' (Kuya is with me). Don't add nag-/mag- and don't use ako. For '... and I' say 'kami ni ...': 'Kami ni Kuya ang pumunta.' For someone living with you, use nakatira: 'Nakatira sa amin ...' (lives with us).",
+    "examples": [
+     {
+      "tl": "Kasama ko si Kuya.",
+      "en": "I'm with Kuya."
+     },
+     {
+      "tl": "Kami ni Kuya ang pumunta.",
+      "en": "Kuya and I were the ones who went."
+     },
+     {
+      "tl": "Nakatira sa amin ang nanay niya.",
+      "en": "Her mother lives with us."
+     }
+    ]
+   },
+   "culture": "The in-law words are biyenan, hipag and bayaw, but in the family you'll mostly call people Ate, Kuya, Tita and Tito. Many sons-in-law call their biyenan 'Mama' or 'Nanay'. Ask your wife what her family expects; they'll notice that you asked.",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "Kuya is with me.",
+     "options": [
+      "Kasama ko si Kuya.",
+      "Nagkasama ako si Kuya.",
+      "Kasama ako si Kuya.",
+      "Magkasama ko si Kuya."
+     ],
+     "answer": "Kasama ko si Kuya."
+    },
+    {
+     "type": "build",
+     "prompt": "My mother-in-law lives with us.",
+     "words": [
+      "ko.",
+      "amin",
+      "ang",
+      "Nakatira",
+      "biyenan",
+      "sa"
+     ],
+     "answer": "Nakatira sa amin ang biyenan ko."
+    },
+    {
+     "type": "listen",
+     "say": "Sino ang kasama mo?",
+     "options": [
+      "Who's with you?",
+      "Where are you?",
+      "Who are you?",
+      "Who did you call?"
+     ],
+     "answer": "Who's with you?"
+    },
+    {
+     "type": "type",
+     "prompt": "Kuya and I",
+     "answer": "kami ni Kuya",
+     "accept": [
+      "kami ni kuya"
+     ]
+    },
+    {
+     "type": "mc",
+     "prompt": "'hipag' is your:",
+     "options": [
+      "sister-in-law",
+      "brother-in-law",
+      "niece",
+      "cousin"
+     ],
+     "answer": "sister-in-law"
+    }
+   ]
+  },
+  {
+   "day": 6,
+   "title": "One year, four months",
+   "intro": "She just turned one, and you're on four months of leave, so people will ask about both. Numbers take a linker before a noun, the same way magandang umaga does. 'Apat buwan' needs its 'na'.",
+   "words": [
+    {
+     "tl": "isang",
+     "en": "one (before a noun)"
+    },
+    {
+     "tl": "dalawang",
+     "en": "two (before a noun)"
+    },
+    {
+     "tl": "tatlong",
+     "en": "three (before a noun)"
+    },
+    {
+     "tl": "apat na",
+     "en": "four (before a noun)"
+    },
+    {
+     "tl": "taon",
+     "en": "year"
+    },
+    {
+     "tl": "linggo",
+     "en": "week (also Sunday)"
+    },
+    {
+     "tl": "Ilang taon na siya?",
+     "en": "How old is she?"
+    },
+    {
+     "tl": "Isang taon na siya.",
+     "en": "She's one year old now."
+    },
+    {
+     "tl": "unang kaarawan",
+     "en": "first birthday"
+    },
+    {
+     "tl": "Ang bilis!",
+     "en": "So fast!"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Tito",
+     "tl": "Ilang taon na si {child}?",
+     "en": "How old is {child}?"
+    },
+    {
+     "who": "You",
+     "tl": "Isang taon na po! Kaka-birthday lang po niya.",
+     "en": "One year old! She just had her birthday."
+    },
+    {
+     "who": "Tito",
+     "tl": "Ang bilis! Naglalakad na ba siya?",
+     "en": "So fast! Is she walking yet?"
+    },
+    {
+     "who": "You",
+     "tl": "Hindi pa po. Pero tumatayo na po siya.",
+     "en": "Not yet. But she's standing now."
+    },
+    {
+     "who": "Tito",
+     "tl": "Ilang buwan kang naka-leave?",
+     "en": "How many months are you on leave?"
+    },
+    {
+     "who": "You",
+     "tl": "Apat na buwan po.",
+     "en": "Four months."
+    }
+   ],
+   "grammar": {
+    "title": "Numbers take a linker too",
+    "explain": "Before a noun, a number links like a describing word. If it ends in a vowel, add -ng: isa becomes isang taon, dalawa becomes dalawang buwan, tatlo becomes tatlong linggo, lima becomes limang araw. If it ends in a consonant, add na: apat na buwan, anim na taon. Ilan (how many) does it too: ilang taon, ilang buwan.",
+    "examples": [
+     {
+      "tl": "Apat na buwan akong naka-leave.",
+      "en": "I'm on leave for four months."
+     },
+     {
+      "tl": "Dalawang bote ng gatas.",
+      "en": "Two bottles of milk."
+     },
+     {
+      "tl": "Isang buwan na lang, Pasko na!",
+      "en": "One more month and it's Christmas!"
+     }
+    ]
+   },
+   "culture": "First birthdays are big in Filipino families: a handaan (party with lots of food), pancit for long life, and gifts from ninong and ninang (godparents). Thank anyone who greets her or sends something: 'Salamat po sa regalo!' (Thank you for the gift!)",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "four months",
+     "options": [
+      "apat na buwan",
+      "apat buwan",
+      "apatng buwan",
+      "apat ang buwan"
+     ],
+     "answer": "apat na buwan"
+    },
+    {
+     "type": "type",
+     "prompt": "one year",
+     "answer": "isang taon",
+     "accept": [
+      "isang taon",
+      "1 taon"
+     ]
+    },
+    {
+     "type": "listen",
+     "say": "Ilang taon na siya?",
+     "options": [
+      "How old is she?",
+      "How many months?",
+      "Where is she?",
+      "When is her birthday?"
+     ],
+     "answer": "How old is she?"
+    },
+    {
+     "type": "build",
+     "prompt": "She's one year old now.",
+     "words": [
+      "siya.",
+      "na",
+      "taon",
+      "Isang"
+     ],
+     "answer": "Isang taon na siya."
+    },
+    {
+     "type": "type",
+     "prompt": "I'm on leave for four months.",
+     "answer": "Apat na buwan akong naka-leave.",
+     "accept": [
+      "apat na buwan akong naka-leave",
+      "apat na buwan akong naka leave",
+      "apat na buwan akong naka-parental leave",
+      "naka-leave ako ng apat na buwan",
+      "naka-leave ako nang apat na buwan",
+      "naka leave ako ng apat na buwan"
+     ]
+    }
+   ]
+  },
+  {
+   "day": 7,
+   "title": "Telling the family about your days",
+   "intro": "This week's patterns joined up: gusto kong + base form, pronouns in second place, and ongoing verbs, linked with kasi, pero, tapos and kaya. Aim for two-clause answers instead of 'Okay lang po'.",
+   "words": [
+    {
+     "tl": "kasi",
+     "en": "because"
+    },
+    {
+     "tl": "pero",
+     "en": "but"
+    },
+    {
+     "tl": "tapos",
+     "en": "then / and then"
+    },
+    {
+     "tl": "kaya",
+     "en": "so / that's why"
+    },
+    {
+     "tl": "medyo",
+     "en": "a bit / kind of"
+    },
+    {
+     "tl": "pagod",
+     "en": "tired"
+    },
+    {
+     "tl": "matuto",
+     "en": "to learn"
+    },
+    {
+     "tl": "unti-unti",
+     "en": "little by little"
+    },
+    {
+     "tl": "Masaya ako.",
+     "en": "I'm happy."
+    },
+    {
+     "tl": "Ang galing mo!",
+     "en": "You're so good at it!"
+    }
+   ],
+   "dialogue": [
+    {
+     "who": "Tita",
+     "tl": "Kumusta ang leave mo?",
+     "en": "How's your leave going?"
+    },
+    {
+     "who": "You",
+     "tl": "Masaya po, pero medyo pagod. Gising po kasi si {child} sa gabi.",
+     "en": "Happy, but a bit tired. {child} is awake at night, you see."
+    },
+    {
+     "who": "Tita",
+     "tl": "Nag-aaral ka pa ba ng Tagalog?",
+     "en": "Are you still studying Tagalog?"
+    },
+    {
+     "who": "You",
+     "tl": "Opo, araw-araw po. Kaya unti-unti po akong natututo.",
+     "en": "Yes, every day. So little by little I'm learning."
+    },
+    {
+     "who": "Tita",
+     "tl": "Ang galing mo na!",
+     "en": "You're so good already!"
+    }
+   ],
+   "grammar": {
+    "title": "Joining ideas: kasi, pero, tapos, kaya",
+    "explain": "Kasi gives the reason (because), kaya gives the result (so / that's why), pero gives a contrast (but), and tapos means 'and then'. Each one starts a new mini-sentence, and the usual rules still apply inside it: a pronoun goes second ('Kaya unti-unti akong natututo') and a verb after gusto stays in its base form.",
+    "examples": [
+     {
+      "tl": "Pagod ako kasi umiiyak siya sa gabi.",
+      "en": "I'm tired because she cries at night."
+     },
+     {
+      "tl": "Gusto kong matuto, kaya nag-aaral ako araw-araw.",
+      "en": "I want to learn, so I study every day."
+     },
+     {
+      "tl": "Kumain kami, tapos natulog si {child}.",
+      "en": "We ate, then {child} slept."
+     }
+    ]
+   },
+   "culture": "Family talk runs on kuwento (little stories). When someone asks 'Kumusta?', one small story about her day ('Tumawa siya kanina!', she laughed earlier!) gets a much bigger reaction than 'Okay lang po'.",
+   "exercises": [
+    {
+     "type": "mc",
+     "prompt": "I'm tired because she cries at night: Pagod ako ___ umiiyak siya sa gabi.",
+     "options": [
+      "kasi",
+      "kaya",
+      "pero",
+      "tapos"
+     ],
+     "answer": "kasi"
+    },
+    {
+     "type": "build",
+     "prompt": "I want to learn, so I study every day.",
+     "words": [
+      "araw-araw.",
+      "kaya",
+      "Gusto",
+      "ako",
+      "matuto,",
+      "nag-aaral",
+      "kong"
+     ],
+     "answer": "Gusto kong matuto, kaya nag-aaral ako araw-araw."
+    },
+    {
+     "type": "listen",
+     "say": "Tumawa siya kanina!",
+     "options": [
+      "She laughed earlier!",
+      "She cried earlier!",
+      "She's laughing now!",
+      "She'll laugh later!"
+     ],
+     "answer": "She laughed earlier!"
+    },
+    {
+     "type": "type",
+     "prompt": "Happy, but a bit tired.",
+     "answer": "Masaya, pero medyo pagod.",
+     "accept": [
+      "masaya pero medyo pagod",
+      "masaya po pero medyo pagod",
+      "masaya ako pero medyo pagod",
+      "masaya ako pero medyo pagod ako",
+      "masaya pero medyo pagod ako",
+      "masaya po pero medyo pagod po"
+     ]
+    },
+    {
+     "type": "type",
+     "prompt": "I'm learning little by little.",
+     "answer": "Unti-unti akong natututo.",
+     "accept": [
+      "unti unti akong natututo",
+      "unti-unti po akong natututo",
+      "natututo ako unti unti",
+      "natututo ako nang unti unti",
+      "unti unti na akong natututo"
+     ]
+    }
+   ]
+  }
+ ]
+}
