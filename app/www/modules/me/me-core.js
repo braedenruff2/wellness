@@ -138,37 +138,45 @@
       .map(function (x) { return x.f; });
   }
 
+  /* Calm feedback entries sorted chronologically by timestamp (excluding weekly-plan lines). */
+  function calmFeedback(state, kind) {
+    return byTime((state.feedback || []).filter(function (f) {
+      if (!f || f.part !== 'calm' || !f.a || typeof f.a !== 'object') return false;
+      if (kind && f.kind !== kind) return false;
+      return !/^plan:/.test(String(f.about).split('@')[0]);
+    }));
+  }
+
   /* Calm practices scored from his answers: helped a lot +2, a bit +1, not really -1; "not for me" -3.
      tooLong: practices where "Too long" got in the way. */
   /* racing: in the last 7 days, one of his last two calm answers given at night (21:00-05:00) named "Mind racing".
      flat: his latest calm answers in a row (14 days) that said "Not really". */
   function calmLikes(state, now) {
-    var score = {}, tooLong = {};
-    state.feedback.forEach(function (f) {
-      if (f.part !== 'calm') return;
+    var score = {}, tooLong = {}, all = calmFeedback(state);
+    all.forEach(function (f) {
       var id = String(f.about).split('@')[0];
-      if (/^plan:/.test(id)) return; // a weekly plan line, not a practice (planFlagged)
       if (f.kind === 'notfit') { score[id] = (score[id] || 0) - 3; if (Array.isArray(f.a.reasons) && f.a.reasons.indexOf('Too long') >= 0) tooLong[id] = 1; return; }
       var h = f.a.helped;
       if (h) score[id] = (score[id] || 0) + (h === 'A lot' ? 2 : h === 'A bit' ? 1 : -1);
       if (Array.isArray(f.a.block) && f.a.block.indexOf('Too long') >= 0) tooLong[id] = 1;
     });
     now = now || new Date();
+    var after = all.filter(function (f) { return f.kind === 'after'; });
     var since = new Date(now.getTime() - 7 * 864e5).toISOString();
-    var night = byTime(state.feedback.filter(function (f) { var h = new Date(f.at).getHours(); return f.part === 'calm' && f.kind === 'after' && (h >= 21 || h < 5); })).slice(-2);
+    var night = after.filter(function (f) { var h = new Date(f.at).getHours(); return h >= 21 || h < 5; }).slice(-2);
     var racing = night.some(function (f) { return f.at >= since && Array.isArray(f.a.block) && f.a.block.indexOf('Mind racing') >= 0; });
     // flat: how many of his latest calm answers in a row (last 14 days) said it helped "Not really"
     var since14 = new Date(now.getTime() - 14 * 864e5).toISOString(), flat = 0;
-    var rated = byTime(state.feedback.filter(function (f) { return f.part === 'calm' && f.kind === 'after' && f.a && f.a.helped && f.at >= since14; }));
+    var rated = after.filter(function (f) { return f.a.helped && f.at >= since14; });
     for (var i = rated.length - 1; i >= 0 && rated[i].a.helped === 'Not really'; i--) flat++;
     return { score: score, tooLong: tooLong, racing: racing, flat: flat };
   }
 
   /* Per Calm practice: how many of his "Did it help?" answers said it helped (A lot / A bit) out of all of them. */
-  function calmHelped(state) {
+  function calmHelped(state, since) {
     var out = {};
-    state.feedback.forEach(function (f) {
-      if (f.part !== 'calm' || f.kind !== 'after' || !f.a || !f.a.helped) return;
+    calmFeedback(state, 'after').forEach(function (f) {
+      if (!f.a.helped || (since && f.at < since)) return;
       var id = String(f.about).split('@')[0], o = out[id] = out[id] || { yes: 0, n: 0 };
       o.n++; if (f.a.helped === 'A lot' || f.a.helped === 'A bit') o.yes++;
     });
@@ -179,16 +187,16 @@
   function working(state, now) {
     now = now || new Date();
     var since = new Date(now.getTime() - 30 * 864e5).toISOString(), out = [];
+    var by = calmHelped(state, since);
+    var calmN = Object.keys(by).reduce(function (a, k) { return a + by[k].n; }, 0);
     var f = state.feedback.filter(function (x) { return x.kind === 'after' && x.at >= since && x.a && typeof x.a === 'object'; });
-    var calm = f.filter(function (x) { return x.part === 'calm' && x.a.helped; }), wo = f.filter(function (x) { return x.part === 'workout' && x.a.hard; }),
+    var wo = f.filter(function (x) { return x.part === 'workout' && x.a.hard; }),
       tl = f.filter(function (x) { return x.part === 'tagalog' && x.a.level; });
-    if (calm.length + wo.length + tl.length < 3) return [];
+    if (calmN + wo.length + tl.length < 3) return [];
     var CC = typeof CalmCore !== 'undefined' ? CalmCore : root.CalmCore, title = function (id) { var p = CC && CC.PRACTICES.filter(function (q) { return q.id === id; })[0]; return p ? p.title : id; };
-    var by = {};
-    calm.forEach(function (x) { var id = String(x.about).split('@')[0], o = by[id] = by[id] || { y: 0, n: 0 }; o.n++; if (x.a.helped === 'A lot' || x.a.helped === 'A bit') o.y++; });
-    var good = Object.keys(by).filter(function (k) { return by[k].y > 0; }).sort(function (a, b) { return by[b].y / by[b].n - by[a].y / by[a].n; });
-    if (good.length) out.push('Calm: ' + good.slice(0, 3).map(function (k) { return title(k) + ' helped ' + by[k].y + ' of ' + by[k].n; }).join('; ') + '.');
-    else if (calm.length >= 3) out.push('Calm: none of the practices has helped much yet (' + calm.length + ' answers). Try a different kind, or a walk.');
+    var good = Object.keys(by).filter(function (k) { return by[k].yes > 0; }).sort(function (a, b) { return by[b].yes / by[b].n - by[a].yes / by[a].n; });
+    if (good.length) out.push('Calm: ' + good.slice(0, 3).map(function (k) { return title(k) + ' helped ' + by[k].yes + ' of ' + by[k].n; }).join('; ') + '.');
+    else if (calmN >= 3) out.push('Calm: none of the practices has helped much yet (' + calmN + ' answers). Try a different kind, or a walk.');
     var jr = wo.filter(function (x) { return x.a.hard === 'Just right'; }).length;
     if (wo.length) out.push('Move: ' + jr + ' of ' + wo.length + ' workouts felt just right' + (wo.some(function (x) { return x.a.pain && x.a.pain !== 'None'; }) ? '; some pain noted' : ', no pain') + '.');
     var ar = tl.filter(function (x) { return x.a.level === 'About right'; }).length;
