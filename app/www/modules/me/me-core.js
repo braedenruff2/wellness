@@ -164,6 +164,16 @@
     return { score: score, tooLong: tooLong, racing: racing, flat: flat };
   }
 
+  /* Per Calm practice: how many of his "Did it help?" answers said it helped (A lot / A bit) out of all of them. */
+  function calmHelped(state) {
+    var out = {};
+    state.feedback.forEach(function (f) {
+      if (f.part !== 'calm' || f.kind !== 'after' || !f.a || !f.a.helped) return;
+      var id = String(f.about).split('@')[0], o = out[id] = out[id] || { yes: 0, n: 0 };
+      o.n++; if (f.a.helped === 'A lot' || f.a.helped === 'A bit') o.yes++;
+    });
+    return out;
+  }
   function lastN(state, part, kind, n) {
     return byTime(state.feedback.filter(function (f) {
       return f.part === part && f.kind === kind && (kind !== 'after' || (f.a && Object.keys(f.a).length > 0));
@@ -335,7 +345,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, planFlagged: planFlagged,
+    notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, planFlagged: planFlagged,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

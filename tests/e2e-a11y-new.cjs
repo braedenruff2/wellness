@@ -114,6 +114,8 @@ const W = require('./lib/web.cjs');
       plan: { at: '2026-11-22T12:00:00.000Z', headline: 'Steady week', parts: { home: { focus: 'Protect one nap-time rest', why: 'short sleep' } }, check: 'How did your energy feel?' },
       feedback: [
         { id: 'f1', at: '2026-11-22T12:00:00.000Z', date: '2026-11-22', part: 'coach', kind: 'after', about: 'tip:h20', a: { tried: 'It worked' } },
+        { id: 'calm/after/slow@a', at: new Date(2026, 10, 21, 14, 0).toISOString(), date: '2026-11-21', part: 'calm', kind: 'after', about: 'slow@a', a: { helped: 'A bit' } },
+        { id: 'calm/after/slow@b', at: new Date(2026, 10, 21, 15, 0).toISOString(), date: '2026-11-21', part: 'calm', kind: 'after', about: 'slow@b', a: { helped: 'Not really' } },
         { id: 'calm/after/sleep@r', at: new Date(2026, 10, 22, 22, 20).toISOString(), date: '2026-11-22', part: 'calm', kind: 'after', about: 'sleep@r', a: { helped: 'Not really', block: ['Mind racing'] } }
       ]
     }));
@@ -364,6 +366,8 @@ const W = require('./lib/web.cjs');
       await page.click('[data-me-fit]'); await page.waitForSelector('#me-sheet');
       assert.deepStrictEqual((await contrast('#c-recent')).filter((x) => x.r < min), [], theme + ' #c-recent');
       assert.deepStrictEqual((await contrast('#c-racing')).filter((x) => x.r < min), [], theme + ' #c-racing');
+      assert.ok((await page.textContent('.c-helped')).includes('Helped 1 of 2 times'));
+      assert.deepStrictEqual((await contrast('.c-helped')).filter((x) => x.r < min), [], theme + ' .c-helped');
       assert.deepStrictEqual((await contrast('#me-sheet')).filter((x) => x.r < min), [], theme + ' #me-sheet');
       await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
       await page.goto(base + '#calm/s/slow'); await page.waitForSelector('#c-len'); await page.waitForSelector('#c-before');

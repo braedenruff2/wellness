@@ -401,4 +401,11 @@ t('cleanPlan: calm.prefer keeps only real practice ids (trimmed, no repeats, at 
   assert.deepStrictEqual(p.parts.workout.prefer, ['x'], 'other parts unchanged');
   assert.deepStrictEqual(K.cleanPlan({ headline: 'h', parts: { calm: { focus: 'f', prefer: ['nope'] } } }, D(25)).parts.calm.prefer, []);
 });
+t('calmHelped: per practice, helped (A lot / A bit) out of all "Did it help?" answers', () => {
+  const s = K.defaults();
+  const a = (id, h, helped) => s.feedback.push({ id: 'calm/after/' + id + h, at: D(20, h).toISOString(), part: 'calm', about: id + '@' + h, kind: 'after', a: helped ? { helped } : { block: ['Nothing'] } });
+  a('ground', 9, 'Not really'); a('ground', 10, 'A bit'); a('body', 11, 'A lot'); a('body', 12); a('ground', 13, 'A lot');
+  s.feedback.push({ id: 'calm/notfit/x', at: D(21).toISOString(), part: 'calm', about: 'ground', kind: 'notfit', a: { reasons: [] } });
+  assert.deepStrictEqual(K.calmHelped(s), { ground: { yes: 2, n: 3 }, body: { yes: 1, n: 1 } });
+});
 console.log(n + ' me unit tests passed');
