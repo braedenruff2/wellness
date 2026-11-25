@@ -246,4 +246,16 @@ t('orderHint: a short pronoun out of second place gets its own hint (his "bakit 
   // different words: no hint
   assert.strictEqual(T.orderHint(ex, 'bakit umiiyak ka'), '');
 });
+t('linkerHint: a missing -ng or na linker gets "Almost" with the answer; anything else, or a right answer, gets nothing', () => {
+  const g = { type: 'type', prompt: 'p', answer: 'Gusto kong mag-aral ng Tagalog.', accept: ['gusto kong mag aral ng tagalog'] };
+  assert.strictEqual(T.linkerHint(g, 'gusto ko mag-aral ng tagalog'), 'Almost: add the linker -ng (kong): Gusto kong mag-aral ng Tagalog.');
+  const a = { type: 'type', prompt: 'p', answer: 'Apat na buwan akong naka-leave.' };
+  assert.strictEqual(T.linkerHint(a, 'apat buwan akong naka leave'), 'Almost: add the linker na (apat na buwan): Apat na buwan akong naka-leave.');
+  const k = { type: 'type', prompt: 'p', answer: 'Palagi kaming naglalaro.' };
+  assert.ok(/kaming/.test(T.linkerHint(k, 'palagi kami naglalaro')));
+  assert.strictEqual(T.linkerHint(k, 'Palagi kaming naglalaro'), '', 'right');
+  assert.strictEqual(T.linkerHint(k, 'palagi kami kumakain'), '', 'two words differ');
+  assert.strictEqual(T.linkerHint(k, 'palagi naglalaro kami'), '', 'order, not linker');
+  assert.strictEqual(T.linkerHint({ type: 'build', answer: 'Palagi kaming naglalaro.', words: [] }, 'palagi kami naglalaro'), '', 'type exercises only');
+});
 console.log(n + ' tagalog unit tests passed');

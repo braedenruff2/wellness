@@ -103,6 +103,30 @@
     return '';
   }
 
+  /* Right except a missing linker: "gusto ko bumili" for "gusto kong bumili", "apat buwan" for "apat na buwan". */
+  function linkerHint(ex, given) {
+    if (!ex || !ex.answer || ex.type !== 'type' || check(ex, given)) return '';
+    var gw = normHo(given).split(' ').filter(Boolean);
+    if (gw.length < 2) return '';
+    var cands = [ex.answer].concat(ex.accept || []);
+    for (var i = 0; i < cands.length; i++) {
+      var cw = normHo(cands[i]).split(' '), show = i === 0 ? ex.answer : cands[i];
+      // -ng joined to the word: same number of words, one differs only by its -ng ending
+      if (cw.length === gw.length) {
+        var diff = [];
+        for (var k = 0; k < cw.length; k++) if (cw[k] !== gw[k]) diff.push(k);
+        if (diff.length === 1 && cw[diff[0]] === gw[diff[0]] + 'ng' && gw[diff[0]].length >= 2) return 'Almost: add the linker -ng (' + cw[diff[0]] + '): ' + show;
+      }
+      // na between two words
+      if (cw.length === gw.length + 1) {
+        for (var j = 1; j < cw.length - 1; j++) {
+          if (cw[j] === 'na' && cw.slice(0, j).concat(cw.slice(j + 1)).join(' ') === gw.join(' ')) return 'Almost: add the linker na (' + cw[j - 1] + ' na ' + cw[j + 1] + '): ' + show;
+        }
+      }
+    }
+    return '';
+  }
+
   function allPacks(state, bundled) {
     var m = {};
     (bundled || []).forEach(function (p) { m[p.id] = p; });
@@ -260,7 +284,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;

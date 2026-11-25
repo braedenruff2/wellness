@@ -108,6 +108,14 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.ok((await page.textContent('#tl-fb')).includes('Right'));
     assert.ok((await page.textContent('#tl-alt')).includes('The lesson’s version: Ang sarap ng adobo'), await page.textContent('#tl-alt'));
   });
+  await t.step('a missing linker ("gusto ko mag-aral") says Almost and which linker', async () => {
+    await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/l/2026-11-25/1');
+    await page.click('#tl-ex .opt'); await page.click('#tl-next'); // mc
+    await page.click('#tl-check'); await page.click('#tl-next'); // build, left empty
+    await page.fill('#tl-in', 'gusto ko mag-aral ng Tagalog'); await page.click('#tl-check');
+    const fb = await page.textContent('#tl-linker');
+    assert.ok(fb.includes('Almost: add the linker -ng (kong): Gusto kong mag-aral ng Tagalog.'), fb);
+  });
   await t.step('next day: lesson 2 is next and the words are due for review', async () => {
     await page.clock.runFor(86400e3);
     await page.goto(base + '#tagalog');
