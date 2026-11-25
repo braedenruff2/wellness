@@ -232,4 +232,19 @@ t('five "Not really" in a row: the daytime suggestion is the mindful walk; eveni
   K.record(s, 'walk', 6, 3, 3, new Date(2026, 10, 23, 10, 0));
   assert.notStrictEqual(K.suggest(s, noon, { flat: 5 }), 'walk', 'done today already');
 });
+t('stressByPractice: average stress change per practice (both ratings only), best first', () => {
+  const s = K.defaults();
+  K.record(s, 'body', 8, 3, 2, new Date(2026, 10, 18, 12));
+  K.record(s, 'body', 8, 3, 3, new Date(2026, 10, 19, 12)); // avgChange -0.5 over 2
+  K.record(s, 'sigh', 1, 4, 2, new Date(2026, 10, 19, 14)); // avgChange -2.0 over 1
+  K.record(s, 'box', 3, null, 1, new Date(2026, 10, 19, 15)); // missing before -> ignored
+  K.record(s, 'slow', 5, 2, 3, new Date(2026, 10, 19, 16)); // avgChange +1.0 over 1
+  K.record(s, 'walk', 6, 5, 1, new Date(2026, 10, 22, 12)); // future relative to Nov 20
+  assert.deepStrictEqual(K.stressByPractice(s, new Date(2026, 10, 20, 12)), [
+    { id: 'sigh', avgChange: -2, n: 1 },
+    { id: 'body', avgChange: -0.5, n: 2 },
+    { id: 'slow', avgChange: 1, n: 1 }
+  ]);
+  assert.strictEqual(K.stressByPractice(s)[0].id, 'walk', 'unbounded includes all rated sessions');
+});
 console.log(n + ' calm unit tests passed');

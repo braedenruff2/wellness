@@ -104,6 +104,11 @@
     return h;
   }
 
+  function fmtChange(v) {
+    var r = Math.round(v * 10) / 10;
+    if (r === 0) return '0.0';
+    return (r < 0 ? '\u2212' : '+') + Math.abs(r).toFixed(1);
+  }
   function recentHtml() {
     if (!S.sessions.length) return '';
     var items = S.sessions.map(function (s, i) {
@@ -111,7 +116,11 @@
       if (isNaN(ts)) ts = Date.parse(s && s.date);
       return { s: s, t: isNaN(ts) ? 0 : ts, i: i };
     }).sort(function (a, b) { return b.t - a.t || b.i - a.i; }).slice(0, 10).map(function (x) { return x.s; });
-    return '<details class="card ui" id="c-recent"><summary>Recent sessions (' + items.length + ')</summary><ul class="me-g">' + items.map(function (s) {
+    var byP = K.stressByPractice ? K.stressByPractice(S) : [];
+    var avgLine = byP.length ? '<p class="meta" id="c-recent-avg" style="margin:.4em 0 .5em">Average stress change: ' + byP.map(function (x) {
+      return esc(titleOf(x.id)) + ': ' + fmtChange(x.avgChange) + ' over ' + x.n;
+    }).join(' · ') + '</p>' : '';
+    return '<details class="card ui" id="c-recent"><summary>Recent sessions (' + items.length + ')</summary>' + avgLine + '<ul class="me-g">' + items.map(function (s) {
       var d = s.date ? (function () { var p = s.date.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })() : '';
       var rating = s.before && s.after ? ' · stress ' + s.before + '→' + s.after : s.after ? ' · stress now ' + s.after : '';
       return '<li><b>' + esc(titleOf(s.id)) + '</b> <span class="meta">' + esc(d) + ' · ' + Math.max(1, Math.round(s.mins || 0)) + ' min' + esc(rating) + '</span></li>';

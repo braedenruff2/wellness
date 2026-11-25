@@ -87,6 +87,30 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(/Body scan/.test(rec[0]), rec[0]);
     assert.ok(/Box breathing/.test(rec[1]) && /stress now 1/.test(rec[1]), rec[1]);
     assert.ok(/One-minute reset/.test(rec[2]) && /stress 4→2/.test(rec[2]), rec[2]);
+    // per-practice average stress change (sessions with both ratings only, best first)
+    const avg0 = await page.textContent('#c-recent-avg');
+    assert.ok(avg0.includes('One-minute reset: −2.0 over 1') && !avg0.includes('Box breathing'), avg0);
+    // seed two rated Body scan sessions (avg −0.5 over 2) and verify ordering (One-minute reset −2.0 before Body scan −0.5)
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.calm.v1'));
+      s.sessions.push(
+        { id: 'body', date: '2026-11-17', at: '2026-11-17T12:00:00.000Z', mins: 8, before: 3, after: 2 },
+        { id: 'body', date: '2026-11-17', at: '2026-11-17T18:00:00.000Z', mins: 8, before: 3, after: 3 }
+      );
+      localStorage.setItem('wl.calm.v1', JSON.stringify(s));
+      WL.modules.calm.reload();
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#calm');
+    await page.click('#c-recent summary');
+    const avg1 = await page.textContent('#c-recent-avg');
+    assert.ok(avg1.includes('One-minute reset: −2.0 over 1') && avg1.includes('Body scan: −0.5 over 2'), avg1);
+    assert.ok(avg1.indexOf('One-minute reset') < avg1.indexOf('Body scan'), 'best stress drop listed first: ' + avg1);
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.calm.v1'));
+      s.sessions = s.sessions.filter((x) => x.date !== '2026-11-17');
+      localStorage.setItem('wl.calm.v1', JSON.stringify(s));
+      WL.modules.calm.reload();
+    });
     // an earlier-day session pushed later in storage still sorts chronologically below today's sessions
     await page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem('wl.calm.v1'));

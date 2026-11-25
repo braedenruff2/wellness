@@ -404,7 +404,25 @@
     return d;
   }
 
-  var api = { PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
+  /* Per practice average stress change (after - before, negative = calmer) across sessions with both ratings, best first. */
+  function stressByPractice(state, now) {
+    var to = now ? iso(now) : null, by = {};
+    (state.sessions || []).forEach(function (s) {
+      if (to && s.date && s.date > to) return;
+      if (typeof s.before === 'number' && typeof s.after === 'number') {
+        var o = by[s.id] = by[s.id] || { id: s.id, sum: 0, n: 0 };
+        o.sum += s.after - s.before; o.n++;
+      }
+    });
+    return Object.keys(by).map(function (id) {
+      var o = by[id];
+      return { id: id, avgChange: o.sum / o.n, n: o.n };
+    }).sort(function (a, b) {
+      return a.avgChange - b.avgChange || b.n - a.n || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+    });
+  }
+
+  var api = { PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);
