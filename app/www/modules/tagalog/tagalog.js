@@ -121,20 +121,31 @@
   function shuffle(a, seed) { a = a.slice(); var s = seed || 1; for (var i = a.length - 1; i > 0; i--) { s = (s * 9301 + 49297) % 233280; var j = Math.floor(s / 233280 * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
   function runExercises(pk, l) {
-    runSet(l.exercises.map(function (ex) { return { pack: pk, lesson: l, ex: ex }; }), function (right, n) {
+    runSet(l.exercises.map(function (ex) { return { pack: pk, lesson: l, ex: ex }; }), function (right, n, notes) {
       T.finishLesson(S, pk, l, logNow()); save();
       return '<p class="ui"><b>' + right + ' of ' + n + ' right.</b> ' + (right === n ? 'Excellent.' : right >= n * 0.6 ? 'Good work.' : 'Worth another go tomorrow.') +
-        ' The words are now in your review.</p>' + (window.WLMe ? WLMe.askHtml('tagalog', pk.id + '/' + l.day, 'Quick question (optional): it shapes next week’s lessons') : '') + '<div class="row ui"><a class="btn primary" href="#tagalog">Done</a><button id="tl-again">Practice again</button></div>';
+        ' The words are now in your review.</p>' + watchHtml(notes) + (window.WLMe ? WLMe.askHtml('tagalog', pk.id + '/' + l.day, 'Quick question (optional): it shapes next week’s lessons') : '') + '<div class="row ui"><a class="btn primary" href="#tagalog">Done</a><button id="tl-again">Practice again</button></div>';
     });
   }
 
-  /* Exercises one after another ([{pack, lesson, ex}]); finish(right, n) gives the closing HTML (#tl-again restarts). */
+  /* The specific slips from this lesson (word order, short words, linkers): once more with the right sentence. */
+  function watchHtml(notes) {
+    if (!notes || !notes.length) return '';
+    var label = { order: 'Word order', pronoun: 'Short words go second', linker: 'Linker' };
+    return '<div class="card ui" id="tl-watch"><h3>Watch for next time</h3><ul class="list">' + notes.map(function (x) {
+      return '<li class="row"><span class="grow"><span class="meta">' + esc(label[x.kind] || '') + '</span><br><b lang="tl">' + esc(x.answer) + '</b></span>' + hear(x.answer) + '</li>';
+    }).join('') + '</ul></div>';
+  }
+
+  /* Exercises one after another ([{pack, lesson, ex}]); finish(right, n, notes) gives the closing HTML (#tl-again
+     restarts); notes: [{kind, answer}] for answers that got a specific hint. */
   function runSet(items, finish, wire) {
-    var i = 0, right = 0, box = $('#tl-ex');
+    var i = 0, right = 0, box = $('#tl-ex'), notes = [];
     function show() {
       if (i >= items.length) {
-        box.innerHTML = finish(right, items.length);
-        var again = $('#tl-again'); if (again) again.onclick = function () { i = 0; right = 0; show(); };
+        box.innerHTML = finish(right, items.length, notes);
+        wireHear(box);
+        var again = $('#tl-again'); if (again) again.onclick = function () { i = 0; right = 0; notes = []; show(); };
         if (wire) wire(box);
         return;
       }
@@ -155,6 +166,8 @@
         T.recordAnswer(S, pk, l, ex, ok, logNow(), given); save();
         var askable = !ok && ex.type === 'type' && String(given || '').trim() && WL.pc && (WL.pc.canAsk ? WL.pc.canAsk() : WL.pc.ready());
         var hint = !ok && T.orderHint ? T.orderHint(ex, given) : '', link = !ok && !hint && T.linkerHint ? T.linkerHint(ex, given) : '';
+        var hk = !ok && T.hintKind ? T.hintKind(ex, given) : '';
+        if (hk && !notes.some(function (x) { return x.answer === ex.answer; })) notes.push({ kind: hk, answer: ex.answer });
         $('#tl-fb').innerHTML = '<p class="' + (ok ? 'ok' : 'no') + '"' + (hint ? ' id="tl-order"' : link ? ' id="tl-linker"' : '') + '>' +
           (ok ? '✓ Right!' : hint ? '✗ ' + esc(hint) : link ? '✗ ' + esc(link) : '✗ Answer: <b>' + esc(ex.answer) + '</b>') + '</p>' +
           (ok && T.missedPo(ex, given) ? '<p class="meta" id="tl-po">With an elder, add “po”: <b>' + esc(ex.answer) + '</b></p>' :

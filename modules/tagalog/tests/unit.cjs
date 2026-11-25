@@ -288,4 +288,19 @@ t('tests that serve a fake "new week" use an id far after any real pack (2090+),
   });
   assert.deepStrictEqual(bad, [], 'fake weeks must be 2090+ (or an id that already ships, for "corrected" tests)');
 });
+t('hintKind is stored with a wrong answer, survives validate, and goes into the weekly summary', () => {
+  const st = T.defaults(), pk = { id: '2026-11-25' }, l = { day: 2 };
+  const ex = { type: 'type', prompt: 'Why is she crying?', answer: 'Bakit siya umiiyak?' };
+  assert.strictEqual(T.hintKind(ex, 'bakit umiiyak siya'), 'pronoun');
+  assert.strictEqual(T.hintKind({ type: 'type', prompt: 'p', answer: 'Umiinom ng gatas ang baby.' }, 'umiinom ang gatas ng baby'), 'order');
+  assert.strictEqual(T.hintKind({ type: 'type', prompt: 'p', answer: 'Palagi kaming naglalaro.' }, 'palagi kami naglalaro'), 'linker');
+  assert.strictEqual(T.hintKind(ex, 'hindi ko alam'), '');
+  T.recordAnswer(st, pk, l, ex, false, new Date(2026, 10, 25, 20), 'bakit umiiyak siya');
+  T.recordAnswer(st, pk, l, ex, true, new Date(2026, 10, 25, 21), 'bakit siya umiiyak');
+  assert.strictEqual(st.answers[0].hint, 'pronoun'); assert.strictEqual(st.answers[1].hint, undefined);
+  const v = T.validate(Object.assign({}, st, { answers: st.answers.concat([{ at: '2026-11-25T10:00:00Z', ok: false, prompt: 'x', hint: 'evil' }]) }));
+  assert.strictEqual(v.answers[0].hint, 'pronoun'); assert.strictEqual(v.answers[2].hint, undefined);
+  const sum = T.weeklySummary(st, [], new Date(2026, 10, 26));
+  assert.deepStrictEqual(sum.hints, [{ kind: 'pronoun', prompt: 'Why is she crying?', given: 'bakit umiiyak siya' }]);
+});
 console.log(n + ' tagalog unit tests passed');

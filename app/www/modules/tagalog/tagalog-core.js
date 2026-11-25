@@ -146,6 +146,15 @@
     return null;
   }
 
+  /* Which specific hint a wrong answer got: 'pronoun' (short word out of second place), 'order' (ang/ng word order),
+     'linker' (missing -ng / na), or ''. */
+  function hintKind(ex, given) {
+    var o = orderHint(ex, given);
+    if (o) return /short words like/.test(o) ? 'pronoun' : 'order';
+    return linkerHint(ex, given) ? 'linker' : '';
+  }
+  var HINT_KINDS = ['order', 'pronoun', 'linker'];
+
   function allPacks(state, bundled) {
     var m = {};
     (bundled || []).forEach(function (p) { m[p.id] = p; });
@@ -175,6 +184,8 @@
   function recordAnswer(state, pack, lesson, ex, ok, now, given) {
     var a = { at: (now || new Date()).toISOString(), pack: pack.id, day: lesson.day, ok: !!ok, prompt: String(ex.prompt || ex.say || '').slice(0, 120), type: ex.type };
     if (given != null && String(given).trim()) a.given = String(given).slice(0, 200);
+    var hk = ok ? '' : hintKind(ex, given);
+    if (hk) a.hint = hk;
     state.answers.push(a);
     if (state.answers.length > 2000) state.answers.splice(0, state.answers.length - 2000);
   }
@@ -264,6 +275,8 @@
     return { app: 'wellness-tagalog-summary', made: (now || new Date()).toISOString(), stats: st,
       lessonsDone: Object.keys(state.done).sort(), weakWords: weakWords(state, 15).map(function (k) { var c = state.cards[k]; return { tl: k, en: c.en, right: c.right, wrong: c.wrong }; }),
       missed: Object.keys(wrongPrompts).sort(function (a, b) { return wrongPrompts[b] - wrongPrompts[a]; }).slice(0, 15),
+      // the specific slips the app recognised (word order, a short word out of second place, a missing linker), newest last
+      hints: state.answers.slice(-300).filter(function (a) { return a.hint; }).slice(-20).map(function (a) { return { kind: a.hint, prompt: a.prompt, given: a.given || '' }; }),
       packs: packs.map(function (p) { return p.id; }) };
   }
 
@@ -288,6 +301,7 @@
       if (!a || isNaN(new Date(a.at).getTime())) return; // a damaged entry is dropped, not the whole Tagalog backup
       var x = { at: new Date(a.at).toISOString(), pack: String(a.pack || ''), day: +a.day || 0, ok: !!a.ok, prompt: String(a.prompt || '').slice(0, 120), type: String(a.type || '') };
       if (typeof a.given === 'string') x.given = a.given.slice(0, 200);
+      if (HINT_KINDS.indexOf(a.hint) >= 0) x.hint = a.hint;
       d.answers.push(x);
     });
     (Array.isArray(s.reviews) ? s.reviews : []).slice(-2000).forEach(function (r) {
@@ -303,7 +317,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, hintKind: hintKind, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;

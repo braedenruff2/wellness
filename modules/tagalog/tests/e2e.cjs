@@ -109,12 +109,26 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.ok((await page.textContent('#tl-alt')).includes('The lesson’s version: Ang sarap ng adobo'), await page.textContent('#tl-alt'));
   });
   await t.step('a missing linker ("gusto ko mag-aral") says Almost and which linker', async () => {
+    const saved = await page.evaluate(() => localStorage.getItem('wl.tagalog.v1'));
     await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/l/2026-11-25/1');
     await page.click('#tl-ex .opt'); await page.click('#tl-next'); // mc
     await page.click('#tl-check'); await page.click('#tl-next'); // build, left empty
     await page.fill('#tl-in', 'gusto ko mag-aral ng Tagalog'); await page.click('#tl-check');
     const fb = await page.textContent('#tl-linker');
     assert.ok(fb.includes('Almost: add the linker -ng (kong): Gusto kong mag-aral ng Tagalog.'), fb);
+    // finish the lesson: the slip is listed under "Watch for next time" with its sentence and a 🔊
+    for (let k = 0; k < 12 && !(await page.$('#tl-watch')); k++) {
+      if (await page.$('#tl-next')) { await page.click('#tl-next'); continue; }
+      if (await page.$('#tl-ex .opt:not(.word)')) await page.click('#tl-ex .opt:not(.word)');
+      else if (await page.$('#tl-in')) { await page.fill('#tl-in', 'x'); await page.click('#tl-check'); }
+      else await page.click('#tl-check');
+    }
+    const w = await page.textContent('#tl-watch');
+    assert.ok(w.includes('Linker') && w.includes('Gusto kong mag-aral ng Tagalog.'), w);
+    assert.strictEqual(await page.getAttribute('#tl-watch [data-say]', 'data-say'), 'Gusto kong mag-aral ng Tagalog.');
+    const st = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')));
+    assert.ok(st.answers.some((a) => a.hint === 'linker' && /study Tagalog/.test(a.prompt)), 'the hint kind is kept with the answer');
+    await page.evaluate((raw) => { localStorage.setItem('wl.tagalog.v1', raw); window.WL.modules.tagalog.reload(); }, saved);
   });
   await t.step('next day: lesson 2 is next and the words are due for review', async () => {
     await page.clock.runFor(86400e3);
