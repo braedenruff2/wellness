@@ -333,4 +333,29 @@ t('un-tapped quick answers and empty check-ins are ignored; checkinNote validate
   const v = K.validate({ feedback: [], checkins: { '2026-11-20': { at: '2026-11-20T10:00:00Z' }, '2026-11-21': { at: '2026-11-21T10:00:00Z', mood: 'OK' } } });
   assert.deepStrictEqual(Object.keys(v.checkins), ['2026-11-21']);
 });
+t('out-of-order earlier-day feedback stays ordered by timestamp; validate rejects invalid dates and trims to caps', () => {
+  const s = K.defaults();
+  // Workout pain today followed by an earlier-day easy workout logged afterwards: pain must still win
+  K.answer(s, 'workout', 'w-new', 'pain', 'Yes, I stopped', D(20, 10));
+  K.answer(s, 'workout', 'w-old', 'hard', 'Easy', D(18, 10));
+  assert.ok(K.guidance(s, D(20, 12), 10).some((g) => g.key === 'wpain'), 'older earlier-day workout does not hide newest pain');
+  // Last night mind-racing wind-down followed by an earlier-day calm wind-down logged afterwards
+  const cm = K.defaults();
+  K.answer(cm, 'calm', 'sleep@new', 'block', 'Mind racing', D(19, 23));
+  K.answer(cm, 'calm', 'sleep@old1', 'helped', 'A lot', D(16, 22));
+  K.answer(cm, 'calm', 'sleep@old2', 'helped', 'A lot', D(15, 22));
+  assert.ok(K.guidance(cm, D(20, 19), 20).some((g) => g.key === 'mindracing'), 'older wind-down does not mask last night mindracing');
+  assert.strictEqual(K.calmLikes(cm, D(20, 19)).racing, true, 'older night answers do not push newest mind-racing out of last two');
+  // validate: drops plan with bad at (so planDue stays true), trims >600 feedback & >120 checkins
+  const bigFb = Array.from({ length: 610 }, (_, i) => ({
+    id: 'calm/after/c' + i, at: new Date(Date.UTC(2026, 0, 1, 0, i)).toISOString(), part: 'calm', about: 'c' + i, kind: 'after', a: { helped: 'A bit' }
+  }));
+  const bigCk = {};
+  for (let i = 0; i < 130; i++) bigCk[K.iso(new Date(2026, 0, 1 + i))] = { at: '2026-01-01T10:00:00Z', mood: 'OK' };
+  const cleaned = K.validate({ feedback: bigFb, checkins: bigCk, plan: { at: 'not-a-date', headline: 'Stale forever', parts: { home: { focus: 'x' } } } });
+  assert.strictEqual(cleaned.feedback.length, 600, 'validate trims feedback to 600');
+  assert.strictEqual(Object.keys(cleaned.checkins).length, 120, 'validate trims checkins to 120');
+  assert.strictEqual(cleaned.plan, null, 'validate drops plan with invalid timestamp');
+  assert.strictEqual(K.planDue(cleaned, D(20)), true, 'plan is due when bad plan was dropped');
+});
 console.log(n + ' me unit tests passed');

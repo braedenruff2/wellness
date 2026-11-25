@@ -36,10 +36,11 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#pray-card a.btn'); await page.waitForSelector('.session');
     assert.strictEqual(await secs(), normal);
   });
-  await t.step('after a late prayer rated "Hard to focus", it says why', async () => {
+  await t.step('after a late prayer rated "Hard to focus", it says why (even if an older late prayer was logged afterwards)', async () => {
     await page.evaluate(() => {
       const me = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[],"checkins":{}}');
       me.feedback.push({ id: 'faith/after/day:1@x', at: new Date(2026, 10, 21, 22, 40).toISOString(), part: 'faith', about: 'day:1@x', kind: 'after', a: { felt: 'Hard to focus' } });
+      me.feedback.push({ id: 'faith/after/day:1@older', at: new Date(2026, 10, 19, 22, 15).toISOString(), part: 'faith', about: 'day:1@older', kind: 'after', a: { felt: 'Peaceful' } });
       localStorage.setItem('wl.me.v1', JSON.stringify(me));
     });
     await page.goto(base + '#faith/today'); await page.reload(); await page.waitForSelector('#fc-short');

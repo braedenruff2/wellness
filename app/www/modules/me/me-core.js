@@ -132,6 +132,12 @@
     return c.sleep === 'Under 4 h' || c.sleep === '4–5 h' || c.wakes === '3+' || c.energy === 'Low';
   }
 
+  function byTime(arr) {
+    return arr.map(function (f, i) { var t = Date.parse(f.at); return { f: f, t: isNaN(t) ? 0 : t, i: i }; })
+      .sort(function (a, b) { return a.t - b.t || a.i - b.i; })
+      .map(function (x) { return x.f; });
+  }
+
   /* Calm practices scored from his answers: helped a lot +2, a bit +1, not really -1; "not for me" -3.
      tooLong: practices where "Too long" got in the way. */
   /* racing: in the last 7 days, one of his last two calm answers given at night (21:00-05:00) named "Mind racing". */
@@ -147,15 +153,15 @@
     });
     now = now || new Date();
     var since = new Date(now.getTime() - 7 * 864e5).toISOString();
-    var night = state.feedback.filter(function (f) { var h = new Date(f.at).getHours(); return f.part === 'calm' && f.kind === 'after' && (h >= 21 || h < 5); }).slice(-2);
+    var night = byTime(state.feedback.filter(function (f) { var h = new Date(f.at).getHours(); return f.part === 'calm' && f.kind === 'after' && (h >= 21 || h < 5); })).slice(-2);
     var racing = night.some(function (f) { return f.at >= since && Array.isArray(f.a.block) && f.a.block.indexOf('Mind racing') >= 0; });
     return { score: score, tooLong: tooLong, racing: racing };
   }
 
   function lastN(state, part, kind, n) {
-    return state.feedback.filter(function (f) {
+    return byTime(state.feedback.filter(function (f) {
       return f.part === part && f.kind === kind && (kind !== 'after' || (f.a && Object.keys(f.a).length > 0));
-    }).slice(-n);
+    })).slice(-n);
   }
   function recentCheckins(state, now, days) {
     now = now || new Date(); var out = [];
@@ -184,7 +190,7 @@
     var r5 = recentCheckins(state, now, 5), broken = r5.filter(function (c) { return c.wakes === '2' || c.wakes === '3+'; }).length;
     if (broken >= 3 && !out.some(function (g) { return g.key === 'shortsleep'; })) out.push({ key: 'brokennights', part: 'home', text: 'Broken nights on ' + broken + ' of the last ' + r5.length + ' check-ins. On these days a nap beats a workout, and Calm’s “Back to sleep” helps after a night feed.' });
     // his last bedtime wind-down didn't help because his mind was racing: the next evening, write it down first
-    var wd = state.feedback.filter(function (x) { return x.part === 'calm' && x.kind === 'after' && /^(sleep|night)@/.test(String(x.about)); }).slice(-1)[0];
+    var wd = byTime(state.feedback.filter(function (x) { return x.part === 'calm' && x.kind === 'after' && /^(sleep|night)@/.test(String(x.about)); })).slice(-1)[0];
     if (wd && now.getHours() >= 17 && Array.isArray(wd.a.block) && wd.a.block.indexOf('Mind racing') >= 0) {
       var wdDay = iso(new Date(wd.at)), y = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
       if (wdDay === y || wdDay === iso(now)) out.push({ key: 'mindracing', part: 'calm', text: 'Your mind was racing at your last wind-down. Tonight, write down what’s on it first (a few lines in the Faith journal, or any paper), then do the wind-down.' });
@@ -282,6 +288,7 @@
         d.feedback.push({ id: cut(f.id, 200), at: cut(f.at, 40), part: f.part, about: cut(f.about, 80), kind: f.kind === 'notfit' ? 'notfit' : 'after', a: cleanA(f.part, f.kind, f.a),
           shown: f.shown ? cut(f.shown, 300) : undefined, note: f.note ? cut(f.note, 600) : undefined, edited: f.edited ? cut(f.edited, 40) : undefined });
     });
+    trim(d);
     if (s.checkins && typeof s.checkins === 'object') Object.keys(s.checkins).forEach(function (k) {
       var c = s.checkins[k]; if (!/^\d{4}-\d\d-\d\d$/.test(k) || !c || typeof c !== 'object') return;
       var o = { at: cut(c.at || '', 40) };
@@ -289,7 +296,8 @@
       if (c.note) o.note = cut(c.note, 600); if (c.edited) o.edited = cut(c.edited, 40);
       if (hasCheckin(o)) d.checkins[k] = o;
     });
-    if (s.plan) d.plan = s.plan.at ? (function () { var p = cleanPlan(s.plan); if (p) p.at = cut(s.plan.at, 40); return p; })() : null;
+    trimCheckins(d);
+    if (s.plan) d.plan = typeof s.plan.at === 'string' && !isNaN(Date.parse(s.plan.at)) ? (function () { var p = cleanPlan(s.plan); if (p) p.at = cut(s.plan.at, 40); return p; })() : null;
     if (typeof s.planTried === 'string' && /^\d{4}-\d\d-\d\d$/.test(s.planTried)) d.planTried = s.planTried;
     if (typeof s.planCancelled === 'string' && /^\d{4}-\d\d-\d\d$/.test(s.planCancelled)) d.planCancelled = s.planCancelled;
     if (s.skipped && typeof s.skipped === 'object') Object.keys(s.skipped).forEach(function (k) { if (/^\d{4}-\d\d-\d\d$/.test(k)) d.skipped[k] = 1; });
