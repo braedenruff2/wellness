@@ -3,7 +3,7 @@
   'use strict';
   var W = window.WorkoutCore, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   var store = WL.store('wl.workout.v1', W.defaults);
-  var S = store.load(), view = null, dayChoice = null;
+  var S = store.load(), view = null, dayChoice = null, forceAhead = false;
   var rest = null, restTimer = null, restHideTimer = null, clockTimer = null; // rest = {end, label, next, set}
   function save() { store.save(S); }
 
@@ -45,9 +45,19 @@
   }
 
   function today() {
-    var open = W.openSession(S, now()), day = open ? open.day : (dayChoice || W.nextDay(S, now())), plan = W.PROGRAM[day];
-    var h = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">' + esc(plan.title) + '</h1>' + weekDots(now()) + '</div>';
+    var open = W.openSession(S, now()), fin = !open && W.finishedToday(S, now());
+    var day = open ? open.day : (dayChoice || W.nextDay(S, now())), plan = W.PROGRAM[day];
     var M = window.WLMe, co = W.coach(S, now());
+    if (fin && !forceAhead) {
+      var h0 = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">Done for today \u2713</h1>' + weekDots(now()) + '</div>';
+      h0 += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + fin.day, co) : '') + '</p>';
+      if (M) h0 += M.planLine('workout');
+      if (M) h0 += M.askHtml('workout', fin.id, 'Workout done \u2713 Quick questions (optional): they shape your next workouts');
+      h0 += '<div class="card done-banner ui" id="wo-done-today"><p style="margin-bottom:6px"><b>Finished ' + esc(W.PROGRAM[fin.day].title) + '</b> (' + fin.sets.length + ' set' + (fin.sets.length === 1 ? '' : 's') + '). Next time: <b>' + esc(plan.title) + '</b>.</p>' +
+        '<div class="row"><button id="wo-reopen" data-id="' + esc(fin.id) + '">Carry on with it</button><button class="link" id="wo-ahead">Start ' + esc(plan.title) + ' anyway</button></div></div>';
+      return h0;
+    }
+    var h = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">' + esc(plan.title) + '</h1>' + weekDots(now()) + '</div>';
     h += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + day, co) : '') + '</p>';
     if (M) h += M.planLine('workout');
     var dIso = W.iso(now()), worked = S.sessions.some(function (x) { return x.date === dIso && x.sets && x.sets.length; });
@@ -194,16 +204,17 @@
         });
       };
     });
-    var ro = $('#wo-reopen'); if (ro) ro.onclick = function () { W.reopen(S, ro.dataset.id); save(); dayChoice = null; renderToday(); WL.toast('Carrying on: log the next set'); };
+    var ro = $('#wo-reopen'); if (ro) ro.onclick = function () { forceAhead = false; W.reopen(S, ro.dataset.id); save(); dayChoice = null; renderToday(); WL.toast('Carrying on: log the next set'); };
+    var ah = $('#wo-ahead'); if (ah) ah.onclick = function () { forceAhead = true; renderToday(); };
     var u = $('#wo-undo'); if (u) u.onclick = function () { var s = W.undoSet(S, now()); save(); rest = null; alarm(); renderToday(); if (s) WL.toast('Removed ' + s.ex + ' set ' + s.n); };
     var f = $('#wo-finish'); if (f) f.onclick = function () {
       var open = W.openSession(S, now()), n = open ? open.sets.length : 0;
-      W.endSession(S, now()); save(); rest = null; alarm(); dayChoice = null;
+      W.endSession(S, now()); save(); rest = null; alarm(); dayChoice = null; forceAhead = false;
       WL.toast(n ? 'Workout saved: ' + n + ' sets. Well done.' : 'Nothing logged');
       renderToday(); window.scrollTo(0, 0);
     };
-    $('#rest-skip').onclick = function () { rest = null; alarm(); showRest(); };
-    $('#rest-plus').onclick = function () { if (rest) { rest.end += 15000; alarm(); } };
+    var rs = $('#rest-skip'); if (rs) rs.onclick = function () { rest = null; alarm(); showRest(); };
+    var rp = $('#rest-plus'); if (rp) rp.onclick = function () { if (rest) { rest.end += 15000; alarm(); } };
   }
 
   function sparkline(vals) {
@@ -319,13 +330,17 @@
     else if (p === 'settings') { view.innerHTML = settings(); wireSettings(); }
     else renderToday();
   }
-  function leave() { clearInterval(restTimer); clearTimeout(restHideTimer); restHideTimer = null; clearInterval(clockTimer); }
+  function leave() { forceAhead = false; clearInterval(restTimer); clearTimeout(restHideTimer); restHideTimer = null; clearInterval(clockTimer); }
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden && rest && $('#restbar')) showRest();
   });
 
   function card() {
-    var open = W.openSession(S, now()), day = open ? open.day : W.nextDay(S, now()), plan = W.PROGRAM[day];
+    var open = W.openSession(S, now()), fin = !open && W.finishedToday(S, now()), day = open ? open.day : W.nextDay(S, now()), plan = W.PROGRAM[day];
+    if (fin) {
+      return '<div class="meta ui">Workout</div><div class="row"><h3 class="grow">\u2713 Done for today</h3>' + weekDots() + '</div>' +
+        '<p class="meta ui">Finished ' + esc(W.PROGRAM[fin.day].title) + '. Next: ' + esc(plan.title) + '.</p><div class="row ui"><a class="btn" href="#workout">Open</a></div>';
+    }
     return '<div class="meta ui">Workout</div><div class="row"><h3 class="grow">' + (open ? 'In progress: ' : 'Next: ') + esc(plan.title) + '</h3>' + weekDots() + '</div>' +
       '<p class="meta ui">' + esc(W.coach(S, now())) + '</p><div class="row ui"><a class="btn primary" href="#workout">' + (open ? 'Carry on' : 'Start') + '</a></div>';
   }

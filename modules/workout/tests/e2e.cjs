@@ -81,16 +81,18 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.reload();
     assert.strictEqual(await page.locator('.sc.on').count(), 1, 'the sets are still there');
   });
-  await t.step('finish: saved, and next time it is Full body B; finished by mistake: carry on', async () => {
+  await t.step('finish: stays on Done for today instead of jumping to Day B; Carry on reopens Day A; explicit button opens Day B', async () => {
     await page.click('#wo-finish');
-    assert.strictEqual(await page.textContent('h1'), 'Full body B');
+    assert.strictEqual(await page.textContent('h1'), 'Done for today ✓');
+    assert.ok((await page.textContent('#wo-done-today')).includes('Finished Full body A') && (await page.textContent('#wo-done-today')).includes('Next time: Full body B'));
+    assert.strictEqual(await page.$('#ex-0'), null, 'Day B exercises do not pop up automatically after finishing Day A');
     await page.click('#wo-reopen');
     assert.strictEqual(await page.textContent('h1'), 'Full body A');
     assert.strictEqual(await page.locator('.sc.on').count(), 1);
     await page.click('#wo-finish');
-    assert.strictEqual(await page.textContent('h1'), 'Full body B');
+    assert.strictEqual(await page.textContent('h1'), 'Done for today ✓');
     await page.goto(base + '#home');
-    assert.ok((await page.textContent('.home-card[data-module="workout"]')).includes('Next: Full body B'));
+    assert.ok((await page.textContent('.home-card[data-module="workout"]')).includes('Done for today') && (await page.textContent('.home-card[data-module="workout"]')).includes('Next: Full body B'));
   });
   await t.step('import the sheet CSV, then last-time numbers and progress show', async () => {
     const f = path.join(os.tmpdir(), 'wo-log.csv');
@@ -99,6 +101,8 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.setInputFiles('#wo-csv', f);
     await page.waitForFunction(() => document.getElementById('toast').textContent.includes('Imported 2'));
     await page.goto(base + '#workout');
+    await page.click('#wo-ahead');
+    assert.strictEqual(await page.textContent('h1'), 'Full body B');
     const adv = await page.textContent('#ex-0 .adv');
     assert.ok(/Last: 15\/15\/15 @ 10 lb/.test(adv) && /Ready for harder/.test(adv), adv);
     await page.goto(base + '#workout/history');

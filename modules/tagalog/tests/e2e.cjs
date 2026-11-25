@@ -70,10 +70,14 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     for (let i = 0; i < 5; i++) await page.clock.runFor(1000);
     assert.strictEqual(await page.evaluate(() => window.__spoken.length), n, 'stopped');
   });
-  await t.step('a wrong answer shows the right one', async () => {
+  await t.step('a wrong answer shows the right one; returning to #tagalog today stays on Done for today', async () => {
     await page.click('#tl-again');
     await page.click('#tl-ex [data-o="no"]');
     assert.ok((await page.textContent('#tl-fb')).includes('Answer: yes (polite)'));
+    await page.goto(base + '#tagalog');
+    await page.waitForSelector('#tl-done-today');
+    assert.ok((await page.textContent('#tl-done-today')).includes('Lesson done for today'));
+    assert.ok((await page.textContent('#tl-ahead')).includes('Lesson 2'));
   });
   await t.step('ang/ng word-order mistake in a lesson shows a specific word-order hint instead of plain wrong', async () => {
     await page.goto(base + '#tagalog/l/2026-11-18/5');

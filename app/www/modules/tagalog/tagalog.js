@@ -74,12 +74,19 @@
 
   function home() {
     var all = packs(), nx = T.nextLesson(S, all), st = T.stats(S);
+    var todayIso = T.iso(new Date()), doneToday = Object.keys(S.done).some(function (k) { return T.iso(new Date(S.done[k])) === todayIso; });
     var h = subnav('') + '<h1>Tagalog</h1><p class="meta ui">' + esc(T.advice(S, all)) + '</p>' + voiceNudgeHtml();
     h += checksHtml();
     if (st.due) h += '<div class="card ui"><div class="row"><div class="grow"><b>' + st.due + '</b> word' + (st.due === 1 ? '' : 's') + ' to review</div><a class="btn primary" href="#tagalog/review">Review</a></div></div>';
-    if (nx) h += '<div class="card"><div class="meta ui">Week ' + esc(nx.pack.week || '') + ' · ' + esc(nx.pack.title) + ' · lesson ' + nx.lesson.day + ' of ' + nx.pack.lessons.length + '</div>' +
-      '<h3 style="margin:.2em 0">' + esc(nx.lesson.title) + '</h3><p class="meta ui">' + esc(nx.lesson.intro) + '</p>' +
-      '<a class="btn primary ui" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Start lesson · about 10 min</a></div>';
+    if (doneToday) {
+      h += '<div class="card done-banner ui" id="tl-done-today"><h3 style="margin:.2em 0">\u2713 Lesson done for today</h3>' +
+        '<p class="meta" style="margin-bottom:4px">That\u2019s enough for one day. Come back tomorrow' + (nx ? ' for lesson ' + nx.lesson.day + ' (' + esc(nx.lesson.title) + ')' : '') + '.</p>' +
+        (nx ? '<div class="row"><a class="link" id="tl-ahead" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Want to go ahead? Lesson ' + nx.lesson.day + '</a></div>' : '') + '</div>';
+    } else if (nx) {
+      h += '<div class="card"><div class="meta ui">Week ' + esc(nx.pack.week || '') + ' · ' + esc(nx.pack.title) + ' · lesson ' + nx.lesson.day + ' of ' + nx.pack.lessons.length + '</div>' +
+        '<h3 style="margin:.2em 0">' + esc(nx.lesson.title) + '</h3><p class="meta ui">' + esc(nx.lesson.intro) + '</p>' +
+        '<a class="btn primary ui" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Start lesson · about 10 min</a></div>';
+    }
     if (T.practiceSet(S, all, 1).length) h += '<div class="card ui"><div class="row"><div class="grow"><b>Mixed practice</b><div class="meta">8 exercises from lessons you’ve done, the ones you missed first</div></div><a class="btn' + (nx ? '' : ' primary') + '" href="#tagalog/practice">Practise</a></div></div>';
     h += '<div class="card ui"><div class="row"><span class="grow">Words met <b>' + st.words + '</b> · known well <b>' + st.known + '</b></span>' + (st.words ? '<a class="btn" href="#tagalog/words">Your words</a>' : '') + '</div>' +
       '<div class="meta">This week: ' + st.weekLessons + ' lesson' + (st.weekLessons === 1 ? '' : 's') + ', practised on ' + st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') +
@@ -407,6 +414,12 @@
 
   function card() {
     var all = packs(), nx = T.nextLesson(S, all), st = T.stats(S);
+    var todayIso = T.iso(new Date()), doneToday = Object.keys(S.done).some(function (k) { return T.iso(new Date(S.done[k])) === todayIso; });
+    if (doneToday) {
+      return '<div class="meta ui">Tagalog</div><h3>\u2713 Lesson done today</h3>' +
+        '<p class="meta ui">' + (nx ? 'Next tomorrow: Lesson ' + nx.lesson.day + ' (' + esc(nx.lesson.title) + '). ' : '') + st.known + ' words known well</p>' +
+        '<div class="row ui">' + (st.due ? '<a class="btn primary" href="#tagalog/review">Review (' + st.due + ')</a>' : '') + '<a class="btn" href="#tagalog">Open</a></div>';
+    }
     return '<div class="meta ui">Tagalog</div><h3>' + (nx ? 'Lesson ' + nx.lesson.day + ': ' + esc(nx.lesson.title) : 'All lessons done') + '</h3>' +
       '<p class="meta ui">' + (st.due ? st.due + ' word' + (st.due === 1 ? '' : 's') + ' to review · ' : '') + st.known + ' words known well</p>' +
       '<div class="row ui">' + (nx ? '<a class="btn primary" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Start</a>' : '') + (st.due ? '<a class="btn" href="#tagalog/review">Review</a>' : '') + '</div>';

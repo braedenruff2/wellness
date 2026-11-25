@@ -77,9 +77,18 @@
     var html = '<div class="meta ui">' + esc(greeting()) + '</div>';
     html += resumeCard();
     if (window.WLMe) html += WLMe.planLine('faith');
-    if (today && n <= TOTAL) {
-      html += '<div class="card done-banner ui"><p style="margin-bottom:4px"><b>You did day ' + today + ' today.</b> That\u2019s enough for one day. ' +
-        'Day ' + n + ' is below if you want it, or come back tomorrow.</p><div class="row"><a class="link" href="#faith/pray">Or pray freely</a></div></div>';
+    if (today) {
+      var doneDay = day(today), nextDay = n <= TOTAL ? day(n) : null;
+      html += '<h1>Day ' + today + ' done for today \u2713</h1>' +
+        '<div class="card done-banner ui"><p style="margin-bottom:6px"><b>You did day ' + today + (doneDay ? ': ' + esc(doneDay.title) : '') + ' today.</b> That\u2019s enough for one day. ' +
+        'Come back tomorrow' + (nextDay ? ' for Day ' + n + ' (' + esc(nextDay.title) + ')' : '') + '.</p>' +
+        '<div class="row"><a class="btn" href="#faith/day/' + today + '">Re-read Day ' + today + '</a><a class="link" href="#faith/pray">Pray freely</a></div>' +
+        (nextDay ? '<p style="margin:6px 0 0"><a class="link" id="fc-ahead" href="#faith/day/' + n + '">Want to go ahead? Open Day ' + n + '</a></p>' : '') + '</div>';
+      if (n > TOTAL) {
+        html += '<div class="card ui"><h2>You\u2019ve walked the whole path</h2><p>All ' + TOTAL + ' days' + (S.round > 1 ? ', for the ' + ordinal(S.round) + ' time' : '') +
+          '. Start again at day 1 whenever you\u2019re ready; your journal and ticks stay.</p><button class="primary big" id="walk-again">Walk the path again</button></div>';
+      }
+      return html;
     }
     if (n > TOTAL) {
       html += '<h1>You\u2019ve walked the whole path.</h1><div class="card"><p>All ' + TOTAL + ' days' + (S.round > 1 ? ', for the ' + ordinal(S.round) + ' time' : '') +
@@ -582,7 +591,7 @@
     syncContent();
     var n = C.currentDay(S, TOTAL), today = C.finishedToday(S), d = day(n);
     var h = '<div class="meta ui">Faith \u00b7 grow closer to God</div>';
-    if (today) h += '<h3>Day ' + today + ' done today \u2713</h3><p class="meta ui">' + (d ? 'Next: day ' + n + ', ' + esc(d.title) + '. Tomorrow, or now if you like.' : 'You\u2019ve finished every day written so far.') + '</p>';
+    if (today) h += '<h3>Day ' + today + ' done today \u2713</h3><p class="meta ui">' + (d ? 'Day ' + n + ' (' + esc(d.title) + ') waits for tomorrow.' : 'You\u2019ve finished every day written so far.') + '</p>';
     else if (d) h += '<h3>Day ' + n + ': ' + esc(d.title) + '</h3><p class="meta ui">' + esc(d.label) + ' \u00b7 read, think, pray (about ' + (+S.settings.minutes) + ' min)</p>';
     else h += '<h3>Every day written so far is done</h3>';
     h += '<div class="row ui"><a class="btn primary" href="#faith/today">Open</a><a class="btn" href="#faith/session/p/pause">1-minute pause</a></div>';

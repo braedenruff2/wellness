@@ -88,11 +88,15 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     assert.strictEqual(await page.inputValue('#dj'), 'quick note');
   });
 
-  await step('finishing a day: banner, next day, no streak pressure', async () => {
+  await step('finishing a day: stays on Done for today instead of popping up tomorrow; explicit link opens Day 2', async () => {
     await page.goto(base + '#faith/today');
     await page.click('#finish');
     await page.waitForSelector('.done-banner');
-    assert.ok((await page.textContent('.done-banner')).includes('You did day 1 today'));
+    assert.ok((await page.textContent('.done-banner')).includes('You did day 1'));
+    assert.strictEqual(await page.textContent('h1'), 'Day 1 done for today ✓');
+    assert.strictEqual(await page.$('#reading'), null, 'Day 2 reading does not pop up automatically');
+    await page.click('#fc-ahead');
+    await page.waitForSelector('#reading');
     assert.strictEqual(await page.textContent('h1'), 'Out of the mouths of babies');
     assert.ok((await page.textContent('.psalm-title')).includes('A Psalm by David'));
     assert.ok(!(await page.textContent('#reading')).includes('Chief Musician; on an instrument of Gath. A Psalm by David. LORD'));
@@ -128,7 +132,8 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     assert.ok(spoken.every((t) => !/\bLORD\b/.test(t)), 'LORD is said as Lord');
     await page.click('#end-finish');
     await page.waitForSelector('.done-banner');
-    assert.strictEqual(await page.textContent('h1'), 'Beloved, then sent');
+    assert.strictEqual(await page.textContent('h1'), 'Day 2 done for today ✓');
+    assert.ok((await page.textContent('#fc-ahead')).includes('Open Day 3'));
   });
 
   await step('Listen stops when you leave the screen', async () => {
