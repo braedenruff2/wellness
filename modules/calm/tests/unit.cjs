@@ -137,16 +137,33 @@ t('stats: logging for an earlier day ignores sessions on later dates', () => {
   const st = K.stats(s, new Date(2026, 10, 20, 18));
   assert.strictEqual(st.weekMins, 5); assert.strictEqual(st.weekDays, 1);
 });
-t('mind racing at night lately: grounding at bedtime, back-to-sleep after midnight; daytime unchanged', () => {
+t('mind racing at night lately: picture-word shuffle at bedtime, back-to-sleep after midnight; daytime unchanged', () => {
   const s = K.defaults();
   const d = (h) => new Date(2026, 10, 23, h, 0);
-  assert.strictEqual(K.suggest(s, d(22), { racing: true }), 'ground');
+  assert.strictEqual(K.suggest(s, d(22), { racing: true }), 'shuffle');
   assert.strictEqual(K.suggest(s, new Date(2026, 10, 24, 2, 0), { racing: true }), 'night');
   assert.notStrictEqual(K.suggest(s, d(22), {}), 'ground');
   assert.strictEqual(K.suggest(s, d(14), { racing: true }), K.suggest(s, d(14), {}));
-  // done today already: not suggested again
-  K.record(s, 'ground', 3, 3, 2, d(21));
-  assert.notStrictEqual(K.suggest(s, d(22), { racing: true }), 'ground');
+  K.record(s, 'slow', 5, 3, 2, new Date(2026, 10, 20, 12, 0)); // (with no sessions at all, before 22:00 the first one is the reset)
+  assert.strictEqual(K.suggest(s, d(21), { racing: true }), 'shuffle', '9 pm too, though it is not in the evening list');
+  // done today already: not suggested again; grounding is next
+  K.record(s, 'shuffle', 5, 3, 2, d(21));
+  assert.strictEqual(K.suggest(s, d(22), { racing: true }), 'ground');
+});
+t('mind racing, and grounding "Not really" three nights running: it stops being suggested; the shuffle takes over', () => {
+  const s = K.defaults();
+  [20, 21, 22].forEach((day) => K.record(s, 'ground', 3.2, 3, 3, new Date(2026, 10, day, 21, 30)));
+  const at = new Date(2026, 10, 23, 21, 30);
+  assert.strictEqual(K.suggest(s, at, { racing: true, score: { ground: -3 } }), 'shuffle');
+  // the shuffle didn't help either (twice): grounding isn't back; something else that fits the evening is
+  K.record(s, 'shuffle', 5, 3, 3, new Date(2026, 10, 19, 22, 0));
+  const r = K.suggest(s, at, { racing: true, score: { ground: -3, shuffle: -2 } });
+  assert.ok(['ground', 'shuffle'].indexOf(r) < 0, r);
+  // after midnight with a racing mind: back-to-sleep first, the shuffle when that was done tonight
+  const n = new Date(2026, 10, 24, 2, 30);
+  assert.strictEqual(K.suggest(s, n, { racing: true }), 'night');
+  K.record(s, 'night', 5, 3, 2, new Date(2026, 10, 24, 2, 0));
+  assert.strictEqual(K.suggest(s, n, { racing: true }), 'shuffle');
 });
 t('validate rejects impossible calendar dates (2026-02-30, 2026-99-99) and keeps leap day', () => {
   const v = K.validate({ sessions: [

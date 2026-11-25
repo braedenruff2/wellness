@@ -372,4 +372,16 @@ t('out-of-order earlier-day feedback stays ordered by timestamp; validate reject
   assert.strictEqual(badDates.planCancelled, undefined);
   assert.deepStrictEqual(Object.keys(badDates.skipped), ['2026-11-20']);
 });
+t('calmLikes.flat: latest "Not really" answers in a row (14 days); a newer "A bit" or an older-than-14-days answer ends it', () => {
+  const s = K.defaults();
+  const a = (d, h, helped) => s.feedback.push({ id: 'calm/after/x@' + d + h, at: D(d, h).toISOString(), part: 'calm', about: 'ground@' + d, kind: 'after', a: helped ? { helped } : {} });
+  assert.strictEqual(K.calmLikes(s, D(25)).flat, 0);
+  a(5, 21, 'Not really'); a(20, 21, 'A bit'); a(21, 21, 'Not really'); a(23, 21, 'Not really');
+  a(24, 9); // no rating: skipped, doesn't end the streak
+  a(24, 21, 'Not really');
+  assert.strictEqual(K.calmLikes(s, D(25)).flat, 3);
+  a(22, 8, 'A lot'); // logged for an earlier day: order is by time, so it sits before the 23rd and the 24th
+  assert.strictEqual(K.calmLikes(s, D(25)).flat, 2);
+  assert.strictEqual(K.calmLikes(s, D(25, 12)).score.ground, -4 + 1 + 2);
+});
 console.log(n + ' me unit tests passed');

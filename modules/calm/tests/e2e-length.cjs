@@ -42,7 +42,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#calm/s/body'); await page.waitForSelector('#c-len');
     assert.ok(/Begin · 8 min/.test(await page.textContent('#c-pp')), 'default 8 min restored after leaving to Home');
   });
-  await t.step('10 pm after a night answer "Mind racing": today card suggests grounding and links to the journal', async () => {
+  await t.step('10 pm after a night answer "Mind racing": today card suggests the picture-word shuffle and links to the journal', async () => {
     await page.evaluate(() => {
       const me = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[],"checkins":{}}');
       me.feedback.push({ id: 'calm/after/sleep@r', at: new Date(2026, 10, 17, 22, 20).toISOString(), part: 'calm', about: 'sleep@r', kind: 'after', a: { helped: 'Not really', block: ['Mind racing'] } });
@@ -53,9 +53,31 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.getAttribute('#c-racing a', 'href'), '#journal/journal', 'also on the done card');
     await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.sessions = []; localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
     await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-today');
-    assert.ok((await page.textContent('#c-today h3')).includes('5-4-3-2-1 grounding'), await page.textContent('#c-today h3'));
+    assert.ok((await page.textContent('#c-today h3')).includes('Picture-word shuffle'), await page.textContent('#c-today h3'));
     assert.strictEqual(await page.getAttribute('#c-racing a', 'href'), '#journal/journal');
+    assert.ok(!(await page.$('#c-flat')), 'one "Not really" is no streak');
   });
-  await t.step('no overflow at 1.0, no errors', async () => { await t.noOverflow(['#calm/s/slow', '#calm/s/body']); assert.deepStrictEqual(t.errors, []); });
+  await t.step('three "Not really" in a row: the today card says so; the shuffle plays through with its guided lines', async () => {
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+      [[19, 'ground'], [20, 'ground'], [21, 'ground']].forEach(([d, id]) => me.feedback.push({ id: 'calm/after/' + id + '@' + d, at: new Date(2026, 10, d - 3, 21, 40).toISOString(), part: 'calm', about: id + '@' + d, kind: 'after', a: { helped: 'Not really', block: ['Nothing'] } }));
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-today');
+    const flat = await page.textContent('#c-flat');
+    assert.ok(/Your last 4 practices didn’t help much/.test(flat) && /works differently/.test(flat), flat);
+    assert.ok((await page.textContent('#c-today h3')).includes('Picture-word shuffle'));
+    await page.click('#c-today a.btn.primary'); await page.waitForSelector('#c-pp');
+    assert.ok(/Begin · 5 min/.test(await page.textContent('#c-pp')), await page.textContent('#c-pp'));
+    // a newer answer that helped ends the streak
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+      me.feedback.push({ id: 'calm/after/slow@x', at: new Date(2026, 10, 18, 21, 50).toISOString(), part: 'calm', about: 'slow@x', kind: 'after', a: { helped: 'A bit' } });
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-today');
+    assert.ok(!(await page.$('#c-flat')));
+  });
+  await t.step('no overflow at 1.0, no errors', async () => { await t.noOverflow(['#calm/s/slow', '#calm/s/body', '#calm/s/shuffle']); assert.deepStrictEqual(t.errors, []); });
   await t.close('calm lengths');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

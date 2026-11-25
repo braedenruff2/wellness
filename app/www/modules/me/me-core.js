@@ -140,7 +140,8 @@
 
   /* Calm practices scored from his answers: helped a lot +2, a bit +1, not really -1; "not for me" -3.
      tooLong: practices where "Too long" got in the way. */
-  /* racing: in the last 7 days, one of his last two calm answers given at night (21:00-05:00) named "Mind racing". */
+  /* racing: in the last 7 days, one of his last two calm answers given at night (21:00-05:00) named "Mind racing".
+     flat: his latest calm answers in a row (14 days) that said "Not really". */
   function calmLikes(state, now) {
     var score = {}, tooLong = {};
     state.feedback.forEach(function (f) {
@@ -155,7 +156,11 @@
     var since = new Date(now.getTime() - 7 * 864e5).toISOString();
     var night = byTime(state.feedback.filter(function (f) { var h = new Date(f.at).getHours(); return f.part === 'calm' && f.kind === 'after' && (h >= 21 || h < 5); })).slice(-2);
     var racing = night.some(function (f) { return f.at >= since && Array.isArray(f.a.block) && f.a.block.indexOf('Mind racing') >= 0; });
-    return { score: score, tooLong: tooLong, racing: racing };
+    // flat: how many of his latest calm answers in a row (last 14 days) said it helped "Not really"
+    var since14 = new Date(now.getTime() - 14 * 864e5).toISOString(), flat = 0;
+    var rated = byTime(state.feedback.filter(function (f) { return f.part === 'calm' && f.kind === 'after' && f.a && f.a.helped && f.at >= since14; }));
+    for (var i = rated.length - 1; i >= 0 && rated[i].a.helped === 'Not really'; i--) flat++;
+    return { score: score, tooLong: tooLong, racing: racing, flat: flat };
   }
 
   function lastN(state, part, kind, n) {

@@ -77,6 +77,16 @@
       { say: 'Picture a calm place you know well. Walk slowly through it in your mind.', wait: 60 },
       { say: 'Nothing to do now. Just rest.', wait: 0 }
     ] },
+    { id: 'shuffle', kind: 'guided', title: 'Picture-word shuffle', minutes: 5, when: 'In bed, when your thoughts won’t stop', blurb: 'Give a busy mind an easy, dull job: one word, letter by letter, a picture for each.', steps: [
+      { say: 'Lie down and turn the screen over. This is a slow, easy game that gives your mind something harmless to do.', wait: 5 },
+      { say: 'Choose a plain, calm word with a few letters, like bread, or garden.', wait: 10 },
+      { say: 'Take its first letter. Think of any word that starts with it, and picture that thing for a few seconds.', wait: 30 },
+      { say: 'Then another word with the same letter, and picture that one too. A banana. A boat. A blanket. Take your time with each.', wait: 60 },
+      { say: 'When no more words come, move to the next letter of your word and start again.', wait: 60 },
+      { say: 'If a worry comes back, that’s fine. Go back to the next word and its picture.', wait: 60 },
+      { say: 'If you lose your place, pick any letter you like. There’s no wrong way to do this.', wait: 60 },
+      { say: 'Keep going on your own. Let the pictures come slower and softer.', wait: 0 }
+    ] },
     { id: 'walk', kind: 'guided', title: 'Mindful walk', minutes: 6, when: 'Out with the stroller or on any walk', blurb: 'Turn a walk into a reset: steps, breath, and what’s around you.', steps: [
       { say: 'Walk at an easy pace. Keep your eyes on the path and your surroundings, and stay safe near traffic.', wait: 5 },
       { say: 'Notice your feet: heel, sole, toes, with each step.', wait: 30 },
@@ -177,6 +187,16 @@
       ['Imagine somewhere peaceful you’ve been. Notice what you see and hear there, slowly.', 'Picture a quiet place you love. Take a slow walk around it in your mind.'],
       ['Nothing else is needed. Rest.', 'Let go. Rest now.']
     ],
+    shuffle: [
+      ['Lie back and put the phone face down. Here’s a quiet little game to keep your mind busy with nothing important.', 'Get comfortable and turn the screen away. You’re going to give your thoughts an easy job.'],
+      ['Pick an ordinary word, nothing that matters, like table, or orange.', 'Think of a simple, peaceful word, like cloud, or pillow.'],
+      ['Start with its first letter. Find a word that begins with it, and see that thing in your mind for a moment.', 'Say its first letter to yourself. Think of something that starts with it, and imagine it clearly.'],
+      ['Now a different word with that same letter, and picture it. Then another. Slowly, one picture at a time.', 'Find another word with that letter and imagine it. And another. No rush between them.'],
+      ['Run out of words? Go on to the next letter and begin again.', 'When that letter runs dry, take the next letter of your word.'],
+      ['Thoughts about tomorrow may come back. Let them go and return to your next word.', 'If something from the day pops up, just pick the next word and picture it.'],
+      ['Lost track? Start with any letter. You can’t get this wrong.', 'If you forget where you were, any letter will do. It doesn’t matter.'],
+      ['Carry on by yourself now, slower and slower.', 'Keep picturing on your own, each word a little drowsier than the last.']
+    ],
     contact: [
       ['She’s sleeping on you. Nowhere to be. Lean back and let your head rest.', 'She’s settled on your chest. Get as comfortable as you can without waking her.'],
       ['Notice her weight and warmth, and the rise and fall of her breathing.', 'Feel how heavy and warm she is, and her small breaths.'],
@@ -272,9 +292,10 @@
   }
 
   /* Practices that fit the time of day, best first. */
+  var RACING = ['shuffle', 'ground', 'night'];
   function fits(h) {
-    if (h >= 22) return ['sleep', 'body', 'slow'];
-    if (h < 5) return ['night', 'slow', 'sigh'];
+    if (h >= 22) return ['sleep', 'body', 'shuffle', 'slow'];
+    if (h < 5) return ['night', 'shuffle', 'slow', 'sigh'];
     if (h < 9) return ['slow', 'box', 'sigh', 'walk'];
     return ['body', 'ground', 'kind', 'walk', 'feed', 'contact', 'sink', 'slow', 'box', 'sigh', 'pickup', 'timer'];
   }
@@ -289,7 +310,8 @@
     var h = now.getHours(), t = today(state, now), sc = opts.score || {}, pref = opts.prefer || [], long = opts.tooLong || {};
     if (!state.sessions.length && h >= 5 && h < 22 && !pref.length && (sc.sigh || 0) > -2 && !opts.rough) return 'sigh';
     var base = fits(h);
-    if (opts.racing && h >= 21 && base.indexOf('ground') < 0) base = base.concat('ground');
+    // his mind has been racing at night lately: the practices made for that join what fits (21:00-05:00)
+    if (opts.racing && (h >= 21 || h < 5)) RACING.forEach(function (id) { if (base.indexOf(id) < 0) base = base.concat(id); });
     if (opts.rough && h >= 5 && h < 22) base = ['sigh', 'slow', 'ground'].concat(base.filter(function (id) { return ['sigh', 'slow', 'ground'].indexOf(id) < 0; }));
     var pool = base.filter(function (id) { return t.ids.indexOf(id) < 0; });
     if (!pool.length) pool = fits(9).filter(function (id) { return t.ids.indexOf(id) < 0; });
@@ -304,8 +326,10 @@
     function rank(id) {
       var r = (sc[id] || 0) + (pref.indexOf(id) >= 0 ? 3 : 0) - (long[id] ? 1 : 0);
       if (opts.rough && ['sigh', 'slow', 'ground'].indexOf(id) >= 0) r += 4;
-      // his mind has been racing at night lately: grounding at bedtime, the back-to-sleep practice after midnight
-      if (opts.racing && ((h >= 21 && id === 'ground') || (h < 5 && id === 'night'))) r += 6;
+      // his mind has been racing at night lately: the picture-word shuffle (made for a busy mind in bed) or grounding at
+      // bedtime, back-to-sleep after midnight. His own answers still count: one that didn't help (score -2 or lower)
+      // is left out above, so the next one of these takes its place.
+      if (opts.racing && (h >= 21 || h < 5)) r += ({ shuffle: 6, ground: h >= 21 ? 5 : 0, night: h < 5 ? 7 : 0 })[id] || 0;
       return r;
     }
     // liked (or planned) ones lead, but not every day: a practice done in the last 2 days drops behind fresh ones

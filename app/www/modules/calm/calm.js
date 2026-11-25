@@ -41,6 +41,13 @@
     var hr = new Date().getHours(), o = sopts();
     return o.racing && (hr >= 21 || hr < 5) ? '<div class="ui" id="c-racing" style="margin-top:8px"><p class="meta" style="margin:0">Your mind has been racing at night lately. Write down what’s on it first, then do the practice.</p><a class="link" href="#journal/journal">Write a few lines in your journal</a></div>' : '';
   }
+  /* His last few practices didn't help ("Not really" 3+ times in a row): say so, and that this one is a different kind. */
+  function flatLine(sug) {
+    var M = window.WLMe, l = M && M.calmLikes();
+    if (!l || (l.flat || 0) < 3) return '';
+    var tried = (l.score[sug.id] || 0) < 0;
+    return '<p class="meta ui" id="c-flat">Your last ' + l.flat + ' practices didn’t help much. ' + (tried ? 'If this one doesn’t either, skipping a night is fine.' : 'This one works differently, so it’s worth a try.') + ' Tap “Not for me?” on any you’d rather not see again.</p>';
+  }
   function todayCard() {
     var t = K.today(S), sug = practice(K.suggest(S, null, sopts()));
     if (!t.done) {
@@ -51,7 +58,7 @@
         (t.any ? '<div class="progress" style="margin:6px 0 10px"><div style="width:' + pct + '%"></div></div>' +
           '<p class="meta ui">' + esc(names0.join(', ')) + ' (' + Math.max(1, t.mins) + ' min) logged — good reset. About ' + left + ' min left for today’s goal:</p>' : '') +
         '<h3 style="margin:.2em 0">' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3>' +
-        '<p class="meta ui">' + esc(sug.when) + '. ' + (window.WLMe && WLMe.rough() ? 'After a rough night, a short one is plenty.' : 'This one fits the time of day.') + '</p>' +
+        '<p class="meta ui">' + esc(sug.when) + '. ' + (window.WLMe && WLMe.rough() ? 'After a rough night, a short one is plenty.' : 'This one fits the time of day.') + '</p>' + flatLine(sug) +
         '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + '">Begin</a><span class="grow"></span>' + fit(sug.id, sug.title) + '</div>' + racingLine() + '</div>';
     }
     var names = t.ids.map(titleOf).filter(function (x, i, a) { return a.indexOf(x) === i; });
