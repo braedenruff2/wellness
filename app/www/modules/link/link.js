@@ -174,9 +174,10 @@
   });
   function keep() { var P = pc.settings(); P.advice = advice; pc.save(); }
   function draw() {
-    var el = document.getElementById('lk-adv'); if (el) el.innerHTML = adviceHtml();
+    var sheet = document.getElementById('me-sheet');
+    var el = document.getElementById('lk-adv'); if (el && (!sheet || !el.contains(sheet))) el.innerHTML = adviceHtml();
     var ad = document.getElementById('lk-advice'); if (ad) ad.disabled = adviceBusy;
-    var c = document.querySelector('.home-card[data-module="link"]'); if (c) c.innerHTML = card();
+    var c = document.querySelector('.home-card[data-module="link"]'); if (c && (!sheet || !c.contains(sheet))) c.innerHTML = card();
   }
 
   function card() {

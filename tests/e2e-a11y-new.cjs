@@ -14,7 +14,10 @@ const W = require('./lib/web.cjs');
       error: 'Google Drive refused writes', answersConfigured: false, answersName: '',
       answersError: 'Could not read wellness-answers'
     };
+    window.__pcPaired = false;
     window.FCAndroid = {
+      pcStatus: () => JSON.stringify(window.__pcPaired ? { paired: true, host: '192.168.1.20', name: 'Home PC' } : { paired: false }),
+      pcRequest: (id) => Promise.resolve().then(() => window.FCPcDone && window.FCPcDone(id, false, 'offline')),
       syncStatus: () => JSON.stringify({
         configured: window.__drive.configured, name: window.__drive.name, lastSync: window.__drive.lastSync,
         error: window.__drive.error, busy: false,
@@ -81,7 +84,7 @@ const W = require('./lib/web.cjs');
       settings: { minutes: 5, voice: true, tick: false }
     }));
     const hist = Array.from({ length: 21 }, (_, i) => ({
-      id: 'h' + i, at: new Date(Date.UTC(2026, 10, 1 + i, 12, 0)).toISOString(), skill: 'Staying calm', age: '15 months',
+      id: 'h' + i, at: new Date(Date.UTC(2026, 10, 12, 12 + i * 11, 0)).toISOString(), skill: 'Staying calm', age: '15 months',
       title: 'Moment ' + (i + 1), scenario: 'Scenario ' + (i + 1), answer: 'My answer',
       result: { score: 8, verdict: 'Steady', good: ['Calm'], improve: [], better: '', why: '', practice: i === 20 ? 'Pause and name the feeling' : '', sources: [] }
     }));
@@ -96,7 +99,11 @@ const W = require('./lib/web.cjs');
       requests: [{ id: 'q1', task: 'advice', input: { question: 'How to pace workouts this week?' }, at: '2026-11-23T12:00:00.000Z' }],
       answers: {}, acked: []
     }));
-    localStorage.setItem('wl.pc.v1', JSON.stringify({ sent: {}, journalText: false, cloud: { q1: { task: 'advice', at: '2026-11-23T12:00:00.000Z' } } }));
+    localStorage.setItem('wl.pc.v1', JSON.stringify({
+      sent: {}, lastSync: '2026-11-22T18:00:00.000Z', lastSent: 4,
+      lastError: 'PC did not answer', lastErrorAt: '2026-11-23T09:00:00.000Z',
+      journalText: false, cloud: { q1: { task: 'advice', at: '2026-11-23T12:00:00.000Z' } }
+    }));
     if (window.WL && WL.modules) Object.keys(WL.modules).forEach((k) => { if (WL.modules[k].reload) WL.modules[k].reload(); });
   });
   const small = async (sel) => page.$$eval(sel, (els) => els.filter((e) => e.offsetParent !== null)
@@ -198,10 +205,17 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#wl-sync-nudge a, #wl-sync-nudge button'), []);
       await t.noOverflow(['#home']);
       // Restore queued request and check unpaired Drive-sync #lk-advice-card on #link
-      await page.evaluate(() => { WL.driveSync.enqueue('advice', { question: 'How to pace workouts this week?' }, 'q1'); });
+      await page.evaluate(() => { window.__pcPaired = false; WL.driveSync.enqueue('advice', { question: 'How to pace workouts this week?' }, 'q1'); });
       await page.goto(base + '#link'); await page.waitForSelector('#lk-advice-card'); await page.waitForSelector('#lk-queued');
       assert.deepStrictEqual(await small('#lk-advice-card button, #lk-advice-card textarea'), []);
       await t.noOverflow(['#link']);
+      // Paired #link controls: #lk-sync, #lk-test, #lk-more, #lk-forget
+      await page.evaluate(() => { window.__pcPaired = true; });
+      await page.goto(base + '#home'); await page.goto(base + '#link');
+      await page.waitForSelector('#lk-sync'); await page.waitForSelector('#lk-test'); await page.waitForSelector('#lk-more'); await page.waitForSelector('#lk-forget');
+      assert.deepStrictEqual(await small('#lk-sync, #lk-test, #lk-more, #lk-forget, #lk-advice-card button'), []);
+      await t.noOverflow(['#link']);
+      await page.evaluate(() => { window.__pcPaired = false; });
     });
   }
   for (const theme of ['light', 'dark', 'night']) {
@@ -240,8 +254,14 @@ const W = require('./lib/web.cjs');
       await page.evaluate(() => { window.__drive.configured = true; });
       await page.goto(base + '#home'); await page.waitForSelector('#wl-sync-nudge');
       assert.deepStrictEqual((await contrast('#wl-sync-nudge')).filter((x) => x.r < min), [], theme + ' #wl-sync-nudge');
+      await page.evaluate(() => { window.__pcPaired = false; });
       await page.goto(base + '#link'); await page.waitForSelector('#lk-advice-card'); await page.waitForSelector('#lk-queued');
       assert.deepStrictEqual((await contrast('#lk-advice-card')).filter((x) => x.r < min), [], theme + ' #lk-advice-card');
+      await page.evaluate(() => { window.__pcPaired = true; });
+      await page.goto(base + '#home'); await page.goto(base + '#link');
+      await page.waitForSelector('#lk-sync'); await page.waitForSelector('#lk-test'); await page.waitForSelector('#lk-more'); await page.waitForSelector('#lk-forget');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' paired #link');
+      await page.evaluate(() => { window.__pcPaired = false; });
     });
   }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });

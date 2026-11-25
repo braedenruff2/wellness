@@ -224,6 +224,29 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     assert.strictEqual(saved && saved.answer && saved.answer.headline, 'Fresh cloud advice');
     await page.evaluate(() => { window.__holdPc.forEach((id) => window.FCPcDone(id, false, "couldn't reach the PC")); });
     await page.waitForSelector('text=Fresh cloud advice');
+    // a cloud advice answer arriving while #me-sheet ("Not for me?") is open on Home's link card does not destroy the sheet
+    await page.click('.home-card[data-module="link"] [data-me-fit]');
+    await page.waitForSelector('#me-sheet #me-note');
+    await page.fill('#me-note', 'Already doing this every evening');
+    await cloudAnswers({ 'adv-sheet-guard': { task: 'advice', answer: { headline: 'After sheet advice', points: ['p2'], next: 'n2' } } });
+    await page.waitForTimeout(50);
+    assert.ok(await page.$('#me-sheet'), '#me-sheet stays open on Home link card when cloud advice arrives');
+    assert.strictEqual(await page.inputValue('#me-note'), 'Already doing this every evening', '#me-note draft preserved');
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.pc.v1')).advice.answer.headline), 'After sheet advice', 'cloud advice still saved');
+    await page.click('#me-cancel');
+    // same guard on #link when #me-sheet is open inside #lk-adv
+    await page.goto(base + '#link');
+    await page.waitForSelector('#lk-adv [data-me-fit]');
+    await page.click('#lk-adv [data-me-fit]');
+    await page.waitForSelector('#me-sheet #me-note');
+    await page.fill('#me-note', 'Draft on link screen');
+    await cloudAnswers({ 'adv-link-sheet-guard': { task: 'advice', answer: { headline: 'Fresh on link', points: ['p3'], next: 'n3' } } });
+    await page.waitForTimeout(50);
+    assert.ok(await page.$('#me-sheet'), '#me-sheet stays open on #link when cloud advice arrives');
+    assert.strictEqual(await page.inputValue('#me-note'), 'Draft on link screen');
+    await page.click('#me-cancel');
+    await page.goto(base + '#home');
+    assert.ok((await page.textContent('.home-card[data-module="link"]')).includes('Fresh on link'), 'saved advice renders on next navigation');
     await page.reload();
   });
   await t.step('Tagalog: a queued check shows on the Tagalog page when it is answered; Done clears it', async () => {
