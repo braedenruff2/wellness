@@ -500,4 +500,34 @@ t('earlier-day bounds & out-of-order sessions: coach, weekStats.total, fourWeeks
   assert.strictEqual(spring[0].date, '2026-02-16');
   assert.strictEqual(spring[27].date, '2026-03-15');
 });
+t('validate and importSheetCsv reject impossible calendar dates (2026-02-30, 2026-99-99)', () => {
+  const ts = '2026-11-20T12:00:00.000Z';
+  const v = W.validate({
+    dbAsked: '2026-02-30',
+    twoAsked: '2026-99-99',
+    rest: { '2026-02-30': { why: 'Busy day', at: ts }, '2028-02-29': { why: 'Tired', at: ts } },
+    sore: { '2026-04-31': { level: 'Very', at: ts }, '2026-11-20': { level: 'A bit', at: ts } },
+    restRemoved: [{ date: '2026-02-29', at: ts }, { date: '2026-11-19', at: ts }],
+    sessions: [
+      { id: 'bad1', date: '2026-02-30', day: 'A', start: ts, end: null, sets: [{ ex: 'Pushups', val: 10 }] },
+      { id: 'bad2', date: '2026-99-99', day: 'B', start: ts, end: null, sets: [{ ex: 'Pushups', val: 10 }] },
+      { id: 'ok1', date: '2026-11-20', day: 'A', start: ts, end: null, sets: [{ ex: 'Pushups', val: 10 }] }
+    ],
+    history: [
+      { date: '2026-02-29', ex: 'Pushups', sets: [12] },
+      { date: '2026-11-18', ex: 'Pushups', sets: [12] }
+    ]
+  });
+  assert.strictEqual(v.dbAsked, undefined);
+  assert.strictEqual(v.twoAsked, undefined);
+  assert.deepStrictEqual(Object.keys(v.rest), ['2028-02-29']);
+  assert.deepStrictEqual(Object.keys(v.sore), ['2026-11-20']);
+  assert.deepStrictEqual(v.restRemoved.map((r) => r.date), ['2026-11-19']);
+  assert.deepStrictEqual(v.sessions.map((s) => s.id), ['ok1']);
+  assert.deepStrictEqual(v.history.map((h) => h.date), ['2026-11-18']);
+  const csv = 'Date,Day,Exercise,Set 1\n2026-02-30,Mon,Pushups,10\n2026-99-99,Tue,Pushups,10\n2026-11-20,Fri,Pushups,15\n';
+  const s = W.defaults();
+  assert.strictEqual(W.importSheetCsv(s, csv), 1);
+  assert.strictEqual(s.history[0].date, '2026-11-20');
+});
 console.log(n + ' workout unit tests passed');

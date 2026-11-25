@@ -508,7 +508,7 @@
     state.history.forEach(function (h) { seen[h.date + '|' + h.ex] = 1; });
     rows.slice(1).forEach(function (r) {
       var date = (r[0] || '').trim(), ex = (r[2] || '').trim();
-      if (!/^\d{4}-\d\d-\d\d$/.test(date) || !ex || ex === 'Rest') return;
+      if (!WLD.isDate(date) || !ex || ex === 'Rest') return;
       var sets = r.slice(3, 7).map(function (v) { return String(v).trim(); }).filter(function (v) { return v !== '' && +v > 0; }).map(Number);
       if (!sets.length) return;
       var name = RENAME[ex] || ex;
@@ -524,25 +524,25 @@
 
   function validate(s) {
     if (!s || typeof s !== 'object' || !Array.isArray(s.sessions)) return null;
-    var d = defaults(), dateRe = /^\d{4}-\d\d-\d\d$/;
+    var d = defaults(), isDate = WLD.isDate;
     d.equipment = s.equipment === 'adjustable' ? 'adjustable' : 'fixed10';
-    if (typeof s.dbAsked === 'string' && dateRe.test(s.dbAsked)) d.dbAsked = s.dbAsked;
+    if (isDate(s.dbAsked)) d.dbAsked = s.dbAsked;
     if (s.target === 2) d.target = 2;
-    if (typeof s.twoAsked === 'string' && dateRe.test(s.twoAsked)) d.twoAsked = s.twoAsked;
+    if (isDate(s.twoAsked)) d.twoAsked = s.twoAsked;
     Object.keys(s.weights || {}).forEach(function (k) { var w = cleanWeight(s.weights[k]); if (EX[k] && typeof s.weights[k] === 'number' && w != null) d.weights[k] = w; });
     Object.keys(s.next || {}).forEach(function (k) { if (EX[k] && typeof s.next[k] === 'string') d.next[k] = s.next[k]; });
     if (s.rest && typeof s.rest === 'object') Object.keys(s.rest).sort().slice(-200).forEach(function (k) {
-      var r = s.rest[k]; if (dateRe.test(k) && r && REST_REASONS.indexOf(r.why) >= 0 && typeof r.at === 'string' && !isNaN(Date.parse(r.at))) { if (!d.rest) d.rest = {}; d.rest[k] = { why: r.why, at: r.at }; }
+      var r = s.rest[k]; if (isDate(k) && r && REST_REASONS.indexOf(r.why) >= 0 && typeof r.at === 'string' && !isNaN(Date.parse(r.at))) { if (!d.rest) d.rest = {}; d.rest[k] = { why: r.why, at: r.at }; }
     });
     if (s.sore && typeof s.sore === 'object') Object.keys(s.sore).sort().slice(-120).forEach(function (k) {
-      var x = s.sore[k]; if (dateRe.test(k) && x && SORE_LEVELS.indexOf(x.level) >= 0 && typeof x.at === 'string' && !isNaN(Date.parse(x.at))) { if (!d.sore) d.sore = {}; d.sore[k] = { level: x.level, at: x.at }; }
+      var x = s.sore[k]; if (isDate(k) && x && SORE_LEVELS.indexOf(x.level) >= 0 && typeof x.at === 'string' && !isNaN(Date.parse(x.at))) { if (!d.sore) d.sore = {}; d.sore[k] = { level: x.level, at: x.at }; }
     });
     if (Array.isArray(s.restRemoved)) {
-      var rr = s.restRemoved.filter(function (r) { return r && dateRe.test(r.date) && typeof r.at === 'string' && !isNaN(Date.parse(r.at)); }).slice(-60).map(function (r) { return { date: r.date, at: r.at }; });
+      var rr = s.restRemoved.filter(function (r) { return r && isDate(r.date) && typeof r.at === 'string' && !isNaN(Date.parse(r.at)); }).slice(-60).map(function (r) { return { date: r.date, at: r.at }; });
       if (rr.length) d.restRemoved = rr;
     }
     s.sessions.forEach(function (x) {
-      if (!x || !dateRe.test(x.date) || !PROGRAM[x.day] || !Array.isArray(x.sets)) return;
+      if (!x || !isDate(x.date) || !PROGRAM[x.day] || !Array.isArray(x.sets)) return;
       d.sessions.push({ id: String(x.id || newId()), date: x.date, day: x.day, start: String(x.start || ''), end: x.end ? String(x.end) : null,
         sets: x.sets.filter(function (t) { return t && EX[t.ex] && typeof t.val === 'number' && isFinite(t.val) && t.val > 0; }).map(function (t) {
           var o = { i: +t.i || 0, ex: t.ex, n: +t.n || 1, val: t.val, w: typeof t.w === 'number' ? cleanWeight(t.w) : null, at: String(t.at || '') };
@@ -552,7 +552,7 @@
           .slice(-50).map(function (r) { return { at: r.at, i: +r.i || 0 }; }) });
     });
     (Array.isArray(s.history) ? s.history : []).forEach(function (h) {
-      if (h && dateRe.test(h.date) && typeof h.ex === 'string' && Array.isArray(h.sets)) {
+      if (h && isDate(h.date) && typeof h.ex === 'string' && Array.isArray(h.sets)) {
         var sets = h.sets.filter(function (v) { return typeof v === 'number' && isFinite(v) && v > 0; });
         if (sets.length) d.history.push({ date: h.date, ex: h.ex.slice(0, 60), sets: sets, w: typeof h.w === 'number' ? cleanWeight(h.w) : null, from: 'sheet' });
       }

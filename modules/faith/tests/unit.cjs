@@ -467,4 +467,23 @@ t('daysShowedUp ignores invalid or null timestamps in journal, sessions, and pra
   assert.strictEqual(C.daysShowedUp(s), 1);
 });
 
+t('importData rejects impossible calendar dates in done, pastRounds, started, and bad reminder times', () => {
+  const s = C.importData(JSON.stringify({
+    app: 'faith-companion',
+    state: {
+      started: '2026-02-30',
+      done: { 1: '2026-02-30', 2: '2026-99-99', 3: '2026-02-29', 4: '2028-02-29', 5: '2026-11-20' },
+      pastRounds: [{ done: { 1: '2026-04-31', 2: '2026-11-18' }, ended: '2026-02-30' }],
+      settings: { reminder: '25:99' }
+    }
+  }));
+  assert.strictEqual(s.started, null);
+  assert.deepStrictEqual(s.done, { 4: '2028-02-29', 5: '2026-11-20' });
+  assert.deepStrictEqual(s.pastRounds, [{ done: { 2: '2026-11-18' }, ended: null }]);
+  assert.strictEqual(s.settings.reminder, undefined);
+  const ok = C.importData(JSON.stringify({ app: 'faith-companion', state: { started: '2026-11-18', done: {}, settings: { reminder: '21:30' } } }));
+  assert.strictEqual(ok.started, '2026-11-18');
+  assert.strictEqual(ok.settings.reminder, '21:30');
+});
+
 console.log(n + ' unit tests passed');

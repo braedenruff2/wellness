@@ -15,6 +15,13 @@ assert.strictEqual(D.addDays('2026-03-08', 1), '2026-03-09');
 assert.strictEqual(D.addDays('2026-11-01', 1), '2026-11-02'); // and fall back 1 Nov
 assert.strictEqual(D.addDays('2026-11-20', -365), '2025-11-20');
 for (let i = -400; i <= 400; i += 7) { const a = D.addDays('2026-11-20', i); assert.strictEqual(D.addDays(a, -i), '2026-11-20', a); }
+assert.strictEqual(D.isDate('2026-11-25'), true);
+assert.strictEqual(D.isDate('2028-02-29'), true);
+assert.strictEqual(D.isDate('2026-03-08'), true);
+assert.strictEqual(D.isDate('2026-11-01'), true);
+for (const bad of ['2026-02-29', '2026-02-30', '2026-04-31', '2026-00-10', '2026-13-01', '2026-99-99', '2026-1-5', '', null, 20261125]) {
+  assert.strictEqual(D.isDate(bad), false, String(bad));
+}
 if (!process.env.__DATES_CHILD) {
   const { spawnSync } = require('child_process');
   for (const tz of ['America/New_York', 'Asia/Manila', 'America/Halifax']) {

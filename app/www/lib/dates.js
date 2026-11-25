@@ -10,7 +10,13 @@
   }
   /* 'YYYY-MM-DD' plus n calendar days (whole days, so DST changes don't matter). */
   function addDays(s, n) { var p = String(s).split('-'); return iso(new Date(+p[0], +p[1] - 1, +p[2] + n)); }
-  var api = { iso: iso, addDays: addDays };
+  /* True when s is a real calendar date 'YYYY-MM-DD' (rejects e.g. '2026-02-30', '2026-99-99'). */
+  function isDate(s) {
+    if (typeof s !== 'string' || !/^\d{4}-\d\d-\d\d$/.test(s)) return false;
+    var p = s.split('-'), y = +p[0], mo = +p[1] - 1, d = +p[2], dt = new Date(y, mo, d);
+    return dt.getFullYear() === y && dt.getMonth() === mo && dt.getDate() === d;
+  }
+  var api = { iso: iso, addDays: addDays, isDate: isDate };
   root.WLDates = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

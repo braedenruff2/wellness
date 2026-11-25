@@ -57,7 +57,8 @@
     return { load: load, save: save, key: KEY };
   }
 
-  var isoDate = (root.WLDates || require('../../lib/dates.js')).iso;
+  var WLD = root.WLDates || require('../../lib/dates.js');
+  var isoDate = WLD.iso, isDate = WLD.isDate;
 
   /* The day to show on the Today screen: the first day not finished yet.
      Not tied to the calendar, so missing days never "costs" anything. */
@@ -357,15 +358,14 @@
     var s = o && o.app === 'faith-companion' ? o.state : null;
     if (!s || typeof s !== 'object' || !s.done || typeof s.done !== 'object' || Array.isArray(s.done)) throw new Error('This is not a Faith Companion backup.');
     var d = defaults(), str = function (v) { return typeof v === 'string' ? v : ''; };
-    var dateRe = /^\d{4}-\d\d-\d\d$/;
-    for (var k in s.done) if (/^\d+$/.test(k) && dateRe.test(s.done[k])) d.done[k] = s.done[k];
-    if (typeof s.started === 'string' && dateRe.test(s.started)) d.started = s.started;
+    for (var k in s.done) if (/^\d+$/.test(k) && isDate(s.done[k])) d.done[k] = s.done[k];
+    if (isDate(s.started)) d.started = s.started;
     if (typeof s.round === 'number' && s.round >= 1 && s.round % 1 === 0 && s.round < 1000) d.round = s.round;
     (Array.isArray(s.pastRounds) ? s.pastRounds : []).forEach(function (r) {
       if (!r || !r.done || typeof r.done !== 'object' || Array.isArray(r.done)) return;
       var pd = {};
-      for (var k in r.done) if (/^\d+$/.test(k) && dateRe.test(r.done[k])) pd[k] = r.done[k];
-      d.pastRounds.push({ done: pd, ended: typeof r.ended === 'string' && dateRe.test(r.ended) ? r.ended : null });
+      for (var k in r.done) if (/^\d+$/.test(k) && isDate(r.done[k])) pd[k] = r.done[k];
+      d.pastRounds.push({ done: pd, ended: isDate(r.ended) ? r.ended : null });
     });
     (Array.isArray(s.journal) ? s.journal : []).forEach(function (e) {
       if (!e || typeof e.text !== 'string' || isNaN(new Date(e.at).getTime())) return;
@@ -393,7 +393,7 @@
     if (typeof st.bell === 'boolean') ds.bell = st.bell;
     if (typeof st.rate === 'number' && st.rate >= 0.5 && st.rate <= 1.6) ds.rate = st.rate;
     if ([2, 5, 10].indexOf(st.minutes) >= 0) ds.minutes = st.minutes;
-    if (typeof st.reminder === 'string' && /^\d\d:\d\d$/.test(st.reminder)) ds.reminder = st.reminder;
+    if (typeof st.reminder === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(st.reminder)) ds.reminder = st.reminder;
     return d;
   }
 
