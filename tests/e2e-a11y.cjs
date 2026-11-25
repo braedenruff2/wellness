@@ -3,7 +3,7 @@
 'use strict';
 const assert = require('assert');
 const W = require('./lib/web.cjs');
-const SCREENS = ['#home', '#faith/today', '#faith/day/3', '#faith/pray', '#faith/journal', '#faith/settings', '#calm', '#calm/s/body',
+const SCREENS = ['#home', '#faith/today', '#faith/day/3', '#faith/pray', '#faith/prayers', '#faith/journal', '#faith/settings', '#journal', '#calm', '#calm/s/body',
   '#workout', '#workout/history', '#workout/settings', '#tagalog', '#tagalog/l/2026-11-18/1', '#tagalog/review', '#tagalog/words', '#tagalog/settings', '#coach', '#todo', '#me', '#settings', '#link'];
 (async () => {
   const t = await W.open({ time: new Date(2026, 10, 20, 9, 30) });

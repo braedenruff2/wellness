@@ -193,7 +193,7 @@
     var wd = byTime(state.feedback.filter(function (x) { return x.part === 'calm' && x.kind === 'after' && /^(sleep|night)@/.test(String(x.about)); })).slice(-1)[0];
     if (wd && now.getHours() >= 17 && Array.isArray(wd.a.block) && wd.a.block.indexOf('Mind racing') >= 0) {
       var wdDay = iso(new Date(wd.at)), y = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
-      if (wdDay === y || wdDay === iso(now)) out.push({ key: 'mindracing', part: 'calm', text: 'Your mind was racing at your last wind-down. Tonight, write down what’s on it first (a few lines in the Faith journal, or any paper), then do the wind-down.' });
+      if (wdDay === y || wdDay === iso(now)) out.push({ key: 'mindracing', part: 'calm', text: 'Your mind was racing at your last wind-down. Tonight, write down what’s on it first (a few lines in the Journal, or any paper), then do the wind-down.' });
     }
     var w = lastN(state, 'workout', 'after', 3);
     var lw = w[w.length - 1];

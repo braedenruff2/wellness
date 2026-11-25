@@ -323,7 +323,7 @@
   function screenMore() {
     var shown = C.daysShowedUp(S);
     return '<h1>More</h1><div class="card ui"><p>You have shown up on <b>' + shown + '</b> day' + (shown === 1 ? '' : 's') + '. Every one counts; none of the missed ones do.</p></div>' +
-      '<ul class="list card ui"><li><a href="#faith/path">The path: all days</a></li><li><a href="#faith/journal/prayers">Prayer list</a></li><li><a href="#faith/journal/awe">Awe moments</a></li><li><a href="#faith/settings">Settings and backup</a></li></ul>' +
+      '<ul class="list card ui"><li><a href="#faith/path">The path: all days</a></li><li><a href="#faith/prayers">Prayer list</a></li><li><a href="#journal">Journal (all notes &amp; awe moments)</a></li><li><a href="#faith/settings">Settings and backup</a></li></ul>' +
       '<div class="card"><h2>Faith grows with people</h2><p>This app can help you pray, but faith was never meant to be done alone. A few gentle next steps, whenever you\u2019re ready:</p>' +
       '<ul><li>Visit a church near you for a Sunday service; babies are almost always welcome.</li><li>Ask a pastor or priest for a coffee and tell them you\u2019re starting out. They are usually glad to help.</li>' +
       '<li>Pray with your wife, even one line together at bedtime.</li><li>Tell one friend you\u2019re exploring faith.</li></ul></div>' +
@@ -357,7 +357,7 @@
   }
 
   /* ---- router (called by the shell for #faith/...) ---- */
-  var SUBNAV = [['today', 'Today'], ['pray', 'Pray'], ['journal', 'Journal'], ['more', 'More']];
+  var SUBNAV = [['today', 'Today'], ['pray', 'Pray'], ['prayers', 'Prayers'], ['more', 'More']];
   function subnav(tab) {
     return '<div class="subnav ui" role="tablist">' + SUBNAV.map(function (t) {
       return '<a href="#faith/' + t[0] + '"' + (t[0] === tab ? ' aria-current="page"' : '') + '>' + t[1] + '</a>';
@@ -382,8 +382,9 @@
     switch (h[0]) {
       case 'day': { var d = day(+h[1]); html = d ? dayHtml(d, false) : screenToday(); tab = 'today'; break; }
       case 'pray': html = screenPray(); break;
+      case 'prayers': html = '<h1>Prayer list</h1>' + prayersHtml(); tab = 'prayers'; break;
       case 'session': html = screenSession(h[1], h[1] === 'day' ? +h[2] : h[2], +(h[3] || 0)); tab = 'pray'; break;
-      case 'journal': html = screenJournal(h[1]); break;
+      case 'journal': html = screenJournal(h[1]); tab = h[1] === 'prayers' ? 'prayers' : 'more'; break;
       case 'path': html = screenPath(); tab = 'more'; break;
       case 'more': html = screenMore(); break;
       case 'settings': html = screenSettings(); tab = 'more'; break;
@@ -609,5 +610,5 @@
     importOld: function (text) { S = C.importData(text); save(); },
     reload: function () { S = store.load(); syncContent(); }
   });
-  window.FC = { state: function () { return S; }, reload: function () { S = store.load(); syncContent(); } };
+  window.FC = { state: function () { return S; }, save: save, dayTitle: function (n) { var d = day(+n); return d ? d.title : ''; }, reload: function () { S = store.load(); syncContent(); } };
 })();
