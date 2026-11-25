@@ -39,7 +39,7 @@
      offer a different one only as an extra. */
   function racingLine() {
     var hr = new Date().getHours(), o = sopts();
-    return o.racing && (hr >= 21 || hr < 5) ? '<p class="meta ui" id="c-racing">Your mind has been racing at night lately. Write down what’s on it first: <a href="#faith/journal/journal">a few lines in your journal</a>, then the practice.</p>' : '';
+    return o.racing && (hr >= 21 || hr < 5) ? '<div class="ui" id="c-racing" style="margin-top:8px"><p class="meta" style="margin:0">Your mind has been racing at night lately. Write down what’s on it first, then do the practice.</p><a class="link" href="#faith/journal/journal">Write a few lines in your journal</a></div>' : '';
   }
   function todayCard() {
     var t = K.today(S), sug = practice(K.suggest(S, null, sopts()));

@@ -69,7 +69,7 @@
       var v = JSON.parse(n.voiceStatus());
       if (!v || v.tagalogVoice !== 'missing' || v.downloading === 'tagalog' || v.tagalog === 'phone') return '';
     } catch (e) { return ''; }
-    return '<p class="meta ui" id="tl-voice-nudge">Using the phone’s voice for Tagalog. <a href="#settings/voice">Download the Filipino voice</a> in Settings › Voice for a natural accent.</p>';
+    return '<div class="ui" id="tl-voice-nudge" style="margin:0 0 10px"><p class="meta" style="margin:0">Using the phone’s voice for Tagalog. Download the Filipino voice in Settings › Voice for a natural accent.</p><a class="link" href="#settings/voice">Download the Filipino voice</a></div>';
   }
 
   function home() {

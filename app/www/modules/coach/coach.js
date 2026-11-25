@@ -76,12 +76,12 @@
   function askable() { return pc.canAsk ? pc.canAsk() : pc.ready(); }
   function mainHtml() {
     var can = K.canText(S);
-    var h = '<h1>Parenting practice</h1><p class="ui meta">' + esc(S.child.name || 'Your daughter') + ' is ' + esc(K.ageText(S.child.birth)) + '.' +
-      (can ? ' She can: ' + esc(can) + '.' : '') + ' <a href="#coach/setup">Change</a></p>';
-    if (!can) h += '<p class="ui meta" id="co-can-nudge"><a href="#coach/setup">Tell the app what she can do now</a> (walks, climbs, first words…) so scenarios fit her, not a typical child her age.</p>';
+    var h = '<h1>Parenting practice</h1><div class="row ui" style="margin-bottom:8px"><span class="meta grow">' + esc(S.child.name || 'Your daughter') + ' is ' + esc(K.ageText(S.child.birth)) + '.' +
+      (can ? ' She can: ' + esc(can) + '.' : '') + '</span><a class="link" href="#coach/setup">Change</a></div>';
+    if (!can) h += '<div class="ui" id="co-can-nudge" style="margin:0 0 8px"><a class="link" href="#coach/setup">Tell the app what she can do now</a><p class="meta" style="margin:0">(walks, climbs, first words…) so scenarios fit her, not a typical child her age.</p></div>';
     if (!pc.ready()) h += pc.canAsk && pc.canAsk()
-      ? '<p class="meta ui" id="co-cloud">Scenarios and feedback come from the next cloud run (within about 5 hours). <a href="#link">Pair the PC link</a> for answers in a minute or two at home.</p>'
-      : '<div class="card ui"><p>Scenarios and feedback come from Claude on your PC. <a href="#link">Pair the PC link</a> first (home Wi-Fi), or turn on Settings › Sync with Google Drive for answers from the cloud.</p></div>';
+      ? '<div class="ui" id="co-cloud" style="margin:0 0 8px"><p class="meta" style="margin:0">Scenarios and feedback come from the next cloud run (within about 5 hours). Pair the PC link for answers in a minute or two at home.</p><a class="link" href="#link">Pair the PC link</a></div>'
+      : '<div class="card ui"><p style="margin-bottom:4px">Scenarios and feedback come from Claude on your PC. Pair the PC link first (home Wi-Fi), or turn on Settings › Sync with Google Drive for answers from the cloud.</p><div class="row"><a class="link" href="#link">Pair the PC link</a><a class="link" href="#settings/sync">Sync with Google Drive</a></div></div>';
     if (err) h += '<p class="no ui">' + esc(err) + '</p>' + (/reach|time|connect|fail|network|wi-?fi|answer/i.test(err) && !/Claude didn/i.test(err)
       ? '<p class="meta ui" id="co-offline">Your PC isn’t answering (away from home Wi-Fi, or it’s asleep). The tips and past advice below still work; try again at home.</p>' : '');
     h += queuedHtml();

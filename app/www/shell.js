@@ -265,11 +265,11 @@
     var ds = driveState(), synced = ds && ds.configured && ds.lastSync ? Date.parse(ds.lastSync) : 0;
     var days = function (t) { return Math.floor((now.getTime() - t) / 864e5); };
     if (synced && synced > (Date.parse(SH.lastBackup) || 0)) {
-      return '<div class="card ui" id="wl-backup"><p>Drive sync last worked ' + days(synced) + ' days ago, so your newest days aren’t backed up.' +
-        ' <a href="#settings/sync">Check Sync with Google Drive</a>, or save a backup in <a href="#settings">Settings</a>.</p></div>';
+      return '<div class="card ui" id="wl-backup"><p style="margin-bottom:4px">Drive sync last worked ' + days(synced) + ' days ago, so your newest days aren’t backed up.</p>' +
+        '<div class="row"><a class="link" href="#settings/sync">Check Sync with Google Drive</a><a class="link" href="#settings">Save a backup in Settings</a></div></div>';
     }
-    return '<div class="card ui" id="wl-backup"><p>' + (SH.lastBackup ? 'Your last backup was ' + days(Date.parse(SH.lastBackup)) + ' days ago.' : 'You haven’t saved a backup yet.') +
-      ' Everything lives only on this phone. <a href="#settings">Save one in Settings</a>.</p></div>';
+    return '<div class="card ui" id="wl-backup"><p style="margin-bottom:4px">' + (SH.lastBackup ? 'Your last backup was ' + days(Date.parse(SH.lastBackup)) + ' days ago.' : 'You haven’t saved a backup yet.') +
+      ' Everything lives only on this phone.</p><div class="row"><a class="link" href="#settings">Save one in Settings</a></div></div>';
   }
   /* Sunday from noon: one plain line about the week across parts (no streaks, no scores). */
   function weekCard(now) {
