@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-25 15:30-15:45 AST (same run, continued; APK 0.1.20261125.1841, real key)
+- Done 105 (Calm weighs his own before/after ratings, 2+ rated), 106 (Calm list "Helped N of M times"), 108 (plan calm.prefer only real ids), 109 (Tagalog pronoun-second hint). Added tasks 110-113.
+- Tested: full suite at 0caef80, 59 suites, none skipped.
+- Check on the phone: Calm list shows "Helped 1 of 3 times" under practices with 2+ answers; Tagalog: typing "bakit umiiyak siya" says short words like siya go right after the first word.
+
 ## 2026-11-25 14:05-15:30 AST (cloud run; PC reachable; APK 0.1.20261125.1823, real key, cert 6795e499...)
 - Cross-reviewed Gemini since 23 Nov (tasks 57-98 and the 25 Nov feature batch): sound. Checked the new content for accuracy: Calm goal research note (cyclic sighing ~5 min/day; ~13 min/day mindfulness over 8 weeks) matches published studies; push-up age norms are in line with CSEP's; the plank "age norms" have no published source behind them (label says "general reference"); Parenting "What to teach now" list reads fine.
 - bug: main's suite failed (tagalog e2e "next week downloads") / cause: the real week 2026-11-25 landed (PC lesson job, 13:11) and the test faked a "new" week with that same id, now bundled / fixed: the fake week uses 2099-12-30 / test: tagalog e2e (task 107 adds a guard).
