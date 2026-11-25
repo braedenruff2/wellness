@@ -90,6 +90,7 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     await page.click('#tl-check');
     const fb = await page.textContent('#tl-order');
     assert.ok(fb.includes('Right words; in Tagalog the doer comes after the verb: masarap ang adobo'), fb);
+    assert.ok(!(await page.$('#tl-alt')), 'wrong: no "lesson\'s version" line');
     await page.click('#tl-next');
     // Also check a plain wrong typed answer on exercise 6 ("Pakiabot po ng kanin."): wrong words -> plain Answer
     await page.click('#tl-ex .opt'); await page.click('#tl-next'); // ex 4 mc
@@ -98,6 +99,14 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     await page.click('#tl-check');
     const fb2 = await page.textContent('#tl-order');
     assert.ok(fb2.includes('Right words; in Tagalog the doer comes after the verb: Pakiabot po ng kanin.'), fb2);
+  });
+  await t.step('a typed answer in other accepted words is right, and shows the lesson\'s own version', async () => {
+    await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/l/2026-11-18/5');
+    await page.click('#tl-ex .opt'); await page.click('#tl-next');
+    await page.click('#tl-ex .opt'); await page.click('#tl-next');
+    await page.fill('#tl-in', 'Masarap ang adobo'); await page.click('#tl-check');
+    assert.ok((await page.textContent('#tl-fb')).includes('Right'));
+    assert.ok((await page.textContent('#tl-alt')).includes('The lesson’s version: Ang sarap ng adobo'), await page.textContent('#tl-alt'));
   });
   await t.step('next day: lesson 2 is next and the words are due for review', async () => {
     await page.clock.runFor(86400e3);

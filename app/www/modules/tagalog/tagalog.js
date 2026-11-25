@@ -157,7 +157,8 @@
         var hint = !ok && T.orderHint ? T.orderHint(ex, given) : '';
         $('#tl-fb').innerHTML = '<p class="' + (ok ? 'ok' : 'no') + '"' + (hint ? ' id="tl-order"' : '') + '>' +
           (ok ? '✓ Right!' : hint ? '✗ ' + esc(hint) : '✗ Answer: <b>' + esc(ex.answer) + '</b>') + '</p>' +
-          (ok && T.missedPo(ex, given) ? '<p class="meta" id="tl-po">With an elder, add “po”: <b>' + esc(ex.answer) + '</b></p>' : '') +
+          (ok && T.missedPo(ex, given) ? '<p class="meta" id="tl-po">With an elder, add “po”: <b>' + esc(ex.answer) + '</b></p>' :
+            ok && T.altOf && T.altOf(ex, given) ? '<p class="meta" id="tl-alt">The lesson’s version: <b>' + esc(ex.answer) + '</b></p>' : '') +
           '<div class="row"><button class="primary" id="tl-next">Next</button>' + (askable ? '<button id="tl-ask">Ask Claude about my answer</button>' : '') + '</div><div id="tl-claude" aria-live="polite"></div>';
         if (askable) $('#tl-ask').onclick = function () {
           var b = this; b.disabled = true;

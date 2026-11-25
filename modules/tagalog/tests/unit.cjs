@@ -224,4 +224,13 @@ t('checkPack and validate reject impossible calendar dates (2026-02-30, 2026-99-
   assert.deepStrictEqual(Object.keys(v.cards), ['ok']);
 });
 
+t('altOf: an accepted variant shows the lesson\'s own answer; the answer itself (any case, po/ho, punctuation) does not', () => {
+  const ex = { type: 'type', prompt: 'p', answer: 'Kumakain ako ngayon.', accept: ['kumakain na ako', 'kumakain po ako ngayon'] };
+  assert.strictEqual(T.altOf(ex, 'kumakain na ako'), 'Kumakain ako ngayon.');
+  assert.strictEqual(T.altOf(ex, 'KUMAKAIN AKO NGAYON!'), '');
+  assert.strictEqual(T.altOf(ex, 'kumakain po ako ngayon'), '', 'only po added: same sentence');
+  assert.strictEqual(T.altOf(ex, 'kumakain ho ako ngayon'), '');
+  assert.strictEqual(T.altOf(ex, 'kain'), '', 'wrong: nothing');
+  assert.strictEqual(T.altOf({ type: 'mc', answer: 'a', options: ['a'] }, 'a'), '');
+});
 console.log(n + ' tagalog unit tests passed');

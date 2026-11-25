@@ -58,6 +58,13 @@
     return !!ex.poOptional && ok.map(noPo).indexOf(noPo(g)) >= 0;
   }
   function noPo(s) { return s.replace(/\b(po|ho)\b/g, ' ').replace(/\s+/g, ' ').trim(); }
+  /* Right, but in other words than the lesson's own answer (an accepted variant): the lesson's version, to see it too.
+     '' when he typed the lesson's answer itself (or it only differs by po/ho, case, accents or punctuation). */
+  function altOf(ex, given) {
+    if (!ex || ex.type !== 'type' || !check(ex, given)) return '';
+    var g = normHo(given), a = normHo(ex.answer);
+    return g === a || noPo(g) === noPo(a) ? '' : ex.answer;
+  }
   function normHo(s) { return norm(s).replace(/\bho\b/g, 'po'); }
   function sortedWords(s) { return s ? s.split(' ').sort().join(' ') : ''; }
   /* Right, but without the "po" the answer has: a gentle note (only on poOptional exercises). */
@@ -243,7 +250,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, orderHint: orderHint, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;
