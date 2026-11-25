@@ -72,8 +72,12 @@
     var g = norm(given);
     return !!ex.poOptional && check(ex, given) && !/\b(po|ho)\b/.test(g);
   }
-  /* Same words as the answer (or an accepted answer) in a different order, on an ang/ng/si/ni sentence:
-     give a specific word-order hint instead of plain wrong. */
+  /* The little words that follow a sentence's first word (pronouns and na, pa, ba, po...): the run of them at index 1+. */
+  var PRON = ['ako', 'ka', 'siya', 'kami', 'tayo', 'sila', 'kayo', 'ko', 'mo', 'niya', 'namin', 'natin', 'nila', 'ninyo'];
+  var ENC = PRON.concat(['na', 'pa', 'ba', 'po', 'din', 'rin', 'lang', 'daw', 'raw', 'naman', 'nga']);
+  function cluster(words) { var out = []; for (var i = 1; i < words.length && ENC.indexOf(words[i]) >= 0; i++) out.push(words[i]); return out; }
+  /* Same words as the answer (or an accepted answer) in a different order: a specific word-order hint instead of plain
+     wrong, when a short pronoun is out of second place or on an ang/ng/si/ni sentence. */
   function orderHint(ex, given) {
     if (!ex || !ex.answer || ex.type === 'mc' || ex.type === 'listen') return '';
     if (check(ex, given)) return '';
@@ -84,7 +88,13 @@
     var gKey = sortedWords(g), gNoPo = ex.poOptional ? sortedWords(noPo(g)) : '';
     var cands = [ex.answer].concat(ex.accept || []);
     for (var i = 0; i < cands.length; i++) {
-      var c = normHo(cands[i]);
+      var c = normHo(cands[i]), cw = c.split(' ');
+      // short words (siya, ako, kami, ko...) sit right after the first word: "Bakit siya umiiyak?", not "Bakit umiiyak siya?"
+      if (cw.length === gw.length && sortedWords(c) === gKey) {
+        var pron = cluster(cw).filter(function (w) { return PRON.indexOf(w) >= 0; }), gc = cluster(gw);
+        var off = pron.filter(function (w) { return gc.indexOf(w) < 0; })[0];
+        if (off) return 'Right words; short words like ' + off + ' go right after the first word: ' + (i === 0 ? ex.answer : cands[i]);
+      }
       if (!/\b(ang|ng|si|ni)\b/.test(c)) continue;
       var match = (c.split(' ').length === gw.length && sortedWords(c) === gKey) ||
         (!!ex.poOptional && noPo(c).split(' ').length >= 3 && sortedWords(noPo(c)) === gNoPo);

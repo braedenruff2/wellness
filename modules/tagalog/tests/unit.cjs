@@ -233,4 +233,17 @@ t('altOf: an accepted variant shows the lesson\'s own answer; the answer itself 
   assert.strictEqual(T.altOf(ex, 'kain'), '', 'wrong: nothing');
   assert.strictEqual(T.altOf({ type: 'mc', answer: 'a', options: ['a'] }, 'a'), '');
 });
+t('orderHint: a short pronoun out of second place gets its own hint (his "bakit umiiyak siya")', () => {
+  const ex = { type: 'type', prompt: 'Why is she crying?', answer: 'Bakit siya umiiyak?', accept: ['bakit siya umiiyak'] };
+  assert.strictEqual(T.orderHint(ex, 'bakit umiiyak siya?'), 'Right words; short words like siya go right after the first word: Bakit siya umiiyak?');
+  assert.strictEqual(T.orderHint(ex, 'Bakit siya umiiyak'), '', 'right: no hint');
+  const ex2 = { type: 'type', prompt: 'p', answer: 'Hindi pa siya kumakain.' };
+  assert.ok(/short words like siya/.test(T.orderHint(ex2, 'hindi pa kumakain siya')));
+  assert.strictEqual(T.orderHint(ex2, 'siya hindi pa kumakain'), 'Right words; short words like siya go right after the first word: Hindi pa siya kumakain.');
+  // ang/ng sentences keep their own hint
+  const ex3 = { type: 'type', prompt: 'p', answer: 'Umiinom ng gatas ang baby.' };
+  assert.ok(/doer comes after the verb/.test(T.orderHint(ex3, 'umiinom ang gatas ng baby')));
+  // different words: no hint
+  assert.strictEqual(T.orderHint(ex, 'bakit umiiyak ka'), '');
+});
 console.log(n + ' tagalog unit tests passed');
