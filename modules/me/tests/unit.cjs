@@ -408,4 +408,19 @@ t('calmHelped: per practice, helped (A lot / A bit) out of all "Did it help?" an
   s.feedback.push({ id: 'calm/notfit/x', at: D(21).toISOString(), part: 'calm', about: 'ground', kind: 'notfit', a: { reasons: [] } });
   assert.deepStrictEqual(K.calmHelped(s), { ground: { yes: 2, n: 3 }, body: { yes: 1, n: 1 } });
 });
+t('working: plain lines from his own answers (30 days); nothing under 3 answers', () => {
+  const s = K.defaults(), now = D(25, 20);
+  const a = (part, d, about, ans) => s.feedback.push({ id: part + d + about, at: D(d, 21).toISOString(), part, about, kind: 'after', a: ans });
+  a('calm', 24, 'ground@1', { helped: 'Not really' }); a('calm', 23, 'body@1', { helped: 'A bit' });
+  assert.deepStrictEqual(K.working(s, now), []);
+  a('workout', 23, 'w1', { hard: 'Just right', pain: 'None', energy: 'OK' });
+  a('tagalog', 24, '2026-11-18/6', { level: 'About right' }); a('tagalog', 20, 'review@x', { level: 'Too easy' });
+  a('calm', 1, 'body@old', { helped: 'Not really' }); // 1 Nov: inside the 30 days
+  s.feedback.push({ id: 'old', at: new Date(2026, 9, 1, 12).toISOString(), part: 'calm', about: 'sigh@old', kind: 'after', a: { helped: 'A lot' } }); // 1 Oct: too old
+  const w = K.working(s, now);
+  assert.deepStrictEqual(w, ['Calm: Body scan helped 1 of 2.', 'Move: 1 of 1 workouts felt just right, no pain.', 'Tagalog: 1 of 2 lessons and reviews felt about right.']);
+  const n = K.defaults();
+  [20, 21, 22].forEach((d) => n.feedback.push({ id: 'c' + d, at: D(d, 21).toISOString(), part: 'calm', about: 'ground@' + d, kind: 'after', a: { helped: 'Not really' } }));
+  assert.deepStrictEqual(K.working(n, now), ['Calm: none of the practices has helped much yet (3 answers). Try a different kind, or a walk.']);
+});
 console.log(n + ' me unit tests passed');

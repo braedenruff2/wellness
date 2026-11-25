@@ -187,6 +187,8 @@
     h += '<div class="card ui"><h3>Today’s check-in</h3>' + checkinHtml(true) + '</div>';
     var g = K.guidance(S, new Date(), 6);
     if (g.length) h += '<div class="card ui"><h3>For you</h3><ul class="me-g">' + g.map(function (x) { return '<li>' + esc(x.text) + '</li>'; }).join('') + '</ul></div>';
+    var wk = K.working(S, new Date());
+    if (wk.length) h += '<div class="card ui" id="me-working"><h3>What’s working</h3><ul class="me-g">' + wk.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul><p class="meta">From your own answers in the last 30 days.</p></div>';
     h += '<div class="card ui"><h3>Weekly plan</h3>';
     if (S.plan) {
       h += '<p>' + esc(S.plan.headline) + '</p><ul class="me-g">' + Object.keys(S.plan.parts).map(function (k) {

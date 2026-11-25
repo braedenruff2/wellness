@@ -174,6 +174,27 @@
     });
     return out;
   }
+  /* "What's working", from his own quick answers (last 30 days): lines in plain words, or [] when there are fewer
+     than 3 answers to go on. Calm practices that helped, workouts rated "Just right", Tagalog at "About right". */
+  function working(state, now) {
+    now = now || new Date();
+    var since = new Date(now.getTime() - 30 * 864e5).toISOString(), out = [];
+    var f = state.feedback.filter(function (x) { return x.kind === 'after' && x.at >= since && x.a && typeof x.a === 'object'; });
+    var calm = f.filter(function (x) { return x.part === 'calm' && x.a.helped; }), wo = f.filter(function (x) { return x.part === 'workout' && x.a.hard; }),
+      tl = f.filter(function (x) { return x.part === 'tagalog' && x.a.level; });
+    if (calm.length + wo.length + tl.length < 3) return [];
+    var CC = typeof CalmCore !== 'undefined' ? CalmCore : root.CalmCore, title = function (id) { var p = CC && CC.PRACTICES.filter(function (q) { return q.id === id; })[0]; return p ? p.title : id; };
+    var by = {};
+    calm.forEach(function (x) { var id = String(x.about).split('@')[0], o = by[id] = by[id] || { y: 0, n: 0 }; o.n++; if (x.a.helped === 'A lot' || x.a.helped === 'A bit') o.y++; });
+    var good = Object.keys(by).filter(function (k) { return by[k].y > 0; }).sort(function (a, b) { return by[b].y / by[b].n - by[a].y / by[a].n; });
+    if (good.length) out.push('Calm: ' + good.slice(0, 3).map(function (k) { return title(k) + ' helped ' + by[k].y + ' of ' + by[k].n; }).join('; ') + '.');
+    else if (calm.length >= 3) out.push('Calm: none of the practices has helped much yet (' + calm.length + ' answers). Try a different kind, or a walk.');
+    var jr = wo.filter(function (x) { return x.a.hard === 'Just right'; }).length;
+    if (wo.length) out.push('Move: ' + jr + ' of ' + wo.length + ' workouts felt just right' + (wo.some(function (x) { return x.a.pain && x.a.pain !== 'None'; }) ? '; some pain noted' : ', no pain') + '.');
+    var ar = tl.filter(function (x) { return x.a.level === 'About right'; }).length;
+    if (tl.length) out.push('Tagalog: ' + ar + ' of ' + tl.length + ' lessons and reviews felt about right.');
+    return out;
+  }
   function lastN(state, part, kind, n) {
     return byTime(state.feedback.filter(function (f) {
       return f.part === part && f.kind === kind && (kind !== 'after' || (f.a && Object.keys(f.a).length > 0));
@@ -345,7 +366,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, planFlagged: planFlagged,
+    notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, working: working, planFlagged: planFlagged,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

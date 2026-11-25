@@ -127,6 +127,17 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.$('#me-sheet'), null, 'sheet removed on navigation');
     await page.keyboard.press('Escape');
   });
+  await t.step('About you shows "What\'s working" once there are 3+ answers', async () => {
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+      const now = Date.now(), a = (part, i, about, ans) => me.feedback.push({ id: 'w' + i, at: new Date(now - i * 3600e3).toISOString(), part, about, kind: 'after', a: ans });
+      a('calm', 1, 'body@w1', { helped: 'A lot' }); a('workout', 2, 'ww', { hard: 'Just right', pain: 'None' }); a('tagalog', 3, 'review@w', { level: 'About right' });
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#me'); await page.reload(); await page.waitForSelector('#me-working');
+    const w = await page.textContent('#me-working');
+    assert.ok(w.includes('Body scan helped') && w.includes('felt just right') && w.includes('about right'), w);
+  });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#home', '#me', '#calm', '#workout', '#coach']);
     assert.deepStrictEqual(t.errors, []);
