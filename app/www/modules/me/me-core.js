@@ -240,7 +240,12 @@
     PARTS.forEach(function (k) {
       var x = src[k]; if (!x || typeof x !== 'object' || !x.focus) return;
       var y = { focus: cut(x.focus, 400), why: cut(x.why, 400) };
-      if (Array.isArray(x.prefer)) y.prefer = x.prefer.filter(function (s) { return typeof s === 'string'; }).slice(0, 5).map(function (s) { return cut(s, 40); });
+      if (Array.isArray(x.prefer)) {
+        // calm.prefer boosts practices by id: keep only real ones (a typo or an old id would boost nothing), at most 3
+        var CC = typeof CalmCore !== 'undefined' ? CalmCore : root.CalmCore, ids = k === 'calm' && CC ? CC.PRACTICES.map(function (q) { return q.id; }) : null;
+        y.prefer = x.prefer.filter(function (s, i, a) { return typeof s === 'string' && (!ids || ids.indexOf(s.trim()) >= 0) && a.indexOf(s) === i; })
+          .map(function (s) { return cut(s.trim(), 40); }).slice(0, ids ? 3 : 5);
+      }
       out.parts[k] = y;
     });
     if (!out.headline && !Object.keys(out.parts).length) return null;

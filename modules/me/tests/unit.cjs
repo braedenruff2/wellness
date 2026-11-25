@@ -395,4 +395,10 @@ t('planFlagged: "Not for me" on this week\'s plan line for a part; an older plan
   assert.strictEqual(K.planFlagged(s, 'calm'), true);
   assert.deepStrictEqual(Object.keys(K.calmLikes(s, D(25)).score), [], 'plan lines are not practices');
 });
+t('cleanPlan: calm.prefer keeps only real practice ids (trimmed, no repeats, at most 3)', () => {
+  const p = K.cleanPlan({ headline: 'h', parts: { calm: { focus: 'f', why: 'w', prefer: ['shuffle', ' night ', 'grounding', 'shuffle', 5, 'body', 'slow'] }, workout: { focus: 'f', prefer: ['x'] } } }, D(25));
+  assert.deepStrictEqual(p.parts.calm.prefer, ['shuffle', 'night', 'body']);
+  assert.deepStrictEqual(p.parts.workout.prefer, ['x'], 'other parts unchanged');
+  assert.deepStrictEqual(K.cleanPlan({ headline: 'h', parts: { calm: { focus: 'f', prefer: ['nope'] } } }, D(25)).parts.calm.prefer, []);
+});
 console.log(n + ' me unit tests passed');
