@@ -87,10 +87,13 @@
     }).join('') + '</div><div class="row" style="margin-top:8px"><span class="grow">Voice guidance</span><button class="chip" id="cv" aria-pressed="' + S.settings.voice + '">' + (S.settings.voice ? 'On' : 'Off') + '</button></div>' +
       '<div class="row" style="margin-top:8px"><span class="grow">Soft tick when breathing changes</span><button class="chip" id="ctk" aria-pressed="' + !!S.settings.tick + '">' + (S.settings.tick ? 'On' : 'Off') + '</button></div></div>';
     var helped = window.WLMe && WLMe.calmHelped ? WLMe.calmHelped() : {};
-    h += '<h2 class="ui" style="font-size:1em;margin:1em 0 .3em">All practices</h2><ul class="list">' + K.PRACTICES.map(function (p) {
+    // a practice that hasn't helped him in 3+ tries goes to the end of the list
+    var never = function (p) { var x = helped[p.id]; return x && x.n >= 3 && x.yes === 0 ? 1 : 0; };
+    var order = K.PRACTICES.map(function (p, i) { return [p, i]; }).sort(function (a, b) { return never(a[0]) - never(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
+    h += '<h2 class="ui" style="font-size:1em;margin:1em 0 .3em">All practices</h2><ul class="list">' + order.map(function (p) {
       var hp = helped[p.id];
       return '<li><a href="#calm/s/' + p.id + '"><h3>' + esc(p.title) + '</h3><div class="meta ui">' + esc(p.when) + ' · ' + mins(p) + ' min' +
-        (hp && hp.n >= 2 ? '<span class="c-helped"> · Helped ' + hp.yes + ' of ' + hp.n + ' times</span>' : '') + '</div>' +
+        (hp && hp.n >= 2 ? '<span class="c-helped"> · ' + (never(p) ? 'Hasn’t helped you so far' : 'Helped ' + hp.yes + ' of ' + hp.n + ' times') + '</span>' : '') + '</div>' +
         (p.blurb || (p.pacer && K.PACERS[p.pacer].blurb) ? '<p style="margin:.3em 0 0">' + esc(p.blurb || K.PACERS[p.pacer].blurb) + '</p>' : '') + '</a>' +
         (window.WLMe && WLMe.state().feedback.some(function (f) { return f.part === 'calm' && f.kind === 'notfit' && f.about === p.id; }) ? '<div class="meta ui">Marked not for you: suggested less</div>' : '') + '</li>';
     }).join('') + '</ul>';

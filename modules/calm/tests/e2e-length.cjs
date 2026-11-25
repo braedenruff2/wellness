@@ -100,6 +100,19 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-today');
     assert.ok(!(await page.textContent('#c-today h3')).includes('Quiet timer'), await page.textContent('#c-today h3'));
   });
+  await t.step('Calm list: "Helped N of M"; a practice at 0 of 3+ says it hasn\'t helped and moves to the end', async () => {
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+      me.feedback = [];
+      const f = (id, d, helped) => me.feedback.push({ id: 'calm/after/' + id + d, at: new Date(2026, 10, d, 12).toISOString(), part: 'calm', about: id + '@' + d, kind: 'after', a: { helped } });
+      f('ground', 10, 'Not really'); f('ground', 11, 'Not really'); f('ground', 12, 'Not really'); f('body', 10, 'A bit'); f('body', 11, 'Not really');
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('.list li');
+    const items = await page.$$eval('.list li', (ls) => ls.map((l) => l.textContent));
+    assert.ok(items[items.length - 1].includes('5-4-3-2-1 grounding') && items[items.length - 1].includes('Hasn’t helped you so far'), items[items.length - 1]);
+    assert.ok(items.some((x) => x.includes('Body scan') && x.includes('Helped 1 of 2 times')));
+  });
   await t.step('no overflow at 1.0, no errors', async () => { await t.noOverflow(['#calm/s/slow', '#calm/s/body', '#calm/s/shuffle']); assert.deepStrictEqual(t.errors, []); });
   await t.close('calm lengths');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
