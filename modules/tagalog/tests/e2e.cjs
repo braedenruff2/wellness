@@ -411,6 +411,28 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     if (first.includes('ngayon')) assert.ok(!ex2); else assert.ok(/ngayon/i.test(await ex2.textContent()));
     await page.evaluate((raw) => { localStorage.setItem('wl.tagalog.v1', raw); window.WL.modules.tagalog.reload(); }, saved);
   });
+  await t.step('Your words: right N of M per word; "Practise these" runs the hard ones without changing their review days', async () => {
+    const saved = await page.evaluate(() => localStorage.getItem('wl.tagalog.v1'));
+    await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('wl.tagalog.v1'));
+      const c = (en, seen, right, wrong) => ({ en, box: 1, due: '2099-01-01', seen, right, wrong, from: '' });
+      st.cards = { ngayon: c('now', 5, 2, 3), kanina: c('earlier', 3, 2, 1), opo: c('yes (polite)', 4, 4, 0) };
+      for (let i = 0; i < 8; i++) st.cards['salita' + i] = c('word ' + i, 0, 0, 0);
+      st.reviews = [];
+      localStorage.setItem('wl.tagalog.v1', JSON.stringify(st)); window.WL.modules.tagalog.reload();
+    });
+    await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/words');
+    assert.ok((await page.textContent('#tl-hard')).includes('right 2 of 5'));
+    assert.ok((await page.textContent('#tl-all')).includes('right 4 of 4'));
+    await page.click('#tl-practise-hard'); await page.waitForSelector('#tl-card .big');
+    assert.ok((await page.textContent('main')).includes('2 words you missed most'));
+    for (let i = 0; i < 2; i++) { await page.click('#tl-show'); await page.clock.runFor(450); await page.click(i ? '#tl-yes' : '#tl-no'); }
+    const done = await page.textContent('#tl-card');
+    assert.ok(done.includes('1 of 2 got') && done.includes('come back in reviews as usual'), done);
+    const after = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')));
+    assert.strictEqual(after.cards.ngayon.due, '2099-01-01'); assert.strictEqual(after.cards.ngayon.seen, 5); assert.deepStrictEqual(after.reviews, []);
+    await page.evaluate((raw) => { localStorage.setItem('wl.tagalog.v1', raw); window.WL.modules.tagalog.reload(); }, saved);
+  });
   await t.step('no overflow, no errors', async () => {
     await page.evaluate(() => { window.__voiceState.tagalogVoice = 'missing'; });
     await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#tagalog/words', '#settings/voice', '#home']);

@@ -201,7 +201,12 @@
     show();
   }
 
-  function reviewHtml() {
+  function reviewHtml(hard) {
+    if (hard) {
+      var hw = T.weakWords(S, 10);
+      if (!hw.length) return subnav('review') + '<h1>Practise hard words</h1><p class="ui">No hard words yet. <a class="link" href="#tagalog/words">Your words</a></p>';
+      return subnav('review') + '<h1>Practise hard words</h1><p class="meta ui">' + hw.length + ' words you missed most. Extra practice: this doesn’t change when they come back for review.</p><div class="card flash" id="tl-card"></div>';
+    }
     var due = T.dueCards(S);
     if (!due.length) return subnav('review') + '<h1>Review</h1><p class="ui">Nothing due right now. ' + (Object.keys(S.cards).length ? 'Come back tomorrow.' : 'Finish a lesson and its words will show up here.') + '</p>';
     return subnav('review') + '<h1>Review</h1><p class="meta ui">' + due.length + ' due. Say the meaning out loud, then check.</p><div class="card flash" id="tl-card"></div>';
@@ -210,10 +215,11 @@
   /* Every word met: the hard ones first (most often wrong), then the rest, known-well ones marked; tap 🔊 to hear. */
   function wordsHtml() {
     var keys = Object.keys(S.cards), hard = T.weakWords(S, 10), known = keys.filter(function (k) { return S.cards[k].box >= 3; });
-    var row = function (k) { var c = S.cards[k]; return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(c.en) + '</span></span>' + (c.box >= 3 ? '<span class="tick" title="known well">✓</span>' : '') + hear(k) + '</li>'; };
+    var row = function (k) { var c = S.cards[k]; return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(c.en) + ((c.seen || 0) >= 2 ? '<span class="tl-score"> · right ' + (c.right || 0) + ' of ' + c.seen + '</span>' : '') + '</span></span>' + (c.box >= 3 ? '<span class="tick" title="known well">✓</span>' : '') + hear(k) + '</li>'; };
     var h = subnav('') + '<h1>Your words</h1><p class="meta ui">' + keys.length + ' met · ' + known.length + ' known well (✓).</p>';
     if (keys.length >= 10) h += '<div class="ui" style="margin:8px 0"><label class="sr" for="tl-word-search">Search your words</label><input type="search" id="tl-word-search" placeholder="Search Tagalog or English" autocomplete="off"><span class="meta" id="tl-word-found"></span></div>';
-    if (hard.length) h += '<div class="card"><h2>Hard ones</h2><p class="meta ui">Missed most often. Say each one out loud a few times.</p><ul class="list" id="tl-hard">' + hard.map(row).join('') + '</ul></div>';
+    if (hard.length) h += '<div class="card"><h2>Hard ones</h2><p class="meta ui">Missed most often. Say each one out loud a few times.</p><ul class="list" id="tl-hard">' + hard.map(row).join('') + '</ul>' +
+      '<div class="row ui"><a class="btn primary" id="tl-practise-hard" href="#tagalog/review/hard">Practise these</a><span class="meta">Extra practice: your review days stay as they are.</span></div></div>';
     var rest = keys.filter(function (k) { return hard.indexOf(k) < 0; }).sort(function (a, b) { return a.localeCompare(b); });
     if (rest.length) h += '<div class="card"><h2>All the others</h2><ul class="list" id="tl-all">' + rest.map(row).join('') + '</ul></div>';
     return h;
@@ -240,8 +246,9 @@
     };
   }
 
-  function runReview() {
-    var due = T.dueCards(S), i = 0, el = $('#tl-card'), missed = []; if (!el) return;
+  function runReview(hard) {
+    // hard: the words he missed most (Your words > Practise these), shown like a review but not rescheduled
+    var due = hard ? T.weakWords(S, 10) : T.dueCards(S), i = 0, el = $('#tl-card'), missed = []; if (!el) return;
     clearReviewKey();
     reviewKey = function (ev) {
       if (!el.isConnected) { clearReviewKey(); return; }
@@ -266,8 +273,8 @@
         clearReviewKey();
         // the words he said "Not yet" to, once more with their sound (they come back tomorrow anyway)
         var miss = missed.filter(function (k, j) { return missed.indexOf(k) === j && S.cards[k]; });
-        el.innerHTML = '<p class="ui"><b>All done.</b> See you tomorrow.</p>' + (miss.length ? '<div id="tl-missed"><p class="meta ui">Once more before you go (they’re back tomorrow):</p><ul class="list">' +
-          miss.map(function (k) { return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(S.cards[k].en) + '</span></span>' + hear(k) + '</li>'; }).join('') + '</ul></div>' : '') + (window.WLMe && due.length ? WLMe.askHtml('tagalog', 'review@' + new Date().toISOString().slice(0, 16), 'Quick question (optional): it shapes next week’s lessons', true) : '') + '<a class="btn" href="#tagalog">Back</a>';
+        el.innerHTML = (hard ? '<p class="ui"><b>Done.</b> ' + (due.length - missed.length) + ' of ' + due.length + ' got. They come back in reviews as usual.</p>' : '<p class="ui"><b>All done.</b> See you tomorrow.</p>') + (miss.length ? '<div id="tl-missed"><p class="meta ui">' + (hard ? 'Once more before you go:' : 'Once more before you go (they’re back tomorrow):') + '</p><ul class="list">' +
+          miss.map(function (k) { return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(S.cards[k].en) + '</span></span>' + hear(k) + '</li>'; }).join('') + '</ul></div>' : '') + (window.WLMe && due.length && !hard ? WLMe.askHtml('tagalog', 'review@' + new Date().toISOString().slice(0, 16), 'Quick question (optional): it shapes next week’s lessons', true) : '') + '<a class="btn" href="#tagalog">Back</a>';
         wireHear(el);
         return;
       }
@@ -286,8 +293,8 @@
         $('#tl-btns').innerHTML = '<button id="tl-no">Not yet</button><button class="primary" id="tl-yes">Got it</button>';
         // a double-tap on Show would land on "Not yet" (now where Show was): ignore taps for a moment
         var shownAt = Date.now(), late = function () { return Date.now() - shownAt >= 400; };
-        $('#tl-no').onclick = function () { if (!late()) return; T.review(S, k, false, logNow()); save(); missed.push(k); i++; show(); };
-        $('#tl-yes').onclick = function () { if (!late()) return; T.review(S, k, true, logNow()); save(); i++; show(); };
+        $('#tl-no').onclick = function () { if (!late()) return; if (!hard) { T.review(S, k, false, logNow()); save(); } missed.push(k); i++; show(); };
+        $('#tl-yes').onclick = function () { if (!late()) return; if (!hard) { T.review(S, k, true, logNow()); save(); } i++; show(); };
       };
     }
     show();
@@ -383,7 +390,7 @@
       }, function () { $('#tl-more').onclick = function () { route(['practice']); }; });
       return;
     }
-    if (parts[0] === 'review') { view.innerHTML = reviewHtml(); runReview(); return; }
+    if (parts[0] === 'review') { var hd = parts[1] === 'hard'; view.innerHTML = reviewHtml(hd); runReview(hd); return; }
     if (parts[0] === 'words') { view.innerHTML = wordsHtml(); wireWords(); return; }
     if (parts[0] === 'settings') {
       view.innerHTML = settingsHtml();

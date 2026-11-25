@@ -243,7 +243,7 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#tl-voice-nudge a'), []);
       await t.noOverflow(['#tagalog']);
       await page.goto(base + '#tagalog/words'); await page.waitForSelector('#tl-word-search');
-      assert.deepStrictEqual(await small('#tl-word-search, #tl-hard button, #tl-all button'), []);
+      assert.deepStrictEqual(await small('#tl-word-search, #tl-hard button, #tl-all button, #tl-practise-hard'), []);
       await t.noOverflow(['#tagalog/words']);
       await openBuildExercise();
       assert.deepStrictEqual(await small('#tl-built .built-w, #tl-ex .word, #tl-clear, #tl-check'), []);
