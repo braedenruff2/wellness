@@ -109,7 +109,7 @@ const Wb = require('../../../tests/lib/web.cjs');
       localStorage.setItem('wl.me.v1', JSON.stringify(me));
     });
     await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('.list li');
-    const items = await page.$$eval('.list li', (ls) => ls.map((l) => l.textContent));
+    const items = await page.$$eval('.list:not(#c-stages) > li', (ls) => ls.map((l) => l.textContent)); // the practices, not the meditation path's stages
     assert.ok(items[items.length - 1].includes('5-4-3-2-1 grounding') && items[items.length - 1].includes('Hasn’t helped you so far'), items[items.length - 1]);
     assert.ok(items.some((x) => x.includes('Body scan') && x.includes('Helped 1 of 2 times')));
   });
