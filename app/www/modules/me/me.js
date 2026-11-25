@@ -205,13 +205,23 @@
     h += '</div>';
     var tr = K.trend(S, new Date(), 14);
     if (tr.n >= 2) {
-      // one small bar per day (no check-in: a dot); taller = more sleep / better
-      var bars = function (k, max) { return tr.days.map(function (x) { var v = x[k]; return v == null ? '<span class="tb none" title="' + esc(x.date) + '">·</span>' : '<span class="tb" style="height:' + Math.round(20 + 80 * v / max) + '%" title="' + esc(x.date) + '"></span>'; }).join(''); };
+      // one small bar per day (no check-in: a dot); taller = more sleep / more wakes / better
+      var optsOf = function (k) { var q = K.CHECKIN.filter(function (x) { return x.k === k; })[0]; return q ? q.opts : []; };
+      var bars = function (k, max, cls) {
+        var opts = optsOf(k);
+        return tr.days.map(function (x) {
+          var v = x[k];
+          if (v == null) return '<span class="tb none" title="' + esc(x.date) + '">·</span>';
+          var lbl = opts[v] != null ? opts[v] : String(v), c = 'tb' + (cls ? ' ' + cls(v) : '');
+          return '<span class="' + c + '" style="height:' + Math.round(20 + 80 * v / max) + '%" title="' + esc(x.date + ': ' + lbl) + '" data-val="' + esc(lbl) + '"></span>';
+        }).join('');
+      };
       h += '<div class="card ui" id="me-trend"><h3>Last 14 days</h3>' +
         '<div class="trow"><span class="tl">Sleep</span><span class="tbars">' + bars('sleep', 4) + '</span></div>' +
+        '<div class="trow" id="me-trend-wakes"><span class="tl">Up in the night</span><span class="tbars">' + bars('wakes', 3, function (v) { return v === 0 ? 'tb-ok' : 'tb-wakes'; }) + '</span></div>' +
         '<div class="trow"><span class="tl">Energy</span><span class="tbars">' + bars('energy', 2) + '</span></div>' +
         '<div class="trow"><span class="tl">Mood</span><span class="tbars">' + bars('mood', 2) + '</span></div>' +
-        '<p class="meta">Oldest on the left, today on the right. Taller is more sleep, more energy, better mood.</p></div>';
+        '<p class="meta">Oldest on the left, today on the right. Taller is more sleep, more night wakes (0 to 3+), more energy, better mood.</p></div>';
     }
     var shownDays = Object.keys(S.checkins).filter(function (d) {
       var c = S.checkins[d];

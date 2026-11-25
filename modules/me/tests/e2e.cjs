@@ -67,7 +67,7 @@ const Wb = require('../../../tests/lib/web.cjs');
   await t.step('About you page lists check-ins, flags and the plan state; activity log carries it all', async () => {
     await page.goto(base + '#me');
     const txt = await page.textContent('#view');
-    assert.ok(!(await page.$('#me-trend')) || (await page.locator('#me-trend .tb').count()) === 42, 'trend: 3 rows of 14 days');
+    assert.ok(!(await page.$('#me-trend')) || (await page.locator('#me-trend .tb').count()) === 56, 'trend: 4 rows of 14 days');
     assert.ok(/Last 7 check-ins/.test(txt) && /teething/.test(txt) && /not for me/.test(txt) && /PC link/.test(txt), txt);
     // typing a check-in note saves on input without needing blur/change
     await page.fill('#me-ck-note', 'long afternoon walk');
@@ -137,6 +137,11 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#home'); await page.goto(base + '#me'); await page.reload(); await page.waitForSelector('#me-working');
     const w = await page.textContent('#me-working');
     assert.ok(w.includes('Body scan helped') && w.includes('felt just right') && w.includes('about right'), w);
+    // 14-day trend includes "Up in the night" row right next to Sleep with values from check-ins
+    await page.waitForSelector('#me-trend-wakes');
+    assert.strictEqual(await page.locator('#me-trend .tb').count(), 56, '4 trend rows x 14 days');
+    assert.strictEqual((await page.textContent('#me-trend-wakes .tl')).trim(), 'Up in the night');
+    assert.ok((await page.locator('#me-trend-wakes .tb[data-val="3+"]').count()) >= 1, 'shows 3+ wake bar from check-in');
     await page.evaluate(() => { const me = JSON.parse(localStorage.getItem('wl.me.v1')); const d = new Date(), k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); me.skipped[k] = 1; localStorage.setItem('wl.me.v1', JSON.stringify(me)); });
     await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('.home-card[data-module="me"]');
     const wh = await page.textContent('#me-working-home'); assert.ok(wh.includes('What’s working: Calm:') && wh.includes('Body scan helped'), wh);

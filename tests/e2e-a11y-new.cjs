@@ -119,6 +119,7 @@ const W = require('./lib/web.cjs');
     }));
     localStorage.setItem('wl.me.v1', JSON.stringify({
       checkins: {
+        '2026-11-19': { at: '2026-11-19T12:00:00.000Z', sleep: '7 h+', wakes: '0', energy: 'Good', mood: 'Good', day: 'Good' },
         '2026-11-20': { at: '2026-11-20T12:00:00.000Z', sleep: '5–6 h', wakes: '2', energy: 'OK', mood: 'OK', day: 'Mixed' },
         '2026-11-21': { at: '2026-11-21T12:00:00.000Z', sleep: '6–7 h', wakes: '1', energy: 'Good', mood: 'Good', day: 'Good' },
         '2026-11-22': { at: '2026-11-22T12:00:00.000Z', sleep: '4–5 h', wakes: '3+', energy: 'Low', mood: 'OK', day: 'Hard', note: 'Teething night' }
@@ -453,8 +454,20 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #coach/setup');
       await page.goto(base + '#coach/h/h20'); await page.waitForSelector('a[href="#coach"]');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #coach/h/h20');
-      await page.goto(base + '#me'); await page.waitForSelector('#me-ck'); await page.waitForSelector('#me-plan'); await page.waitForSelector('#me-trend');
+      await page.goto(base + '#me'); await page.waitForSelector('#me-ck'); await page.waitForSelector('#me-plan'); await page.waitForSelector('#me-trend'); await page.waitForSelector('#me-trend-wakes');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #me');
+      const wakeBarsOk = await page.evaluate((minRatio) => {
+        const rgb = (s) => (s.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
+        const lum = (c) => { c = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+        const card = document.getElementById('me-trend');
+        const bgLum = lum(rgb(getComputedStyle(card).backgroundColor));
+        const bars = Array.from(document.querySelectorAll('#me-trend-wakes .tb:not(.none)'));
+        return bars.length > 0 && bars.every((b) => {
+          const bl = lum(rgb(getComputedStyle(b).backgroundColor));
+          return (Math.max(bl, bgLum) + 0.05) / (Math.min(bl, bgLum) + 0.05) >= minRatio;
+        });
+      }, min);
+      assert.ok(wakeBarsOk, theme + ' #me-trend-wakes bars contrast >= ' + min);
       await page.evaluate(() => {
         const m = JSON.parse(localStorage.getItem('wl.me.v1'));
         m.plan = null; m.planTried = '2026-11-23';

@@ -186,9 +186,11 @@ p.ok { color: var(--good); } p.no { color: var(--warn); }
 .today-list li.done .tk { color: var(--good); }
 /* #me: 14-day trend bars */
 .trow { display: flex; align-items: flex-end; gap: .5em; margin: .35em 0; }
-.trow .tl { width: 4.2em; font-size: .85em; }
+.trow .tl { width: 4.8em; font-size: .85em; line-height: 1.2; flex-shrink: 0; }
 .tbars { display: flex; align-items: flex-end; gap: 2px; height: 2.2em; flex: 1; min-width: 0; }
 .tb { flex: 1; background: var(--accent, #6b8e7f); border-radius: 2px; min-width: 3px; }
+.tb.tb-wakes { background: var(--warn); }
+.tb.tb-ok { background: var(--good); }
 .tb.none { background: none; text-align: center; line-height: 1; align-self: flex-end; opacity: .5; }
 .c-bars { display: flex; max-width: 12em; height: 1.6em; margin-top: .3em; }
 
