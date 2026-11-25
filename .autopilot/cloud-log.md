@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-25 17:00-17:15 AST (same run, continued as run2; APK 0.1.20261125.1912, real key)
+- Done 120+122 (hint kind kept with wrong answers; lesson end "Watch for next time"; weekly summary hints), 126 (a11y for #tl-watch and #c-how), 128 (weekly plan prompt uses Calm "helped"), 129 (Calm list: never-helped practice last), 130 (#me "What's working"). 127 dropped (covered). Added 126-134.
+- Tested: full suite (67 suites, none skipped) at a63c7c7 and at da7893c (this APK's code).
+- Check on the phone: a Tagalog lesson with a word-order or linker slip ends with "Watch for next time"; About you shows "What's working".
+
 ## 2026-11-25 16:10-17:00 AST (same run, continued as run2; APK 0.1.20261125.1901, real key)
 - Done 118 (🐢 slow conversation line), 111 (after 5+ "Not really", the daytime suggestion is the mindful walk), 119 (a11y checks for today's UI: all pass), 125 (shuffle explainer until done once), 121 (advice/plan summary: which Calm practices helped, "Not really" run). Dropped 115 and 117 (already in the app). Added 119-125.
 - Tested: full suite (67 suites, none skipped) at d06a704 and at 23f0c74 (this APK's code).
