@@ -123,6 +123,62 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.coach.v1')); s.current = null; localStorage.setItem('wl.coach.v1', JSON.stringify(s)); });
     await page.reload();
   });
+  await t.step('parenting cloud answers do not steal focus or wipe search while typing in #co-real, #co-answer, or #co-hist-search', async () => {
+    await page.goto(base + '#coach');
+    // 1. Typing in #co-real when a cloud coach-scenario arrives
+    await page.click('#co-new');
+    await page.waitForSelector('#co-queued');
+    const scnReq = (await reqs('coach-scenario'))[0].id;
+    await page.focus('#co-real');
+    await page.fill('#co-real', 'Drafting a real situation about nap time');
+    await cloudAnswers({ [scnReq]: { task: 'coach-scenario', answer: { title: 'Snack throw', skill: 'Limits and boundaries', scenario: 'She throws peas on the floor.', question: 'What do you do?' } } });
+    await page.waitForTimeout(50);
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'co-real', '#co-real kept focus on coach-scenario arrival');
+    assert.strictEqual(await page.inputValue('#co-real'), 'Drafting a real situation about nap time');
+    assert.strictEqual((await coach()).current.title, 'Snack throw', 'scenario saved in state');
+    await page.goto(base + '#home'); await page.goto(base + '#coach');
+    await page.waitForSelector('#co-answer');
+    assert.ok((await page.textContent('#view')).includes('Snack throw'), 'scenario shown on next render');
+    // 2. Typing in #co-answer when a cloud coach-advice arrives
+    const advReq = await page.evaluate(() => WL.pc.queue('coach-advice', { situation: 'Earlier nap question' }, { answer: 'Earlier nap question' }).id);
+    await page.focus('#co-answer');
+    await page.fill('#co-answer', 'I stay calm and put the bowl aside while explaining food stays on the tray.');
+    await cloudAnswers({ [advReq]: { task: 'coach-advice', answer: { title: 'Nap transitions', skill: 'Routines', summary: 'Keep wind-down steady.', steps: ['Dim lights'], say: [], avoid: [], why: 'Predictability helps.', watch: '', sources: [] } } });
+    await page.waitForTimeout(50);
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'co-answer', '#co-answer kept focus on coach-advice arrival');
+    assert.ok((await page.inputValue('#co-answer')).includes('bowl aside'));
+    assert.ok((await coach()).history.some((h) => h.title === 'Nap transitions'), 'advice saved in history');
+    // 3. Filtering #co-hist-search (6+ history items) when a cloud coach-grade arrives
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      for (let i = 0; i < 4; i++) {
+        s.history.push({ id: 'pad-' + i, at: new Date(Date.UTC(2026, 10, 10 + i, 12, 0)).toISOString(), skill: 'Play', age: '12 months', title: 'Extra moment ' + i, scenario: 's', answer: 'a', result: { score: 7, verdict: 'ok', good: [], improve: [], better: '', why: '', practice: '', sources: [] } });
+      }
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      WL.modules.coach.reload();
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#coach');
+    await page.waitForSelector('#co-hist-search');
+    const gradeScn = (await coach()).current;
+    const gradeReq = await page.evaluate((scn) => WL.pc.queue('coach-grade', { answer: 'I stay calm and keep the tray steady.' }, { answer: 'I stay calm and keep the tray steady.', scn }).id, gradeScn);
+    await page.focus('#co-hist-search');
+    await page.fill('#co-hist-search', 'Nap transitions');
+    assert.strictEqual(await page.locator('#co-hist-list > li:not([hidden])').count(), 1);
+    await cloudAnswers({ [gradeReq]: { task: 'coach-grade', answer: { score: 9, verdict: 'Calm and clear.', good: ['calm'], improve: [], better: '', why: '', practice: '', sources: [] } } });
+    await page.waitForTimeout(50);
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'co-hist-search', '#co-hist-search kept focus on coach-grade arrival');
+    assert.strictEqual(await page.inputValue('#co-hist-search'), 'Nap transitions', 'search filter preserved');
+    assert.strictEqual(await page.locator('#co-hist-list > li:not([hidden])').count(), 1, 'filtered list untouched');
+    assert.ok((await coach()).history.some((h) => h.title === 'Snack throw' && h.result && h.result.score === 9), 'graded scenario saved in history');
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      s.current = null; s.realDraft = '';
+      s.history = s.history.filter((h) => !/^pad-/.test(h.id));
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      WL.modules.coach.reload();
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#coach');
+  });
   await t.step('Home advice and the weekly plan queue too, and show the cloud answer', async () => {
     await page.goto(base + '#home');
     await page.click('[data-advice]');

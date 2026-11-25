@@ -219,24 +219,45 @@
       // an answer Claude sent as prose (onAnswer throws) ends the wait with a message instead of a spinner forever
       .then(finish, function (e) { S.pending = null; save(); err = e.queued ? null : e.message || String(e); finish(); });
   }
+  function typingHere() {
+    var ae = document.activeElement, id = ae && ae.id;
+    if (id === 'co-real' || id === 'co-answer' || id === 'co-hist-search') return true;
+    var hs = $('#co-hist-search');
+    if (hs && hs.value.trim()) return true;
+    return !!$('#me-sheet');
+  }
   /* Answers from the cloud run (when the PC wasn't answering): shown through the same code as a PC answer. */
-  function cloudDone(err0) { if (err0) err = err0; save(); finish(); }
+  function cloudDone(err0, note) {
+    if (err0) err = err0;
+    save();
+    if (here() && typingHere()) {
+      waiting = null;
+      if (err0 || note) WL.toast(err0 || note);
+      return;
+    }
+    finish();
+  }
   if (pc.onCloudAnswer) {
     pc.onCloudAnswer('coach-scenario', function (e, a) {
       if (e) return cloudDone(e);
-      if (!S.current) { try { K.setScenario(S, a); } catch (x) { return cloudDone(x.message); } }
+      if (!S.current) {
+        try { K.setScenario(S, a); } catch (x) { return cloudDone(x.message); }
+        return cloudDone(null, 'New parenting scenario ready');
+      }
       cloudDone();
     });
     pc.onCloudAnswer('coach-grade', function (e, a, m) {
       if (e) return cloudDone(e);
       var scn = m && m.scn; if (!scn || S.history.some(function (h) { return h.id === scn.id; })) return cloudDone();
-      K.grade(S, m.answer || scn.answer || '', a, null, scn); cloudDone();
+      K.grade(S, m.answer || scn.answer || '', a, null, scn);
+      cloudDone(null, 'Parenting feedback is ready');
     });
     pc.onCloudAnswer('coach-advice', function (e, a, m) {
       if (e) return cloudDone(e);
       if (!m || !m.answer) return cloudDone();
       try { K.addReal(S, m.answer, a); } catch (x) { return cloudDone(x.message); }
-      if (String(S.realDraft || '').trim().slice(0, 3000) === m.answer) S.realDraft = ''; cloudDone();
+      if (String(S.realDraft || '').trim().slice(0, 3000) === m.answer) S.realDraft = '';
+      cloudDone(null, 'Parenting advice is ready');
     });
   }
   function queuedHtml() {
