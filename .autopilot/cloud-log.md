@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-25 15:45-16:10 AST (same run, continued; APK 0.1.20261125.1850, real key)
+- Done 107 (guard: fake next-week ids must be 2090+; another Claude run had claimed 107 at 18:43 UTC without pushing work, this one finished it: drop that claim), 110 (linker hint), 112 (Halifax-time unit runs: 67 suites), 113 (review example sentence), 114 (Your words: right N of M, Practise these). 116 dropped (brokennights exists). Added 114-118.
+- Tested: full suite at the same code (a90e315 before rebasing onto the claim commit), 67 suites, none skipped.
+- Check on the phone: Tagalog > Your words > Practise these; typing "gusto ko mag-aral ng Tagalog" says "Almost: add the linker -ng (kong)".
+
 ## 2026-11-25 15:30-15:45 AST (same run, continued; APK 0.1.20261125.1841, real key)
 - Done 105 (Calm weighs his own before/after ratings, 2+ rated), 106 (Calm list "Helped N of M times"), 108 (plan calm.prefer only real ids), 109 (Tagalog pronoun-second hint). Added tasks 110-113.
 - Tested: full suite at 0caef80, 59 suites, none skipped.
