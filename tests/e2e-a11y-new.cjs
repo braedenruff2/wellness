@@ -222,6 +222,18 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#fc-short-wrap a, #fc-short-wrap button, #pray-card a, #pray-card summary, a[href="#faith/path"]'), []);
       await t.noOverflow(['#faith/day/2']);
       await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
+      // Post-day-120 completion screen: Pray now, Read the path, and Walk the path again
+      const savedFc = await page.evaluate(() => localStorage.getItem('fc.v1'));
+      await page.evaluate(() => {
+        const s = JSON.parse(localStorage.getItem('fc.v1'));
+        s.done = {}; for (let k = 1; k <= 120; k++) s.done[k] = '2026-11-22';
+        localStorage.setItem('fc.v1', JSON.stringify(s));
+        if (window.WL && WL.modules.faith) WL.modules.faith.reload();
+      });
+      await page.goto(base + '#faith/today'); await page.waitForSelector('#fc-post-links'); await page.waitForSelector('#walk-again');
+      assert.deepStrictEqual(await small('#fc-post-links a, #walk-again'), []);
+      await t.noOverflow(['#faith/today']);
+      await page.evaluate((raw) => { localStorage.setItem('fc.v1', raw); if (window.WL && WL.modules.faith) WL.modules.faith.reload(); }, savedFc);
     });
     await t.step('text size ' + ts + ': Calm #c-recent, #c-racing, #me-sheet, and session start/after chips', async () => {
       await page.clock.setSystemTime(new Date(2026, 10, 23, 22, 30));
@@ -389,6 +401,16 @@ const W = require('./lib/web.cjs');
       await page.goto(base + '#faith/day/2'); await page.waitForSelector('#fc-short-wrap');
       assert.deepStrictEqual((await contrast('#fc-short-wrap')).filter((x) => x.r < min), [], theme + ' #fc-short-wrap');
       await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
+      const savedFc = await page.evaluate(() => localStorage.getItem('fc.v1'));
+      await page.evaluate(() => {
+        const s = JSON.parse(localStorage.getItem('fc.v1'));
+        s.done = {}; for (let k = 1; k <= 120; k++) s.done[k] = '2026-11-22';
+        localStorage.setItem('fc.v1', JSON.stringify(s));
+        if (window.WL && WL.modules.faith) WL.modules.faith.reload();
+      });
+      await page.goto(base + '#faith/today'); await page.waitForSelector('#fc-post-links');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' post-day-120 #faith/today');
+      await page.evaluate((raw) => { localStorage.setItem('fc.v1', raw); if (window.WL && WL.modules.faith) WL.modules.faith.reload(); }, savedFc);
       await page.clock.setSystemTime(new Date(2026, 10, 23, 22, 30));
       await page.goto(base + '#calm'); await page.waitForSelector('#c-recent'); await page.waitForSelector('#c-racing');
       await page.click('#c-recent summary');

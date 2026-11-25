@@ -93,8 +93,9 @@
     if (n > TOTAL) {
       html += '<h1>You\u2019ve walked the whole path.</h1><div class="card"><p>All ' + TOTAL + ' days' + (S.round > 1 ? ', for the ' + ordinal(S.round) + ' time' : '') +
         '. However long it took, and whatever it felt like, you kept coming back. Well done.</p>' +
-        '<p>From here: the practices under <a href="#faith/pray">Pray</a> are always here, you can read any day again in the <a href="#faith/path">path</a>, ' +
-        'and if you haven\u2019t yet, a local church and a pastor can walk the next part with you.</p></div>' +
+        '<p>From here: the practices under Pray are always here, you can read any day again in the path, ' +
+        'and if you haven\u2019t yet, a local church and a pastor can walk the next part with you.</p>' +
+        '<div class="row ui" id="fc-post-links"><a class="link" href="#faith/pray">Pray now</a><a class="link" href="#faith/path">Read the path</a></div></div>' +
         '<div class="card ui"><h2>Walk it again</h2><p>Start again at day 1. Your journal stays, and each day shows what you wrote last time, so you can see how you\u2019ve changed. ' +
         'Your ticks are kept too.</p><button class="primary big" id="walk-again">Walk the path again</button></div>';
       return html;

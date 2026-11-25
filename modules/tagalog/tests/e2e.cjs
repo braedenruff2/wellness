@@ -7,12 +7,16 @@ const pack = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'packs', '202
 const NX = '2099-12-30';
 const next = JSON.parse(JSON.stringify(pack)); next.id = NX; next.week = 2; next.title = 'Week two test';
 const HASHES = {}, GOT = { n: 0 }, FIXED = { pack: null };
+let holdFetch = null;
 const PACK0 = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'packs', '2026-11-18.json'), 'utf8'));
 const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalog/packs/';
 (async () => {
-  const t = await Wb.open({ routes: [[RAW + '**', (route) => {
+  const t = await Wb.open({ routes: [[RAW + '**', async (route) => {
     const u = route.request().url();
-    if (u.endsWith('index.json')) return route.fulfill({ json: { packs: ['2026-11-18', NX, '../../x'], hashes: HASHES } });
+    if (u.endsWith('index.json')) {
+      if (holdFetch) await holdFetch;
+      return route.fulfill({ json: { packs: ['2026-11-18', NX, '../../x'], hashes: HASHES } });
+    }
     if (u.endsWith(NX + '.json')) { GOT.n++; return route.fulfill({ json: next }); }
     if (u.endsWith('2026-11-18.json') && FIXED.pack) { GOT.n++; return route.fulfill({ json: FIXED.pack }); }
     return route.fulfill({ status: 404, body: '' });
@@ -294,6 +298,40 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.strictEqual(GOT.n, n0 + 1);
     await page.click('#tl-fetch'); await page.clock.runFor(500);
     assert.strictEqual(GOT.n, n0 + 1, 'now downloaded with that hash: not fetched again');
+  });
+  await t.step('fetchPacks guards redraws while editing #tl-src or while #me-sheet is open', async () => {
+    // 1. Manual fetch on #tagalog/settings while editing #tl-src must not wipe the draft or steal focus
+    let release1; holdFetch = new Promise((r) => { release1 = r; });
+    await page.goto(base + '#tagalog/settings');
+    await page.click('#tl-fetch');
+    const draft = 'https://raw.githubusercontent.com/draft/custom/main/packs/';
+    await page.fill('#tl-src', draft);
+    await page.focus('#tl-src');
+    release1(); holdFetch = null;
+    await page.waitForFunction(() => document.getElementById('toast').textContent.includes('No new lessons yet'));
+    assert.strictEqual(await page.inputValue('#tl-src'), draft, 'unsaved #tl-src edit preserved across fetchPacks');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'tl-src', 'focus kept in #tl-src');
+
+    // 2. Auto fetchPacks on #tagalog while #me-sheet is open still saves the pack but does not overwrite #me-sheet
+    await page.evaluate((nx) => {
+      const s = JSON.parse(localStorage.getItem('wl.tagalog.v1'));
+      delete s.packs[nx];
+      s.lastCheck = '2026-11-01T00:00:00.000Z';
+      localStorage.setItem('wl.tagalog.v1', JSON.stringify(s));
+      window.WL.modules.tagalog.reload();
+    }, NX);
+    let release2; holdFetch = new Promise((r) => { release2 = r; });
+    await page.goto(base + '#tagalog');
+    await page.evaluate(() => {
+      const d = document.createElement('div'); d.id = 'me-sheet'; d.textContent = 'open sheet';
+      document.querySelector('main').appendChild(d);
+    });
+    release2(); holdFetch = null;
+    await page.waitForFunction(() => document.getElementById('toast').textContent.includes('1 new week'));
+    assert.ok(await page.$('#me-sheet'), '#me-sheet stays open when auto fetchPacks lands');
+    const savedPack = await page.evaluate((nx) => !!JSON.parse(localStorage.getItem('wl.tagalog.v1')).packs[nx], NX);
+    assert.strictEqual(savedPack, true, 'downloaded pack still saved in storage');
+    await page.evaluate(() => { const m = document.getElementById('me-sheet'); if (m) m.remove(); });
   });
   await t.step('Filipino-voice nudge shows when native voiceStatus reports tagalogVoice missing and links to Settings > Voice', async () => {
     await page.addInitScript(() => {

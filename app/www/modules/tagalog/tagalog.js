@@ -49,7 +49,7 @@
     S.checks = (S.checks || []).concat([{ at: new Date().toISOString(), prompt: String((m && m.task) || '').slice(0, 300), given: String((m && m.answer) || '').slice(0, 300),
       a: e ? { text: e } : T.cleanCheck(a) }]).slice(-20);
     save();
-    if (view && /^#tagalog\/?$/.test(location.hash)) route([], view);
+    if (view && /^#tagalog\/?$/.test(location.hash) && !$('#me-sheet')) route([], view);
   });
   function checksHtml() {
     var c = S.checks || [], q = WL.pc && WL.pc.queued ? WL.pc.queued('tagalog-check') : [];
@@ -417,7 +417,11 @@
         if (u && !/^https:\/\/raw\.githubusercontent\.com\//.test(u)) { WL.toast('Use a raw.githubusercontent.com address'); return; }
         S.source = u; save(); route(['settings']); WL.toast('Saved');
       };
-      $('#tl-fetch').onclick = function () { fetchPacks(true).then(function () { if (location.hash === '#tagalog/settings') route(['settings']); }); };
+      var editingSrc = function () {
+        var el = $('#tl-src');
+        return !!el && (document.activeElement === el || el.value.trim() !== (S.source || ''));
+      };
+      $('#tl-fetch').onclick = function () { fetchPacks(true).then(function () { if (location.hash === '#tagalog/settings' && !editingSrc() && !$('#me-sheet')) route(['settings']); }); };
       $('#tl-send').onclick = function () { WL.saveFile('tagalog-week-' + T.iso(new Date()) + '.json', JSON.stringify(weekSummary(), null, 1)); };
       $('#tl-slow').onclick = function () { S.settings.slow = !S.settings.slow; save(); route(['settings']); };
       return;
@@ -425,7 +429,7 @@
     view.innerHTML = home();
     var cc = $('#tl-checks-clear'); if (cc) cc.onclick = function () { S.checks = []; save(); route([]); };
     // once a day, look for next week's lessons
-    if (S.source && (!S.lastCheck || Date.now() - new Date(S.lastCheck).getTime() > 20 * 3600e3)) fetchPacks(false).then(function (n) { if (n && location.hash.replace(/\/$/, '') === '#tagalog') route([]); });
+    if (S.source && (!S.lastCheck || Date.now() - new Date(S.lastCheck).getTime() > 20 * 3600e3)) fetchPacks(false).then(function (n) { if (n && location.hash.replace(/\/$/, '') === '#tagalog' && !$('#me-sheet')) route([]); });
   }
 
   /* The week's summary for next week's lessons, with how the lessons felt to him ("That was: too easy / about right /
