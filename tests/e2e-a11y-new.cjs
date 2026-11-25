@@ -92,7 +92,7 @@ const W = require('./lib/web.cjs');
       child: { name: 'Baby', birth: '2025-08-01', can: ['walks'] }, current: null, history: hist, pending: null, realDraft: ''
     }));
     localStorage.setItem('wl.me.v1', JSON.stringify({
-      checkins: {}, skipped: {}, plan: null,
+      checkins: {}, skipped: {}, plan: { at: '2026-11-22T12:00:00.000Z', headline: 'Steady week', parts: {} },
       feedback: [{ id: 'f1', at: '2026-11-22T12:00:00.000Z', date: '2026-11-22', part: 'coach', kind: 'after', about: 'tip:h20', a: { tried: 'It worked' } }]
     }));
     localStorage.setItem('wl.sync.v1', JSON.stringify({
@@ -162,8 +162,13 @@ const W = require('./lib/web.cjs');
       await page.goto(base + '#faith/settings'); await page.waitForSelector('#fc-export-text');
       assert.deepStrictEqual(await small('[data-set], #test-voice, #fc-export-text'), []);
       await t.noOverflow(['#faith/settings']);
+      await page.clock.setSystemTime(new Date(2026, 10, 23, 22, 30));
+      await page.goto(base + '#faith/today'); await page.waitForSelector('#fc-short-wrap'); await page.waitForSelector('#fc-short');
+      assert.deepStrictEqual(await small('#fc-short-wrap a, #fc-short-wrap button, #pray-card a, #pray-card summary'), []);
+      await t.noOverflow(['#faith/today']);
+      await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
     });
-    await t.step('text size ' + ts + ': Calm #c-recent & #me-sheet', async () => {
+    await t.step('text size ' + ts + ': Calm #c-recent, #me-sheet, and session start/after chips', async () => {
       await page.goto(base + '#calm'); await page.waitForSelector('#c-recent');
       assert.deepStrictEqual(await small('#c-recent summary'), []);
       await page.click('#c-recent summary');
@@ -172,6 +177,20 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#me-sheet button, #me-note'), []);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       assert.ok(overflow <= 2, '#calm with #c-recent and #me-sheet overflow ' + overflow + 'px');
+      await page.goto(base + '#calm/s/slow'); await page.waitForSelector('#c-len'); await page.waitForSelector('#c-before');
+      assert.deepStrictEqual(await small('#c-len button, #c-before button, #c-pp, #c-end'), []);
+      const startOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(startOverflow <= 2, '#calm/s/slow start overflow ' + startOverflow + 'px');
+      await page.click('#c-len [data-len="3"]');
+      await page.click('#c-before [data-r="4"]');
+      await page.click('#c-pp');
+      await page.clock.fastForward(3 * 60000 + 2000); await page.clock.runFor(1000);
+      await page.waitForSelector('#c-after:not([hidden])');
+      assert.deepStrictEqual(await small('#c-after button'), []);
+      const afterOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(afterOverflow <= 2, '#calm/s/slow after overflow ' + afterOverflow + 'px');
+      await page.click('#c-save');
+      await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
     });
     await t.step('text size ' + ts + ': Tagalog review recap, #tl-word-search, and #tl-built .built-w', async () => {
       await page.goto(base + '#tagalog/words'); await page.waitForSelector('#tl-word-search');
@@ -234,11 +253,25 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/journal/prayers');
       await page.goto(base + '#faith/settings'); await page.waitForSelector('#fc-export-text');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/settings');
+      await page.clock.setSystemTime(new Date(2026, 10, 23, 22, 30));
+      await page.goto(base + '#faith/today'); await page.waitForSelector('#fc-short-wrap');
+      assert.deepStrictEqual((await contrast('#fc-short-wrap')).filter((x) => x.r < min), [], theme + ' #fc-short-wrap');
+      await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
       await page.goto(base + '#calm'); await page.waitForSelector('#c-recent');
       await page.click('#c-recent summary');
       await page.click('[data-me-fit]'); await page.waitForSelector('#me-sheet');
       assert.deepStrictEqual((await contrast('#c-recent')).filter((x) => x.r < min), [], theme + ' #c-recent');
       assert.deepStrictEqual((await contrast('#me-sheet')).filter((x) => x.r < min), [], theme + ' #me-sheet');
+      await page.goto(base + '#calm/s/slow'); await page.waitForSelector('#c-len'); await page.waitForSelector('#c-before');
+      assert.deepStrictEqual((await contrast('#c-len')).filter((x) => x.r < min), [], theme + ' #c-len');
+      assert.deepStrictEqual((await contrast('#c-before')).filter((x) => x.r < min), [], theme + ' #c-before');
+      await page.click('#c-len [data-len="3"]');
+      await page.click('#c-pp');
+      await page.clock.fastForward(3 * 60000 + 2000); await page.clock.runFor(1000);
+      await page.waitForSelector('#c-after:not([hidden])');
+      assert.deepStrictEqual((await contrast('#c-after')).filter((x) => x.r < min), [], theme + ' #c-after');
+      await page.click('#c-save');
+      await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
       await page.goto(base + '#tagalog/words'); await page.waitForSelector('#tl-word-search');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #tagalog/words');
       await openBuildExercise();

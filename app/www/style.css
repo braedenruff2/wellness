@@ -45,6 +45,7 @@ button, .btn {
 button.primary, .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 button.big { width: 100%; min-height: 56px; font-size: 1.05em; }
 button.link { border: 0; background: none; color: var(--accent); padding: 8px 4px; min-height: 44px; }
+a.link { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 4px; color: var(--accent); }
 button:disabled { opacity: .5; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .row > .grow { flex: 1; }

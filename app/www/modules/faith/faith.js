@@ -175,8 +175,8 @@
     var M = window.WLMe, lastLate = M ? M.state().feedback.filter(function (f) {
       var h = new Date(f.at).getHours(); return f.part === 'faith' && f.kind === 'after' && (h >= 21 || h < 5);
     }).slice(-1)[0] : null;
-    var why = lastLate && lastLate.a && lastLate.a.felt === 'Hard to focus' ? 'Focus was hard last time this late. ' : 'Tired? ';
-    return '<p class="meta ui" id="fc-short-wrap" style="margin:8px 0 0">' + why + '<a href="#faith/session/day/' + d.n + '" id="fc-short" data-n="' + d.n + '">A shorter one tonight (about ' + mins + ' min)</a></p>';
+    var why = lastLate && lastLate.a && lastLate.a.felt === 'Hard to focus' ? 'Focus was hard last time this late.' : 'Tired?';
+    return '<div class="row ui" id="fc-short-wrap" style="margin:6px 0 0;gap:4px 8px"><span class="meta">' + why + '</span><a class="link" href="#faith/session/day/' + d.n + '" id="fc-short" data-n="' + d.n + '">A shorter one tonight (about ' + mins + ' min)</a></div>';
   }
 
   function sessionScript(kind, id, forceMin) {
