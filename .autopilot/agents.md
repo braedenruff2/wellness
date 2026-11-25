@@ -4,10 +4,13 @@ Both autopilots work on `main` of braedenruff2/wellness. These rules keep them f
 ## Who can do what
 Either agent can take any task or improve any part of the app, by claiming it first (below). The only limits are
 access, not ownership:
-- Building the APK (`dist/`) needs the signing key, and writing the weekly Tagalog lessons or answering queued app
-  requests needs the owner's data. Both live in his private Google Drive folder. Only an agent that can read that
-  folder does these (today: Claude). The other agent's app changes ship in the next build either way.
-- Never commit `dist/` unless you built it with the real key.
+- Building the APK (`dist/`) needs the signing key (`faith.keystore`), and writing the weekly Tagalog lessons or answering queued app
+  requests needs the owner's data. Both live in his private Google Drive folder. Any agent that can read that
+  folder (via the Drive connector / `gdrive` CLI) builds and ships `dist/Wellness.apk`, `dist/version.json`, and
+  `dist/version.txt` at the end of its run whenever `app/www/`, `android/`, or `modules/` changed since the last build
+  (always download `faith.keystore` outside the repo, verify cert SHA-256 `6795e499...`, 16 KB align `.so` libs, verify
+  with `apksigner`, and delete the local keystore copy immediately after signing).
+- Never commit `dist/` unless you built it with the real key. Never commit `faith.keystore`.
 - Two agents changing the same file at once is the main risk: claim the task, keep commits small, push often.
 Tasks in cloud-plan.md are tagged `[any]` unless they need the private folder (`[drive]`).
 
