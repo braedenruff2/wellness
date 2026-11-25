@@ -44,9 +44,9 @@ const T = {
       sessions: [
         { id: 'sigh', date: '2026-10-25', at: ts.sunPrev2355, mins: 1, before: null, after: null },
         { id: 'slow', date: '2026-10-26', at: ts.mon0005, mins: 5, before: null, after: null },
-        { id: 'box', date: '2026-10-31', at: ts.sat2355, mins: 3, before: null, after: null }
+        { id: 'box', date: '2026-10-31', at: ts.sat2355, mins: 10, before: null, after: null }
       ],
-      settings: { voice: true, rate: 0.9, minutes: 5, tick: false }
+      settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10 }
     };
     localStorage.setItem('wl.calm.v1', JSON.stringify(calm));
 
@@ -131,7 +131,7 @@ const T = {
       FCCore.finishDay(fc, 4, new Date());
       localStorage.setItem('fc.v1', JSON.stringify(fc));
       const s = JSON.parse(localStorage.getItem('wl.calm.v1'));
-      CalmCore.record(s, 'sigh', 1, null, null, new Date());
+      CalmCore.record(s, 'sigh', 5, null, null, new Date());
       localStorage.setItem('wl.calm.v1', JSON.stringify(s));
       Object.values(WL.modules).forEach((m) => m.reload && m.reload());
     });
@@ -154,7 +154,7 @@ const T = {
     await gotoHomeAt(T.sun1200);
     const w = await page.textContent('#wl-week');
     assert.ok(/3 faith days/.test(w), 'Mon + Sat + Sun (not prev Sun 23:55): ' + w);
-    assert.ok(/3 days of calm \(14 min\)/.test(w), 'Mon 5 + Sat 3 + Sun (5+1) = 14 min across 3 days: ' + w);
+    assert.ok(/3 days of calm \(25 min\)/.test(w), 'Mon 5 + Sat 10 + Sun (5+5) = 25 min across 3 days: ' + w);
     assert.ok(/2 workouts, 1 rest day you chose/.test(w), 'Mon + Sat workouts, Wed rest (not prev Sun 23:55): ' + w);
     assert.ok(/2 Tagalog lessons/.test(w), 'Mon + Sat (not prev Sun 23:55): ' + w);
     assert.ok(/2 to-dos done/.test(w), 'Mon + Sat (not prev Sun 23:55): ' + w);

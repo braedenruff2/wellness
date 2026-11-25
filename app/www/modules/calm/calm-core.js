@@ -222,7 +222,9 @@
   }
   function timesDone(state, id) { return state.sessions.filter(function (s) { return s.id === id; }).length; }
 
-  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false } }; }
+  var DAILY_GOALS = [1, 5, 10, 15, 20];
+  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10 } }; }
+  function goalOf(state) { var g = state && state.settings && state.settings.dailyGoal; return DAILY_GOALS.indexOf(g) >= 0 ? g : 10; }
   var iso = WLD.iso;
 
   /* Where in a breathing cycle we are at time t (seconds): {phase: 0..3, label, frac (0-1 within phase), scale (0-1 circle size)}. */
@@ -258,11 +260,14 @@
     return { weekMins: Math.round(mins), weekDays: Object.keys(days).length, total: state.sessions.length, avgDrop: drop, rated: rated.length };
   }
 
-  /* What Calm asks of him: one short practice a day. today() says whether that's done. */
+  /* What Calm asks of him: reach his daily minutes goal (default 10 min; configurable 1-20 min). A 1-min reset
+     counts toward the total and shows partial progress until the daily goal is met. */
   function today(state, now) {
     now = now || new Date();
     var d = iso(now), list = state.sessions.filter(function (s) { return s.date === d; });
-    return { done: list.length > 0, count: list.length, mins: Math.round(list.reduce(function (a, s) { return a + s.mins; }, 0)),
+    var raw = list.reduce(function (a, s) { return a + (s.mins || 0); }, 0);
+    var goal = goalOf(state);
+    return { done: raw >= goal - 0.15, any: list.length > 0, count: list.length, mins: Math.round(raw), rawMins: Math.round(raw * 10) / 10, goal: goal,
       ids: list.map(function (s) { return s.id; }) };
   }
 
@@ -337,10 +342,11 @@
     if (typeof st.tick === 'boolean') d.settings.tick = st.tick;
     if (typeof st.rate === 'number' && st.rate >= 0.5 && st.rate <= 1.6) d.settings.rate = st.rate;
     if ([3, 5, 10, 15, 20].indexOf(st.minutes) >= 0) d.settings.minutes = st.minutes;
+    if (DAILY_GOALS.indexOf(st.dailyGoal) >= 0) d.settings.dailyGoal = st.dailyGoal;
     return d;
   }
 
-  var api = { PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, suggest: suggest, advice: advice, validate: validate, iso: iso };
+  var api = { PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, suggest: suggest, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

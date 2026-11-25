@@ -44,24 +44,33 @@
   function todayCard() {
     var t = K.today(S), sug = practice(K.suggest(S, null, sopts()));
     if (!t.done) {
-      return '<div class="card" id="c-today"><div class="meta ui">Today’s practice · not done yet</div><h3 style="margin:.2em 0">' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3>' +
-        '<p class="meta ui">' + esc(sug.when) + '. One short practice a day is all Calm asks; ' + (window.WLMe && WLMe.rough() ? 'after a rough night, a short one.' : 'this one fits the time of day.') + '</p>' +
+      var left = Math.max(1, Math.round(t.goal - t.rawMins));
+      var pct = Math.min(100, Math.round(100 * t.rawMins / t.goal));
+      var names0 = t.ids.map(titleOf).filter(function (x, i, a) { return a.indexOf(x) === i; });
+      return '<div class="card" id="c-today"><div class="meta ui">' + (t.any ? 'Today · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min' : 'Today’s practice · goal ' + t.goal + ' min') + '</div>' +
+        (t.any ? '<div class="progress" style="margin:6px 0 10px"><div style="width:' + pct + '%"></div></div>' +
+          '<p class="meta ui">' + esc(names0.join(', ')) + ' (' + Math.max(1, t.mins) + ' min) logged — good reset. About ' + left + ' min left for today’s goal:</p>' : '') +
+        '<h3 style="margin:.2em 0">' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3>' +
+        '<p class="meta ui">' + esc(sug.when) + '. ' + (window.WLMe && WLMe.rough() ? 'After a rough night, a short one is plenty.' : 'This one fits the time of day.') + '</p>' +
         '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + '">Begin</a><span class="grow"></span>' + fit(sug.id, sug.title) + '</div>' + racingLine() + '</div>';
     }
     var names = t.ids.map(titleOf).filter(function (x, i, a) { return a.indexOf(x) === i; });
-    return '<div class="card" id="c-today"><div class="meta ui">Today</div><h3 style="margin:.2em 0">✓ Done for today</h3>' +
-      '<p class="ui">' + esc(names.join(', ')) + ' · ' + Math.max(1, t.mins) + ' min. That’s today’s practice. Nothing else you need to do; come back tomorrow.</p>' +
+    return '<div class="card" id="c-today"><div class="meta ui">Today · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min</div><h3 style="margin:.2em 0">✓ Done for today</h3>' +
+      '<p class="ui">' + esc(names.join(', ')) + ' · ' + Math.max(1, t.mins) + ' min. Today’s ' + t.goal + ' min goal is done. Come back tomorrow.</p>' +
       '<div class="row ui" style="gap:4px 8px"><span class="meta">If things get hard later, the one-minute reset helps. Want more now?</span><a class="link" href="#calm/s/' + sug.id + '">' + esc(sug.title) + ' (' + mins(sug) + ' min)</a></div>' + racingLine() + '</div>';
   }
 
   function list() {
-    var st = K.stats(S);
+    var st = K.stats(S), goal = K.goalOf(S);
     var h = '<h1>Calm</h1>' + (window.WLMe ? WLMe.planLine('calm') : '') + todayCard();
-    h += '<details class="card ui"><summary>How Calm works</summary><p>Do one short practice a day; the card above picks one for the time of day and changes from day to day. ' +
-      'Press Begin, rate how stressed you are if you like, then follow the voice (or the breathing circle). At the end, rate again and press Done. ' +
-      'Guided practices are worded a little differently each time. Any practice below works any time; the one-minute reset is for hard moments.</p></details>';
+    h += '<details class="card ui"><summary>How Calm works</summary><p>Work toward your daily goal below (one longer practice, or shorter ones that add up). ' +
+      'Press Begin, rate how stressed you are if you like, then follow the voice or breathing circle (exhale down to the inner dashed ring). At the end, rate again and press Done. ' +
+      'Guided practices are worded a little differently each time; the one-minute reset is always here for hard moments.</p></details>';
     h += '<p class="meta ui">' + esc(K.advice(S)) + '</p>';
-    h += '<div class="card ui"><div class="row"><span class="grow">Length for breathing and the quiet timer</span></div><div class="chips">' + [3, 5, 10, 15, 20].map(function (m) {
+    h += '<div class="card ui"><div class="row"><span class="grow">Daily goal</span></div><div class="chips" id="c-goal">' + K.DAILY_GOALS.map(function (g) {
+      return '<button class="chip" data-goal="' + g + '" aria-pressed="' + (goal === g) + '">' + (g === 1 ? '1 min (rough days)' : g + ' min') + '</button>';
+    }).join('') + '</div><p class="meta" style="margin:.45em 0 8px">Research guide: ~5 min/day of cyclic sighing lowers stress and lifts mood; 10–13 min/day of mindfulness shows measurable focus and mood gains over ~8 weeks; 20 min/day is the classic deeper target. Even a 1-minute reset helps in the moment and counts toward today’s total.</p>' +
+      '<div class="row"><span class="grow">Length for breathing and the quiet timer</span></div><div class="chips">' + [3, 5, 10, 15, 20].map(function (m) {
       return '<button class="chip" data-min="' + m + '" aria-pressed="' + (S.settings.minutes === m) + '">' + m + ' min</button>';
     }).join('') + '</div><div class="row" style="margin-top:8px"><span class="grow">Voice guidance</span><button class="chip" id="cv" aria-pressed="' + S.settings.voice + '">' + (S.settings.voice ? 'On' : 'Off') + '</button></div>' +
       '<div class="row" style="margin-top:8px"><span class="grow">Soft tick when breathing changes</span><button class="chip" id="ctk" aria-pressed="' + !!S.settings.tick + '">' + (S.settings.tick ? 'On' : 'Off') + '</button></div></div>';
@@ -101,7 +110,7 @@
     document.body.classList.add('in-session');
     return '<div class="session ui"><div class="row"><button class="link" id="c-end">✕ End</button><div class="grow meta" style="text-align:right">' + esc(p.title) + '</div></div>' +
       '<div class="progress"><div id="c-prog"></div></div>' +
-      (p.kind === 'pacer' ? '<div class="pacer"><div class="ring"><div class="ball" id="c-ball"></div></div><div class="pacer-label" id="c-label">Ready</div></div>'
+      (p.kind === 'pacer' ? '<div class="pacer"><div class="ring"><div class="ball" id="c-ball"></div><div class="ring-min" aria-hidden="true"></div></div><div class="pacer-label" id="c-label">Ready</div></div>'
         : '<div class="line" id="c-line">' + esc(p.blurb || '') + '</div>') +
       '<div class="meta" id="c-left" style="text-align:center;min-height:1.4em"></div>' +
       rating('c-before', 'How stressed are you right now?') +
@@ -135,7 +144,8 @@
     run = { p: p, done: true, mins: m, before: before, rec: rec };
     $('#c-pp').hidden = true; $('#c-before').hidden = true; $('#c-after').hidden = false;
     if (window.WLMe) $('#c-after').insertAdjacentHTML('afterbegin', WLMe.askHtml('calm', p.id + '@' + rec.at));
-    var l = $('#c-label') || $('#c-line'); if (l) l.textContent = K.today(S).count > 1 ? 'Well done. That’s another one today.' : 'Well done. That’s today’s practice done ✓';
+    var td = K.today(S), l = $('#c-label') || $('#c-line');
+    if (l) l.textContent = td.done ? 'Well done. Today’s ' + td.goal + ' min goal is done ✓' : 'Good reset (' + Math.max(1, td.mins) + ' of ' + td.goal + ' min today).';
     $('#c-prog').style.width = '100%'; $('#c-left').textContent = '';
   }
 
@@ -248,6 +258,7 @@
     leave();
     if (parts && parts[0] === 's' && practice(parts[1])) { var p = practice(parts[1]); view.innerHTML = sessionHtml(p); wireSession(p); return; }
     view.innerHTML = list();
+    $$('[data-goal]').forEach(function (b) { b.onclick = function () { S.settings.dailyGoal = +b.dataset.goal; save(); route([]); }; });
     $$('[data-min]').forEach(function (b) { b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route([]); }; });
     $('#cv').onclick = function () { S.settings.voice = !S.settings.voice; save(); route([]); };
     $('#ctk').onclick = function () { S.settings.tick = !S.settings.tick; save(); route([]); };
@@ -255,9 +266,9 @@
 
   function card() {
     var t = K.today(S), sug = practice(K.suggest(S, null, sopts()));
-    if (t.done) return '<div class="meta ui">Calm</div><h3>✓ Done for today</h3><p class="meta ui">' + esc(titleOf(t.ids[0])) + (t.count > 1 ? ' and ' + (t.count - 1) + ' more' : '') + ' · ' + Math.max(1, t.mins) + ' min. Nothing else needed today.</p>' +
+    if (t.done) return '<div class="meta ui">Calm</div><h3>✓ Done for today</h3><p class="meta ui">' + esc(titleOf(t.ids[0])) + (t.count > 1 ? ' and ' + (t.count - 1) + ' more' : '') + ' · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min. Today’s goal is done.</p>' +
       '<div class="row ui"><a class="btn" href="#calm">Calm</a></div>';
-    return '<div class="meta ui">Calm · today’s practice</div><h3>' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3><p class="meta ui">' + esc(K.advice(S)) + '</p>' +
+    return '<div class="meta ui">' + (t.any ? 'Calm · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min today' : 'Calm · today’s practice (goal ' + t.goal + ' min)') + '</div><h3>' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3><p class="meta ui">' + esc(K.advice(S)) + '</p>' +
       '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + '">Begin</a><a class="btn" href="#calm">All practices</a></div>';
   }
 
@@ -265,7 +276,13 @@
     id: 'calm', title: 'Calm', short: 'Calm', icon: '○', nav: true, storageKeys: [store.key],
     route: route, leave: leave, card: card,
     week: function () { var st = K.stats(S); return st.weekDays ? st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') + ' of calm (' + st.weekMins + ' min)' : ''; },
-    today: function () { var t = K.today(S); if (t.done) return { label: 'Calm: done', done: true, href: '#calm' }; var sug = practice(K.suggest(S, null, sopts())); return { label: 'Calm: ' + sug.title.toLowerCase() + ' (' + mins(sug) + ' min)', done: false, href: '#calm/s/' + sug.id }; },
+    today: function () {
+      var t = K.today(S);
+      if (t.done) return { label: 'Calm: done (' + Math.max(1, t.mins) + ' min)', done: true, href: '#calm' };
+      if (t.any) return { label: 'Calm: ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min today', done: false, href: '#calm' };
+      var sug = practice(K.suggest(S, null, sopts()));
+      return { label: 'Calm: ' + sug.title.toLowerCase() + ' (' + mins(sug) + ' min · goal ' + t.goal + ' min)', done: false, href: '#calm/s/' + sug.id };
+    },
     pause: function () { var b = $('#c-pp'); if (b && b.dataset.state === 'playing') b.click(); },
     validate: function (k, raw) { try { var s = K.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); }

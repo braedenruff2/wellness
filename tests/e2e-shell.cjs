@@ -30,7 +30,7 @@ const W = require('./lib/web.cjs');
     assert.ok(/0 of \d done today/.test(txt) && /Check-in/.test(txt) && /Faith: day 1/.test(txt) && /Calm:/.test(txt) && /Move:/.test(txt) && /Tagalog:/.test(txt), txt);
     for (const [k, v] of [['sleep', '7 h+'], ['wakes', '0'], ['energy', 'Good'], ['mood', 'Good'], ['day', 'Good']]) await page.click(`[data-me-ck][data-k="${k}"][data-v="${v}"]`);
     await page.waitForFunction(() => /1 of \d done today/.test(document.getElementById('wl-today').textContent));
-    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.calm.v1') || '{"sessions":[]}'); s.sessions = s.sessions || []; const n = new Date(); s.sessions.push({ id: 'sigh', date: n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0'), at: n.toISOString(), mins: 1, before: null, after: null }); localStorage.setItem('wl.calm.v1', JSON.stringify(s)); });
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.calm.v1') || '{"sessions":[]}'); s.sessions = s.sessions || []; const n = new Date(); s.sessions.push({ id: 'slow', date: n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0'), at: n.toISOString(), mins: 10, before: null, after: null }); localStorage.setItem('wl.calm.v1', JSON.stringify(s)); });
     await page.reload(); await page.waitForSelector('#wl-today');
     const t2 = await page.textContent('#wl-today');
     assert.ok(/2 of \d done today/.test(t2) && /Calm: done/.test(t2), t2);

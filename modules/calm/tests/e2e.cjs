@@ -11,8 +11,13 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.$('#c-recent'), null, 'no recent sessions card before first session');
     assert.ok(await page.isVisible('a[href="#faith/pray"]'));
   });
-  await t.step('one-minute reset: rate, breathe, finish, rate again, saved', async () => {
+  await t.step('one-minute reset: inner exhale circle visible, rate, breathe, finish, shows partial progress toward 10 min goal', async () => {
     await page.goto(base + '#calm/s/sigh');
+    const ringMin = await page.$eval('.ring-min', (e) => {
+      const r = e.getBoundingClientRect(), p = e.parentElement.getBoundingClientRect();
+      return { w: Math.round(r.width), ratio: +(r.width / p.width).toFixed(2) };
+    });
+    assert.ok(ringMin.w > 20 && ringMin.ratio >= 0.33 && ringMin.ratio <= 0.37, 'visible 35% inner exhale target ring: ' + JSON.stringify(ringMin));
     await page.click('#c-before [data-r="4"]');
     await page.click('#c-pp');
     await page.clock.runFor(2000);
@@ -23,9 +28,11 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.clock.fastForward(60000); await page.clock.runFor(1000);
     assert.ok(await page.isVisible('#c-after'));
     assert.ok(!(await page.isVisible('#c-pp')), 'no Pause button once it has ended');
+    assert.ok(/1 of 10 min/.test(await page.textContent('#c-label')), '1-min reset reports partial progress toward 10 min goal');
     await page.click('#c-after-r [data-r="2"]');
     await page.click('#c-save');
     await page.waitForSelector('.list');
+    assert.ok(/1 of 10 min/.test(await page.textContent('#c-today')), '#c-today shows partial progress after 1-min reset');
     const st = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions[0]);
     assert.strictEqual(st.before, 4); assert.strictEqual(st.after, 2); assert.ok(st.mins >= 1 && st.mins < 1.2, st.mins);
   });
@@ -65,8 +72,11 @@ const Wb = require('../../../tests/lib/web.cjs');
     const n = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions.length);
     assert.strictEqual(n, 3, 'a finished session is saved even without tapping Done; the early-ended body scan too');
   });
-  await t.step('his report: once a practice is done today, Calm says so (not the same practice again)', async () => {
+  await t.step('his report: once daily goal is met, Calm says Done for today; daily goal can be changed to 20 min', async () => {
     await page.goto(base + '#calm');
+    // 1 min sigh + 5 min box + 1 min body = 7 min -> still 7 of 10 min until goal is reached (or goal set to 5)
+    assert.ok(/7 of 10 min/.test(await page.textContent('#c-today')), await page.textContent('#c-today'));
+    await page.click('#c-goal [data-goal="5"]');
     const top = await page.textContent('#c-today');
     assert.ok(/Done for today/.test(top), top);
     assert.ok(/One-minute reset/.test(top), top);
@@ -98,12 +108,17 @@ const Wb = require('../../../tests/lib/web.cjs');
     });
     await page.goto(base + '#home');
     assert.ok(/Done for today/.test(await page.textContent('.home-card[data-module="calm"]')));
+    await page.goto(base + '#calm');
+    await page.click('#c-goal [data-goal="20"]');
+    assert.strictEqual(await page.getAttribute('#c-goal [data-goal="20"]', 'aria-pressed'), 'true');
+    assert.ok(/7 of 20 min/.test(await page.textContent('#c-today')), 'switching to 20 min goal updates progress');
+    await page.click('#c-goal [data-goal="10"]');
   });
   await t.step('a new day: today’s practice not done; the body scan speaks different words the second time', async () => {
     await page.clock.setSystemTime(new Date(2026, 10, 19, 14, 0));
     await page.goto(base + '#calm'); await page.reload();
     const top = await page.textContent('#c-today');
-    assert.ok(/not done yet/.test(top), top);
+    assert.ok(/goal 10 min/.test(top) && !/Done for today/.test(top), top);
     await page.evaluate(() => { window.__spoken.length = 0; });
     await page.goto(base + '#calm/s/body');
     await page.click('#c-pp'); await page.clock.runFor(30000);

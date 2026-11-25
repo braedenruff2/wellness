@@ -62,11 +62,27 @@ t('his report: after finishing the body scan, today is done and the suggestion i
   assert.strictEqual(K.today(s, at).done, false);
   const first = K.suggest(s, at);
   assert.strictEqual(first, 'body');
-  K.record(s, 'body', 8, 3, 2, new Date(2026, 10, 19, 14, 30));
+  K.record(s, 'body', 10, 3, 2, new Date(2026, 10, 19, 14, 30));
   const t = K.today(s, at);
-  assert.deepStrictEqual([t.done, t.count, t.mins, t.ids], [true, 1, 8, ['body']]);
+  assert.deepStrictEqual([t.done, t.count, t.mins, t.ids], [true, 1, 10, ['body']]);
   assert.notStrictEqual(K.suggest(s, at), 'body', 'never suggests what was just done');
   assert.strictEqual(K.suggest(s, at), 'ground');
+  // daily goal: default 10 min; a 1-min reset counts as partial progress until the goal is met
+  const g = K.defaults();
+  assert.strictEqual(K.goalOf(g), 10);
+  K.record(g, 'sigh', 1, null, null, at);
+  assert.strictEqual(K.today(g, at).any, true);
+  assert.strictEqual(K.today(g, at).done, false, '1 min does not finish a 10 min daily goal');
+  assert.strictEqual(K.today(g, at).goal, 10);
+  g.settings.dailyGoal = 1;
+  assert.strictEqual(K.today(g, at).done, true, '1 min finishes a 1 min rough-day goal');
+  g.settings.dailyGoal = 20;
+  K.record(g, 'slow', 10, null, null, at);
+  assert.strictEqual(K.today(g, at).done, false, '11 of 20 min still in progress');
+  K.record(g, 'body', 9, null, null, at);
+  assert.strictEqual(K.today(g, at).done, true, '20 of 20 min meets goal');
+  assert.strictEqual(K.validate({ sessions: [], settings: { dailyGoal: 20 } }).settings.dailyGoal, 20);
+  assert.strictEqual(K.validate({ sessions: [], settings: { dailyGoal: 99 } }).settings.dailyGoal, 10);
   // the next days rotate through the daytime practices rather than repeating
   const seen = new Set();
   for (let d = 20; d < 27; d++) { const when = new Date(2026, 10, d, 15); const id = K.suggest(s, when); seen.add(id); K.record(s, id, 3, null, null, when); }
