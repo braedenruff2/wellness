@@ -299,7 +299,7 @@
       if (c) h += '<div class="card home-card" data-module="' + id + '">' + c + '</div>';
     });
     h += logDayHtml();
-    h += '<p class="ui" style="text-align:center"><a href="#settings">Settings and backup</a></p>';
+    h += '<p class="ui" style="text-align:center"><a class="link" href="#settings">Settings and backup</a></p>';
     return h;
   }
 
@@ -311,7 +311,7 @@
     var h = '<h1>Settings</h1><div class="card ui"><h3>Look</h3>' + chips('theme', ['auto', 'light', 'dark', 'night'], L.theme, ['Auto', 'Light', 'Dark', 'Night']) +
       '<p class="meta">Auto turns on Night (very dim, warm) from 9pm to 6am.</p><h3>Text size</h3>' +
       chips('textSize', [0.9, 1, 1.15, 1.3], L.textSize, ['Small', 'Normal', 'Large', 'Larger']) + '</div>';
-    order.forEach(function (id) { var m = modules[id]; if (m.settingsLink) h += '<p class="ui"><a href="' + m.settingsLink + '">' + esc(m.title) + ' settings</a></p>'; });
+    order.forEach(function (id) { var m = modules[id]; if (m.settingsLink) h += '<p class="ui" style="margin:0"><a class="link" href="' + m.settingsLink + '">' + esc(m.title) + ' settings</a></p>'; });
     h += voiceHtml();
     h += updateHtml();
     h += syncHtml();
@@ -335,13 +335,13 @@
       '<h3>English</h3><div class="chips">' + chip('english', 'nice', v.english, 'Loudbook\'s voice') + chip('english', 'phone', v.english, 'Phone\'s voice') + '</div>' +
       '<p class="meta">Kokoro: ' + esc(dl === 'kokoro' ? 'downloading ' + (v.progress || '') : VSTATE[v.kokoro] || v.kokoro) + '</p>' +
       (v.kokoro === 'missing' && dl !== 'kokoro' ? '<div class="row"><button class="primary" id="wl-dl-kokoro">Download Kokoro (354 MB, Wi-Fi)</button></div>' : '') +
-      '<label for="wl-sid">Kokoro voice</label><select id="wl-sid">' + v.speakers.map(function (s) { return '<option value="' + s.sid + '"' + (s.sid === v.sid ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select>' +
-      '<label class="row"><input type="checkbox" id="wl-pcv"' + (v.pcVoice ? ' checked' : '') + '> <span>At home, use the natural voice from my PC (Loudbook\'s PC voice; needs the PC link)</span></label>' +
+      '<label for="wl-sid" style="display:block;margin-top:8px">Kokoro voice</label><select id="wl-sid">' + v.speakers.map(function (s) { return '<option value="' + s.sid + '"' + (s.sid === v.sid ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select>' +
+      '<label class="row" style="flex-wrap:nowrap;align-items:flex-start;margin:10px 0"><input type="checkbox" id="wl-pcv" style="margin-top:4px;min-width:20px;min-height:20px"' + (v.pcVoice ? ' checked' : '') + '><span class="grow">At home, use the natural voice from my PC (Loudbook\'s PC voice; needs the PC link)</span></label>' +
       '<h3>Tagalog</h3><div class="chips">' + chip('tagalog', 'nice', v.tagalog, 'Filipino voice') + chip('tagalog', 'phone', v.tagalog, 'Phone\'s voice') + '</div>' +
       '<p class="meta">Filipino voice: ' + esc(dl === 'tagalog' ? 'downloading ' + (v.progress || '') : VSTATE[v.tagalogVoice] || v.tagalogVoice) + '</p>' +
       (v.tagalogVoice === 'missing' && dl !== 'tagalog' ? '<div class="row"><button class="primary" id="wl-dl-tagalog">Download the Filipino voice (114 MB, from your PC)</button></div>' : '') +
       (v.error ? '<p class="no">' + esc(v.error) + '</p>' : '') +
-      '<div class="row"><button id="wl-hear-en">▶ Hear English</button><button id="wl-hear-tl">▶ Hear Tagalog</button></div>' +
+      '<div class="row" style="margin-top:8px"><button id="wl-hear-en">▶ Hear English</button><button id="wl-hear-tl">▶ Hear Tagalog</button></div>' +
       (v.last ? '<p class="meta">Last read by: ' + esc(v.last) + '</p>' : '') + '</div>';
     return h;
   }
@@ -378,7 +378,7 @@
       (u.allowed ? '<div class="row"><button class="primary" id="wl-install">Update now (the app restarts)</button></div>' : '');
     else h += '<p class="meta">' + (u.busy ? 'Checking…' : 'Up to date as of ' + esc(when) + '.') + '</p>';
     if (u.error) h += '<p class="meta">Last check: ' + esc(u.error) + '</p>';
-    return h + '<div class="row"><button id="wl-check"' + (u.busy ? ' disabled' : '') + '>Check now</button></div></div>';
+    return h + '<div class="row" style="margin-top:8px"><button id="wl-check"' + (u.busy ? ' disabled' : '') + '>Check now</button></div></div>';
   }
   function wireUpdate() {
     var c = $('#wl-check'); if (c) c.onclick = function () { native.updateCheck(); c.disabled = true; c.textContent = 'Checking…'; };

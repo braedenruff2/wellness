@@ -15,11 +15,22 @@ const W = require('./lib/web.cjs');
       answersError: 'Could not read wellness-answers'
     };
     window.__pcPaired = false;
-    window.__voice = { tagalogVoice: 'missing', tagalog: 'nice', downloading: '' };
+    window.__voice = {
+      english: 'nice', tagalog: 'nice', kokoro: 'missing', tagalogVoice: 'missing', downloading: '',
+      sid: 0, pcVoice: false, last: 'Phone voice', error: 'Could not reach your PC for the Filipino voice',
+      speakers: [{ sid: 0, name: 'Nicole (soft, calm)' }, { sid: 1, name: 'Heart (warm)' }]
+    };
+    window.__update = {
+      version: '0.1.20261124.1648', checked: Date.UTC(2026, 10, 23, 9, 0),
+      allowed: false, ready: true, readyName: '0.1.20261125.0700', busy: false, error: 'GitHub timed out earlier'
+    };
     window.FCAndroid = {
       pcStatus: () => JSON.stringify(window.__pcPaired ? { paired: true, host: '192.168.1.20', name: 'Home PC' } : { paired: false }),
       pcRequest: (id) => Promise.resolve().then(() => window.FCPcDone && window.FCPcDone(id, false, 'offline')),
       voiceStatus: () => JSON.stringify(window.__voice),
+      voiceSet: () => {}, voiceDownload: () => {},
+      updateStatus: () => JSON.stringify(window.__update),
+      updateCheck: () => {}, updateAllow: () => {}, updateInstall: () => {},
       syncStatus: () => JSON.stringify({
         configured: window.__drive.configured, name: window.__drive.name, lastSync: window.__drive.lastSync,
         error: window.__drive.error, busy: false,
@@ -117,10 +128,10 @@ const W = require('./lib/web.cjs');
     const rgb = (s) => (s.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
     const lum = (c) => { c = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
     const bg = (e) => { while (e) { const b = getComputedStyle(e).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return rgb(b); e = e.parentElement; } return [255, 255, 255]; };
-    const sels = ['p', '.meta', '.no', 'b', 'a', 'button', 'summary', '.wk4-rest', 'input[type="search"]', 'textarea'].map((s) => rootSel + ' ' + s).join(', ');
+    const sels = ['p', '.meta', '.no', '.ok', 'b', 'a', 'button', 'summary', '.wk4-rest', 'input[type="search"]', 'textarea', 'select', 'label'].map((s) => rootSel + ' ' + s).join(', ');
     return Array.from(document.querySelectorAll(sels)).filter((e) => {
       if (e.offsetParent === null) return false;
-      if (e.tagName === 'INPUT' || e.tagName === 'TEXTAREA') return true;
+      if (e.tagName === 'INPUT' || e.tagName === 'TEXTAREA' || e.tagName === 'SELECT') return true;
       return !!e.textContent.trim();
     }).map((e) => {
       const cs = getComputedStyle(e);
@@ -221,10 +232,22 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#co-can-nudge a, #co-cloud a, a[href="#coach/setup"], #co-hist-search, #co-hist-more'), []);
       await t.noOverflow(['#coach']);
     });
-    await t.step('text size ' + ts + ': Settings Drive sync errors, Home #wl-sync-nudge & Link unpaired #lk-advice-card', async () => {
+    await t.step('text size ' + ts + ': Settings Voice, App updates, Drive sync errors, Home #wl-sync-nudge & Link unpaired #lk-advice-card', async () => {
+      await page.evaluate(() => { window.__update.allowed = false; window.__update.ready = true; });
       await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-err'); await page.waitForSelector('#wl-sync-ans-err');
-      assert.deepStrictEqual(await small('#wl-sync button'), []);
+      await page.waitForSelector('#wl-voice'); await page.waitForSelector('#wl-update');
+      assert.deepStrictEqual(await small('#wl-sync button, #wl-voice button, #wl-sid, #wl-voice label.row, #wl-update button, #view > p a.link'), []);
+      const pcvSideBySide = await page.evaluate(() => {
+        const cb = document.getElementById('wl-pcv'), sp = cb && cb.nextElementSibling;
+        return !!(cb && sp && sp.getBoundingClientRect().left > cb.getBoundingClientRect().left);
+      });
+      assert.ok(pcvSideBySide, '#wl-pcv checkbox sits beside its label text without wrapping onto a separate line');
       await t.noOverflow(['#settings']);
+      await page.evaluate(() => { window.__update.allowed = true; window.FCUpdateState && window.FCUpdateState(); });
+      await page.waitForSelector('#wl-install');
+      assert.deepStrictEqual(await small('#wl-update button'), []);
+      await t.noOverflow(['#settings']);
+      await page.evaluate(() => { window.__update.allowed = false; });
       await page.goto(base + '#home'); await page.waitForSelector('#wl-sync-nudge');
       assert.deepStrictEqual(await small('#wl-sync-nudge a, #wl-sync-nudge button'), []);
       await t.noOverflow(['#home']);
@@ -305,7 +328,15 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual((await contrast('#co-cloud')).filter((x) => x.r < min), [], theme + ' #co-cloud');
       assert.deepStrictEqual((await contrast('#co-worked')).filter((x) => x.r < min), [], theme + ' #co-worked');
       assert.deepStrictEqual((await contrast('#co-hist')).filter((x) => x.r < min), [], theme + ' #co-hist');
+      await page.evaluate(() => { window.__update.allowed = false; window.__update.ready = true; });
       await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-err'); await page.waitForSelector('#wl-sync-ans-err');
+      await page.waitForSelector('#wl-voice'); await page.waitForSelector('#wl-update');
+      assert.deepStrictEqual((await contrast('#wl-voice')).filter((x) => x.r < min), [], theme + ' #wl-voice');
+      assert.deepStrictEqual((await contrast('#wl-update')).filter((x) => x.r < min), [], theme + ' #wl-update (allow)');
+      await page.evaluate(() => { window.__update.allowed = true; window.FCUpdateState && window.FCUpdateState(); });
+      await page.waitForSelector('#wl-install');
+      assert.deepStrictEqual((await contrast('#wl-update')).filter((x) => x.r < min), [], theme + ' #wl-update (install)');
+      await page.evaluate(() => { window.__update.allowed = false; });
       assert.deepStrictEqual((await contrast('#wl-sync')).filter((x) => x.r < min), [], theme + ' #wl-sync');
       await page.evaluate(() => { window.__drive.configured = false; });
       await page.goto(base + '#home'); await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-err');
