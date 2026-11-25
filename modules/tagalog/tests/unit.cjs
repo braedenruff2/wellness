@@ -267,4 +267,25 @@ t('exampleFor: a lesson sentence that uses the word (whole words; never the word
   assert.strictEqual(T.exampleFor([], 'ngayon'), null);
   assert.ok(T.exampleFor(require('../../../app/www/modules/tagalog/tagalog-core.js') && [JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'packs', '2026-11-25.json'), 'utf8'))], 'kasama'));
 });
+t('tests that serve a fake "new week" use an id far after any real pack (2090+), so a real Wednesday pack never collides', () => {
+  const fs = require('fs'), path = require('path'), root = path.join(__dirname, '..', '..', '..');
+  const bundled = fs.readdirSync(path.join(__dirname, '..', 'packs')).filter((f) => /^\d{4}-\d\d-\d\d\.json$/.test(f)).map((f) => f.slice(0, 10));
+  const files = [];
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).forEach((e) => {
+    const p = path.join(d, e.name);
+    if (e.isDirectory() && e.name !== 'node_modules') walk(p); else if (/\.cjs$/.test(e.name) && /tests/.test(p)) files.push(p);
+  });
+  walk(path.join(root, 'modules')); walk(path.join(root, 'tests'));
+  const bad = [];
+  files.forEach((f) => {
+    const src = fs.readFileSync(f, 'utf8');
+    // a route that serves packs/<id>.json, or a "next week" id set in code
+    for (const m of src.matchAll(/endsWith\('(\d{4}-\d\d-\d\d)\.json'\)|(?:\bNX\s*=|next\.id\s*=)\s*'(\d{4}-\d\d-\d\d)'/g)) {
+      const id = m[1] || m[2];
+      // a served file may be a week that already ships (the "corrected week" test); a "next week" id never may
+      if (id < '2090' && (m[2] || bundled.indexOf(id) < 0)) bad.push(path.relative(root, f) + ': ' + id);
+    }
+  });
+  assert.deepStrictEqual(bad, [], 'fake weeks must be 2090+ (or an id that already ships, for "corrected" tests)');
+});
 console.log(n + ' tagalog unit tests passed');
