@@ -258,16 +258,37 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     assert.ok((await page.textContent('main')).includes('Nothing here yet'));
   });
 
-  await step('journal search: with more than 5 entries, a search box filters them', async () => {
+  await step('journal search: with more than 5 entries, a search box filters them and stays clean after delete', async () => {
     await page.goto(base + '#faith/journal/gratitude');
-    for (const x of ['the sunrise', 'her first laugh', 'a quiet coffee', 'friends dropping by soup', 'warm socks', 'a long nap']) { await page.fill('#new-entry', x); await page.click('#add-entry'); }
+    for (const x of ['the sunrise', 'her first laugh', 'a quiet coffee', 'friends dropping by soup', 'warm socks', 'a long nap', 'another quiet coffee']) { await page.fill('#new-entry', x); await page.click('#add-entry'); }
     await page.goto(base + '#faith/journal/gratitude');
     await page.fill('#j-search', 'LAUGH');
     assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 1);
     assert.ok(/1 found/.test(await page.textContent('#j-found')));
     await page.fill('#j-search', 'delete');
     assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 0, 'search ignores the Delete button label');
+    assert.strictEqual(await page.locator('#j-list').isHidden(), true, 'empty #j-list card hides on 0 hits');
+    // Deleting one of two matching entries keeps the filter active and updates the count
+    await page.fill('#j-search', 'coffee');
+    assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 2);
+    assert.strictEqual(await page.locator('#j-list').isHidden(), false);
+    const firstDel = page.locator('#j-list > li:not([hidden]) .del').first();
+    await firstDel.click(); await firstDel.click();
+    assert.strictEqual(await page.inputValue('#j-search'), 'coffee', 'search query preserved after delete');
+    assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 1, 'remaining match still filtered');
+    assert.ok(/1 found/.test(await page.textContent('#j-found')));
+    // Deleting the sole remaining match while >5 entries exist keeps 0 found cleanly with #j-list hidden
+    await page.fill('#j-search', 'sunrise');
+    assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 1);
+    await page.fill('#new-entry', 'fresh air walk'); await page.click('#add-entry');
+    await page.fill('#j-search', 'sunrise');
+    const sunDel = page.locator('#j-list > li:not([hidden]) .del').first();
+    await sunDel.click(); await sunDel.click();
+    assert.strictEqual(await page.inputValue('#j-search'), 'sunrise');
+    assert.ok(/0 found/.test(await page.textContent('#j-found')));
+    assert.strictEqual(await page.locator('#j-list').isHidden(), true, '#j-list hidden when deleted last match');
     await page.fill('#j-search', '');
+    assert.strictEqual(await page.locator('#j-list').isHidden(), false);
     assert.strictEqual(await page.locator('#j-list > li:not([hidden])').count(), 6);
   });
 

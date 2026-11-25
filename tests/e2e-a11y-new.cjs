@@ -53,7 +53,16 @@ const W = require('./lib/web.cjs');
     });
     localStorage.setItem('wl.tagalog.v1', JSON.stringify({ packs: {}, done: {}, cards, answers: [], reviews: [] }));
     localStorage.setItem('fc.v1', JSON.stringify({
-      done: {}, journal: [], sessions: [],
+      done: {},
+      journal: [
+        { id: 'j1', at: '2026-11-22T09:00:00.000Z', kind: 'journal', text: 'Quiet morning before everyone woke up.' },
+        { id: 'j2', at: '2026-11-21T20:00:00.000Z', kind: 'awe', text: 'Clear stars over the bay on the evening walk.' },
+        { id: 'j3', at: '2026-11-20T12:00:00.000Z', kind: 'gratitude', text: 'A warm mug of coffee and a long nap.' },
+        { id: 'j4', at: '2026-11-19T18:00:00.000Z', kind: 'journal', text: 'Good talk with family after dinner.' },
+        { id: 'j5', at: '2026-11-18T08:00:00.000Z', kind: 'gratitude', text: 'Friends dropping by with soup.' },
+        { id: 'j6', at: '2026-11-17T15:00:00.000Z', kind: 'awe', text: 'Her first real belly laugh.' }
+      ],
+      sessions: [],
       prayers: [
         { id: 'p1', at: '2026-11-18T10:00:00.000Z', text: 'Patience on hard mornings', answered: null },
         { id: 'p2', at: '2026-11-17T10:00:00.000Z', text: 'Safe drive home', answered: '2026-11-20T10:00:00.000Z', note: 'Arrived safely' },
@@ -136,10 +145,16 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#wo-areas button'), []);
       await t.noOverflow(['#workout/history']);
     });
-    await t.step('text size ' + ts + ': Faith #p-search & .p-undo', async () => {
+    await t.step('text size ' + ts + ': Faith journal tabs/#j-search/.del, #p-search/.p-undo & #faith/settings', async () => {
+      await page.goto(base + '#faith/journal'); await page.waitForSelector('#j-search');
+      assert.deepStrictEqual(await small('.tabs2 button, #add-entry, #j-search, #j-list .del'), []);
+      await t.noOverflow(['#faith/journal']);
       await page.goto(base + '#faith/journal/prayers'); await page.waitForSelector('#p-search');
       assert.deepStrictEqual(await small('#p-search, .p-undo, .answered, .pdel'), []);
       await t.noOverflow(['#faith/journal/prayers']);
+      await page.goto(base + '#faith/settings'); await page.waitForSelector('#fc-export-text');
+      assert.deepStrictEqual(await small('[data-set], #test-voice, #fc-export-text'), []);
+      await t.noOverflow(['#faith/settings']);
     });
     await t.step('text size ' + ts + ': Calm #c-recent & #me-sheet', async () => {
       await page.goto(base + '#calm'); await page.waitForSelector('#c-recent');
@@ -199,8 +214,12 @@ const W = require('./lib/web.cjs');
       await page.goto(base + '#workout/history'); await page.waitForSelector('#wo-areas'); await page.waitForSelector('#wo-4w');
       assert.deepStrictEqual((await contrast('#wo-4w')).filter((x) => x.r < min), [], theme + ' #wo-4w');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #workout/history');
+      await page.goto(base + '#faith/journal'); await page.waitForSelector('#j-search');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/journal');
       await page.goto(base + '#faith/journal/prayers'); await page.waitForSelector('#p-search');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/journal/prayers');
+      await page.goto(base + '#faith/settings'); await page.waitForSelector('#fc-export-text');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/settings');
       await page.goto(base + '#calm'); await page.waitForSelector('#c-recent');
       await page.click('#c-recent summary');
       await page.click('[data-me-fit]'); await page.waitForSelector('#me-sheet');

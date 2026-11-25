@@ -469,6 +469,7 @@
         var txt = ['.kind', '.when', 'p'].map(function (s) { var x = li.querySelector(s); return x ? x.textContent : ''; }).join(' ').toLowerCase();
         var hit = !q || txt.indexOf(q) >= 0; li.hidden = !hit; if (hit) n++;
       });
+      var jl = $('#j-list'); if (jl) jl.hidden = !!q && n === 0;
       $('#j-found').textContent = q ? ' ' + n + ' found' : '';
     }; });
     [].forEach.call(document.querySelectorAll('[data-jtab]'), function (b) { b.onclick = function () { location.hash = '#faith/journal/' + b.dataset.jtab; }; });
@@ -480,7 +481,13 @@
     }; });
     [].forEach.call(document.querySelectorAll('.del'), function (b) {
       b.onclick = function () {
-        if (b.dataset.armed) { C.removeEntry(S, b.dataset.id); save(); route(); return; }
+        if (b.dataset.armed) {
+          var q = $('#j-search') ? $('#j-search').value : '';
+          C.removeEntry(S, b.dataset.id); save(); route();
+          var js = $('#j-search');
+          if (q && js) { js.value = q; js.oninput(); }
+          return;
+        }
         b.dataset.armed = 1; b.textContent = 'Tap again to delete';
         setTimeout(function () { if (b.isConnected) { delete b.dataset.armed; b.textContent = 'Delete'; } }, 4000);
       };
