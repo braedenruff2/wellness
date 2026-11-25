@@ -1,5 +1,12 @@
 # Cloud log
 
+## 2026-11-25 14:05-15:30 AST (cloud run; PC reachable)
+- Cross-reviewed Gemini since 23 Nov (tasks 57-98 and the 25 Nov feature batch): sound. Checked the new content for accuracy: Calm goal research note (cyclic sighing ~5 min/day; ~13 min/day mindfulness over 8 weeks) matches published studies; push-up age norms are in line with CSEP's; the plank "age norms" have no published source behind them (label says "general reference"); Parenting "What to teach now" list reads fine.
+- bug: main's suite failed (tagalog e2e "next week downloads") / cause: the real week 2026-11-25 landed (PC lesson job, 13:11) and the test faked a "new" week with that same id, now bundled / fixed: the fake week uses 2099-12-30 / test: tagalog e2e (task 107 adds a guard).
+- Week 2026-11-25 (written on the PC): reviewed every sentence; fixed "manga" -> "mangga" (mango), one dialogue line now matches what the child can do; added 2 exercises per lesson (lesson 4: 3) with more typing and longer sentences, ang/ng with -um- verbs. checkPack + build-packs; pushed early (2eb2dee) so phones get it.
+- Done 102-104 (see cloud-plan.md).
+- Tested: full suite (59 suites, none skipped) at 2eb2dee; per-suite runs after each later change.
+
 ## 2026-11-23 15:40-16:25 AST (first run, continued; a second Claude run ("run2") is active and takes tasks from the bottom)
 - Done 54: Move 2 or 3 workouts a week (Setup chips; Today offers 2 once after 2 busy weeks of the last 3; Not now = 4 weeks). run2 then sent the setting to the activity log/prompts.
 - Done 52 (e2e only, no bug), 53 (<summary> openers were 22 px: now 44 px everywhere; tests/e2e-a11y-new.cjs), 51 (Faith settings "Save my journal as text"; Sync.mimeFor so Android saves .txt as text/plain), 43 (Calm length chips per session, e2e-length), 46 ("Sore from last time?" on Move 1-3 days after a workout; coach lines; activity + summary).

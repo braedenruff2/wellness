@@ -533,11 +533,11 @@
       '60+':   { avg: 11, low: 8, high: 14, good: 18, unit: 'reps', source: 'ACSM/CSEP general adult reference' }
     },
     'Plank': {
-      '20–29': { avg: 60, low: 45, high: 90, good: 90, unit: 'sec', source: 'General strict-form adult reference' },
-      '30–39': { avg: 55, low: 45, high: 75, good: 85, unit: 'sec', source: 'General strict-form adult reference' },
-      '40–49': { avg: 50, low: 40, high: 65, good: 75, unit: 'sec', source: 'General strict-form adult reference' },
-      '50–59': { avg: 40, low: 35, high: 55, good: 65, unit: 'sec', source: 'General strict-form adult reference' },
-      '60+':   { avg: 35, low: 30, high: 45, good: 55, unit: 'sec', source: 'General strict-form adult reference' }
+      '20–29': { avg: 60, low: 45, high: 90, good: 90, unit: 'sec', source: 'rough guide only (there are no published age norms for planks)' },
+      '30–39': { avg: 55, low: 45, high: 75, good: 85, unit: 'sec', source: 'rough guide only (there are no published age norms for planks)' },
+      '40–49': { avg: 50, low: 40, high: 65, good: 75, unit: 'sec', source: 'rough guide only (there are no published age norms for planks)' },
+      '50–59': { avg: 40, low: 35, high: 55, good: 65, unit: 'sec', source: 'rough guide only (there are no published age norms for planks)' },
+      '60+':   { avg: 35, low: 30, high: 45, good: 55, unit: 'sec', source: 'rough guide only (there are no published age norms for planks)' }
     },
     'Walk': {
       '20–29': { avg: 25, low: 20, high: 30, good: 30, unit: 'min', source: 'WHO/CSEP ~150 min/week activity guide' },
