@@ -153,6 +153,38 @@ const W = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.locator('#co-hist-list > li:not([hidden])').count(), total, 'Show all reveals all items');
   });
 
+  await t.step('What to teach now & coming up next checklist persists, and Parenting shows in Home daily list', async () => {
+    await page.waitForSelector('#co-teach');
+    const teachTxt = await page.textContent('#co-teach');
+    assert.ok(teachTxt.includes('What to teach Mila now') && teachTxt.includes('Drink from an open cup'), teachTxt);
+    // Toggle Practising -> Got it -> persisted across reload
+    await page.click('#co-teach [data-teach-id="opencup"][data-teach-val="doing"]');
+    assert.strictEqual(await page.getAttribute('#co-teach [data-teach-id="opencup"][data-teach-val="doing"]', 'aria-pressed'), 'true');
+    await page.click('#co-teach-next summary');
+    assert.ok((await page.textContent('#co-teach-next')).includes('Transition off bottles to cups'), 'upcoming skills shown in Coming up next');
+    await page.reload();
+    await page.goto(base + '#coach');
+    await page.waitForSelector('#co-teach');
+    assert.strictEqual(await page.getAttribute('#co-teach [data-teach-id="opencup"][data-teach-val="doing"]', 'aria-pressed'), 'true', 'teach status persisted');
+    // Home Today list includes Parenting once birthday is set, and marks done after a graded scenario today
+    await page.goto(base + '#home');
+    await page.waitForSelector('#wl-today');
+    assert.ok((await page.textContent('#wl-today')).includes('Parenting: answer today’s scenario'), await page.textContent('#wl-today'));
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      s.current = null;
+      s.history.push({ id: 'today1', at: new Date(2026, 10, 21, 9, 30).toISOString(), title: 'Open cup spill', skill: 'Feeding', scenario: 'S', question: 'Q', age: '11 months old', answer: 'Stay calm and wipe together', result: { score: 9, verdict: 'Great', good: [], improve: [], better: '', why: '', practice: '', text: '', sources: [] } });
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      WL.modules.coach.reload();
+    });
+    await page.goto(base + '#coach');
+    await page.waitForSelector('#co-done-today');
+    await page.goto(base + '#home');
+    await page.waitForSelector('#wl-today');
+    assert.ok((await page.textContent('#wl-today')).includes('Parenting: scenario done'), await page.textContent('#wl-today'));
+    assert.ok((await page.textContent('.home-card[data-module="coach"]')).includes('Scenario done today'));
+  });
+
   await t.step('no overflow, no console errors', async () => {
     await t.noOverflow(['#coach', '#coach/setup', '#coach/h/h1', '#coach/h/h2']);
     assert.deepStrictEqual(t.errors, []);

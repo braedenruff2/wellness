@@ -67,6 +67,57 @@
   }
   function refreshWorked() { var wrap = $('#co-worked-wrap'); if (wrap) wrap.innerHTML = workedHtml(); }
 
+  function teachItemHtml(x, badge) {
+    return '<li data-teach-item="' + esc(x.id) + '"><div class="row"><b class="grow">' + esc(x.title) + '</b>' +
+      (badge ? '<span class="meta">' + esc(badge) + '</span>' : '') + '</div>' +
+      '<p class="meta" style="margin:.25em 0 .5em">' + esc(x.how) + '</p>' +
+      '<div class="chips">' +
+      '<button class="chip" data-teach-id="' + esc(x.id) + '" data-teach-val="doing" aria-pressed="' + (x.status === 'doing') + '">Practising</button>' +
+      '<button class="chip" data-teach-id="' + esc(x.id) + '" data-teach-val="done" aria-pressed="' + (x.status === 'done') + '">Got it \u2713</button>' +
+      '</div></li>';
+  }
+  function teachHtml(openNext, openEarlier) {
+    var t = K.teachForAge(S);
+    if (!t || (!t.now.length && !t.next.length && !t.earlier.length)) return '';
+    var summary = t.doneCount || t.doingCount ? ' (' + t.doingCount + ' practising \u00b7 ' + t.doneCount + ' got it)' : '';
+    var h = '<div class="card ui" id="co-teach"><h3>What to teach ' + esc(S.child.name || 'her') + ' now</h3>' +
+      '<p class="meta">Around ' + esc(K.ageText(S.child.birth)) + '. Mark what you’re working on or what she’s got down' + summary + '.</p>';
+    if (t.now.length) {
+      h += '<ul class="list">' + t.now.map(function (x) { return teachItemHtml(x, x.from + '–' + x.to + 'm'); }).join('') + '</ul>';
+    } else {
+      h += '<p class="meta">Past the 0–36 month checklist — nice work.</p>';
+    }
+    if (t.next.length) {
+      h += '<details id="co-teach-next"' + (openNext ? ' open' : '') + '><summary class="meta">Coming up next (next few months \u00b7 ' + t.next.length + ')</summary>' +
+        '<ul class="list">' + t.next.map(function (x) { return teachItemHtml(x, 'Around ' + x.from + 'm'); }).join('') + '</ul></details>';
+    }
+    if (t.earlier.length) {
+      h += '<details id="co-teach-earlier"' + (openEarlier ? ' open' : '') + '><summary class="meta">Earlier skills to try or catch up on (' + t.earlier.length + ')</summary>' +
+        '<p class="meta">No stress if an earlier window passed — kids catch up fast once you start.</p>' +
+        '<ul class="list">' + t.earlier.map(function (x) { return teachItemHtml(x, 'From ' + x.from + 'm'); }).join('') + '</ul></details>';
+    }
+    h += '<p class="meta" style="margin:.6em 0 0">General guidance (CDC / AAP / Canadian Paediatric Society), not medical advice. Every child develops at their own pace.</p></div>';
+    return h;
+  }
+  function wireTeach() {
+    var wrap = $('#co-teach-wrap'); if (!wrap) return;
+    $$('[data-teach-id]', wrap).forEach(function (b) {
+      b.onclick = function () {
+        var id = b.dataset.teachId, val = b.dataset.teachVal;
+        var cur = (S.teach && S.teach[id]) || '';
+        var openNext = !!($('#co-teach-next') && $('#co-teach-next').open);
+        var openEarlier = !!($('#co-teach-earlier') && $('#co-teach-earlier').open);
+        K.setTeach(S, id, cur === val ? '' : val);
+        save();
+        wrap.innerHTML = teachHtml(openNext, openEarlier);
+        wireTeach();
+      };
+    });
+  }
+  function hasQueuedScenario() {
+    return !!(pc.queued && pc.queued().some(function (x) { return x.task === 'coach-scenario'; }));
+  }
+
   /* his earlier tip answers, sent with every coach request (only when there are some) */
   function withNotes(input) {
     var n = K.tipNotes(S, window.WLMe && WLMe.state ? WLMe.state() : null);
@@ -93,6 +144,7 @@
         '<p><b>' + esc(c.question) + '</b></p><label class="sr" for="co-answer">Your answer</label><textarea id="co-answer" rows="6" placeholder="In your own words: what you would do and say, step by step.">' + esc(c.answer || '') + '</textarea>' +
         '<div class="row ui" style="margin-top:8px"><button class="primary" id="co-grade"' + (askable() ? '' : ' disabled') + '>Get feedback</button><button class="link" id="co-skip"' + (askable() ? '' : ' disabled') + '>Different scenario</button></div></div>';
     } else if (!waiting) {
+      if (K.doneToday(S)) h += '<div class="card done-banner ui" id="co-done-today"><p style="margin:0"><b>\u2713 Today’s scenario done.</b> Anything more today is a bonus.</p></div>';
       var sug = K.suggestSkill(S);
       h += '<div class="card ui"><h3>Practise a moment</h3><p class="meta">Pick a skill, or let it choose (suggested: ' + esc(sug) + ').</p><div class="chips">' +
         [''].concat(K.SKILLS).map(function (s) { return '<button class="chip" data-skill="' + esc(s) + '" aria-pressed="' + (pickSkill === s) + '">' + esc(s || 'Suggested') + '</button>'; }).join('') +
@@ -104,6 +156,7 @@
       return '<li style="flex-wrap:wrap"><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.text) + '</a><span class="meta">' + esc(x.skill) + '</span>' +
         (window.WLMe ? '<div style="flex-basis:100%">' + WLMe.askHtml('coach', 'tip:' + x.id, ' ', true) + WLMe.fitLink('coach', 'tip:' + x.id, x.text) + '</div>' : '') + '</li>';
     }).join('') + '</ul></div>';
+    h += '<div id="co-teach-wrap">' + teachHtml() + '</div>';
     if (!waiting) h += '<div class="card ui"><h3>Something happening with ' + esc(S.child.name || 'her') + '?</h3><p class="meta">Describe a real situation you’re dealing with: what she does, when, what you’ve tried. Claude checks current guidance for her age and gives you steps, words to say, and why.</p>' +
       '<label class="sr" for="co-real">Your situation</label><textarea id="co-real" rows="5" placeholder="e.g. She screams when I put her in the car seat, every time, since last week. I’ve tried…">' + esc(S.realDraft || '') + '</textarea>' +
       '<div class="row" style="margin-top:8px"><button class="primary" id="co-real-go"' + (askable() ? '' : ' disabled') + '>Get advice</button></div></div>';
@@ -170,13 +223,20 @@
       var out = $('#co-hist-found'); if (out) out.textContent = q ? ' ' + n + ' found' : '';
       if (hm) hm.hidden = !!q || showAllHist;
     };
+    wireTeach();
   }
 
   function tick(secs) { if (waiting) waiting.secs = secs; var e = $('#co-secs'); if (e) e.textContent = secs + ' s'; }
-  function finish() { waiting = null; if (here()) render([]); else { var c = document.querySelector('.home-card[data-module="coach"]'); if (c) c.innerHTML = card(); } }
+  function refreshCard() {
+    var c = document.querySelector('.home-card[data-module="coach"]');
+    if (c) { c.innerHTML = card(); wireCard(c); }
+    if (WL.refreshToday) WL.refreshToday();
+  }
+  function finish() { waiting = null; if (here()) render([]); else refreshCard(); }
 
   function newScenario() {
-    err = null; waiting = { kind: 'scenario', secs: 0 }; render([]);
+    err = null; waiting = { kind: 'scenario', secs: 0 };
+    if (here()) render([]); else refreshCard();
     var input = withNotes(K.scenarioInput(S, pickSkill || null));
     start('coach-scenario', input, function (a) { K.setScenario(S, a); save(); });
   }
@@ -286,16 +346,35 @@
     if (!S.child.birth && !askable()) return '';
     var st = K.skillStats(S).filter(function (s) { return s.n; }), last = null;
     for (var i = S.history.length - 1; i >= 0; i--) { if (S.history[i].result && S.history[i].result.score != null) { last = S.history[i]; break; } }
-    return '<div class="meta ui">Parenting practice</div><h3>' + (S.current ? esc(S.current.title) : waiting ? 'Claude is on it…' : 'Practise a moment with ' + esc(S.child.name || 'her')) + '</h3>' +
+    var done = K.doneToday(S), queued = hasQueuedScenario();
+    var title = S.current ? esc(S.current.title) : waiting ? 'Claude is on it…' : queued ? 'Today’s scenario is on the way…' : done ? '\u2713 Scenario done today' : 'Practise a moment with ' + esc(S.child.name || 'her');
+    var actions = S.current ? '<a class="btn primary" href="#coach">Answer it</a>'
+      : (!done && !waiting && !queued && S.child.birth && askable())
+        ? '<button class="primary" data-co-daily>Generate today’s scenario</button><a class="btn" href="#coach">Open</a>'
+        : '<a class="btn' + (done ? '' : ' primary') + '" href="#coach">Open</a>';
+    return '<div class="meta ui">Parenting practice</div><h3>' + title + '</h3>' +
       (last ? '<p class="meta ui">Last: ' + last.result.score + '/10 in ' + esc(last.skill) + ' · ' + st.length + ' skill' + (st.length === 1 ? '' : 's') + ' practised</p>' : '') +
       (function () { var t = K.tips(S, null, 1)[0]; return t && !S.current ? '<p class="ui" id="co-tip">Try this week: ' + esc(t.text) + '</p>' : ''; })() +
-      '<div class="row ui"><a class="btn primary" href="#coach">' + (S.current ? 'Answer it' : 'Open') + '</a></div>';
+      '<div class="row ui">' + actions + '</div>';
+  }
+  function wireCard(el) {
+    var b = el && el.querySelector('[data-co-daily]');
+    if (b) b.onclick = function () { newScenario(); };
+  }
+  function todayItem() {
+    if (!S.child.birth) return null;
+    if (K.doneToday(S)) return { label: 'Parenting: scenario done', done: true, href: '#coach' };
+    if (S.current) return { label: 'Parenting: answer today’s scenario', done: false, href: '#coach' };
+    if (waiting || hasQueuedScenario()) return { label: 'Parenting: scenario on the way', done: false, href: '#coach' };
+    return { label: 'Parenting: 1 daily scenario (5 min)', done: false, href: '#coach' };
   }
 
   WL.register({
     id: 'coach', title: 'Parenting', short: 'Parent', icon: '🧸', nav: true, storageKeys: [store.key], settingsLink: '#coach/setup',
     route: function (parts, v) { view = v; resume(); render(parts); },
-    card: card,
+    card: card, wireCard: wireCard,
+    today: todayItem,
+    week: function () { var n = K.doneInLast(S, 7); return n ? n + ' parenting scenario' + (n === 1 ? '' : 's') : ''; },
     validate: function (k, raw) { try { var s = K.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); }
   });

@@ -307,6 +307,28 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     assert.strictEqual(await page.evaluate(() => WL.pc.queued().length), 0);
     await page.goto(base + '#home');
     assert.ok((await page.textContent('.home-card[data-module="link"]')).includes('Cloud advice'));
+    // Parenting Home card: "Generate today's scenario" queues 1 scenario right from Home and updates #wl-today
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      s.history = []; s.current = null;
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      WL.modules.coach.reload();
+    });
+    await page.goto(base + '#coach'); await page.goto(base + '#home');
+    await page.waitForSelector('.home-card[data-module="coach"] [data-co-daily]');
+    assert.ok((await page.textContent('#wl-today')).includes('Parenting: 1 daily scenario'), await page.textContent('#wl-today'));
+    await page.click('.home-card[data-module="coach"] [data-co-daily]');
+    await page.waitForFunction(() => /scenario on the way/i.test(document.querySelector('#wl-today').textContent));
+    const dailyReq = (await reqs('coach-scenario'))[0];
+    assert.ok(dailyReq, 'Home daily button queued coach-scenario');
+    await cloudAnswers({ [dailyReq.id]: { task: 'coach-scenario', answer: { title: 'Open cup at lunch', skill: 'Feeding', scenario: 'She tips the cup.', question: 'What do you do?' } } });
+    await page.waitForFunction(() => /answer today.s scenario/i.test(document.querySelector('#wl-today').textContent));
+    assert.ok((await page.textContent('.home-card[data-module="coach"]')).includes('Open cup at lunch'));
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      s.current = null; localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      WL.modules.coach.reload();
+    });
     // Unpaired with Drive sync on: #link still shows "Advice from Claude" so custom questions queue for the cloud
     // Even if generic advice is already queued on Home, a custom question on #link is queued instead of silently dropped
     await page.click('[data-advice]');

@@ -202,4 +202,43 @@ t('tipNotes orders feedback chronologically by timestamp and validate/ageMonths 
   assert.strictEqual(K.validate({ child: { name: 'Kid', birth: '2025-02-30' }, history: [] }).child.birth, '');
   assert.strictEqual(K.validate({ child: { name: 'Kid', birth: '2024-02-29' }, history: [] }).child.birth, '2024-02-29');
 });
+t('teachForAge, setTeach, doneToday, doneInLast, and validate persistence', () => {
+  const s = K.defaults();
+  assert.strictEqual(K.teachForAge(s, new Date(2026, 10, 20)), null, 'no birthday -> null');
+  assert.ok(K.TEACH.some((x) => x.id === 'opencup' && x.from === 6), 'open cup starts at 6 months');
+  // 11-month-old: open cup is in "now", bottle transition/spoon are in "next" (12m), tummy time (0-6m) is in "earlier"
+  s.child.birth = '2025-12-15';
+  const now11 = new Date(2026, 10, 20); // 11 months
+  const t11 = K.teachForAge(s, now11);
+  assert.strictEqual(t11.ageMonths, 11);
+  assert.ok(t11.now.some((x) => x.id === 'opencup'), 'open cup shown in now at 11m');
+  assert.ok(t11.next.some((x) => x.id === 'nobottle' && x.from === 12), 'bottle transition previewed in coming up next');
+  assert.ok(t11.earlier.some((x) => x.id === 'tummy'), 'unfinished earlier skill listed gently');
+  // At 14 months, open cup (6-12m) moves to "earlier" catch-up unless marked done
+  const now14 = new Date(2027, 1, 20);
+  assert.ok(K.teachForAge(s, now14).earlier.some((x) => x.id === 'opencup'), 'missed 6-12m open cup shows in catch-up at 14m');
+  K.setTeach(s, 'opencup', 'doing');
+  assert.strictEqual(s.teach.opencup, 'doing');
+  assert.deepStrictEqual(K.scenarioInput(s, null, now14).practising, ['Drink from an open cup'], 'practising skills included in scenario input');
+  K.setTeach(s, 'opencup', 'done');
+  assert.ok(!K.teachForAge(s, now14).earlier.some((x) => x.id === 'opencup'), 'marked done drops out of catch-up');
+  assert.strictEqual(K.setTeach(s, 'unknown-id', 'done'), null);
+  K.setTeach(s, 'opencup', '');
+  assert.strictEqual(s.teach.opencup, undefined);
+  // validate keeps valid teach statuses and drops unknown ids/values
+  const v = K.validate({ child: { birth: '2025-12-15' }, history: [], teach: { opencup: 'doing', backwards: 'done', bad: 'done', spoon: 'maybe' } });
+  assert.deepStrictEqual(v.teach, { opencup: 'doing', backwards: 'done' });
+  // doneToday & doneInLast ignore real-situation advice and count only graded scenarios
+  const today = new Date(2026, 10, 20, 15, 0);
+  assert.strictEqual(K.doneToday(s, today), false);
+  K.addReal(s, 'Car seat crying', { steps: ['Sing'] }, today);
+  assert.strictEqual(K.doneToday(s, today), false, 'real advice is not the daily scenario');
+  assert.strictEqual(K.doneInLast(s, 7, today), 0);
+  K.setScenario(s, { skill: 'Feeding', scenario: 'Refuses cup' }, today);
+  K.grade(s, 'Offer a small open cup with a splash of water', { score: 8 }, today);
+  assert.strictEqual(K.doneToday(s, today), true);
+  assert.strictEqual(K.doneToday(s, new Date(2026, 10, 21, 9, 0)), false, 'next day resets');
+  assert.strictEqual(K.doneInLast(s, 7, new Date(2026, 10, 26, 9, 0)), 1);
+  assert.strictEqual(K.doneInLast(s, 7, new Date(2026, 10, 28, 9, 0)), 0);
+});
 console.log(n + ' coach tests passed');

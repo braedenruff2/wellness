@@ -3,10 +3,52 @@
    and coach-grade). His child's name and birthday stay on the phone (never in the app's code or repo). */
 (function (root) {
   'use strict';
+  var WLD = root.WLDates || (typeof require === 'function' ? require('../../lib/dates.js') : null);
+  function iso(d) {
+    if (WLD && WLD.iso) return WLD.iso(d);
+    d = d || new Date();
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
   var SKILLS = ['Connection', 'Calm under stress', 'Sleep', 'Feeding', 'Play and learning', 'Safety', 'Routines',
     'Crying and comfort', 'Looking after yourself', 'Family and partner'];
 
-  function defaults() { return { child: { name: '', birth: '' }, history: [], current: null, pending: null }; }
+  /* Practical everyday skills to introduce and practise by age (whole months). General guidance from CDC, AAP and
+     Canadian Paediatric Society — not medical advice; every child develops at their own pace. */
+  var TEACH = [
+    { id: 'tummy', from: 0, to: 6, title: 'Tummy time every day', how: 'Short, playful floor sessions while awake build neck, shoulder and core strength for rolling and sitting.' },
+    { id: 'babble', from: 4, to: 9, title: 'Back-and-forth babbling', how: 'Pause and answer when she coos or babbles (“serve and return”). It builds early language and turn-taking.' },
+    { id: 'sit', from: 4, to: 8, title: 'Supported sitting and reaching', how: 'Sit her propped between your legs with a toy slightly out of reach so she practises balance.' },
+    { id: 'opencup', from: 6, to: 12, title: 'Drink from an open cup', how: 'Start around 6 months with a small, heavy or two-handled cup and a splash of water. Guide it to her lips; expect spills. Early practice makes dropping bottles much easier.' },
+    { id: 'strawcup', from: 6, to: 12, title: 'Try a straw cup', how: 'Trap a drop of water in a short straw with your finger and let her sip, or try a soft squeeze-straw cup so she learns to draw liquid up.' },
+    { id: 'fingerfood', from: 6, to: 10, title: 'Soft finger foods and self-feeding', how: 'Once sitting steadily, offer soft squishable strips (banana, steamed veg, scrambled egg) so she practises bringing food to her mouth.' },
+    { id: 'brush', from: 6, to: 18, title: 'Brush teeth twice a day', how: 'Start as soon as the first tooth appears with a tiny rice-grain smear of fluoride toothpaste and a soft baby brush.' },
+    { id: 'textures', from: 6, to: 12, title: 'Varied textures and everyday foods', how: 'Move steadily past smooth purées to mashed and soft chopped foods. Introduce common foods early and regularly (check with her doctor first if there is eczema or family allergy history).' },
+    { id: 'books', from: 6, to: 24, title: 'Daily board-book reading', how: 'Even 5–10 minutes pointing at pictures, making animal sounds and letting her turn thick pages builds vocabulary and bedtime calm.' },
+    { id: 'backwards', from: 9, to: 15, title: 'Get down feet-first (backwards)', how: 'Every time she nears the edge of a couch, bed or low step, gently turn her belly-down and guide her feet down first while saying “feet first, slide down.”' },
+    { id: 'point', from: 9, to: 15, title: 'Pointing, waving and naming things', how: 'Point to what she looks at and name it simply (“dog!”, “light!”, “cup!”). Practise waving bye-bye, clapping and peek-a-boo.' },
+    { id: 'dentist', from: 9, to: 14, title: 'First dental check-up', how: 'Canadian Paediatric Society and AAP suggest a first visit by 12 months (or within 6 months of the first tooth) so the dentist feels familiar.' },
+    { id: 'nobottle', from: 12, to: 15, title: 'Transition off bottles to cups', how: 'Swap daytime bottles one by one for open or straw cups (bedtime bottle last) to protect teeth and speech, aiming to finish by 15–18 months.' },
+    { id: 'spoon', from: 12, to: 18, title: 'Practise with a spoon', how: 'Preload thick food (yogurt, oatmeal, mashed sweet potato) on a short baby spoon and hand it to her. Messy is normal and builds wrist control.' },
+    { id: 'onestep', from: 12, to: 18, title: 'Simple one-step requests', how: 'Ask for small concrete actions with a gesture (“bring me the ball”, “put the block in the box”) and celebrate her effort.' },
+    { id: 'choices', from: 12, to: 24, title: 'Offer two simple choices', how: '“Red cup or blue cup?” “Walk or be carried?” Small safe choices give healthy autonomy and reduce power struggles.' },
+    { id: 'helper', from: 15, to: 24, title: 'Tiny daily helper jobs', how: 'Let her drop laundry in the hamper, wipe a spill with a cloth or toss a wipe in the bin. Toddlers love feeling capable.' },
+    { id: 'expand', from: 15, to: 24, title: 'Expand her words into short phrases', how: 'When she says “ball”, reply “Yes, big red ball!” rather than quizzing or correcting. It models natural phrases.' },
+    { id: 'feelings', from: 15, to: 30, title: 'Name big feelings simply', how: 'Say “You’re mad the block fell” or “You’re sad we have to leave” before fixing it. Hearing feeling words builds self-regulation.' },
+    { id: 'stairs', from: 15, to: 24, title: 'Stairs with a hand or railing', how: 'Practise stepping up and down low steps holding your hand (and still backing down steeper stairs) with close supervision.' },
+    { id: 'fork', from: 18, to: 24, title: 'Kid-safe fork and steady open cup', how: 'Offer a blunt toddler fork for soft bites and regular open-cup drinks at the table so spilling gradually drops.' },
+    { id: 'dresshelp', from: 18, to: 24, title: 'Help get dressed and undressed', how: 'Encourage pushing arms through sleeves, pulling off socks or a hat and stepping into pants; leave an extra couple of minutes.' },
+    { id: 'washhands', from: 18, to: 30, title: 'Hand-washing routine', how: 'Use a steady step stool at the sink before meals and after outings, singing a short 20-second song together.' },
+    { id: 'pretend', from: 18, to: 30, title: 'Simple pretend play', how: 'Feed a stuffed animal, stir a toy pot or talk on a block “phone”. Pretend play builds imagination, language and empathy.' },
+    { id: 'potty', from: 20, to: 36, title: 'Watch for potty-readiness signs', how: 'Look for staying dry 2+ hours, telling you when wet or dirty and showing curiosity about the toilet. No rush before she’s ready.' },
+    { id: 'dressself', from: 24, to: 36, title: 'Put on simple clothes and shoes', how: 'Elastic-waist pants, pull-on shirts and velcro shoes make practice easy; show the “flip trick” for putting on a jacket.' },
+    { id: 'turns', from: 24, to: 36, title: 'Taking turns in short games', how: 'Practise “my turn, your turn” rolling a ball, building a tower or sharing a toy while you stay nearby to coach.' },
+    { id: 'words', from: 24, to: 36, title: 'Simple problem-solving words', how: 'Practise short scripts in calm moments (“Stop, I don’t like that”, “Can I have a turn when you’re done?”).' }
+  ];
+  var TEACH_BY = {};
+  TEACH.forEach(function (x) { TEACH_BY[x.id] = x; });
+
+  function defaults() { return { child: { name: '', birth: '' }, history: [], current: null, pending: null, teach: {} }; }
 
   /* What she can do now (his own picks, saved on the phone): sent with every Claude request so scenarios and advice
      fit her, not a typical child of her age. */
@@ -73,12 +115,61 @@
     return st.slice().sort(function (a, b) { return a.avg - b.avg || a.n - b.n; })[0].skill;
   }
 
+  function setTeach(state, id, val) {
+    if (!TEACH_BY[id]) return null;
+    if (!state.teach || typeof state.teach !== 'object') state.teach = {};
+    if (val === 'doing' || val === 'done') state.teach[id] = val;
+    else delete state.teach[id];
+    return state.teach[id] || '';
+  }
+
+  /* Practical skills grouped for her exact age: now (current window), next (starting in the next 4 months),
+     and earlier (past window and not yet marked "done", so catching up is gentle and visible). */
+  function teachForAge(state, now) {
+    var m = ageMonths(state.child.birth, now);
+    if (m == null || m < 0) return null;
+    var st = (state && state.teach && typeof state.teach === 'object') ? state.teach : {};
+    var wrap = function (x) { return { id: x.id, from: x.from, to: x.to, title: x.title, how: x.how, status: st[x.id] || '' }; };
+    var nowList = [], nextList = [], earlierList = [], doneCount = 0, doingCount = 0;
+    TEACH.forEach(function (x) {
+      var s = st[x.id] || '';
+      if (s === 'done') doneCount++;
+      else if (s === 'doing') doingCount++;
+      if (m >= x.from && m <= x.to) nowList.push(wrap(x));
+      else if (x.from > m && x.from <= m + 4) nextList.push(wrap(x));
+      else if (x.to < m && s !== 'done') earlierList.push(wrap(x));
+    });
+    return { ageMonths: m, now: nowList, next: nextList, earlier: earlierList, doneCount: doneCount, doingCount: doingCount, total: TEACH.length };
+  }
+
+  /* True if at least one scenario was graded today (local date). Real-situation advice doesn't count as the daily scenario. */
+  function doneToday(state, now) {
+    var d = iso(now || new Date());
+    return (state.history || []).some(function (h) {
+      return h && h.kind !== 'real' && h.result && !isNaN(new Date(h.at).getTime()) && iso(new Date(h.at)) === d;
+    });
+  }
+
+  /* Count of graded scenarios in the last N calendar days (including today). */
+  function doneInLast(state, days, now) {
+    now = now || new Date();
+    var end = iso(now), start = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((days || 7) - 1)));
+    return (state.history || []).filter(function (h) {
+      if (!h || h.kind === 'real' || !h.result || isNaN(new Date(h.at).getTime())) return false;
+      var d = iso(new Date(h.at));
+      return d >= start && d <= end;
+    }).length;
+  }
+
   /* What the PC is sent with a scenario request. */
   function scenarioInput(state, skill, now) {
-    return { child: state.child.name || 'your daughter', age: ageText(state.child.birth, now) || 'about one year old',
+    var out = { child: state.child.name || 'your daughter', age: ageText(state.child.birth, now) || 'about one year old',
       skill: skill || suggestSkill(state), can: canText(state),
       recent: scored(state).slice(-10).map(function (h) { return { skill: h.skill, score: h.result.score }; }),
       avoid: state.history.slice(-15).map(function (h) { return h.title; }) };
+    var practising = TEACH.filter(function (x) { return state.teach && state.teach[x.id] === 'doing'; }).map(function (x) { return x.title; });
+    if (practising.length) out.practising = practising.slice(0, 8);
+    return out;
   }
 
   function newId(now) { return (now || new Date()).getTime().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -238,10 +329,16 @@
       if (typeof c.from === 'string') d.current.from = c.from.slice(0, 40);
     }
     if (typeof s.realDraft === 'string') d.realDraft = s.realDraft.slice(0, 3000);
+    if (s.teach && typeof s.teach === 'object') {
+      Object.keys(s.teach).forEach(function (id) {
+        var v = s.teach[id];
+        if (TEACH_BY[id] && (v === 'doing' || v === 'done')) d.teach[id] = v;
+      });
+    }
     return d;
   }
 
-  var api = { SKILLS: SKILLS, CAN: CAN, toggleCan: toggleCan, setCanNote: setCanNote, canText: canText, defaults: defaults, ageMonths: ageMonths, ageText: ageText, skillStats: skillStats, suggestSkill: suggestSkill,
+  var api = { SKILLS: SKILLS, CAN: CAN, TEACH: TEACH, toggleCan: toggleCan, setCanNote: setCanNote, canText: canText, setTeach: setTeach, teachForAge: teachForAge, doneToday: doneToday, doneInLast: doneInLast, defaults: defaults, ageMonths: ageMonths, ageText: ageText, skillStats: skillStats, suggestSkill: suggestSkill,
     scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, practiseReal: practiseReal, tips: tips, tipNotes: tipNotes, workedTips: workedTips, cleanResult: cleanResult, validate: validate };
   root.CoachCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

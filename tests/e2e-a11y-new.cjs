@@ -252,9 +252,9 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#tl-missed button'), []);
       await t.noOverflow(['#tagalog/review']);
     });
-    await t.step('text size ' + ts + ': Parenting #co-can-nudge, #co-cloud, #co-hist-search, #co-hist-more, #co-worked & #coach/h/:id Back', async () => {
-      await page.goto(base + '#coach'); await page.waitForSelector('#co-can-nudge'); await page.waitForSelector('#co-cloud'); await page.waitForSelector('#co-hist-search'); await page.waitForSelector('#co-worked'); await page.waitForSelector('#co-hist-more');
-      assert.deepStrictEqual(await small('#co-can-nudge a, #co-cloud a, a[href="#coach/setup"], #co-hist-search, #co-hist-more'), []);
+    await t.step('text size ' + ts + ': Parenting #co-can-nudge, #co-cloud, #co-teach, #co-hist-search, #co-hist-more, #co-worked & #coach/h/:id Back', async () => {
+      await page.goto(base + '#coach'); await page.waitForSelector('#co-can-nudge'); await page.waitForSelector('#co-cloud'); await page.waitForSelector('#co-teach'); await page.waitForSelector('#co-hist-search'); await page.waitForSelector('#co-worked'); await page.waitForSelector('#co-hist-more');
+      assert.deepStrictEqual(await small('#co-can-nudge a, #co-cloud a, a[href="#coach/setup"], #co-teach button, #co-teach summary, #co-hist-search, #co-hist-more'), []);
       await t.noOverflow(['#coach']);
       await page.goto(base + '#coach/h/h20'); await page.waitForSelector('a[href="#coach"]');
       assert.deepStrictEqual(await small('a[href="#coach"]'), []);
@@ -381,9 +381,10 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #tagalog/words');
       await openBuildExercise();
       assert.deepStrictEqual((await contrast('#tl-ex')).filter((x) => x.r < min), [], theme + ' #tl-built');
-      await page.goto(base + '#coach'); await page.waitForSelector('#co-can-nudge'); await page.waitForSelector('#co-cloud'); await page.waitForSelector('#co-hist-search'); await page.waitForSelector('#co-worked');
+      await page.goto(base + '#coach'); await page.waitForSelector('#co-can-nudge'); await page.waitForSelector('#co-cloud'); await page.waitForSelector('#co-teach'); await page.waitForSelector('#co-hist-search'); await page.waitForSelector('#co-worked');
       assert.deepStrictEqual((await contrast('#co-can-nudge')).filter((x) => x.r < min), [], theme + ' #co-can-nudge');
       assert.deepStrictEqual((await contrast('#co-cloud')).filter((x) => x.r < min), [], theme + ' #co-cloud');
+      assert.deepStrictEqual((await contrast('#co-teach')).filter((x) => x.r < min), [], theme + ' #co-teach');
       assert.deepStrictEqual((await contrast('#co-worked')).filter((x) => x.r < min), [], theme + ' #co-worked');
       assert.deepStrictEqual((await contrast('#co-hist')).filter((x) => x.r < min), [], theme + ' #co-hist');
       await page.goto(base + '#coach/h/h20'); await page.waitForSelector('a[href="#coach"]');
