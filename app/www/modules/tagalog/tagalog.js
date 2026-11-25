@@ -272,9 +272,12 @@
         return;
       }
       var k = due[i], c = S.cards[k], sayIt = T.direction(c) === 'say';
+      // a word he has missed twice or more comes back with a sentence from the lessons that uses it
+      var exm = (c.wrong || 0) >= 2 && T.exampleFor ? T.exampleFor(packs(), k) : null;
+      var exHtml = exm ? '<p class="meta" id="tl-example"><span lang="tl">' + esc(exm.tl) + '</span> ' + hear(exm.tl) + '<br>' + esc(exm.en) + '</p>' : '';
       el.innerHTML = '<div class="meta ui">' + (i + 1) + ' / ' + due.length + (sayIt ? ' · say it in Tagalog' : '') + '</div>' +
-        (sayIt ? '<p class="big">' + esc(c.en) + '</p><div id="tl-ans" hidden><p class="big" lang="tl">' + esc(k) + ' ' + hear(k) + '</p></div>'
-          : '<p class="big" lang="tl">' + esc(k) + ' ' + hear(k) + '</p><div id="tl-ans" hidden><p>' + esc(c.en) + '</p></div>') +
+        (sayIt ? '<p class="big">' + esc(c.en) + '</p><div id="tl-ans" hidden><p class="big" lang="tl">' + esc(k) + ' ' + hear(k) + '</p>' + exHtml + '</div>'
+          : '<p class="big" lang="tl">' + esc(k) + ' ' + hear(k) + '</p><div id="tl-ans" hidden><p>' + esc(c.en) + '</p>' + exHtml + '</div>') +
         '<div class="row ui" id="tl-btns"><button class="primary" id="tl-show">' + (sayIt ? 'Show the Tagalog' : 'Show meaning') + '</button></div>';
       wireHear(el);
       $('#tl-show').onclick = function () {

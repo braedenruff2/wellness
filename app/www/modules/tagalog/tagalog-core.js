@@ -127,6 +127,25 @@
     return '';
   }
 
+  /* A sentence from the lessons (dialogue line or grammar example) that uses this word, for a word he keeps missing:
+     {tl, en} or null. Whole words only; never the word on its own. */
+  function exampleFor(packs, tl) {
+    var w = ' ' + norm(tl) + ' ';
+    if (w.trim().length < 2) return null;
+    for (var i = 0; i < (packs || []).length; i++) {
+      var ls = (packs[i] && packs[i].lessons) || [];
+      for (var j = 0; j < ls.length; j++) {
+        var l = ls[j], lines = (l.dialogue || []).concat((l.grammar && l.grammar.examples) || []);
+        for (var k = 0; k < lines.length; k++) {
+          var x = lines[k]; if (!x || !x.tl || !x.en) continue;
+          var t = ' ' + norm(x.tl) + ' ';
+          if (t !== w && t.indexOf(w) >= 0) return { tl: x.tl, en: x.en };
+        }
+      }
+    }
+    return null;
+  }
+
   function allPacks(state, bundled) {
     var m = {};
     (bundled || []).forEach(function (p) { m[p.id] = p; });
@@ -284,7 +303,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;

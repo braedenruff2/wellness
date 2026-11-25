@@ -392,6 +392,25 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     await page.keyboard.press('2');
     assert.strictEqual(await nrev(), before + 2, 'shortcuts inactive after leaving review');
   });
+  await t.step('review: a word missed twice comes back with a lesson sentence that uses it', async () => {
+    const saved = await page.evaluate(() => localStorage.getItem('wl.tagalog.v1'));
+    await page.evaluate(() => {
+      const st = JSON.parse(localStorage.getItem('wl.tagalog.v1'));
+      st.cards = { ngayon: { en: 'now', box: 1, due: '2000-01-01', seen: 3, right: 1, wrong: 2, from: '' }, opo: { en: 'yes (polite)', box: 1, due: '2000-01-01', seen: 1, right: 1, wrong: 0, from: '' } };
+      localStorage.setItem('wl.tagalog.v1', JSON.stringify(st)); window.WL.modules.tagalog.reload();
+    });
+    await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/review');
+    const first = await page.textContent('.big');
+    await page.click('#tl-show');
+    const ex = await page.$('#tl-example');
+    if (first.includes('ngayon')) assert.ok(/ngayon/i.test(await ex.textContent()), 'missed twice: example shown');
+    else assert.ok(!ex, 'never missed: no example');
+    await page.clock.runFor(450); await page.click('#tl-yes');
+    await page.click('#tl-show');
+    const ex2 = await page.$('#tl-example');
+    if (first.includes('ngayon')) assert.ok(!ex2); else assert.ok(/ngayon/i.test(await ex2.textContent()));
+    await page.evaluate((raw) => { localStorage.setItem('wl.tagalog.v1', raw); window.WL.modules.tagalog.reload(); }, saved);
+  });
   await t.step('no overflow, no errors', async () => {
     await page.evaluate(() => { window.__voiceState.tagalogVoice = 'missing'; });
     await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#tagalog/words', '#settings/voice', '#home']);

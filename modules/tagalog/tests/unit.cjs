@@ -258,4 +258,13 @@ t('linkerHint: a missing -ng or na linker gets "Almost" with the answer; anythin
   assert.strictEqual(T.linkerHint(k, 'palagi naglalaro kami'), '', 'order, not linker');
   assert.strictEqual(T.linkerHint({ type: 'build', answer: 'Palagi kaming naglalaro.', words: [] }, 'palagi kami naglalaro'), '', 'type exercises only');
 });
+t('exampleFor: a lesson sentence that uses the word (whole words; never the word alone)', () => {
+  const packs = [{ lessons: [{ dialogue: [{ tl: 'Opo.', en: 'Yes.' }, { tl: 'Gutom na ba siya?', en: 'Is she hungry already?' }], grammar: { examples: [{ tl: 'Kumakain ako ngayon.', en: 'I\'m eating now.' }] } }] }];
+  assert.deepStrictEqual(T.exampleFor(packs, 'ngayon'), { tl: 'Kumakain ako ngayon.', en: 'I\'m eating now.' });
+  assert.deepStrictEqual(T.exampleFor(packs, 'gutom'), { tl: 'Gutom na ba siya?', en: 'Is she hungry already?' });
+  assert.strictEqual(T.exampleFor(packs, 'opo'), null, 'only the word itself');
+  assert.strictEqual(T.exampleFor(packs, 'kain'), null, 'part of a word does not count');
+  assert.strictEqual(T.exampleFor([], 'ngayon'), null);
+  assert.ok(T.exampleFor(require('../../../app/www/modules/tagalog/tagalog-core.js') && [JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'packs', '2026-11-25.json'), 'utf8'))], 'kasama'));
+});
 console.log(n + ' tagalog unit tests passed');
