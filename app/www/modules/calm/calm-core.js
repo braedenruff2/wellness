@@ -1,6 +1,8 @@
 /* Calm (meditation) logic, no DOM. Short, practical practices for a tired parent: paced breathing, body scan,
    grounding, kindness, sleep. Christian contemplative prayer stays in the Faith module (linked from here).
-   Storage 'wl.calm.v1': { sessions:[{date, at, id, mins, before, after}], settings:{voice, rate, minutes} } */
+   Storage 'wl.calm.v1': { sessions:[{date, at, id, mins, before, after, focus?, hind?}],
+     settings:{voice, rate, minutes, tick, dailyGoal, aim: null|'calm'|'train', stage: a PATH id, sitMinutes} }
+   aim 'train' = he meditates to train the mind (the meditation path), not only for stress: Calm leads with his stage. */
 (function (root) {
   'use strict';
   var WLD = root.WLDates || require('../../lib/dates.js');
@@ -119,8 +121,76 @@
       { say: 'If your mind lists the things you could be doing, let them wait. This counts too.', wait: 40 },
       { say: 'Stay as long as she sleeps. When you’re ready, just keep resting with her.', wait: 0 }
     ] },
-    { id: 'timer', kind: 'timer', title: 'Quiet timer', minutes: 10, when: 'Sit in silence with a bell at the end', blurb: 'No voice. A soft bell to start and finish.' }
+    { id: 'timer', kind: 'timer', title: 'Quiet timer', minutes: 10, when: 'Sit in silence with a bell at the end', blurb: 'No voice. A soft bell to start and finish.' },
+    /* The meditation path (settings.aim 'train'): meditation as training the mind rather than only easing stress. Five
+       sits in the order many contemplative traditions teach them: first steady attention (concentration), then seeing
+       experience clearly as it comes and goes (insight), then open awareness. Sparse words, long silences. */
+    { id: 'count', kind: 'guided', path: 1, title: 'Counting breaths', minutes: 20, when: 'Stage 1: steadying attention', blurb: 'Count each out-breath from one to ten, then start again. Lose count, start again at one.', steps: [
+      { say: 'Sit upright and at ease, on a chair or a cushion. Let your eyes close, or rest them on the floor a little ahead of you.', wait: 5 },
+      { say: 'Let your breathing be natural; there’s no need to control it. Find where you feel it most clearly: at the nostrils, or in the belly.', wait: 10 },
+      { say: 'Silently count each out-breath, from one up to ten, then start again at one. If you lose count, or find yourself at eleven, simply start again at one.', wait: 60 },
+      { say: 'Each time you notice you’ve drifted, that moment of noticing is the practice. No need to judge it. Come back to one.', wait: 90 },
+      { say: 'If you’re getting drowsy, sit up a little straighter and let a little light in through your eyes. If you’re restless, let each out-breath be a little longer.', wait: 90 },
+      { say: 'Keep the count light, like a soft label on each breath, with most of your attention on the breath itself.', wait: 90 },
+      { say: 'One breath at a time.', wait: 60 },
+      { say: 'Let the counting go. For a moment, just feel the whole body breathing.', wait: 10 },
+      { say: 'Slowly open your eyes. Notice how your mind feels now, compared with when you sat down.', wait: 0 }
+    ] },
+    { id: 'follow', kind: 'guided', path: 2, title: 'Following the breath', minutes: 20, when: 'Stage 2: attention without counting', blurb: 'Drop the numbers and follow each whole breath, beginning, middle and end.', steps: [
+      { say: 'Sit upright and at ease. Let your eyes close, or rest them softly on the floor.', wait: 5 },
+      { say: 'Begin with a few rounds of counting out-breaths to ten, to gather the mind.', wait: 40 },
+      { say: 'Now drop the numbers. Follow each breath from its very beginning, through its middle, to its end, and notice the small pause before the next one.', wait: 80 },
+      { say: 'Your mind will wander. When you notice, note where it went, then come back to the next breath. Coming back is the training.', wait: 90 },
+      { say: 'See how much detail you can notice: coolness or warmth, the stretch of the belly, how long each breath is.', wait: 90 },
+      { say: 'Hold the breath in attention lightly: not gripping it, not letting it go.', wait: 90 },
+      { say: 'Stay with the breath.', wait: 60 },
+      { say: 'Let go of the breath now and rest for a moment.', wait: 10 },
+      { say: 'Open your eyes when you’re ready. Notice how your mind feels.', wait: 0 }
+    ] },
+    { id: 'note', kind: 'guided', path: 3, title: 'Noting', minutes: 20, when: 'Stage 3: seeing what pulls you away', blurb: 'Stay with the breath, and give whatever pulls you away a soft one-word label.', steps: [
+      { say: 'Sit upright and at ease, with your eyes closed or resting on the floor.', wait: 5 },
+      { say: 'Start with the breath for a minute or two, to steady the mind.', wait: 50 },
+      { say: 'Now, whenever something pulls your attention away from the breath, give it a soft one-word label: thinking, hearing, feeling, planning, remembering. Then return to the breath.', wait: 80 },
+      { say: 'Keep the label quiet and simple, a small part of your attention. Most of it goes to actually seeing what’s there.', wait: 90 },
+      { say: 'Notice how each thing that pulls you away shows up, stays a while, and goes. There’s no need to push anything away.', wait: 90 },
+      { say: 'Moods can be noted too: restless, impatient, sleepy, bored. Noting it is enough.', wait: 90 },
+      { say: 'Breath, a label for what pulls you away, back to the breath.', wait: 60 },
+      { say: 'Let the labels go and rest for a moment.', wait: 10 },
+      { say: 'Open your eyes when you’re ready.', wait: 0 }
+    ] },
+    { id: 'change', kind: 'guided', path: 4, title: 'Watching things change', minutes: 20, when: 'Stage 4: insight into change', blurb: 'Look closely at sensations, sounds and thoughts, and see each one arise, change and pass.', steps: [
+      { say: 'Sit upright and at ease, with your eyes closed or resting on the floor.', wait: 5 },
+      { say: 'Rest your attention on the breath for a little while.', wait: 50 },
+      { say: 'Now turn to the body. Find one sensation: tingling in the hands, pressure where you sit, warmth. Look closely. Is it solid and fixed, or changing moment by moment?', wait: 90 },
+      { say: 'Do the same with sounds. Notice each one begin, change, and fade.', wait: 90 },
+      { say: 'Thoughts too. Notice a thought appear, stay a moment, and pass, without following where it goes.', wait: 90 },
+      { say: 'Everything you look at keeps changing and passing, and you are still here, noticing. Rest in that noticing.', wait: 90 },
+      { say: 'Keep watching things come and go.', wait: 60 },
+      { say: 'Let it all go and rest for a moment.', wait: 10 },
+      { say: 'Open your eyes when you’re ready.', wait: 0 }
+    ] },
+    { id: 'open', kind: 'guided', path: 5, title: 'Open awareness', minutes: 20, when: 'Stage 5: awareness without a focus', blurb: 'No single object: let sounds, sensations and thoughts come and go, and rest in being aware.', steps: [
+      { say: 'Sit upright and at ease, with your eyes closed or resting on the floor.', wait: 5 },
+      { say: 'Begin with the breath for a minute, to steady the mind.', wait: 40 },
+      { say: 'Now let go of any one focus. Let sounds, sensations, thoughts and feelings come and go, without choosing between them.', wait: 90 },
+      { say: 'When you find yourself lost in a thought, notice it, and relax back into simply being aware, the way the sky lets clouds pass.', wait: 90 },
+      { say: 'There is nothing to get and nothing to push away. Just be aware of whatever is here.', wait: 90 },
+      { say: 'If the mind gets too scattered, come back to the breath for a while, then open up again.', wait: 90 },
+      { say: 'Rest in open awareness.', wait: 60 },
+      { say: 'Let the practice go now.', wait: 10 },
+      { say: 'Open your eyes when you’re ready. Take a moment before you get up.', wait: 0 }
+    ] }
   ];
+  var PATH = PRACTICES.filter(function (p) { return p.path; }).map(function (p) { return p.id; });
+  /* How steady his attention was in a sit (1-3), and what got in the way (the classic hindrances, plainly named). */
+  var FOCUS = ['Mostly lost in thought', 'Some steady stretches', 'Mostly steady'];
+  var HIND = ['Sleepy', 'Restless', 'Doubting it', 'Interrupted', 'Nothing much'];
+  var HIND_TIP = {
+    Sleepy: 'Last time you were sleepy: sit more upright, eyes a little open, or try a time of day when you’re more awake.',
+    Restless: 'Last time you were restless: let the out-breath be longer, and go back to counting for a few minutes if it helps.',
+    'Doubting it': 'Last time you doubted it: that’s common. Judge it by weeks of practice, not one sit.',
+    Interrupted: 'Last time you were interrupted: a shorter sit when she’s asleep still counts.'
+  };
 
   /* Other wordings for the guided scripts, so a practice doesn't sound the same every time. VARIANTS[id][i] lists
      alternatives for step i (the step's own `say` is wording 0). scriptFor picks wording n % count for each step,
@@ -242,8 +312,8 @@
   }
   function timesDone(state, id) { return state.sessions.filter(function (s) { return s.id === id; }).length; }
 
-  var DAILY_GOALS = [1, 5, 10, 15, 20];
-  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10 } }; }
+  var DAILY_GOALS = [1, 5, 10, 15, 20], SIT_LENGTHS = [10, 15, 20, 30];
+  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10, aim: null, stage: 'count', sitMinutes: 20 } }; }
   function goalOf(state) { var g = state && state.settings && state.settings.dailyGoal; return DAILY_GOALS.indexOf(g) >= 0 ? g : 10; }
   var iso = WLD.iso;
 
@@ -333,10 +403,45 @@
     });
     return out;
   }
+  function stageOf(state) { var st = state && state.settings && state.settings.stage; return PATH.indexOf(st) >= 0 ? st : PATH[0]; }
+  /* Where he is on the meditation path: the stage, its sits (newest last), how steady the last 5 rated ones were, and
+     whether to offer the next stage: 6+ sits at this stage and 3 of the last 5 rated "Mostly steady". Never automatic. */
+  var READY_SITS = 6;
+  function pathStatus(state, now) {
+    var to = now ? iso(now) : null, id = stageOf(state), i = PATH.indexOf(id);
+    var all = state.sessions.filter(function (s) { return PATH.indexOf(s.id) >= 0 && (!to || !s.date || s.date <= to); })
+      .sort(function (a, b) { return sessionMs(a) - sessionMs(b); });
+    var sits = all.filter(function (s) { return s.id === id; });
+    var rated = sits.filter(function (s) { return s.focus >= 1 && s.focus <= 3; }).slice(-5);
+    var steady = rated.filter(function (s) { return s.focus === 3; }).length;
+    var lastSit = all[all.length - 1] || null, hind = lastSit && Array.isArray(lastSit.hind) ? lastSit.hind : [];
+    var tip = null; hind.some(function (h) { return HIND_TIP[h] ? (tip = HIND_TIP[h]) : false; });
+    return { stage: id, n: i + 1, of: PATH.length, sits: sits.length, mins: Math.round(sits.reduce(function (a, s) { return a + (s.mins || 0); }, 0)),
+      rated: rated.length, steady: steady, ready: i < PATH.length - 1 && sits.length >= READY_SITS && steady >= 3,
+      next: i < PATH.length - 1 ? PATH[i + 1] : null, prev: i > 0 ? PATH[i - 1] : null, total: all.length, tip: tip };
+  }
+  /* Move to another stage (the next when he's ready, or back a step whenever he likes). */
+  function setStage(state, id) { if (PATH.indexOf(id) >= 0) state.settings.stage = id; return stageOf(state); }
+  /* His answers after a sit: focus 1-3 (FOCUS) and what got in the way (HIND; "Nothing much" on its own). */
+  function rateSit(rec, focus, hind) {
+    if (!rec) return rec;
+    if (focus >= 1 && focus <= 3) rec.focus = focus; else if (focus === null) delete rec.focus;
+    if (Array.isArray(hind)) {
+      var h = hind.filter(function (x, i, a) { return HIND.indexOf(x) >= 0 && a.indexOf(x) === i; });
+      if (h.indexOf('Nothing much') >= 0 && h.length > 1) h = h[h.length - 1] === 'Nothing much' ? ['Nothing much'] : h.filter(function (x) { return x !== 'Nothing much'; });
+      if (h.length) rec.hind = h; else delete rec.hind;
+    }
+    return rec;
+  }
   function suggest(state, now, opts) {
     now = now || new Date(); opts = opts || {};
     var to = iso(now), upTo = state.sessions.filter(function (s) { return !s.date || s.date <= to; });
     var h = now.getHours(), t = today(state, now), sc = opts.score || {}, pref = opts.prefer || [], long = opts.tooLong || {};
+    // he meditates to train the mind: his stage's sit leads, once a day, from 05:00 (not after a night wake)
+    if (state.settings && state.settings.aim === 'train' && h >= 5) {
+      var stg = stageOf(state);
+      if (!PATH.some(function (id) { return t.ids.indexOf(id) >= 0; })) return stg;
+    }
     if (!upTo.length && h >= 5 && h < 22 && !pref.length && (sc.sigh || 0) > -2 && !opts.rough) return 'sigh';
     var base = fits(h);
     // his mind has been racing at night lately: the practices made for that join what fits (21:00-05:00)
@@ -394,6 +499,8 @@
         d.sessions.push({ id: x.id, date: x.date, at: String(x.at || ''), mins: Math.max(0, Math.min(240, x.mins)),
           before: [1, 2, 3, 4, 5].indexOf(x.before) >= 0 ? x.before : null, after: [1, 2, 3, 4, 5].indexOf(x.after) >= 0 ? x.after : null,
           rated: typeof x.rated === 'string' && !isNaN(Date.parse(x.rated)) ? x.rated : undefined });
+      var last = d.sessions[d.sessions.length - 1];
+      if (last && last.id === x.id && PATH.indexOf(x.id) >= 0) rateSit(last, [1, 2, 3].indexOf(x.focus) >= 0 ? x.focus : undefined, Array.isArray(x.hind) ? x.hind : undefined);
     });
     var st = s.settings || {};
     if (typeof st.voice === 'boolean') d.settings.voice = st.voice;
@@ -401,6 +508,9 @@
     if (typeof st.rate === 'number' && st.rate >= 0.5 && st.rate <= 1.6) d.settings.rate = st.rate;
     if ([3, 5, 10, 15, 20].indexOf(st.minutes) >= 0) d.settings.minutes = st.minutes;
     if (DAILY_GOALS.indexOf(st.dailyGoal) >= 0) d.settings.dailyGoal = st.dailyGoal;
+    if (st.aim === 'calm' || st.aim === 'train') d.settings.aim = st.aim;
+    if (PATH.indexOf(st.stage) >= 0) d.settings.stage = st.stage;
+    if (SIT_LENGTHS.indexOf(st.sitMinutes) >= 0) d.settings.sitMinutes = st.sitMinutes;
     return d;
   }
 
@@ -422,7 +532,7 @@
     });
   }
 
-  var api = { PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
+  var api = { PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

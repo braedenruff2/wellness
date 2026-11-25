@@ -415,6 +415,15 @@ def summarize(days=7, today=None):
         d = len({local_day(e["at"]) for e in es})
         extra = ""
         if part == "calm":
+            # what Calm is for (his setting; the last one sent wins), not something he did
+            tg = sorted([e for e in es if e["kind"] == "target" and isinstance(e.get("data"), dict)], key=lambda e: e["at"])
+            es = [e for e in es if e["kind"] != "target"]
+            aim = (tg[-1]["data"] if tg else {}) or {}
+            aim_txt = ("he uses Calm to train the mind (the meditation path, now at stage " + str(aim.get("stage") or "count")
+                       + "), not mainly for stress") if aim.get("aim") == "train" else ("he uses Calm mainly to feel calmer" if aim.get("aim") == "calm" else "")
+            if not es:
+                lines.append("- calm: nothing" + (f"; {aim_txt}" if aim_txt else "")); continue
+            d = len({local_day(e["at"]) for e in es})
             r = [e["data"] for e in es if e["kind"] == "session" and isinstance(e.get("data"), dict)
                  and e["data"].get("before") and e["data"].get("after")]
             mins = sum(float((e.get("data") or {}).get("mins") or 0) for e in es if e["kind"] == "session")
@@ -435,6 +444,21 @@ def summarize(days=7, today=None):
                     if e["data"]["a"]["helped"] != "Not really": break
                     flat += 1
                 if flat >= 3: extra += f"; the last {flat} said \"Not really\" in a row: suggest something different, not more of the same"
+            # sits on the meditation path: how many per stage, how steady his attention was, what got in the way
+            sits = [e["data"] for e in es if e["kind"] == "session" and isinstance(e.get("data"), dict)
+                    and e["data"].get("practice") in ("count", "follow", "note", "change", "open")]
+            if sits:
+                stg = {}
+                for x in sits: stg[x["practice"]] = stg.get(x["practice"], 0) + 1
+                extra += "; meditation-path sits: " + ", ".join(f"{k} {n}" for k, n in stg.items())
+                fr = [x["focus"] for x in sits if x.get("focus") in (1, 2, 3)]
+                if fr: extra += f"; attention mostly steady in {fr.count(3)} of {len(fr)} rated sits ({fr.count(1)} mostly lost in thought)"
+                hd = {}
+                for x in sits:
+                    for h in x.get("hind") or []:
+                        if h != "Nothing much": hd[h] = hd.get(h, 0) + 1
+                if hd: extra += "; got in the way: " + ", ".join(f"{k} {n}" for k, n in hd.items())
+            if aim_txt: extra += "; " + aim_txt
         elif part == "workout":
             # his weekly target: the last one sent (sorted() is stable, so on the same day the later one wins)
             tg = [e for e in es if e["kind"] == "target"]

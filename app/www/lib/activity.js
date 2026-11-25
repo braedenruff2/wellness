@@ -54,8 +54,18 @@
       if (!x) return;
       var at = okDate(x.at) ? x.at : okDate(x.date) ? localNoon(x.date) : null; if (!at) return;
       // an after-rating added later gets a new id ending /e<ms> (the session may already have been sent): newest wins
-      out.push({ id: 'calm/' + at + '/' + x.id + (x.after && okDate(x.rated) ? '/e' + Date.parse(x.rated) : ''), at: at, part: 'calm', kind: 'session', text: x.id, data: { practice: x.id, mins: x.mins, before: x.before || null, after: x.after || null } });
+      var d = { practice: x.id, mins: x.mins, before: x.before || null, after: x.after || null };
+      // a sit on the meditation path: how steady his attention was (1-3) and what got in the way
+      if (x.focus) d.focus = x.focus;
+      if (Array.isArray(x.hind) && x.hind.length) d.hind = x.hind.slice(0, 5);
+      out.push({ id: 'calm/' + at + '/' + x.id + ((x.after || x.focus || d.hind) && okDate(x.rated) ? '/e' + Date.parse(x.rated) : ''), at: at, part: 'calm', kind: 'session', text: x.id, data: d });
     });
+    // what Calm is for (his choice: 'calm' or 'train' = the meditation path, with his stage), once a day like Move's target
+    var st = s.settings || {};
+    if (o.now && (st.aim === 'calm' || st.aim === 'train')) {
+      var n1 = o.now, day1 = n1.getFullYear() + '-' + ('0' + (n1.getMonth() + 1)).slice(-2) + '-' + ('0' + n1.getDate()).slice(-2);
+      out.push({ id: 'calm/aim/' + day1 + '/' + st.aim + '/' + (st.stage || ''), at: localNoon(day1), part: 'calm', kind: 'target', data: { aim: st.aim, stage: st.aim === 'train' ? st.stage || 'count' : null } });
+    }
   };
 
   /* Move (wl.workout.v1): every set (exercise, set number, reps or seconds, weight) and each finished workout. */
@@ -195,7 +205,9 @@
       case 'faith/practice': return 'Faith: ' + (e.text || 'practice') + (d.mins ? ' (' + d.mins + ' min)' : '');
       case 'faith/prayer-added': return 'Faith: added a prayer' + (e.text ? ': ' + cut(e.text, 60) : '');
       case 'faith/prayer-answered': return 'Faith: a prayer answered';
-      case 'calm/session': return 'Calm: ' + (e.text || 'session') + ' ' + (d.mins || 0) + ' min' + (d.before && d.after ? ', stress ' + d.before + '→' + d.after : '');
+      case 'calm/session': return 'Calm: ' + (e.text || 'session') + ' ' + (d.mins || 0) + ' min' + (d.before && d.after ? ', stress ' + d.before + '→' + d.after : '') +
+        (d.focus ? ', attention ' + ['', 'mostly lost in thought', 'some steady stretches', 'mostly steady'][d.focus] : '') + (d.hind ? ' (' + d.hind.join(', ') + ')' : '');
+      case 'calm/target': return d.aim === 'train' ? 'Calm: training the mind (meditation path, stage ' + (d.stage || 'count') + ')' : 'Calm: mainly for feeling calmer';
       case 'workout/set': return 'Move: ' + d.ex + ' set ' + d.n + ': ' + d.val + (d.w ? ' @ ' + d.w + ' lb' : '');
       case 'workout/target': return 'Move: aiming for ' + d.perWeek + ' workouts a week';
       case 'workout/sore': return 'Move: sore from last time: ' + (d.level || e.text || '');

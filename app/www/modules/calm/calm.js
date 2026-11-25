@@ -19,12 +19,14 @@
   var pick = null;
   function mins(p) {
     if (!p.fixed && pick && pick.id === p.id) return pick.m;
+    if (p.path) return S.settings.sitMinutes || 20;
     return p.fixed ? p.minutes : (p.kind === 'pacer' || p.kind === 'timer' ? S.settings.minutes : p.minutes);
   }
   /* Lengths offered on the start screen: the list's lengths for breathing and the timer; for a guided practice its
      usual length with a shorter and a longer one (the quiet stretches; the words stay the same). */
   function lengths(p) {
     if (p.fixed) return [];
+    if (p.path) return K.SIT_LENGTHS;
     if (p.kind === 'pacer' || p.kind === 'timer') return [3, 5, 10, 15, 20];
     var a = Math.max(2, Math.round(p.minutes * 0.6)), c = Math.round(p.minutes * 1.5);
     return a < p.minutes ? [a, p.minutes, c] : [p.minutes, c];
@@ -63,7 +65,7 @@
         (t.any ? '<div class="progress" style="margin:6px 0 10px"><div style="width:' + pct + '%"></div></div>' +
           '<p class="meta ui">' + esc(names0.join(', ')) + ' (' + Math.max(1, t.mins) + ' min) logged — good reset. About ' + left + ' min left for today’s goal:</p>' : '') +
         '<h3 style="margin:.2em 0">' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3>' +
-        '<p class="meta ui">' + esc(sug.when) + '. ' + (window.WLMe && WLMe.rough() ? 'After a rough night, a short one is plenty.' : 'This one fits the time of day.') + '</p>' + flatLine(sug) + howLine(sug) +
+        '<p class="meta ui">' + esc(sug.when) + '. ' + (sug.path ? 'Today’s sit on your meditation path.' + (window.WLMe && WLMe.rough() ? ' After a rough night, 10 minutes is plenty.' : '') : (window.WLMe && WLMe.rough() ? 'After a rough night, a short one is plenty.' : 'This one fits the time of day.')) + '</p>' + (sug.path ? '' : flatLine(sug) + howLine(sug)) +
         '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + '">Begin</a><span class="grow"></span>' + fit(sug.id, sug.title) + '</div>' + racingLine() + '</div>';
     }
     var names = t.ids.map(titleOf).filter(function (x, i, a) { return a.indexOf(x) === i; });
@@ -72,9 +74,41 @@
       '<div class="row ui" style="gap:4px 8px"><span class="meta">If things get hard later, the one-minute reset helps. Want more now?</span><a class="link" href="#calm/s/' + sug.id + '">' + esc(sug.title) + ' (' + mins(sug) + ' min)</a></div>' + racingLine() + '</div>';
   }
 
+  /* What Calm is for: feeling calmer (stress, sleep) or training the mind (the meditation path). Asked once. */
+  function aimChips() {
+    return [['calm', 'Feeling calmer, sleeping better'], ['train', 'Training my mind (meditation path)']].map(function (a) {
+      return '<button class="chip" data-aim="' + a[0] + '" aria-pressed="' + (S.settings.aim === a[0]) + '">' + a[1] + '</button>'; }).join('');
+  }
+  function aimCard() {
+    if (S.settings.aim) return '';
+    return '<div class="card ui" id="c-aim"><h3 style="margin:.2em 0">What do you want from Calm?</h3>' +
+      '<p class="meta">Short practices for stress and sleep, or meditation as a daily training of the mind (attention, then seeing clearly), step by step. You can change this any time.</p>' +
+      '<div class="chips">' + aimChips() + '</div></div>';
+  }
+  /* The meditation path: his stage, how it's going, moving on when he's ready, and all five stages. */
+  function pathHtml(open) {
+    var ps = K.pathStatus(S), cur = practice(ps.stage), nx = ps.next && practice(ps.next);
+    var h = '<details class="card ui" id="c-path"' + (open ? ' open' : '') + '><summary>Meditation path' + (open ? ' · stage ' + ps.n + ' of ' + ps.of + ': ' + esc(cur.title) : ' (training the mind)') + '</summary>';
+    if (open) {
+      h += '<p class="meta" id="c-path-status">' + (ps.sits ? ps.sits + ' sit' + (ps.sits === 1 ? '' : 's') + ' at this stage (' + ps.mins + ' min)' + (ps.rated ? '; attention mostly steady in ' + ps.steady + ' of the last ' + ps.rated : '') + '.' : 'No sits at this stage yet.') + '</p>';
+      if (ps.tip) h += '<p class="meta" id="c-path-tip">' + esc(ps.tip) + '</p>';
+      if (ps.ready) h += '<div class="row" id="c-path-ready" style="gap:4px 8px"><span class="meta">Your attention has been steady lately. Ready for the next stage?</span><button class="chip" data-stage="' + ps.next + '">Move on to ' + esc(nx.title) + '</button></div>';
+      else if (nx) h += '<p class="meta">The next stage (' + esc(nx.title) + ') is offered after ' + K.READY_SITS + ' sits here with your attention mostly steady in 3 of the last 5. There’s no hurry; you can also choose any stage below.</p>';
+    }
+    h += '<ul class="list" id="c-stages">' + K.PATH.map(function (id) {
+      var p = practice(id), here = id === ps.stage && S.settings.aim === 'train';
+      return '<li' + (here ? ' aria-current="step"' : '') + '><a href="#calm/s/' + id + '"><h3>' + p.path + '. ' + esc(p.title) + (here ? ' · your stage' : '') + '</h3><div class="meta ui">' + esc(p.when) + ' · ' + mins(p) + ' min</div><p style="margin:.3em 0 0">' + esc(p.blurb) + '</p></a>' +
+        (S.settings.aim === 'train' && !here ? '<button class="link" data-stage="' + id + '">Make this my stage</button>' : '') + '</li>';
+    }).join('') + '</ul>';
+    h += '<details><summary>Why this order</summary><p>Many contemplative traditions teach meditation as a training of the mind, not only a way to relax. First comes steadiness: one simple object (counting, then the breath itself). Then insight: seeing clearly what is happening as it happens (noting what pulls you away, watching sensations and thoughts change and pass). Then open awareness without a focus. Researchers describe the same two broad families, focused attention and open monitoring, and find they train somewhat different skills.</p>' +
+      '<p>The skill is noticing that you’ve wandered and coming back, kindly. Sleepiness and restlessness are the two classic obstacles; after each sit you can say which came up, and the next sit gives a tip. Progress isn’t a straight line: going back a stage is normal. Daily and unhurried beats long and rare.</p></details>';
+    return h + '</details>';
+  }
+
   function list() {
     var st = K.stats(S), goal = K.goalOf(S);
-    var h = '<h1>Calm</h1>' + (window.WLMe ? WLMe.planLine('calm') : '') + todayCard();
+    var train = S.settings.aim === 'train';
+    var h = '<h1>Calm</h1>' + (window.WLMe ? WLMe.planLine('calm') : '') + aimCard() + todayCard() + (train ? pathHtml(true) : '');
     h += '<details class="card ui"><summary>How Calm works</summary><p>Work toward your daily goal below (one longer practice, or shorter ones that add up). ' +
       'Press Begin, rate how stressed you are if you like, then follow the voice or breathing circle (exhale down to the inner dashed ring). At the end, rate again and press Done. ' +
       'Guided practices are worded a little differently each time; the one-minute reset is always here for hard moments.</p></details>';
@@ -85,11 +119,12 @@
       '<div class="row"><span class="grow">Length for breathing and the quiet timer</span></div><div class="chips">' + [3, 5, 10, 15, 20].map(function (m) {
       return '<button class="chip" data-min="' + m + '" aria-pressed="' + (S.settings.minutes === m) + '">' + m + ' min</button>';
     }).join('') + '</div><div class="row" style="margin-top:8px"><span class="grow">Voice guidance</span><button class="chip" id="cv" aria-pressed="' + S.settings.voice + '">' + (S.settings.voice ? 'On' : 'Off') + '</button></div>' +
-      '<div class="row" style="margin-top:8px"><span class="grow">Soft tick when breathing changes</span><button class="chip" id="ctk" aria-pressed="' + !!S.settings.tick + '">' + (S.settings.tick ? 'On' : 'Off') + '</button></div></div>';
+      '<div class="row" style="margin-top:8px"><span class="grow">Soft tick when breathing changes</span><button class="chip" id="ctk" aria-pressed="' + !!S.settings.tick + '">' + (S.settings.tick ? 'On' : 'Off') + '</button></div>' +
+      '<div class="row" style="margin-top:8px"><span class="grow">Calm is mainly for</span></div><div class="chips" id="c-aim-set">' + aimChips() + '</div></div>';
     var helped = window.WLMe && WLMe.calmHelped ? WLMe.calmHelped() : {};
     // a practice that hasn't helped him in 3+ tries goes to the end of the list
     var never = function (p) { var x = helped[p.id]; return x && x.n >= 3 && x.yes === 0 ? 1 : 0; };
-    var order = K.PRACTICES.map(function (p, i) { return [p, i]; }).sort(function (a, b) { return never(a[0]) - never(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
+    var order = K.PRACTICES.filter(function (p) { return !p.path; }).map(function (p, i) { return [p, i]; }).sort(function (a, b) { return never(a[0]) - never(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
     h += '<h2 class="ui" style="font-size:1em;margin:1em 0 .3em">All practices</h2><ul class="list">' + order.map(function (p) {
       var hp = helped[p.id];
       return '<li><a href="#calm/s/' + p.id + '"><h3>' + esc(p.title) + '</h3><div class="meta ui">' + esc(p.when) + ' · ' + mins(p) + ' min' +
@@ -99,6 +134,7 @@
     }).join('') + '</ul>';
     h += '<div class="card ui"><b>' + st.weekMins + '</b> min this week on ' + st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') + ' · ' + st.total + ' sessions in all' +
       (st.avgDrop != null ? '<br><span class="meta">Stress before → after, average change: ' + (st.avgDrop >= 0 ? '−' : '+') + Math.abs(st.avgDrop).toFixed(1) + ' (from ' + st.rated + ' rated sessions)</span>' : '') + '</div>';
+    if (!train) h += pathHtml(false);
     h += recentHtml();
     h += '<div class="row ui" style="gap:4px 8px"><span class="meta">Christian meditation (breath prayer, Lectio Divina, quiet prayer) is in</span><a class="link" href="#faith/pray">Faith › Pray</a></div>';
     return h;
@@ -140,10 +176,17 @@
       (p.kind === 'pacer' ? '<div class="pacer"><div class="ring"><div class="ball" id="c-ball"></div><div class="ring-min" aria-hidden="true"></div></div><div class="pacer-label" id="c-label">Ready</div></div>'
         : '<div class="line" id="c-line">' + esc(p.blurb || '') + '</div>') +
       '<div class="meta" id="c-left" style="text-align:center;min-height:1.4em"></div>' +
-      rating('c-before', 'How stressed are you right now?') +
+      (p.path ? '' : rating('c-before', 'How stressed are you right now?')) +
       lengthChips(p) +
       '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">▶ Begin · ' + mins(p) + ' min</button></div>' +
-      '<div id="c-after" hidden>' + rating('c-after-r', 'And now?') + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button></div></div></div>';
+      '<div id="c-after" hidden>' + (p.path ? sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button></div></div></div>';
+  }
+  /* After a sit on the path: how steady attention was, and what got in the way (optional; kept on the session). */
+  function sitQuestions() {
+    return '<div class="ui rate" id="c-focus"><div class="meta">How steady was your attention?</div><div class="chips">' + K.FOCUS.map(function (f, i) {
+      return '<button class="chip" data-f="' + (i + 1) + '">' + esc(f) + '</button>'; }).join('') + '</div></div>' +
+      '<div class="ui rate" id="c-hind"><div class="meta">What got in the way? (any)</div><div class="chips">' + K.HIND.map(function (x) {
+      return '<button class="chip" data-h="' + esc(x) + '" aria-pressed="false">' + esc(x) + '</button>'; }).join('') + '</div></div>';
   }
 
   function stopRun() {
@@ -169,10 +212,11 @@
     stopRun(); WL.bell();
     var rec = K.record(S, p.id, m, before, null, WL.logNow ? WL.logNow() : null); save(); // saved straight away; "Done" only adds the after rating
     run = { p: p, done: true, mins: m, before: before, rec: rec };
-    $('#c-pp').hidden = true; $('#c-before').hidden = true; $('#c-after').hidden = false;
-    if (window.WLMe) $('#c-after').insertAdjacentHTML('afterbegin', WLMe.askHtml('calm', p.id + '@' + rec.at));
+    $('#c-pp').hidden = true; if ($('#c-before')) $('#c-before').hidden = true; $('#c-after').hidden = false;
+    if (window.WLMe && !p.path) $('#c-after').insertAdjacentHTML('afterbegin', WLMe.askHtml('calm', p.id + '@' + rec.at));
     var td = K.today(S), l = $('#c-label') || $('#c-line');
-    if (l) l.textContent = td.done ? 'Well done. Today’s ' + td.goal + ' min goal is done ✓' : 'Good reset (' + Math.max(1, td.mins) + ' of ' + td.goal + ' min today).';
+    if (l && p.path) l.textContent = 'Well done. ' + Math.max(1, Math.round(m)) + ' min of practice.';
+    else if (l) l.textContent = td.done ? 'Well done. Today’s ' + td.goal + ' min goal is done ✓' : 'Good reset (' + Math.max(1, td.mins) + ' of ' + td.goal + ' min today).';
     $('#c-prog').style.width = '100%'; $('#c-left').textContent = '';
   }
 
@@ -183,7 +227,7 @@
     WL.keepAwake(true); WL.bell();
     var pp = $('#c-pp'); pp.textContent = '⏸ Pause'; pp.dataset.state = 'playing';
     var lc = $('#c-len'); if (lc) lc.hidden = true;
-    $('#c-before').hidden = true;
+    if ($('#c-before')) $('#c-before').hidden = true;
     var progress = function () {
       var e = elapsed();
       $('#c-prog').style.width = Math.min(100, 100 * e / total) + '%';
@@ -227,11 +271,23 @@
   function wireSession(p) {
     $$('#c-len [data-len]').forEach(function (b) { b.onclick = function () {
       pick = { id: p.id, m: +b.dataset.len };
+      if (p.path) { S.settings.sitMinutes = pick.m; save(); } // a sit length is kept for next time
       $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
       $('#c-pp').textContent = '▶ Begin · ' + pick.m + ' min';
     }; });
     $$('#c-before [data-r]').forEach(function (b) { b.onclick = function () { run = run || { p: p }; run.before = +b.dataset.r; $$('#c-before [data-r]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
-    var after = null;
+    var after = null, hind = [];
+    $$('#c-focus [data-f]').forEach(function (b) { b.onclick = function () {
+      var f = +b.dataset.f, on = b.getAttribute('aria-pressed') === 'true';
+      $$('#c-focus [data-f]').forEach(function (x) { x.setAttribute('aria-pressed', !on && x === b); });
+      if (run && run.done && run.rec) { K.rateSit(run.rec, on ? null : f); run.rec.rated = new Date().toISOString(); save(); }
+    }; });
+    $$('#c-hind [data-h]').forEach(function (b) { b.onclick = function () {
+      var v = b.dataset.h, i = hind.indexOf(v);
+      if (i >= 0) hind.splice(i, 1); else hind.push(v);
+      if (run && run.done && run.rec) { K.rateSit(run.rec, undefined, hind); hind = (run.rec.hind || []).slice(); run.rec.rated = new Date().toISOString(); save(); }
+      $$('#c-hind [data-h]').forEach(function (x) { x.setAttribute('aria-pressed', hind.indexOf(x.dataset.h) >= 0); });
+    }; });
     $$('#c-after-r [data-r]').forEach(function (b) { b.onclick = function () {
       after = +b.dataset.r;
       $$('#c-after-r [data-r]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
@@ -289,6 +345,8 @@
     $$('[data-min]').forEach(function (b) { b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route([]); }; });
     $('#cv').onclick = function () { S.settings.voice = !S.settings.voice; save(); route([]); };
     $('#ctk').onclick = function () { S.settings.tick = !S.settings.tick; save(); route([]); };
+    $$('[data-aim]').forEach(function (b) { b.onclick = function () { S.settings.aim = b.dataset.aim; save(); route([]); }; });
+    $$('[data-stage]').forEach(function (b) { b.onclick = function () { K.setStage(S, b.dataset.stage); save(); WL.toast('Your stage: ' + titleOf(K.stageOf(S))); route([]); }; });
   }
 
   function card() {

@@ -171,4 +171,21 @@ t('collect: sorts mixed timezone offsets strictly chronologically (timestamp ord
   const ev = A.collect({ 'fc.v1': fc }, {}, now).filter((e) => e.part === 'faith' && e.kind === 'journal');
   assert.deepStrictEqual(ev.map((e) => e.id), ['faith/j/earlier', 'faith/j/later']);
 });
+t('a meditation-path sit carries attention and obstacles (new id when answered later); the Calm aim goes once a day', () => {
+  const c = CK.defaults();
+  const r = CK.record(c, 'count', 20, null, null, at(6));
+  assert.deepStrictEqual(A.collect({ 'wl.calm.v1': c }, {}, now).map((e) => e.kind), ['session'], 'no aim chosen: no aim event');
+  const id0 = A.collect({ 'wl.calm.v1': c }, {}, now)[0].id;
+  CK.rateSit(r, 2, ['Sleepy']); r.rated = at(6, 30).toISOString();
+  c.settings.aim = 'train'; c.settings.stage = 'follow';
+  const ev = A.collect({ 'wl.calm.v1': c }, {}, now);
+  const s1 = ev.find((e) => e.kind === 'session'), aim = ev.find((e) => e.kind === 'target');
+  assert.strictEqual(s1.id, id0 + '/e' + Date.parse(r.rated));
+  assert.deepStrictEqual([s1.data.focus, s1.data.hind], [2, ['Sleepy']]);
+  assert.deepStrictEqual([aim.id, aim.part, aim.data], ['calm/aim/2026-11-19/train/follow', 'calm', { aim: 'train', stage: 'follow' }]);
+  assert.ok(/attention some steady stretches \(Sleepy\)/.test(A.describe(s1)), A.describe(s1));
+  assert.ok(/meditation path, stage follow/.test(A.describe(aim)), A.describe(aim));
+  c.settings.aim = 'calm';
+  assert.deepStrictEqual(A.collect({ 'wl.calm.v1': c }, {}, now).find((e) => e.kind === 'target').data, { aim: 'calm', stage: null });
+});
 console.log(n + ' activity tests passed');

@@ -78,9 +78,9 @@
 
   function logHtml(P) {
     var all = pc.events(), unsent = A.unsent(all, P.sent).length;
-    // the daily "workouts a week" setting: listed once (the newest), not every day
-    var tg = all.filter(function (e) { return e.kind === 'target'; }).pop();
-    var shown = all.filter(function (e) { return e.kind !== 'target' || e === tg; }).reverse(), list = shown.slice(0, showAll ? 300 : 30);
+    // daily settings (Move's workouts a week, what Calm is for): each listed once (its newest), not every day
+    var tg = {}; all.forEach(function (e) { if (e.kind === 'target') tg[e.part] = e; });
+    var shown = all.filter(function (e) { return e.kind !== 'target' || tg[e.part] === e; }).reverse(), list = shown.slice(0, showAll ? 300 : 30);
     return '<div class="card ui"><h3>What gets logged</h3>' +
       '<p class="meta">' + all.length + ' things from the last ' + A.MAX_DAYS + ' days; ' + unsent + ' not sent yet. Faith days, guided prayers and practices, ' +
       'calm sessions with your stress ratings, every workout set, Tagalog lessons, answers and reviews, to-dos and parenting practice.</p>' +

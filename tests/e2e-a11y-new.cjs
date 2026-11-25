@@ -566,6 +566,38 @@ const W = require('./lib/web.cjs');
       await t.noOverflow(['#calm']);
     });
   }
+  // Calm's meditation path: the aim card, the path card (status, tip, move on, stages), a sit's start and after chips
+  for (const [ts, theme] of [[1, 'light'], [1.3, 'light'], [1, 'dark'], [1, 'night']]) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step('meditation path at ' + ts + 'x ' + theme + ': targets, overflow, contrast', async () => {
+      await look(ts, theme); await seed();
+      const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
+      await page.clock.setSystemTime(new Date(2026, 10, 25, 19, 0));
+      await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1') || '{"sessions":[]}'); c.settings = Object.assign(c.settings || {}, { aim: null }); localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
+      await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-aim');
+      assert.deepStrictEqual(await small('#c-aim [data-aim], #c-aim-set [data-aim]'), []);
+      assert.deepStrictEqual(await bad('#c-aim'), [], theme + ' #c-aim');
+      await t.noOverflow(['#calm']);
+      await page.evaluate(() => {
+        const c = JSON.parse(localStorage.getItem('wl.calm.v1'));
+        c.settings.aim = 'train'; c.settings.stage = 'count';
+        for (let d = 18; d <= 23; d++) c.sessions.push({ id: 'count', date: '2026-11-' + d, at: new Date(2026, 10, d, 21).toISOString(), mins: 20, focus: 3, hind: d === 23 ? ['Restless'] : ['Nothing much'] });
+        localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+      });
+      await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-path-ready'); await page.waitForSelector('#c-path-tip');
+      assert.deepStrictEqual(await small('#c-path summary, #c-path [data-stage], #c-stages a, #c-today a.btn'), []);
+      assert.deepStrictEqual(await bad('#c-path'), [], theme + ' #c-path');
+      assert.deepStrictEqual(await bad('#c-today'), [], theme + ' #c-today (path)');
+      await t.noOverflow(['#calm']);
+      await page.goto(base + '#calm/s/open'); await page.waitForSelector('#c-len');
+      assert.deepStrictEqual(await small('#c-len [data-len], #c-pp'), []);
+      await t.noOverflow(['#calm/s/open']);
+      await page.evaluate(() => { document.getElementById('c-after').hidden = false; });
+      assert.deepStrictEqual(await small('#c-focus [data-f], #c-hind [data-h], #c-save'), []);
+      assert.deepStrictEqual(await bad('#c-after'), [], theme + ' #c-focus/#c-hind');
+      const o = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); assert.ok(o <= 2, 'sit questions overflow ' + o);
+    });
+  }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y of new UI');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

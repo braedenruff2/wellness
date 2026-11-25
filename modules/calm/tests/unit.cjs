@@ -96,7 +96,8 @@ t('every practice done today: still suggests something (no crash)', () => {
   assert.ok(K.PRACTICES.some((p) => p.id === K.suggest(s, new Date(2026, 10, 19, 3))));
 });
 t('guided wording changes each time through; timing stays the same', () => {
-  for (const p of K.PRACTICES.filter((x) => x.kind === 'guided')) {
+  // the meditation path's sits keep the same words: the instructions are the technique being practised
+  for (const p of K.PRACTICES.filter((x) => x.kind === 'guided' && !x.path)) {
     const v = K.VARIANTS[p.id];
     assert.ok(v, p.id + ' has other wordings');
     assert.strictEqual(v.length, p.steps.length, p.id);
@@ -246,5 +247,80 @@ t('stressByPractice: average stress change per practice (both ratings only), bes
     { id: 'slow', avgChange: 1, n: 1 }
   ]);
   assert.strictEqual(K.stressByPractice(s)[0].id, 'walk', 'unbounded includes all rated sessions');
+});
+t('meditation path: five stages in order, long sits with sparse words, scaled to 10-30 min', () => {
+  const G = require('../../../app/www/lib/guided.js');
+  assert.deepStrictEqual(K.PATH, ['count', 'follow', 'note', 'change', 'open']);
+  for (const id of K.PATH) {
+    const p = K.PRACTICES.find((q) => q.id === id);
+    assert.strictEqual(p.kind, 'guided'); assert.ok(p.blurb && p.when.startsWith('Stage ' + p.path + ':'));
+    for (const m of K.SIT_LENGTHS) {
+      const len = G.scriptLength(G.scaleScript(K.scriptFor(p, 0), m, 0.9), 0.9);
+      assert.ok(Math.abs(len - m * 60) < 45, id + ' ' + m + ' min -> ' + len + ' s');
+    }
+    // sparse: at 20 min no stretch of talk-free time under 2 minutes in the middle of the sit
+    const sc = G.scaleScript(K.scriptFor(p, 0), 20, 0.9);
+    assert.ok(sc.slice(3, -2).every((x) => x.wait >= 120), id + ' waits ' + sc.map((x) => x.wait));
+  }
+});
+t('meditation path: stage, readiness after 6 sits with 3 of the last 5 steady, never past the last stage', () => {
+  const s = K.defaults();
+  assert.strictEqual(K.stageOf(s), 'count');
+  let st = K.pathStatus(s);
+  assert.deepStrictEqual([st.n, st.of, st.sits, st.ready, st.next, st.prev], [1, 5, 0, false, 'follow', null]);
+  const sit = (id, d, focus, hind) => K.rateSit(K.record(s, id, 20, null, null, new Date(2026, 10, d, 21)), focus, hind);
+  sit('count', 1, 3); sit('count', 2, 3); sit('count', 3, 3); sit('count', 4, 1); sit('count', 5, 2);
+  st = K.pathStatus(s);
+  assert.strictEqual(st.sits, 5); assert.strictEqual(st.steady, 3); assert.strictEqual(st.ready, false, '5 sits is not yet 6');
+  sit('count', 6, 1, ['Sleepy']);
+  st = K.pathStatus(s);
+  assert.strictEqual(st.rated, 5); assert.strictEqual(st.steady, 2, 'the oldest steady one fell out of the last 5'); assert.strictEqual(st.ready, false);
+  assert.ok(/sleepy/i.test(st.tip), 'a tip from the last sit');
+  sit('count', 7, 3, ['Nothing much']); sit('count', 8, 3);
+  st = K.pathStatus(s);
+  assert.strictEqual(st.steady, 2, 'last 5: 1, 2, 1, 3, 3'); assert.strictEqual(st.ready, false); assert.strictEqual(st.tip, null);
+  sit('count', 9, 3);
+  st = K.pathStatus(s);
+  assert.strictEqual(st.steady, 3); assert.strictEqual(st.ready, true);
+  assert.strictEqual(K.pathStatus(s, new Date(2026, 10, 5, 12)).sits, 5, 'an earlier day does not count later sits');
+  assert.strictEqual(K.setStage(s, 'follow'), 'follow');
+  assert.strictEqual(K.pathStatus(s).sits, 0); assert.strictEqual(K.pathStatus(s).prev, 'count');
+  assert.strictEqual(K.setStage(s, 'nope'), 'follow', 'unknown ids are ignored');
+  K.setStage(s, 'open'); st = K.pathStatus(s);
+  assert.strictEqual(st.next, null); assert.strictEqual(st.ready, false);
+});
+t('rateSit: focus 1-3 (null clears), hindrances known and unique, "Nothing much" alone', () => {
+  const r = {};
+  K.rateSit(r, 2, ['Sleepy', 'Sleepy', 'Bored', 'Restless']);
+  assert.deepStrictEqual(r, { focus: 2, hind: ['Sleepy', 'Restless'] });
+  K.rateSit(r, 7, ['Sleepy', 'Nothing much']); assert.deepStrictEqual(r.hind, ['Nothing much'], 'tapping Nothing much last clears the rest'); assert.strictEqual(r.focus, 2, '7 ignored');
+  K.rateSit(r, undefined, ['Nothing much', 'Restless']); assert.deepStrictEqual(r.hind, ['Restless']);
+  K.rateSit(r, null, []); assert.deepStrictEqual(r, {});
+});
+t('aim "train": the stage sit leads once a day from 05:00; after a night wake and once done, the usual practices', () => {
+  const s = K.defaults();
+  assert.strictEqual(K.suggest(s, new Date(2026, 10, 18, 20)), 'sigh', 'no aim: unchanged');
+  s.settings.aim = 'calm';
+  assert.notStrictEqual(K.PATH.indexOf(K.suggest(s, new Date(2026, 10, 18, 20), {})), 0);
+  s.settings.aim = 'train'; s.settings.stage = 'note';
+  assert.strictEqual(K.suggest(s, new Date(2026, 10, 18, 7)), 'note');
+  assert.strictEqual(K.suggest(s, new Date(2026, 10, 18, 22, 30)), 'note');
+  assert.ok(K.PATH.indexOf(K.suggest(s, new Date(2026, 10, 18, 2))) < 0, 'after a night wake: not a 20-min sit');
+  K.record(s, 'count', 20, null, null, new Date(2026, 10, 18, 8));
+  assert.ok(K.PATH.indexOf(K.suggest(s, new Date(2026, 10, 18, 20))) < 0, 'a sit is done today');
+  assert.strictEqual(K.suggest(s, new Date(2026, 10, 19, 20)), 'note', 'next day');
+});
+t('validate keeps aim, stage, sit length and sit answers; drops junk', () => {
+  const v = K.validate({ sessions: [
+    { id: 'count', date: '2026-11-20', at: '2026-11-20T01:00:00.000Z', mins: 20, focus: 3, hind: ['Sleepy', 'x'] },
+    { id: 'slow', date: '2026-11-20', at: '2026-11-20T02:00:00.000Z', mins: 5, focus: 3, hind: ['Sleepy'] },
+    { id: 'open', date: '2026-11-21', at: '2026-11-21T02:00:00.000Z', mins: 20, focus: 9 }
+  ], settings: { aim: 'train', stage: 'change', sitMinutes: 30 } });
+  assert.deepStrictEqual([v.sessions[0].focus, v.sessions[0].hind], [3, ['Sleepy']]);
+  assert.ok(!('focus' in v.sessions[1]) && !('hind' in v.sessions[1]), 'only path sits keep sit answers');
+  assert.ok(!('focus' in v.sessions[2]));
+  assert.deepStrictEqual([v.settings.aim, v.settings.stage, v.settings.sitMinutes], ['train', 'change', 30]);
+  const w = K.validate({ sessions: [], settings: { aim: 'zen', stage: 'x', sitMinutes: 7 } });
+  assert.deepStrictEqual([w.settings.aim, w.settings.stage, w.settings.sitMinutes], [null, 'count', 20]);
 });
 console.log(n + ' calm unit tests passed');

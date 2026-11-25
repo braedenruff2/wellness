@@ -328,6 +328,17 @@ req("POST", "/v1/activity", {"events": [fbx("a", 1, "ground@1", "A bit"), fbx("b
                                         fbx("d", 4, "ground@4", None), fbx("e", 5, "ground@5", "Not really")]}, token=token)
 cline = [l for l in W.summarize(7).splitlines() if l.startswith("- calm:")][0]
 check("summary: calm helped per practice and a 'Not really' run", "helped (his answers): ground 1 of 3, sigh 0 of 1" in cline and "the last 3 said \"Not really\" in a row" in cline, cline)
+# meditation-path sits (attention 1-3, what got in the way) and what Calm is for (the last aim sent wins; not an active day)
+sit = lambda i, h, pid, f, hind: {"id": "calm/" + today + "T%02d:00:00-04:00/" % h + pid + "/e" + str(i), "at": today + "T%02d:00:00-04:00" % h, "part": "calm", "kind": "session",
+                                   "data": {"practice": pid, "mins": 20, "before": None, "after": None, "focus": f, "hind": hind}}
+req("POST", "/v1/activity", {"events": [sit(1, 6, "count", 3, ["Nothing much"]), sit(2, 7, "count", 1, ["Sleepy"]), sit(3, 9, "follow", 3, ["Sleepy", "Restless"]),
+    {"id": "calm/aim/" + (datetime.date.today() - datetime.timedelta(days=1)).isoformat() + "/calm/", "at": (datetime.date.today() - datetime.timedelta(days=1)).isoformat() + "T12:00:00-04:00", "part": "calm", "kind": "target", "data": {"aim": "calm", "stage": None}},
+    {"id": "calm/aim/" + today + "/train/follow", "at": today + "T12:00:00-04:00", "part": "calm", "kind": "target", "data": {"aim": "train", "stage": "follow"}}]}, token=token)
+cline = [l for l in W.summarize(7).splitlines() if l.startswith("- calm:")][0]
+check("summary: meditation-path sits per stage, attention, obstacles", "meditation-path sits: count 2, follow 1" in cline
+      and "attention mostly steady in 2 of 3 rated sits (1 mostly lost in thought)" in cline and "got in the way: Sleepy 2, Restless 1" in cline, cline)
+check("summary: Calm aim (the newest wins)", "he uses Calm to train the mind (the meditation path, now at stage follow)" in cline, cline)
+check("prompts: the weekly plan follows his meditation path", "put his current stage's id in calm.prefer" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", "weekly-plan.md"), encoding="utf-8").read())
 check("summary: workout sets", "Push-ups: 18, 17" in summ, summ)
 check("summary: tagalog misses", "1/2 right" in summ and "salamat" in summ, summ)
 check("summary: todo", "call Mom" in summ, summ)
