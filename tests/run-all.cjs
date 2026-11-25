@@ -20,6 +20,7 @@ for (const m of fs.readdirSync(path.join(ROOT, 'modules')).sort()) {
       if (f.startsWith('unit')) {
         suites.push([name + ' (New York time)', file, null, { TZ: 'America/New_York' }]);
         suites.push([name + ' (Manila time)', file, null, { TZ: 'Asia/Manila' }]);
+        suites.push([name + ' (Halifax time)', file, null, { TZ: 'America/Halifax' }]); // the owner's zone (DST ends early Nov)
       }
     }
   }
