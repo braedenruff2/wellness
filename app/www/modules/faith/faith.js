@@ -497,6 +497,12 @@
       var add = function () { if (C.addPrayer(S, inp.value, logNow())) { save(); route(); toast('Added'); } else inp.focus(); };
       el.onclick = add; inp.onkeydown = function (ev) { if (ev.key === 'Enter') add(); };
     } });
+    function routeKeepPrayerSearch() {
+      var q = $('#p-search') ? $('#p-search').value : '';
+      route();
+      var ps = $('#p-search');
+      if (q && ps) { ps.value = q; ps.oninput(); }
+    }
     [].forEach.call(document.querySelectorAll('.answered'), function (b) {
       b.onclick = function () {
         // an inline note, not window.prompt (a bright system dialog in the app, and Cancel still marked it answered)
@@ -508,7 +514,7 @@
         var inp = f.querySelector('.ans-note'); inp.focus();
         var done = function () {
           var p = S.prayers.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!p) return;
-          p.answered = logNow().toISOString(); p.note = inp.value.trim(); save(); route();
+          p.answered = logNow().toISOString(); p.note = inp.value.trim(); save(); routeKeepPrayerSearch();
         };
         var cancel = function () { f.remove(); row.style.display = ''; if (b.isConnected) b.focus(); };
         f.querySelector('.ans-save').onclick = done;
@@ -532,12 +538,12 @@
     [].forEach.call(document.querySelectorAll('.p-undo'), function (b) {
       b.onclick = function () {
         var p = S.prayers.filter(function (x) { return x.id === b.dataset.id; })[0]; if (!p) return;
-        p.answered = null; p.note = ''; save(); route(); toast('Moved back to praying');
+        p.answered = null; p.note = ''; save(); routeKeepPrayerSearch(); toast('Moved back to praying');
       };
     });
     [].forEach.call(document.querySelectorAll('.pdel'), function (b) {
       b.onclick = function () {
-        if (b.dataset.armed) { S.prayers = S.prayers.filter(function (x) { return x.id !== b.dataset.id; }); save(); route(); return; }
+        if (b.dataset.armed) { S.prayers = S.prayers.filter(function (x) { return x.id !== b.dataset.id; }); save(); routeKeepPrayerSearch(); return; }
         b.dataset.armed = 1; b.textContent = 'Tap again';
         setTimeout(function () { if (b.isConnected) { delete b.dataset.armed; b.textContent = 'Delete'; } }, 4000);
       };

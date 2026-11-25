@@ -359,6 +359,31 @@ async function step(name, f) { console.log('..', name); await f(); passed++; con
     assert.strictEqual(await page.locator('.p-list > li:not([hidden])').count(), 6);
     assert.strictEqual(await page.locator('#p-open-card').isHidden(), false, 'Praying for card reappears when search cleared');
     assert.strictEqual(await page.locator('#p-ans-card').isHidden(), false, 'Looking back card reappears when search cleared');
+    // #p-search is preserved across marking answered, undoing answered, and deleting a prayer
+    await page.fill('#new-prayer', 'Extra prayer for search'); await page.press('#new-prayer', 'Enter'); // 7 prayers total
+    await page.fill('#p-search', 'church');
+    assert.strictEqual(await page.locator('#p-open-card .p-list > li:not([hidden])').count(), 1);
+    await page.locator('#p-open-card .p-list > li:not([hidden]) .answered').click();
+    await page.fill('.ans-note', 'Warm welcome');
+    await page.click('.ans-save');
+    assert.strictEqual(await page.inputValue('#p-search'), 'church', 'search preserved after marking answered');
+    assert.strictEqual(await page.locator('#p-open-card').isHidden(), true, 'Praying for hides once matching prayer moved to answered');
+    assert.strictEqual(await page.locator('#p-ans-card').isHidden(), false, 'Looking back shows newly answered match');
+    assert.strictEqual(await page.locator('#p-ans-card .p-list > li:not([hidden])').count(), 1);
+    assert.ok(/1 found/.test(await page.textContent('#p-found')));
+    await page.locator('#p-ans-card .p-list > li:not([hidden]) .p-undo').click();
+    assert.strictEqual(await page.inputValue('#p-search'), 'church', 'search preserved after undo answered');
+    assert.strictEqual(await page.locator('#p-open-card').isHidden(), false, 'Praying for reappears after undo');
+    assert.strictEqual(await page.locator('#p-ans-card').isHidden(), true, 'Looking back hides after undo');
+    assert.strictEqual(await page.locator('#p-open-card .p-list > li:not([hidden])').count(), 1);
+    const churchDel = page.locator('#p-open-card .p-list > li:not([hidden]) .pdel');
+    await churchDel.click(); await churchDel.click();
+    assert.strictEqual(await page.inputValue('#p-search'), 'church', 'search preserved after deleting prayer');
+    assert.ok(/0 found/.test(await page.textContent('#p-found')));
+    assert.strictEqual(await page.locator('#p-open-card').isHidden(), true, 'Praying for hides on 0 hits after delete');
+    assert.strictEqual(await page.locator('#p-ans-card').isHidden(), true, 'Looking back hides on 0 hits after delete');
+    await page.fill('#p-search', '');
+    assert.strictEqual(await page.locator('.p-list > li:not([hidden])').count(), 6);
   });
 
   await step('settings: night theme, text size; auto turns night on at 9pm', async () => {
