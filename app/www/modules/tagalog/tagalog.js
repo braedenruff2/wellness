@@ -28,7 +28,7 @@
   }
   function packs() { return T.allPacks(S, window.TL_PACKS || []).map(personal); }
   function findLesson(pid, day) { var p = packs().filter(function (x) { return x.id === pid; })[0]; return p ? { pack: p, lesson: p.lessons.filter(function (l) { return l.day === day; })[0] } : null; }
-  function say(text) { stopPlayback(); WL.speech.speak(text, null, { lang: 'fil-PH', rate: S.settings && S.settings.slow ? 0.8 : 1 }); }
+  function say(text, rate) { stopPlayback(); WL.speech.speak(text, null, { lang: 'fil-PH', rate: rate || (S.settings && S.settings.slow ? 0.8 : 1) }); }
   function hear(t) { return '<button class="link small hear" data-say="' + esc(t) + '" aria-label="Hear it">🔊</button>'; }
 
   function subnav(tab) {
@@ -108,7 +108,7 @@
       return '<li class="row"><span class="grow"><b lang="tl">' + esc(w.tl) + '</b><br><span class="meta ui">' + esc(w.en) + '</span></span>' + hear(w.tl) + '</li>';
     }).join('') + '</ul></div>';
     if (l.dialogue && l.dialogue.length) h += '<div class="card"><h2>Conversation</h2><div class="row ui"><button class="chip" id="tl-play">▶ Play all</button><button class="chip" id="tl-en" aria-pressed="true">English</button></div><ul class="list dlg">' + l.dialogue.map(function (d) {
-      return '<li class="row"><span class="grow"><span class="meta ui">' + esc(d.who) + '</span><br><span lang="tl">' + esc(d.tl) + '</span><br><span class="meta en">' + esc(d.en) + '</span></span>' + hear(d.tl) + '</li>';
+      return '<li class="row"><span class="grow"><span class="meta ui">' + esc(d.who) + '</span><br><span lang="tl">' + esc(d.tl) + '</span><br><span class="meta en">' + esc(d.en) + '</span></span>' + hear(d.tl) + '<button class="link small hear" data-say-slow="' + esc(d.tl) + '" aria-label="Hear it slowly">🐢</button></li>';
     }).join('') + '</ul></div>';
     if (l.grammar) h += '<div class="card"><h2>' + esc(l.grammar.title) + '</h2><p>' + esc(l.grammar.explain) + '</p>' + (l.grammar.examples || []).map(function (x) {
       return '<p class="row"><span class="grow"><b lang="tl">' + esc(x.tl) + '</b><br><span class="meta ui">' + esc(x.en) + '</span></span>' + hear(x.tl) + '</p>';
@@ -340,7 +340,11 @@
     }).catch(function (e) { if (manual) WL.toast('Couldn’t reach the lessons (' + e.message + ')'); return 0; });
   }
 
-  function wireHear(el) { $$('[data-say]', el).forEach(function (b) { b.onclick = function () { say(b.dataset.say); }; }); }
+  function wireHear(el) {
+    $$('[data-say]', el).forEach(function (b) { b.onclick = function () { say(b.dataset.say); }; });
+    // 🐢 on conversation lines: that one line much slower, whatever the voice setting
+    $$('[data-say-slow]', el).forEach(function (b) { b.onclick = function () { say(b.dataset.saySlow, 0.6); }; });
+  }
 
   function route(parts, v) {
     if (v) view = v;

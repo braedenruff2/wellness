@@ -433,6 +433,16 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.strictEqual(after.cards.ngayon.due, '2099-01-01'); assert.strictEqual(after.cards.ngayon.seen, 5); assert.deepStrictEqual(after.reviews, []);
     await page.evaluate((raw) => { localStorage.setItem('wl.tagalog.v1', raw); window.WL.modules.tagalog.reload(); }, saved);
   });
+  await t.step('🐢 on a conversation line says just that line slowly (0.6), the 🔊 keeps the usual speed', async () => {
+    await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/l/2026-11-18/1');
+    await page.evaluate(() => { window.__rates = []; const sp = window.WL.speech.speak; window.WL.speech.speak = function (t, cb, o) { window.__rates.push([t, o && o.rate]); return sp.apply(this, arguments); }; });
+    const line = await page.getAttribute('.dlg [data-say-slow]', 'data-say-slow');
+    await page.click('.dlg [data-say-slow]');
+    await page.click('.dlg [data-say]');
+    const r = await page.evaluate(() => window.__rates);
+    assert.deepStrictEqual(r[0], [line, 0.6]);
+    assert.strictEqual(r[1][0], line); assert.notStrictEqual(r[1][1], 0.6);
+  });
   await t.step('no overflow, no errors', async () => {
     await page.evaluate(() => { window.__voiceState.tagalogVoice = 'missing'; });
     await t.noOverflow(['#tagalog', '#tagalog/l/2026-11-18/3', '#tagalog/review', '#tagalog/practice', '#tagalog/settings', '#tagalog/words', '#settings/voice', '#home']);
