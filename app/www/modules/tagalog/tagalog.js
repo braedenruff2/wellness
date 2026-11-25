@@ -7,7 +7,15 @@
   var S = store.load(), view = null, playTok = 0, playTimer = null, reviewKey = null;
   function save() { store.save(S); }
   function clearReviewKey() { if (reviewKey) { document.removeEventListener('keydown', reviewKey); reviewKey = null; } }
-  function stopAudio() { playTok++; clearTimeout(playTimer); playTimer = null; WL.speech.stop(); clearReviewKey(); }
+  function stopPlayback() {
+    playTok++; clearTimeout(playTimer); playTimer = null;
+    var wkBtn = $('#tl-walk');
+    if (wkBtn && wkBtn.getAttribute('aria-pressed') === 'true') {
+      wkBtn.setAttribute('aria-pressed', 'false');
+      wkBtn.textContent = '🎧 Listen while walking';
+    }
+  }
+  function stopAudio() { stopPlayback(); WL.speech.stop(); clearReviewKey(); }
   /* Lessons say {child}; the phone fills in her name from Parenting setup, or "Baby" (lib/personal.js). */
   var P = window.WLPersonal, filled = typeof WeakMap === 'function' ? new WeakMap() : null, filledFor = null;
   function personal(p) {
@@ -20,7 +28,7 @@
   }
   function packs() { return T.allPacks(S, window.TL_PACKS || []).map(personal); }
   function findLesson(pid, day) { var p = packs().filter(function (x) { return x.id === pid; })[0]; return p ? { pack: p, lesson: p.lessons.filter(function (l) { return l.day === day; })[0] } : null; }
-  function say(text) { WL.speech.speak(text, null, { lang: 'fil-PH', rate: S.settings && S.settings.slow ? 0.8 : 1 }); }
+  function say(text) { stopPlayback(); WL.speech.speak(text, null, { lang: 'fil-PH', rate: S.settings && S.settings.slow ? 0.8 : 1 }); }
   function hear(t) { return '<button class="link small hear" data-say="' + esc(t) + '" aria-label="Hear it">🔊</button>'; }
 
   function subnav(tab) {
@@ -328,7 +336,6 @@
         var en = $('#tl-en'); if (en) en.onclick = function () { var on = en.getAttribute('aria-pressed') !== 'true'; en.setAttribute('aria-pressed', on); $$('.dlg .en').forEach(function (x) { x.hidden = !on; }); };
         var pl = $('#tl-play'); if (pl) pl.onclick = function () {
           stopAudio();
-          var wkBtn = $('#tl-walk'); if (wkBtn && wkBtn.getAttribute('aria-pressed') === 'true') { wkBtn.setAttribute('aria-pressed', 'false'); wkBtn.textContent = '🎧 Listen while walking'; }
           var tok = playTok, here = location.hash, lines = f.lesson.dialogue.map(function (d) { return d.tl; }), k = 0;
           (function next() {
             if (tok !== playTok || location.hash !== here || k >= lines.length) return;

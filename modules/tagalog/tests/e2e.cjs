@@ -300,13 +300,19 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     const spoken = await page.evaluate(() => window.__spoken.map((x) => x.text));
     // Run #1 spoke item 0; run #2 spoke item 0 + item 1 (3 total, NOT 4 from overlapping timers)
     assert.strictEqual(spoken.length, 3, 'no overlapping walk loop after quick stop/restart: ' + JSON.stringify(spoken));
-    // Leaving the lesson cancels speech immediately and prevents any later scheduled lines
+    // Tapping a single-word hear button stops Listen while walking cleanly and resets the toggle
+    await page.locator('[data-say]').first().click();
+    assert.strictEqual(await page.getAttribute('#tl-walk', 'aria-pressed'), 'false', 'hear button resets #tl-walk toggle');
+    await page.clock.runFor(4000);
+    assert.strictEqual((await page.evaluate(() => window.__spoken.length)), 4, 'walk loop stopped after tapping a hear button');
+    // Restart walk and verify leaving the lesson cancels speech immediately and prevents any later scheduled lines
+    await page.click('#tl-walk');
     const cancelsBefore = await page.evaluate(() => window.__cancels || 0);
     await page.goto(base + '#home');
     await page.clock.runFor(4000);
     const afterLeave = await page.evaluate(() => ({ c: window.__cancels || 0, n: window.__spoken.length }));
     assert.ok(afterLeave.c > cancelsBefore, 'leave() cancelled speech');
-    assert.strictEqual(afterLeave.n, 3, 'no speech fired after leaving lesson');
+    assert.strictEqual(afterLeave.n, 5, 'no speech fired after leaving lesson');
   });
   await t.step('Your words search filters Tagalog and English across Hard ones and All the others when 10+ words met', async () => {
     await page.evaluate(() => {
