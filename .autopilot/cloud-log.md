@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-25 16:10-17:00 AST (same run, continued as run2; APK 0.1.20261125.1901, real key)
+- Done 118 (🐢 slow conversation line), 111 (after 5+ "Not really", the daytime suggestion is the mindful walk), 119 (a11y checks for today's UI: all pass), 125 (shuffle explainer until done once), 121 (advice/plan summary: which Calm practices helped, "Not really" run). Dropped 115 and 117 (already in the app). Added 119-125.
+- Tested: full suite (67 suites, none skipped) at d06a704 and at 23f0c74 (this APK's code).
+- Check on the phone: Calm after 9 pm shows "New: a slow game of picturing..." on the shuffle card; Tagalog conversation lines have a 🐢 button.
+
 ## 2026-11-25 15:45-16:10 AST (same run, continued; APK 0.1.20261125.1850, real key)
 - Done 107 (guard: fake next-week ids must be 2090+; another Claude run had claimed 107 at 18:43 UTC without pushing work, this one finished it: drop that claim), 110 (linker hint), 112 (Halifax-time unit runs: 67 suites), 113 (review example sentence), 114 (Your words: right N of M, Practise these). 116 dropped (brokennights exists). Added 114-118.
 - Tested: full suite at the same code (a90e315 before rebasing onto the claim commit), 67 suites, none skipped.
