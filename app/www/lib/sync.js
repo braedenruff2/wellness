@@ -7,7 +7,7 @@
   var C = window.WLSyncCore;
   var store = WL.store('wl.sync.v1', C.defaults);
   var S = C.validate(store.load());
-  var cbs = {}, seq = 0, inFlight = null, pendingResync = null;
+  var cbs = {}, seq = 0, inFlight = null, pendingResync = null, gen = 0, answersGen = 0;
   var stateListeners = [], answerListeners = [], restoreListeners = [], reqProvider = null;
 
   function nat() {
@@ -118,6 +118,7 @@
   }
 
   function forgetAnswers() {
+    answersGen++;
     var x = nat();
     S.answersError = null; store.save(S);
     if (x && x.syncForgetAnswers) x.syncForgetAnswers();
@@ -125,6 +126,7 @@
   }
 
   function forget() {
+    gen++; answersGen++;
     var x = nat();
     S.lastSync = null; S.lastAuto = null; S.lastError = null; S.answersError = null; store.save(S);
     if (x && x.syncForget) x.syncForget();
@@ -151,30 +153,35 @@
     if (WL.modules) Object.keys(WL.modules).forEach(function (id) { var m = WL.modules[id]; if (m && m.saveNow) try { m.saveNow(); } catch (e) {} });
     if (opts.auto) { S.lastAuto = now.toISOString(); store.save(S); }
 
-    var fresh = [];
+    var fresh = [], myGen = gen, myAnsGen = answersGen;
     inFlight = Promise.resolve().then(function () {
       emitState();
       return callNative('syncRead');
     }).then(function (remoteText) {
+      if (myGen !== gen) return null;
       var m = C.mergeRemote(S, remoteText);
       fresh = m.fresh.slice();
       var x = nat();
-      if (!st.answersConfigured || !x || !x.syncReadAnswers) return null;
+      if (!st.answersConfigured || myAnsGen !== answersGen || !x || !x.syncReadAnswers) return null;
       return callNative('syncReadAnswers').then(function (ansText) {
+        if (myGen !== gen || myAnsGen !== answersGen) return;
         var m2 = C.mergeRemote(S, ansText);
         if (m2.fresh.length) fresh = fresh.concat(m2.fresh);
         S.answersError = null;
       }, function (ae) {
+        if (myGen !== gen || myAnsGen !== answersGen) return;
         // Keep syncing backup + outgoing requests even if Drive refuses answers-sheet export; show the error plainly in Settings.
         S.answersError = String((ae && ae.message) || ae || 'Could not read the answers sheet.').slice(0, 300);
       });
     }).then(function () {
+      if (myGen !== gen) return null;
       // save received answers and acked ids locally BEFORE writing back to Drive
       store.save(S);
       var backupObj = JSON.parse(WL.backupText());
       var payload = C.buildPayload(backupObj, S, new Date(), extraRequests());
       return callNative('syncWrite', payload);
     }).then(function () {
+      if (myGen !== gen) { inFlight = null; emitState(); return { ok: false, skipped: true }; }
       var doneAt = new Date().toISOString();
       S.lastSync = doneAt; S.lastAuto = doneAt; S.lastError = null;
       store.save(S);
@@ -183,6 +190,7 @@
       emitAnswers(fresh);
       return { ok: true, fresh: fresh, answersError: S.answersError || '' };
     }, function (e) {
+      if (myGen !== gen) { inFlight = null; emitState(); return { ok: false, skipped: true }; }
       S.lastError = String((e && e.message) || e || 'Google Drive sync failed.').slice(0, 300);
       store.save(S);
       inFlight = null;

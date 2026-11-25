@@ -448,6 +448,7 @@
     var n = $('#wl-sync-now'); if (n) n.onclick = function () {
       n.disabled = true; n.textContent = 'Syncing…';
       ds.sync({ auto: false }).then(function (r) {
+        if (r && r.skipped) return;
         toast(r && r.answersError ? 'Synced backup, but could not read the answers sheet' : 'Synced with Google Drive');
       }, function (e) { toast((e && e.message) || 'Sync failed'); });
     };

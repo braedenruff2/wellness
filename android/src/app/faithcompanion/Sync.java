@@ -572,11 +572,11 @@ final class Sync {
         ContentResolver cr = c.getContentResolver();
         try {
             String out = readAnswersStream(cr, u);
-            prefs(c).edit().putString("answersError", "").apply();
+            if (u.equals(savedAnswersUri(c))) prefs(c).edit().putString("answersError", "").apply();
             return out;
         } catch (Throwable t) {
             String msg = friendlyAnswersError(t);
-            prefs(c).edit().putString("answersError", msg).apply();
+            if (u.equals(savedAnswersUri(c))) prefs(c).edit().putString("answersError", msg).apply();
             throw new IOException(msg, t);
         }
     }
@@ -649,7 +649,7 @@ final class Sync {
             }
         } catch (Throwable t) {
             String msg = friendlyError(t, false);
-            prefs(c).edit().putString("error", msg).apply();
+            if (u.equals(savedUri(c))) prefs(c).edit().putString("error", msg).apply();
             throw new IOException(msg, t);
         } finally {
             busy = false;
@@ -674,17 +674,17 @@ final class Sync {
                     fos.getChannel().truncate(0);
                     writeStream(fos, text);
                 }
-                prefs(c).edit().putLong("lastSync", System.currentTimeMillis()).putString("error", "").apply();
+                if (u.equals(savedUri(c))) prefs(c).edit().putLong("lastSync", System.currentTimeMillis()).putString("error", "").apply();
                 return;
             }
             if (out == null) throw new UnsupportedOperationException("provider refused write stream");
             try (OutputStream o = out) {
                 writeStream(o, text);
             }
-            prefs(c).edit().putLong("lastSync", System.currentTimeMillis()).putString("error", "").apply();
+            if (u.equals(savedUri(c))) prefs(c).edit().putLong("lastSync", System.currentTimeMillis()).putString("error", "").apply();
         } catch (Throwable t) {
             String msg = friendlyError(t, true);
-            prefs(c).edit().putString("error", msg).apply();
+            if (u.equals(savedUri(c))) prefs(c).edit().putString("error", msg).apply();
             throw new IOException(msg, t);
         } finally {
             busy = false;

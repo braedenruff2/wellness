@@ -85,11 +85,13 @@ const FAKE_DRIVE = `
       syncWrite: function (id, text) {
         d.writes++;
         var finish = function () {
-          if (d.failWrite) { d.error = d.failWrite; window.FCSyncDone(id, false, d.failWrite); }
+          if (d.failWrite) { if (d.configured) d.error = d.failWrite; window.FCSyncDone(id, false, d.failWrite); }
           else {
-            d.content = text; d.lastSync = Date.now(); d.error = '';
-            ls('test.drive.content', text);
-            ls('test.drive.lastSync', String(d.lastSync));
+            if (d.configured) {
+              d.content = text; d.lastSync = Date.now(); d.error = '';
+              ls('test.drive.content', text);
+              ls('test.drive.lastSync', String(d.lastSync));
+            }
             window.FCSyncDone(id, true, '');
           }
         };
@@ -292,7 +294,13 @@ const FAKE_DRIVE = `
     assert.deepStrictEqual(small, []);
   });
 
-  await t.step('removing answers sheet and turning off Drive sync resets to unconfigured', async () => {
+  await t.step('turning off Drive sync while a write is in flight does not leave a stale error or lastSync behind', async () => {
+    await page.evaluate(() => {
+      window.__drive.holdWrite = true;
+      window.__drive.failWrite = 'Write failed after forget';
+      window.__pForget = WL.driveSync.sync({ auto: false });
+    });
+    await page.waitForFunction(() => typeof window.__drive.releaseWrite === 'function');
     await page.click('#wl-sync-ans-forget');
     await page.waitForFunction(() => !window.__drive.answersConfigured);
     assert.ok((await page.textContent('#wl-sync')).includes('Choose answers sheet'));
@@ -300,6 +308,17 @@ const FAKE_DRIVE = `
     assert.ok((await page.textContent('#wl-sync-forget')).includes('Tap again'));
     await page.click('#wl-sync-forget');
     await page.waitForFunction(() => !window.__drive.configured);
+    const res = await page.evaluate(async () => {
+      window.__drive.releaseWrite();
+      const r = await window.__pForget;
+      window.__drive.failWrite = null;
+      window.__drive.error = '';
+      return { r, st: WL.driveSync.status(), raw: JSON.parse(localStorage.getItem('wl.sync.v1')) };
+    });
+    assert.strictEqual(res.r.skipped, true, 'in-flight sync aborted cleanly after forget');
+    assert.strictEqual(res.raw.lastError, null, 'no stale lastError written after forget');
+    assert.strictEqual(res.raw.lastSync, null, 'no stale lastSync written after forget');
+    assert.strictEqual(!!(await page.$('#wl-sync-err')), false, 'unconfigured card shows no stale error');
     assert.ok((await page.textContent('#wl-sync')).includes('Choose Google Drive folder'));
   });
 
