@@ -286,7 +286,8 @@
         clearReviewKey();
         // the words he said "Not yet" to, once more with their sound (they come back tomorrow anyway)
         var miss = missed.filter(function (k, j) { return missed.indexOf(k) === j && S.cards[k]; });
-        el.innerHTML = (hard ? '<p class="ui"><b>Done.</b> ' + (due.length - missed.length) + ' of ' + due.length + ' got. They come back in reviews as usual.</p>' : '<p class="ui"><b>All done.</b> See you tomorrow.</p>') + (miss.length ? '<div id="tl-missed"><p class="meta ui">' + (hard ? 'Once more before you go:' : 'Once more before you go (they’re back tomorrow):') + '</p><ul class="list">' +
+        el.innerHTML = (hard ? '<p class="ui"><b>Done.</b> ' + (due.length - missed.length) + ' of ' + due.length + ' got. They come back in reviews as usual.</p>' : '<p class="ui"><b>All done.</b> See you tomorrow.</p>') +
+          (!hard && miss.length >= 3 ? '<p class="ui" id="tl-hard-link"><a class="link" href="#tagalog/review/hard">Practise your hard words now</a></p>' : '') + (miss.length ? '<div id="tl-missed"><p class="meta ui">' + (hard ? 'Once more before you go:' : 'Once more before you go (they’re back tomorrow):') + '</p><ul class="list">' +
           miss.map(function (k) { return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(S.cards[k].en) + '</span></span>' + hear(k) + '</li>'; }).join('') + '</ul></div>' : '') + (window.WLMe && due.length && !hard ? WLMe.askHtml('tagalog', 'review@' + new Date().toISOString().slice(0, 16), 'Quick question (optional): it shapes next week’s lessons', true) : '') + '<a class="btn" href="#tagalog">Back</a>';
         wireHear(el);
         return;

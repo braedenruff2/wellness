@@ -25,6 +25,14 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#tl-missed .hear');
     const sp = await page.evaluate(() => window.__spoken[window.__spoken.length - 1]);
     assert.deepStrictEqual(sp, { text: items[0], lang: 'fil-PH' });
+    assert.strictEqual(await page.$('#tl-hard-link'), null, 'two misses: no extra practice link');
+  });
+  await t.step('three "Not yet" -> a link to practise the hard words', async () => {
+    await seed(); await page.goto(base + '#tagalog/review'); await page.reload(); await page.waitForSelector('#tl-show');
+    for (let n = 0; n < 3; n++) { await reveal(); await page.click('#tl-no'); }
+    assert.strictEqual(await page.getAttribute('#tl-hard-link a', 'href'), '#tagalog/review/hard');
+    await page.click('#tl-hard-link a'); await page.waitForSelector('#tl-show');
+    assert.ok((await page.textContent('main')).includes('Practise hard words'));
   });
   await t.step('all "Got it" -> no list', async () => {
     await seed(); await page.goto(base + '#tagalog/review'); await page.reload(); await page.waitForSelector('#tl-show');
