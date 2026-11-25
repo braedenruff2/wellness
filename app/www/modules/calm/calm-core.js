@@ -305,6 +305,23 @@
      opts (from what he told the app, modules/me): score {id: n} (helped +, "not for me" -3), prefer [ids] from the
      weekly plan, tooLong {id: 1}, rough (bad night: short ones first). Practices he marked down (score <= -2) are
      left out while anything else fits; liked / planned ones come first. */
+  /* A weak signal from his own before/after stress ratings (1-5) on each practice's last 10 rated sessions (2+ needed):
+     on average 0.5+ calmer afterwards -> +1; never calmer, starting stressed (before 3+ on average) -> -1. */
+  function feltScores(state) {
+    var by = {}, out = {};
+    (state.sessions || []).forEach(function (x) {
+      if (typeof x.before === 'number' && typeof x.after === 'number') (by[x.id] = by[x.id] || []).push(x);
+    });
+    Object.keys(by).forEach(function (id) {
+      var l = by[id].slice().sort(function (a, b) { return (Date.parse(a.at) || 0) - (Date.parse(b.at) || 0); }).slice(-10);
+      var drop = 0, before = 0, any = false;
+      l.forEach(function (x) { drop += x.before - x.after; before += x.before; if (x.after < x.before) any = true; });
+      if (l.length < 2) return; // one rating says little
+      if (drop / l.length >= 0.5) out[id] = 1;
+      else if (!any && before / l.length >= 3) out[id] = -1;
+    });
+    return out;
+  }
   function suggest(state, now, opts) {
     now = now || new Date(); opts = opts || {};
     var h = now.getHours(), t = today(state, now), sc = opts.score || {}, pref = opts.prefer || [], long = opts.tooLong || {};
@@ -323,8 +340,9 @@
       if (!last[s.id] || (s.at || s.date) > last[s.id]) last[s.id] = s.at || s.date;
       if (s.date && (!lastDay[s.id] || s.date > lastDay[s.id])) lastDay[s.id] = s.date;
     });
+    var felt = feltScores(state);
     function rank(id) {
-      var r = (sc[id] || 0) + (pref.indexOf(id) >= 0 ? 3 : 0) - (long[id] ? 1 : 0);
+      var r = (sc[id] || 0) + (felt[id] || 0) + (pref.indexOf(id) >= 0 ? 3 : 0) - (long[id] ? 1 : 0);
       if (opts.rough && ['sigh', 'slow', 'ground'].indexOf(id) >= 0) r += 4;
       // his mind has been racing at night lately: the picture-word shuffle (made for a busy mind in bed) or grounding at
       // bedtime, back-to-sleep after midnight. His own answers still count: one that didn't help (score -2 or lower)
@@ -370,7 +388,7 @@
     return d;
   }
 
-  var api = { PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, suggest: suggest, advice: advice, validate: validate, iso: iso };
+  var api = { PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

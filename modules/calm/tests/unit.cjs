@@ -173,4 +173,21 @@ t('validate rejects impossible calendar dates (2026-02-30, 2026-99-99) and keeps
   ] });
   assert.deepStrictEqual(v.sessions.map((x) => x.date), ['2028-02-29']);
 });
+t('feltScores: his own before/after ratings nudge suggestions (2+ rated sessions; last 10)', () => {
+  const s = K.defaults(), d = (day, h) => new Date(2026, 10, day, h || 21, 30);
+  K.record(s, 'ground', 3, 3, 3, d(20)); K.record(s, 'ground', 3, 3, 3, d(21)); // stressed, no change: -1
+  K.record(s, 'body', 8, 2, 1, d(15)); K.record(s, 'body', 8, 1, 1, d(16)); // 0.5 calmer on average: +1
+  K.record(s, 'slow', 5, 4, 2, d(17)); // one rating: nothing
+  K.record(s, 'sigh', 1, 2, 2, d(18)); K.record(s, 'sigh', 1, 2, 2, d(19)); // no change but not stressed: nothing
+  K.record(s, 'box', 3, null, null, d(18)); K.record(s, 'box', 3, null, null, d(19)); // unrated: nothing
+  assert.deepStrictEqual(K.feltScores(s), { ground: -1, body: 1 });
+  // eleven old good ones, then ten flat ones: only the last ten count
+  const m = K.defaults();
+  for (let i = 0; i < 11; i++) K.record(m, 'kind', 6, 4, 1, new Date(2026, 9, 1 + i, 12));
+  for (let i = 0; i < 10; i++) K.record(m, 'kind', 6, 3, 3, new Date(2026, 10, 1 + i, 12));
+  assert.deepStrictEqual(K.feltScores(m), { kind: -1 });
+  // in suggest: at 10 pm body (felt +1) leads sleep and the never-done shuffle; ground (-1) never leads
+  const r = K.suggest(s, new Date(2026, 10, 22, 22, 0));
+  assert.strictEqual(r, 'body');
+});
 console.log(n + ' calm unit tests passed');
