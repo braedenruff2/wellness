@@ -81,6 +81,20 @@ t('practiceSet: exercises from finished lessons only, most-missed first, then le
   sparsePack.lessons.push({ day: 3, title: 'One ex', intro: 'x', words: [], exercises: [{ type: 'mc', prompt: 'p', answer: 'a', options: ['a', 'b'] }] });
   emptyS.done['2026-01-01/3'] = d.toISOString();
   assert.strictEqual(T.practiceSet(emptyS, [sparsePack], 8).length, 1, 'minimal 1-exercise lesson');
+
+  // mixed timezone offsets: 2026-11-10T22:00-04:00 (Nov 11 02:00Z) is NEWER than 2026-11-11T01:00Z
+  const tzS = T.defaults();
+  tzS.done['2026-01-01/1'] = d.toISOString();
+  const tzPack = { id: '2026-01-01', title: 'TZ', lessons: [{ day: 1, title: 'L1', intro: 'x', words: [], exercises: [
+    { type: 'mc', prompt: 'first', answer: 'a', options: ['a', 'b'] },
+    { type: 'mc', prompt: 'second', answer: 'a', options: ['a', 'b'] }
+  ] }] };
+  tzS.answers.push(
+    { at: '2026-11-10T22:00:00-04:00', pack: '2026-01-01', day: 1, ok: true, prompt: 'first', type: 'mc' },
+    { at: '2026-11-11T01:00:00Z', pack: '2026-01-01', day: 1, ok: true, prompt: 'second', type: 'mc' }
+  );
+  const tzSet = T.practiceSet(tzS, [tzPack], 2);
+  assert.strictEqual(tzSet[0].ex.prompt, 'second', 'chronologically older UTC answer comes before newer -04:00 answer');
 });
 t('stats, advice and the weekly summary for the Wednesday run', () => {
   const s = T.defaults(), d = new Date(2026, 10, 18, 9);

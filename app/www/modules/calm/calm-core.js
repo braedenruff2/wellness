@@ -269,15 +269,24 @@
     return s;
   }
 
+  function sessionMs(s) {
+    var t = s && s.at ? Date.parse(s.at) : NaN;
+    if (!isNaN(t)) return t;
+    if (s && s.date) { var d = Date.parse(s.date + 'T00:00:00Z'); if (!isNaN(d)) return d; }
+    return 0;
+  }
+
   function stats(state, now) {
     now = now || new Date();
     var to = iso(now), from = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
-    var week = state.sessions.filter(function (s) { return s.date >= from && s.date <= to; });
+    var upTo = state.sessions.filter(function (s) { return !s.date || s.date <= to; });
+    var week = upTo.filter(function (s) { return s.date >= from; });
     var mins = week.reduce(function (a, s) { return a + s.mins; }, 0);
     var days = {}; week.forEach(function (s) { days[s.date] = 1; });
-    var rated = state.sessions.filter(function (s) { return s.before && s.after; }).slice(-20);
+    var rated = upTo.filter(function (s) { return s.before && s.after; })
+      .sort(function (a, b) { return sessionMs(a) - sessionMs(b); }).slice(-20);
     var drop = rated.length ? rated.reduce(function (a, s) { return a + (s.before - s.after); }, 0) / rated.length : null;
-    return { weekMins: Math.round(mins), weekDays: Object.keys(days).length, total: state.sessions.length, avgDrop: drop, rated: rated.length };
+    return { weekMins: Math.round(mins), weekDays: Object.keys(days).length, total: upTo.length, avgDrop: drop, rated: rated.length };
   }
 
   /* What Calm asks of him: reach his daily minutes goal (default 10 min; configurable 1-20 min). A 1-min reset
@@ -307,13 +316,15 @@
      left out while anything else fits; liked / planned ones come first. */
   /* A weak signal from his own before/after stress ratings (1-5) on each practice's last 10 rated sessions (2+ needed):
      on average 0.5+ calmer afterwards -> +1; never calmer, starting stressed (before 3+ on average) -> -1. */
-  function feltScores(state) {
+  function feltScores(state, now) {
+    var to = now ? iso(now) : null;
     var by = {}, out = {};
     (state.sessions || []).forEach(function (x) {
+      if (to && x.date && x.date > to) return;
       if (typeof x.before === 'number' && typeof x.after === 'number') (by[x.id] = by[x.id] || []).push(x);
     });
     Object.keys(by).forEach(function (id) {
-      var l = by[id].slice().sort(function (a, b) { return (Date.parse(a.at) || 0) - (Date.parse(b.at) || 0); }).slice(-10);
+      var l = by[id].slice().sort(function (a, b) { return sessionMs(a) - sessionMs(b); }).slice(-10);
       var drop = 0, before = 0, any = false;
       l.forEach(function (x) { drop += x.before - x.after; before += x.before; if (x.after < x.before) any = true; });
       if (l.length < 2) return; // one rating says little
@@ -324,8 +335,9 @@
   }
   function suggest(state, now, opts) {
     now = now || new Date(); opts = opts || {};
+    var to = iso(now), upTo = state.sessions.filter(function (s) { return !s.date || s.date <= to; });
     var h = now.getHours(), t = today(state, now), sc = opts.score || {}, pref = opts.prefer || [], long = opts.tooLong || {};
-    if (!state.sessions.length && h >= 5 && h < 22 && !pref.length && (sc.sigh || 0) > -2 && !opts.rough) return 'sigh';
+    if (!upTo.length && h >= 5 && h < 22 && !pref.length && (sc.sigh || 0) > -2 && !opts.rough) return 'sigh';
     var base = fits(h);
     // his mind has been racing at night lately: the practices made for that join what fits (21:00-05:00)
     if (opts.racing && (h >= 21 || h < 5)) RACING.forEach(function (id) { if (base.indexOf(id) < 0) base = base.concat(id); });
@@ -335,12 +347,13 @@
     if (!pool.length) return base[0];
     var ok = pool.filter(function (id) { return (sc[id] || 0) > -2; });
     if (ok.length) pool = ok;
-    var last = {}, lastDay = {}; // last: newest time (tie-break); lastDay: its local date (2-day rule)
-    state.sessions.forEach(function (s) {
-      if (!last[s.id] || (s.at || s.date) > last[s.id]) last[s.id] = s.at || s.date;
+    var last = {}, lastDay = {}; // last: newest timestamp ms (tie-break); lastDay: its local date (2-day rule)
+    upTo.forEach(function (s) {
+      var ms = sessionMs(s);
+      if (last[s.id] == null || ms > last[s.id]) last[s.id] = ms;
       if (s.date && (!lastDay[s.id] || s.date > lastDay[s.id])) lastDay[s.id] = s.date;
     });
-    var felt = feltScores(state);
+    var felt = feltScores(state, now);
     function rank(id) {
       var r = (sc[id] || 0) + (felt[id] || 0) + (pref.indexOf(id) >= 0 ? 3 : 0) - (long[id] ? 1 : 0);
       if (opts.rough && ['sigh', 'slow', 'ground'].indexOf(id) >= 0) r += 4;
@@ -358,7 +371,8 @@
     var best = pool[0];
     pool.forEach(function (id) {
       var a = key(id), b = key(best);
-      if (a > b || (a === b && (last[id] || '') < (last[best] || ''))) best = id;
+      var la = last[id] == null ? -Infinity : last[id], lb = last[best] == null ? -Infinity : last[best];
+      if (a > b || (a === b && la < lb)) best = id;
     });
     return best;
   }

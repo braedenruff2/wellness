@@ -130,12 +130,44 @@ t('pacer tick: off by default, kept by a backup, pitch follows the phase', () =>
   assert.deepStrictEqual(phases('box', 16), [0, 1, 2, 3]);
   assert.deepStrictEqual(phases('slow', 22), [0, 2, 0, 2]);
 });
-t('stats: logging for an earlier day ignores sessions on later dates', () => {
+t('stats and suggest: earlier-day bounds ignore future sessions and compare timestamps chronologically across timezone offsets', () => {
   const s = K.defaults();
   K.record(s, 'slow', 5, 4, 2, new Date(2026, 10, 20, 9));
-  K.record(s, 'box', 3, 3, 2, new Date(2026, 10, 22, 9)); // later date
+  K.record(s, 'box', 3, 5, 1, new Date(2026, 10, 22, 9)); // later date
+  K.record(s, 'box', 3, 5, 1, new Date(2026, 10, 23, 9)); // later date
   const st = K.stats(s, new Date(2026, 10, 20, 18));
   assert.strictEqual(st.weekMins, 5); assert.strictEqual(st.weekDays, 1);
+  assert.strictEqual(st.total, 1, 'total ignores later-date sessions');
+  assert.strictEqual(st.rated, 1, 'rated ignores later-date sessions');
+  assert.strictEqual(st.avgDrop, 2, 'avgDrop ignores later-date ratings');
+  assert.deepStrictEqual(K.feltScores(s, new Date(2026, 10, 20, 18)), {}, 'feltScores bounded at now ignores later sessions');
+
+  // suggest() ignores future sessions for 2-day rotation and first-ever check
+  const f = K.defaults();
+  K.record(f, 'body', 8, 3, 2, new Date(2026, 10, 22, 12)); // future relative to Nov 20
+  assert.strictEqual(K.suggest(f, new Date(2026, 10, 20, 14)), 'sigh', 'no sessions on or before Nov 20 -> first-ever reset');
+  K.record(f, 'slow', 5, 3, 2, new Date(2026, 10, 15, 12));
+  assert.strictEqual(K.suggest(f, new Date(2026, 10, 20, 14), { score: { body: 5 } }), 'body', 'future body session does not trigger 2-day penalty on Nov 20');
+
+  // mixed timezone offsets: 2026-11-10T22:00-04:00 (Nov 11 02:00Z) is NEWER than 2026-11-11T01:00Z
+  const tz = K.defaults();
+  tz.sessions.push(
+    { id: 'sleep', date: '2026-11-10', at: '2026-11-10T22:00:00-04:00', mins: 8, before: null, after: null },
+    { id: 'body', date: '2026-11-11', at: '2026-11-11T01:00:00Z', mins: 8, before: null, after: null },
+    { id: 'shuffle', date: '2026-11-15', at: '2026-11-15T12:00:00Z', mins: 5, before: null, after: null },
+    { id: 'slow', date: '2026-11-15', at: '2026-11-15T13:00:00Z', mins: 5, before: null, after: null }
+  );
+  assert.strictEqual(K.suggest(tz, new Date(2026, 10, 20, 23, 0)), 'body', 'chronologically older UTC session beats lexicographically earlier -04:00 session');
+
+  // stats().rated takes the true newest 20 sessions chronologically even if an older session was logged later
+  const many = K.defaults();
+  for (let i = 0; i < 20; i++) {
+    many.sessions.push({ id: 'slow', date: '2026-11-18', at: new Date(Date.UTC(2026, 10, 18, 12, i)).toISOString(), mins: 5, before: 4, after: 3 });
+  }
+  many.sessions.push({ id: 'slow', date: '2026-11-01', at: '2026-11-01T12:00:00Z', mins: 5, before: 5, after: 1 }); // older, appended last
+  const mst = K.stats(many, new Date(2026, 10, 20, 12));
+  assert.strictEqual(mst.rated, 20);
+  assert.strictEqual(mst.avgDrop, 1, 'chronologically older appended session falls outside newest 20');
 });
 t('mind racing at night lately: picture-word shuffle at bedtime, back-to-sleep after midnight; daytime unchanged', () => {
   const s = K.defaults();

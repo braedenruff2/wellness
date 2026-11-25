@@ -221,7 +221,8 @@
     var last = {}, wrong = {};
     state.answers.forEach(function (a) {
       var k = a.pack + '/' + a.day + '/' + a.prompt;
-      if (!last[k] || a.at > last[k]) last[k] = a.at;
+      var ms = Date.parse(a.at);
+      if (!isNaN(ms) && (last[k] == null || ms > last[k])) last[k] = ms;
       if (!a.ok) wrong[k] = (wrong[k] || 0) + 1;
     });
     var pool = [];
@@ -230,7 +231,7 @@
         if (!state.done[p.id + '/' + l.day]) return;
         (l.exercises || []).forEach(function (ex) {
           var k = p.id + '/' + l.day + '/' + String(ex.prompt || ex.say || '').slice(0, 120);
-          pool.push({ pack: p, lesson: l, ex: ex, wrong: wrong[k] || 0, last: last[k] || '', order: pool.length });
+          pool.push({ pack: p, lesson: l, ex: ex, wrong: wrong[k] || 0, last: last[k] == null ? -Infinity : last[k], order: pool.length });
         });
       });
     });
