@@ -284,7 +284,7 @@
     h += '<div class="card ui"><h3>Harder versions you’ve switched to</h3><p class="meta">When the app says “ready for harder” and you make the switch, tick it so it stops suggesting it.</p><ul class="list">' +
       Object.keys(W.EX).filter(function (n) { return W.EX[n].hard; }).map(function (n) {
         var on = S.next[n] === W.EX[n].hard;
-        return '<li><label class="row"><input type="checkbox" data-hard="' + esc(n) + '"' + (on ? ' checked' : '') + '> <span class="grow"><b>' + esc(n) + '</b><br><span class="meta">' + esc(W.EX[n].hard) + '</span></span></label></li>';
+        return '<li><label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" data-hard="' + esc(n) + '" style="margin-top:4px;min-width:20px;min-height:20px"' + (on ? ' checked' : '') + '> <span class="grow"><b>' + esc(n) + '</b><br><span class="meta">' + esc(W.EX[n].hard) + '</span></span></label></li>';
       }).join('') + '</ul></div>';
     h += '<div class="card ui"><h3>Bring in your Google Sheet</h3><p class="meta">In the sheet, open the Log tab, then File › Download › CSV. Pick that file here. Your past sets become “last time” numbers and progress.</p>' +
       '<label class="btn" for="wo-csv">Import the Log CSV</label><input type="file" id="wo-csv" accept=".csv,text/csv,text/plain" class="sr">' +

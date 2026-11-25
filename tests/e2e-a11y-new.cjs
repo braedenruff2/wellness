@@ -169,10 +169,18 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#wo-rest button'), []);
       await t.noOverflow(['#workout']);
     });
-    await t.step('text size ' + ts + ': Move Progress #wo-4w and #wo-areas filter chips', async () => {
+    await t.step('text size ' + ts + ': Move Progress #wo-4w, #wo-areas & Setup checkboxes', async () => {
       await page.goto(base + '#workout/history'); await page.waitForSelector('#wo-areas'); await page.waitForSelector('#wo-4w');
       assert.deepStrictEqual(await small('#wo-areas button'), []);
       await t.noOverflow(['#workout/history']);
+      await page.goto(base + '#workout/settings'); await page.waitForSelector('[data-hard]');
+      assert.deepStrictEqual(await small('[data-eq], [data-target], label[for="wo-csv"]'), []);
+      const hardSideBySide = await page.evaluate(() => Array.from(document.querySelectorAll('[data-hard]')).every((cb) => {
+        const sp = cb.nextElementSibling;
+        return !!(sp && sp.getBoundingClientRect().left > cb.getBoundingClientRect().left);
+      }));
+      assert.ok(hardSideBySide, '#workout/settings [data-hard] checkboxes sit beside their label text');
+      await t.noOverflow(['#workout/settings']);
     });
     await t.step('text size ' + ts + ': Faith journal tabs/#j-search/.del, #p-search/.p-undo & #faith/settings', async () => {
       await page.goto(base + '#faith/journal'); await page.waitForSelector('#j-search');
@@ -196,7 +204,7 @@ const W = require('./lib/web.cjs');
     await t.step('text size ' + ts + ': Calm #c-recent, #c-racing, #me-sheet, and session start/after chips', async () => {
       await page.clock.setSystemTime(new Date(2026, 10, 23, 22, 30));
       await page.goto(base + '#calm'); await page.waitForSelector('#c-recent'); await page.waitForSelector('#c-racing');
-      assert.deepStrictEqual(await small('#c-recent summary, #c-racing a'), []);
+      assert.deepStrictEqual(await small('#c-recent summary, #c-racing a, a[href="#faith/pray"]'), []);
       await page.click('#c-recent summary');
       await page.click('[data-me-fit]');
       await page.waitForSelector('#me-sheet');
@@ -217,6 +225,8 @@ const W = require('./lib/web.cjs');
       const afterOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       assert.ok(afterOverflow <= 2, '#calm/s/slow after overflow ' + afterOverflow + 'px');
       await page.click('#c-save');
+      await page.waitForSelector('#c-today a.link');
+      assert.deepStrictEqual(await small('#c-today a.link, a[href="#faith/pray"]'), []);
       await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
     });
     await t.step('text size ' + ts + ': Tagalog #tl-voice-nudge, review recap, #tl-word-search, and #tl-built .built-w', async () => {
@@ -323,6 +333,8 @@ const W = require('./lib/web.cjs');
       await page.goto(base + '#workout/history'); await page.waitForSelector('#wo-areas'); await page.waitForSelector('#wo-4w');
       assert.deepStrictEqual((await contrast('#wo-4w')).filter((x) => x.r < min), [], theme + ' #wo-4w');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #workout/history');
+      await page.goto(base + '#workout/settings'); await page.waitForSelector('[data-hard]');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #workout/settings');
       await page.goto(base + '#faith/journal'); await page.waitForSelector('#j-search');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/journal');
       await page.goto(base + '#faith/journal/prayers'); await page.waitForSelector('#p-search');

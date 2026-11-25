@@ -77,6 +77,25 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(/Body scan/.test(rec[0]), rec[0]);
     assert.ok(/Box breathing/.test(rec[1]) && /stress now 1/.test(rec[1]), rec[1]);
     assert.ok(/One-minute reset/.test(rec[2]) && /stress 4→2/.test(rec[2]), rec[2]);
+    // an earlier-day session pushed later in storage still sorts chronologically below today's sessions
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.calm.v1'));
+      s.sessions.push({ id: 'walk', date: '2026-11-16', at: '2026-11-16T12:00:00.000Z', mins: 6, before: null, after: null });
+      localStorage.setItem('wl.calm.v1', JSON.stringify(s));
+      WL.modules.calm.reload();
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#calm');
+    await page.click('#c-recent summary');
+    const rec2 = await page.locator('#c-recent li').allTextContents();
+    assert.strictEqual(rec2.length, 4);
+    assert.ok(/Body scan/.test(rec2[0]), 'newest session still first: ' + rec2[0]);
+    assert.ok(/Mindful walk/.test(rec2[3]), 'earlier-day session sorted last: ' + rec2[3]);
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.calm.v1'));
+      s.sessions = s.sessions.filter((x) => x.id !== 'walk');
+      localStorage.setItem('wl.calm.v1', JSON.stringify(s));
+      WL.modules.calm.reload();
+    });
     await page.goto(base + '#home');
     assert.ok(/Done for today/.test(await page.textContent('.home-card[data-module="calm"]')));
   });

@@ -51,7 +51,7 @@
     var names = t.ids.map(titleOf).filter(function (x, i, a) { return a.indexOf(x) === i; });
     return '<div class="card" id="c-today"><div class="meta ui">Today</div><h3 style="margin:.2em 0">✓ Done for today</h3>' +
       '<p class="ui">' + esc(names.join(', ')) + ' · ' + Math.max(1, t.mins) + ' min. That’s today’s practice. Nothing else you need to do; come back tomorrow.</p>' +
-      '<p class="meta ui">If things get hard later, the one-minute reset helps. Want more now? <a href="#calm/s/' + sug.id + '">' + esc(sug.title) + ' (' + mins(sug) + ' min)</a> is a different one.</p>' + racingLine() + '</div>';
+      '<div class="row ui" style="gap:4px 8px"><span class="meta">If things get hard later, the one-minute reset helps. Want more now?</span><a class="link" href="#calm/s/' + sug.id + '">' + esc(sug.title) + ' (' + mins(sug) + ' min)</a></div>' + racingLine() + '</div>';
   }
 
   function list() {
@@ -73,13 +73,17 @@
     h += '<div class="card ui"><b>' + st.weekMins + '</b> min this week on ' + st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') + ' · ' + st.total + ' sessions in all' +
       (st.avgDrop != null ? '<br><span class="meta">Stress before → after, average change: ' + (st.avgDrop >= 0 ? '−' : '+') + Math.abs(st.avgDrop).toFixed(1) + ' (from ' + st.rated + ' rated sessions)</span>' : '') + '</div>';
     h += recentHtml();
-    h += '<p class="meta ui">Christian meditation (breath prayer, Lectio Divina, quiet prayer) is in <a href="#faith/pray">Faith › Pray</a>.</p>';
+    h += '<div class="row ui" style="gap:4px 8px"><span class="meta">Christian meditation (breath prayer, Lectio Divina, quiet prayer) is in</span><a class="link" href="#faith/pray">Faith › Pray</a></div>';
     return h;
   }
 
   function recentHtml() {
     if (!S.sessions.length) return '';
-    var items = S.sessions.slice(-10).reverse();
+    var items = S.sessions.map(function (s, i) {
+      var ts = Date.parse(s && s.at);
+      if (isNaN(ts)) ts = Date.parse(s && s.date);
+      return { s: s, t: isNaN(ts) ? 0 : ts, i: i };
+    }).sort(function (a, b) { return b.t - a.t || b.i - a.i; }).slice(0, 10).map(function (x) { return x.s; });
     return '<details class="card ui" id="c-recent"><summary>Recent sessions (' + items.length + ')</summary><ul class="me-g">' + items.map(function (s) {
       var d = s.date ? (function () { var p = s.date.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })() : '';
       var rating = s.before && s.after ? ' · stress ' + s.before + '→' + s.after : s.after ? ' · stress now ' + s.after : '';
