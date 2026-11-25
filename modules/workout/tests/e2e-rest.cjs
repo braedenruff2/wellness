@@ -33,6 +33,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#workout'); await page.reload();
     await page.click('#wo-rest-undo');
     assert.ok(await page.isVisible('#wo-rest summary'));
+    assert.ok(await page.evaluate(() => document.activeElement === document.querySelector('#wo-rest summary')), 'Undo restores focus to #wo-rest summary');
     const st = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')));
     assert.ok(!st.rest || !st.rest['2026-11-22']); assert.strictEqual(st.restRemoved.length, 1);
   });

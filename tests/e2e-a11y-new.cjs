@@ -96,7 +96,7 @@ const W = require('./lib/web.cjs');
     const rgb = (s) => (s.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
     const lum = (c) => { c = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
     const bg = (e) => { while (e) { const b = getComputedStyle(e).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return rgb(b); e = e.parentElement; } return [255, 255, 255]; };
-    const sels = ['p', '.meta', '.no', 'b', 'a', 'button', 'summary', 'input[type="search"]', 'textarea'].map((s) => rootSel + ' ' + s).join(', ');
+    const sels = ['p', '.meta', '.no', 'b', 'a', 'button', 'summary', '.wk4-rest', 'input[type="search"]', 'textarea'].map((s) => rootSel + ' ' + s).join(', ');
     return Array.from(document.querySelectorAll(sels)).filter((e) => {
       if (e.offsetParent === null) return false;
       if (e.tagName === 'INPUT' || e.tagName === 'TEXTAREA') return true;
@@ -120,9 +120,9 @@ const W = require('./lib/web.cjs');
     await page.waitForSelector('#tl-built .built-w');
   }
   for (const ts of [1, 1.3]) {
-    await t.step('text size ' + ts + ': Move rest chips, 2-a-week offer, rest card Undo', async () => {
-      await look(ts, 'light'); await seed(); await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('#wo-two');
-      assert.deepStrictEqual(await small('#wo-two button'), []);
+    await t.step('text size ' + ts + ': Move sore card, rest chips, 2-a-week offer, rest card Undo', async () => {
+      await look(ts, 'light'); await seed(); await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('#wo-two'); await page.waitForSelector('#wo-sore');
+      assert.deepStrictEqual(await small('#wo-sore button, #wo-two button'), []);
       await page.click('#wo-rest summary');
       assert.deepStrictEqual(await small('[data-rest]'), []);
       const sh = await page.$eval('#wo-rest summary', (e) => Math.round(e.getBoundingClientRect().height));
@@ -131,8 +131,8 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#wo-rest button'), []);
       await t.noOverflow(['#workout']);
     });
-    await t.step('text size ' + ts + ': Move Progress #wo-areas filter chips', async () => {
-      await page.goto(base + '#workout/history'); await page.waitForSelector('#wo-areas');
+    await t.step('text size ' + ts + ': Move Progress #wo-4w and #wo-areas filter chips', async () => {
+      await page.goto(base + '#workout/history'); await page.waitForSelector('#wo-areas'); await page.waitForSelector('#wo-4w');
       assert.deepStrictEqual(await small('#wo-areas button'), []);
       await t.noOverflow(['#workout/history']);
     });
@@ -192,10 +192,12 @@ const W = require('./lib/web.cjs');
   for (const theme of ['light', 'dark', 'night']) {
     const min = theme === 'night' ? 3 : 4.5;
     await t.step(theme + ': text contrast on Move, Progress, Faith prayers, Calm/#me-sheet, Tagalog words/build, Parenting, Settings/Home/Link sync states', async () => {
-      await look(1, theme); await seed(); await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('#wo-two');
+      await look(1, theme); await seed(); await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('#wo-two'); await page.waitForSelector('#wo-sore');
       await page.click('#wo-rest summary');
+      assert.deepStrictEqual((await contrast('#wo-sore')).filter((x) => x.r < min), [], theme + ' #wo-sore');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #workout');
-      await page.goto(base + '#workout/history'); await page.waitForSelector('#wo-areas');
+      await page.goto(base + '#workout/history'); await page.waitForSelector('#wo-areas'); await page.waitForSelector('#wo-4w');
+      assert.deepStrictEqual((await contrast('#wo-4w')).filter((x) => x.r < min), [], theme + ' #wo-4w');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #workout/history');
       await page.goto(base + '#faith/journal/prayers'); await page.waitForSelector('#p-search');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/journal/prayers');

@@ -134,7 +134,7 @@
     var dy = $('#wo-db-yes'); if (dy) dy.onclick = function () { S.equipment = 'adjustable'; save(); WL.toast('Switched to adjustable dumbbells'); renderToday(); };
     $$('[data-rest]').forEach(function (b) { b.onclick = function () { W.logRest(S, W.iso(now()), b.dataset.rest, new Date()); save(); renderToday(); if (WL.refreshToday) WL.refreshToday(); }; });
     $$('[data-sore]').forEach(function (b) { b.onclick = function () { W.setSore(S, W.iso(now()), b.dataset.sore, new Date()); save(); renderToday(); }; });
-    var ru = $('#wo-rest-undo'); if (ru) ru.onclick = function () { W.clearRest(S, W.iso(now())); save(); renderToday(); if (WL.refreshToday) WL.refreshToday(); };
+    var ru = $('#wo-rest-undo'); if (ru) ru.onclick = function () { W.clearRest(S, W.iso(now())); save(); renderToday(); var rs = $('#wo-rest summary'); if (rs && rs.focus) rs.focus(); if (WL.refreshToday) WL.refreshToday(); };
     var ty = $('#wo-two-yes'); if (ty) ty.onclick = function () { S.target = 2; save(); WL.toast('2 workouts a week'); renderToday(); if (WL.refreshToday) WL.refreshToday(); };
     var tn = $('#wo-two-no'); if (tn) tn.onclick = function () { S.twoAsked = W.iso(new Date()); save(); renderToday(); };
     var dn = $('#wo-db-no'); if (dn) dn.onclick = function () { S.dbAsked = W.iso(new Date()); save(); renderToday(); };
