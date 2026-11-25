@@ -420,6 +420,21 @@ def summarize(days=7, today=None):
             mins = sum(float((e.get("data") or {}).get("mins") or 0) for e in es if e["kind"] == "session")
             extra = f"; {mins:.0f} min"
             if r: extra += f"; stress {sum(x['before'] for x in r) / len(r):.1f} -> {sum(x['after'] for x in r) / len(r):.1f} (1-5)"
+            # his "Did it help?" answers per practice, and how many of the newest said "Not really" in a row
+            hp = sorted([e for e in ev if e["part"] == "calm" and e["kind"] == "feedback" and isinstance(e.get("data"), dict)
+                         and isinstance(e["data"].get("a"), dict) and e["data"]["a"].get("helped")], key=lambda e: e["at"])
+            if hp:
+                tally = {}
+                for e in hp:
+                    pid = str(e["data"].get("about", "")).split("@")[0] or "?"
+                    y, n = tally.get(pid, (0, 0))
+                    tally[pid] = (y + (1 if e["data"]["a"]["helped"] in ("A lot", "A bit") else 0), n + 1)
+                extra += "; helped (his answers): " + ", ".join(f"{k} {y} of {n}" for k, (y, n) in tally.items())
+                flat = 0
+                for e in reversed(hp):
+                    if e["data"]["a"]["helped"] != "Not really": break
+                    flat += 1
+                if flat >= 3: extra += f"; the last {flat} said \"Not really\" in a row: suggest something different, not more of the same"
         elif part == "workout":
             # his weekly target: the last one sent (sorted() is stable, so on the same day the later one wins)
             tg = [e for e in es if e["kind"] == "target"]

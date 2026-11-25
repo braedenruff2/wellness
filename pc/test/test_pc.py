@@ -323,6 +323,11 @@ check("journal sent again with words counts once (the one with words)", len(fa) 
 check("summary: faith awe once", "- faith: 1 awe" in W.summarize(7), W.summarize(7))
 summ = W.summarize(7)
 check("summary: calm stress", "stress 4.0 -> 2.0" in summ, summ)
+fbx = lambda i, h, about, helped: {"id": "fb/calm/after/" + i, "at": today + "T%02d:00:00-04:00" % h, "part": "calm", "kind": "feedback", "data": {"about": about, "a": {"helped": helped} if helped else {"block": ["Nothing"]}}}
+req("POST", "/v1/activity", {"events": [fbx("a", 1, "ground@1", "A bit"), fbx("b", 2, "ground@2", "Not really"), fbx("c", 3, "sigh@3", "Not really"),
+                                        fbx("d", 4, "ground@4", None), fbx("e", 5, "ground@5", "Not really")]}, token=token)
+cline = [l for l in W.summarize(7).splitlines() if l.startswith("- calm:")][0]
+check("summary: calm helped per practice and a 'Not really' run", "helped (his answers): ground 1 of 3, sigh 0 of 1" in cline and "the last 3 said \"Not really\" in a row" in cline, cline)
 check("summary: workout sets", "Push-ups: 18, 17" in summ, summ)
 check("summary: tagalog misses", "1/2 right" in summ and "salamat" in summ, summ)
 check("summary: todo", "call Mom" in summ, summ)
