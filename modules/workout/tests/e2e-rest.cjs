@@ -83,6 +83,22 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.reload(); await page.waitForSelector('h1');
     assert.strictEqual(!!(await page.$('#wo-sore')), false, 'not asked again today');
   });
+  await t.step('pain after two recent workouts: one general line on Move with "Not for me?"; tapping it away hides it', async () => {
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[],"checkins":{}}');
+      [18, 20].forEach((d) => me.feedback.push({ id: 'workout/after/p' + d, at: new Date(2026, 10, d, 18).toISOString(), part: 'workout', about: 'p' + d, kind: 'after', a: { hard: 'Hard', pain: 'A little' } }));
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('#wo-pain');
+    assert.ok(/see a doctor or physio/.test(await page.textContent('#wo-pain')));
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+      me.feedback.push({ id: 'workout/notfit/guide:pain', at: new Date(2026, 10, 22, 18).toISOString(), part: 'workout', about: 'guide:pain', kind: 'notfit', a: { reasons: [] } });
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('h1');
+    assert.strictEqual(await page.$('#wo-pain'), null);
+  });
   await t.step('no overflow, no errors', async () => {
     await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.workout.v1')); s.sessions = []; s.rest = {}; localStorage.setItem('wl.workout.v1', JSON.stringify(s)); });
     await t.noOverflow(['#workout']);

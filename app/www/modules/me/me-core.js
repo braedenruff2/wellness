@@ -195,6 +195,14 @@
     if (tl.length) out.push('Tagalog: ' + ar + ' of ' + tl.length + ' lessons and reviews felt about right.');
     return out;
   }
+  /* Pain after a workout ("A little" or "Yes, I stopped") twice in 14 days, unless he marked that line not for him in
+     the last 14 days: Move shows one general line about it. */
+  function painNote(state, now) {
+    now = now || new Date();
+    var since = new Date(now.getTime() - 14 * 864e5).toISOString();
+    if (state.feedback.some(function (f) { return f.kind === 'notfit' && f.part === 'workout' && f.about === 'guide:pain' && f.at >= since; })) return false;
+    return state.feedback.filter(function (f) { return f.part === 'workout' && f.kind === 'after' && f.at >= since && f.a && (f.a.pain === 'A little' || f.a.pain === 'Yes, I stopped'); }).length >= 2;
+  }
   function lastN(state, part, kind, n) {
     return byTime(state.feedback.filter(function (f) {
       return f.part === part && f.kind === kind && (kind !== 'after' || (f.a && Object.keys(f.a).length > 0));
@@ -366,7 +374,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, working: working, planFlagged: planFlagged,
+    notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

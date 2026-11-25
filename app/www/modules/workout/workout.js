@@ -59,6 +59,10 @@
     }
     var h = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">' + esc(plan.title) + '</h1>' + weekDots(now()) + '</div>';
     h += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + day, co) : '') + '</p>';
+    if (M && M.painNote && M.painNote()) {
+      var pn = 'Pain came up after two workouts lately. Go lighter on the moves that hurt and check your form (the “How” notes). If it keeps up or is sharp, see a doctor or physio.';
+      h += '<p class="gentle ui" id="wo-pain">' + esc(pn) + ' ' + M.fitLink('workout', 'guide:pain', pn) + '</p>';
+    }
     if (M) h += M.planLine('workout');
     var dIso = W.iso(now()), worked = S.sessions.some(function (x) { return x.date === dIso && x.sets && x.sets.length; });
     if (W.askSore(S, now())) h += '<div class="card ui" id="wo-sore"><div class="meta">Sore from last time? (optional)</div><div class="chips">' + W.SORE_LEVELS.map(function (l) {

@@ -423,4 +423,15 @@ t('working: plain lines from his own answers (30 days); nothing under 3 answers'
   [20, 21, 22].forEach((d) => n.feedback.push({ id: 'c' + d, at: D(d, 21).toISOString(), part: 'calm', about: 'ground@' + d, kind: 'after', a: { helped: 'Not really' } }));
   assert.deepStrictEqual(K.working(n, now), ['Calm: none of the practices has helped much yet (3 answers). Try a different kind, or a walk.']);
 });
+t('painNote: pain after two workouts in 14 days; "None" or older answers don\'t count; "Not for me" hides it for 14 days', () => {
+  const s = K.defaults(), now = D(25, 20);
+  const a = (d, pain) => s.feedback.push({ id: 'w' + d + pain, at: D(d, 18).toISOString(), part: 'workout', about: 'w' + d, kind: 'after', a: { hard: 'Hard', pain } });
+  a(5, 'A little'); a(20, 'None'); a(22, 'A little');
+  assert.strictEqual(K.painNote(s, now), false);
+  a(24, 'Yes, I stopped');
+  assert.strictEqual(K.painNote(s, now), true);
+  s.feedback.push({ id: 'nf', at: D(25, 9).toISOString(), part: 'workout', about: 'guide:pain', kind: 'notfit', a: { reasons: [] } });
+  assert.strictEqual(K.painNote(s, now), false);
+  assert.strictEqual(K.painNote(s, D(25 + 15, 9)), false, 'two weeks later the answers are old too');
+});
 console.log(n + ' me unit tests passed');
