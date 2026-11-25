@@ -121,7 +121,9 @@
     h += '<div class="card" id="reflect"><h2>Think</h2>' + d.reflection.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') + fit('think', d.reflection.join(' ')) + '</div>';
     h += '<div class="card" id="pray-card"><h2>Pray</h2><p class="key">' + esc(d.keyVerse) + '</p>' +
       '<a class="btn primary big ui" href="#faith/session/day/' + d.n + '">Guided prayer \u00b7 about ' + (+S.settings.minutes) + ' min</a>' + shortTonight(d) +
-      '<details class="ui" style="margin-top:10px"><summary>Read the prayer instead</summary><p class="verse" style="margin-top:8px">' + esc(d.prayer) + '</p></details></div>';
+      '<details class="ui" style="margin-top:10px"' + (readTonight() ? ' open id="fc-read-open"' : '') + '><summary>Read the prayer instead</summary>' +
+      (readTonight() ? '<p class="meta" style="margin:6px 0 0">Focus was hard the last two times this late. Reading it can be easier.</p>' : '') +
+      '<p class="verse" style="margin-top:8px">' + esc(d.prayer) + '</p></details></div>';
     h += '<div class="card" id="practice"><h2>Practice for today</h2><p>' + esc(d.practice) + '</p>' + fit('practice', d.practice) + '</div>';
     if (d.lookBack) h += lookBackWeek(d);
     h += '<div class="card ui" id="write"><h2>Write (optional)</h2><label for="dj">' + esc(d.journal) + '</label>' +
@@ -178,6 +180,14 @@
      silences; it says why when his last answer after a late prayer was "Hard to focus". The saved length stays. */
   var shortOnce = null;
   function lateNow() { var hr = new Date().getHours(); return hr >= 21 || hr < 5; }
+  /* Late at night, when his last two late answers were "Hard to focus": the written prayer opens by itself. */
+  function readTonight() {
+    var M = window.WLMe; if (!lateNow() || !M) return false;
+    var late = M.state().feedback.filter(function (f) {
+      var h = new Date(f.at).getHours(); return f.part === 'faith' && f.kind === 'after' && (h >= 21 || h < 5) && f.a && f.a.felt;
+    }).sort(function (a, b) { return (Date.parse(a.at) || 0) - (Date.parse(b.at) || 0); }).slice(-2);
+    return late.length === 2 && late.every(function (f) { return f.a.felt === 'Hard to focus'; });
+  }
   function shortTonight(d) {
     if (!lateNow() || !(S.settings.minutes > 2)) return '';
     var full = sessionScript('day', d.n, 2), mins = full ? Math.max(2, Math.round(C.scriptLength(full.steps, S.settings.rate) / 60)) : 2;

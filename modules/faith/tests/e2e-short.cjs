@@ -45,6 +45,20 @@ const Wb = require('../../../tests/lib/web.cjs');
     });
     await page.goto(base + '#faith/today'); await page.reload(); await page.waitForSelector('#fc-short');
     assert.ok(/Focus was hard last time this late/.test(await page.textContent('#fc-short-wrap')));
+    assert.strictEqual(await page.$('#fc-read-open'), null, 'one hard night: the written prayer stays closed');
+  });
+  await t.step('two late "Hard to focus" in a row: the written prayer opens by itself, with why; not in the daytime', async () => {
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+      me.feedback.push({ id: 'faith/after/day:1@y', at: new Date(2026, 10, 22, 21, 30).toISOString(), part: 'faith', about: 'day:1@y', kind: 'after', a: { felt: 'Hard to focus' } });
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#faith/today'); await page.reload(); await page.waitForSelector('#pray-card');
+    assert.ok(await page.$('#fc-read-open[open]'));
+    assert.ok((await page.textContent('#fc-read-open')).includes('Reading it can be easier'));
+    await page.clock.setSystemTime(new Date(2026, 10, 23, 14, 0)); await page.goto(base + '#faith/today'); await page.reload(); await page.waitForSelector('#pray-card');
+    assert.strictEqual(await page.$('#fc-read-open'), null);
+    await page.clock.setSystemTime(new Date(2026, 10, 23, 22, 30));
   });
   await t.step('with the length set to 2 min there is nothing shorter', async () => {
     await page.goto(base + '#faith/pray'); await page.click('[data-min="2"]');
