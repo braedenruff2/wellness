@@ -88,8 +88,8 @@
     "explain": "Gusto, ayaw, kailangan and puwede already carry the time, so the verb after them has no time of its own: like English 'want to buy', not 'want bought'. The base form: -um- verbs look like the done form (kumain, bumili, lumabas); mag- verbs keep mag- (maglaro, mag-aral, not nag-); ma- verbs keep ma- (matulog, maligo). Add the linker -ng to the word before the verb: gusto ko + ng = gusto kong, kailangan ko + ng = kailangan kong, ayoko + ng = ayokong. 'Binili' is wrong twice here: it has a time (done) and it is object focus.",
     "examples": [
      {
-      "tl": "Gusto kong bumili ng manga.",
-      "en": "I want to buy manga."
+      "tl": "Gusto kong bumili ng mangga.",
+      "en": "I want to buy mangoes."
      },
      {
       "tl": "Kailangan kong matulog.",
@@ -160,6 +160,28 @@
       "I already left."
      ],
      "answer": "I don't want to leave."
+    },
+    {
+     "type": "type",
+     "prompt": "I need to buy milk.",
+     "answer": "Kailangan kong bumili ng gatas.",
+     "accept": [
+      "kailangan kong bumili ng gatas",
+      "kailangan ko pong bumili ng gatas"
+     ]
+    },
+    {
+     "type": "build",
+     "prompt": "Is it okay if I rest first? (to an elder)",
+     "words": [
+      "ako?",
+      "muna",
+      "bang",
+      "Puwede",
+      "magpahinga",
+      "po"
+     ],
+     "answer": "Puwede po bang magpahinga muna ako?"
     }
    ]
   },
@@ -312,6 +334,26 @@
       "Hindi"
      ],
      "answer": "Hindi pa siya kumakain."
+    },
+    {
+     "type": "type",
+     "prompt": "She's always happy.",
+     "answer": "Palagi siyang masaya.",
+     "accept": [
+      "palagi siyang masaya",
+      "lagi siyang masaya",
+      "palaging masaya siya"
+     ]
+    },
+    {
+     "type": "type",
+     "prompt": "She hasn't slept yet.",
+     "answer": "Hindi pa siya natutulog.",
+     "accept": [
+      "hindi pa siya natutulog",
+      "hindi pa po siya natutulog",
+      "di pa siya natutulog"
+     ]
     }
    ]
   },
@@ -463,6 +505,27 @@
       "paano po sabihin sa tagalog ang bottle",
       "ano po ang bottle sa tagalog",
       "ano po sa tagalog ang bottle"
+     ]
+    },
+    {
+     "type": "build",
+     "prompt": "In Tagalog, please, so I can learn. (to an elder)",
+     "words": [
+      "matuto",
+      "Sa",
+      "ako.",
+      "po,",
+      "para",
+      "Tagalog"
+     ],
+     "answer": "Sa Tagalog po, para matuto ako."
+    },
+    {
+     "type": "type",
+     "prompt": "Is that right? (to an elder)",
+     "answer": "Tama po ba?",
+     "accept": [
+      "tama po ba"
      ]
     }
    ]
@@ -621,6 +684,40 @@
       "tulog na siya",
       "natutulog si {child}"
      ]
+    },
+    {
+     "type": "build",
+     "prompt": "She eats rice every day.",
+     "words": [
+      "ng",
+      "araw-araw.",
+      "siya",
+      "Kumakain",
+      "kanin"
+     ],
+     "answer": "Kumakain siya ng kanin araw-araw."
+    },
+    {
+     "type": "type",
+     "prompt": "The baby is eating a banana.",
+     "answer": "Kumakain ng saging ang baby.",
+     "accept": [
+      "kumakain ng saging ang baby",
+      "kumakain ang baby ng saging",
+      "kumakain ng saging ang sanggol",
+      "kumakain ang sanggol ng saging"
+     ]
+    },
+    {
+     "type": "mc",
+     "prompt": "Lola drinks coffee every morning.",
+     "options": [
+      "Umiinom ang kape ni Lola tuwing umaga.",
+      "Umiinom ng kape si Lola tuwing umaga.",
+      "Umiinom ng kape ni Lola tuwing umaga.",
+      "Iinom ng kape si Lola tuwing umaga."
+     ],
+     "answer": "Umiinom ng kape si Lola tuwing umaga."
     }
    ]
   },
@@ -775,6 +872,28 @@
       "cousin"
      ],
      "answer": "sister-in-law"
+    },
+    {
+     "type": "type",
+     "prompt": "My wife is with me.",
+     "answer": "Kasama ko ang asawa ko.",
+     "accept": [
+      "kasama ko ang asawa ko",
+      "kasama ko po ang asawa ko",
+      "kasama ko ang misis ko"
+     ]
+    },
+    {
+     "type": "build",
+     "prompt": "Kuya and I were the ones who went.",
+     "words": [
+      "ang",
+      "Kuya",
+      "pumunta.",
+      "Kami",
+      "ni"
+     ],
+     "answer": "Kami ni Kuya ang pumunta."
     }
    ]
   },
@@ -842,8 +961,8 @@
     },
     {
      "who": "You",
-     "tl": "Hindi pa po. Pero tumatayo na po siya.",
-     "en": "Not yet. But she's standing now."
+     "tl": "Opo! Naglalakad na po siya.",
+     "en": "Yes! She’s walking now."
     },
     {
      "who": "Tito",
@@ -929,6 +1048,26 @@
       "naka-leave ako ng apat na buwan",
       "naka-leave ako nang apat na buwan",
       "naka leave ako ng apat na buwan"
+     ]
+    },
+    {
+     "type": "type",
+     "prompt": "two weeks",
+     "answer": "dalawang linggo",
+     "accept": [
+      "dalawang linggo",
+      "2 linggo"
+     ]
+    },
+    {
+     "type": "type",
+     "prompt": "She's walking now.",
+     "answer": "Naglalakad na siya.",
+     "accept": [
+      "naglalakad na siya",
+      "naglalakad na po siya",
+      "lumalakad na siya",
+      "nakakalakad na siya"
      ]
     }
    ]
@@ -1086,6 +1225,29 @@
       "natututo ako nang unti unti",
       "unti unti na akong natututo"
      ]
+    },
+    {
+     "type": "type",
+     "prompt": "I'm tired because she cries at night.",
+     "answer": "Pagod ako kasi umiiyak siya sa gabi.",
+     "accept": [
+      "pagod ako kasi umiiyak siya sa gabi",
+      "pagod po ako kasi umiiyak siya sa gabi",
+      "pagod ako dahil umiiyak siya sa gabi",
+      "medyo pagod ako kasi umiiyak siya sa gabi"
+     ]
+    },
+    {
+     "type": "build",
+     "prompt": "We ate, then she slept.",
+     "words": [
+      "siya.",
+      "Kumain",
+      "natulog",
+      "tapos",
+      "kami,"
+     ],
+     "answer": "Kumain kami, tapos natulog siya."
     }
    ]
   }
