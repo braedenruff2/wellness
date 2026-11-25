@@ -132,4 +132,12 @@ t('mind racing at night lately: grounding at bedtime, back-to-sleep after midnig
   K.record(s, 'ground', 3, 3, 2, d(21));
   assert.notStrictEqual(K.suggest(s, d(22), { racing: true }), 'ground');
 });
+t('validate rejects impossible calendar dates (2026-02-30, 2026-99-99) and keeps leap day', () => {
+  const v = K.validate({ sessions: [
+    { id: 'slow', date: '2026-02-30', mins: 5 },
+    { id: 'box', date: '2026-99-99', mins: 3 },
+    { id: 'sigh', date: '2028-02-29', mins: 1 }
+  ] });
+  assert.deepStrictEqual(v.sessions.map((x) => x.date), ['2028-02-29']);
+});
 console.log(n + ' calm unit tests passed');

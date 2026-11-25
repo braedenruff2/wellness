@@ -327,7 +327,7 @@
     if (!s || !Array.isArray(s.sessions)) return null;
     var d = defaults(), ids = PRACTICES.map(function (p) { return p.id; });
     s.sessions.forEach(function (x) {
-      if (x && ids.indexOf(x.id) >= 0 && /^\d{4}-\d\d-\d\d$/.test(x.date) && typeof x.mins === 'number' && isFinite(x.mins))
+      if (x && ids.indexOf(x.id) >= 0 && WLD.isDate(x.date) && typeof x.mins === 'number' && isFinite(x.mins))
         d.sessions.push({ id: x.id, date: x.date, at: String(x.at || ''), mins: Math.max(0, Math.min(240, x.mins)),
           before: [1, 2, 3, 4, 5].indexOf(x.before) >= 0 ? x.before : null, after: [1, 2, 3, 4, 5].indexOf(x.after) >= 0 ? x.after : null,
           rated: typeof x.rated === 'string' && !isNaN(Date.parse(x.rated)) ? x.rated : undefined });

@@ -357,5 +357,19 @@ t('out-of-order earlier-day feedback stays ordered by timestamp; validate reject
   assert.strictEqual(Object.keys(cleaned.checkins).length, 120, 'validate trims checkins to 120');
   assert.strictEqual(cleaned.plan, null, 'validate drops plan with invalid timestamp');
   assert.strictEqual(K.planDue(cleaned, D(20)), true, 'plan is due when bad plan was dropped');
+  // impossible calendar dates rejected by checkin, checkinNote, and validate
+  assert.strictEqual(K.checkin(s, '2026-02-30', 'mood', 'OK', D(20)), null);
+  assert.strictEqual(K.checkinNote(s, '2026-99-99', 'note', D(20)), null);
+  const badDates = K.validate({
+    feedback: [],
+    checkins: { '2026-02-30': { at: '2026-02-28T10:00:00Z', mood: 'OK' }, '2028-02-29': { at: '2028-02-29T10:00:00Z', mood: 'Good' } },
+    planTried: '2026-04-31',
+    planCancelled: '2026-99-99',
+    skipped: { '2026-02-29': 1, '2026-11-20': 1 }
+  });
+  assert.deepStrictEqual(Object.keys(badDates.checkins), ['2028-02-29']);
+  assert.strictEqual(badDates.planTried, undefined);
+  assert.strictEqual(badDates.planCancelled, undefined);
+  assert.deepStrictEqual(Object.keys(badDates.skipped), ['2026-11-20']);
 });
 console.log(n + ' me unit tests passed');

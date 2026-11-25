@@ -212,4 +212,16 @@ t('orderHint: real pack sentences with same words in wrong ang/ng/si/ni order ge
   assert.strictEqual(T.orderHint(optRice, 'ng kanin pakiabot'), 'Right words; in Tagalog the doer comes after the verb: Pakiabot po ng kanin.');
 });
 
+t('checkPack and validate reject impossible calendar dates (2026-02-30, 2026-99-99)', () => {
+  const badPack = JSON.parse(JSON.stringify(packs[0]));
+  badPack.id = '2026-02-30';
+  assert.ok(T.checkPack(badPack).some((e) => /YYYY-MM-DD/.test(e)));
+  const v = T.validate({
+    done: { '2026-02-30/1': '2026-11-20T10:00:00Z', '2028-02-29/1': '2028-02-29T10:00:00Z' },
+    cards: { bad1: { en: 'x', due: '2026-02-30' }, bad2: { en: 'y', due: '2026-99-99' }, ok: { en: 'water', due: '2028-02-29' } }
+  });
+  assert.deepStrictEqual(Object.keys(v.done), ['2028-02-29/1']);
+  assert.deepStrictEqual(Object.keys(v.cards), ['ok']);
+});
+
 console.log(n + ' tagalog unit tests passed');

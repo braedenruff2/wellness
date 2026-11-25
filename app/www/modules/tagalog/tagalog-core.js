@@ -17,7 +17,7 @@
   function checkPack(p) {
     var e = [];
     if (!p || typeof p !== 'object') return ['not an object'];
-    if (!/^\d{4}-\d\d-\d\d$/.test(p.id || '')) e.push('id must be a YYYY-MM-DD date');
+    if (!WLD.isDate(p.id || '')) e.push('id must be a YYYY-MM-DD date');
     if (!p.title) e.push('title missing');
     if (!Array.isArray(p.lessons) || !p.lessons.length) return e.concat('lessons missing');
     p.lessons.forEach(function (l, i) {
@@ -218,10 +218,10 @@
   function validate(s) {
     if (!s || typeof s !== 'object' || typeof s.cards !== 'object' || !s.cards) return null;
     var d = defaults();
-    Object.keys(s.done || {}).forEach(function (k) { if (/^\d{4}-\d\d-\d\d\/\d+$/.test(k) && !isNaN(new Date(s.done[k]).getTime())) d.done[k] = new Date(s.done[k]).toISOString(); });
+    Object.keys(s.done || {}).forEach(function (k) { if (/^\d{4}-\d\d-\d\d\/\d+$/.test(k) && WLD.isDate(k.slice(0, 10)) && !isNaN(new Date(s.done[k]).getTime())) d.done[k] = new Date(s.done[k]).toISOString(); });
     Object.keys(s.cards).forEach(function (k) {
       var c = s.cards[k];
-      if (c && typeof c.en === 'string' && /^\d{4}-\d\d-\d\d$/.test(c.due) && k.length < 120)
+      if (c && typeof c.en === 'string' && WLD.isDate(c.due) && k.length < 120)
         d.cards[k] = { en: c.en, box: Math.max(0, Math.min(INTERVALS.length - 1, +c.box || 1)), due: c.due, seen: +c.seen || 0, right: +c.right || 0, wrong: +c.wrong || 0, from: String(c.from || '') };
     });
     (Array.isArray(s.answers) ? s.answers : []).slice(-2000).forEach(function (a) {

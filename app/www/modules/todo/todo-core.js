@@ -275,11 +275,7 @@
     return (h % 12 || 12) + (mi === '00' ? '' : ':' + mi) + (h < 12 ? ' am' : ' pm');
   }
 
-  function isDate(x) {
-    if (typeof x !== 'string' || !/^\d{4}-\d\d-\d\d$/.test(x)) return false;
-    var p = x.split('-'), y = +p[0], mo = +p[1] - 1, d = +p[2], dt = new Date(y, mo, d);
-    return dt.getFullYear() === y && dt.getMonth() === mo && dt.getDate() === d;
-  }
+  var isDate = WLD.isDate;
 
   function validate(s) {
     if (!s || !Array.isArray(s.tasks)) return null;

@@ -101,7 +101,7 @@
   /* Daily check-in, one tap per question (tap again to clear). */
   function checkin(state, day, k, v, now) {
     var q = qFor(CHECKIN, k);
-    if (!q || q.opts.indexOf(v) < 0 || !/^\d{4}-\d\d-\d\d$/.test(day)) return null;
+    if (!q || q.opts.indexOf(v) < 0 || !WLD.isDate(day)) return null;
     now = now || new Date();
     var c = state.checkins[day] || (state.checkins[day] = { at: now.toISOString() });
     if (c[k] === v) delete c[k]; else c[k] = v;
@@ -111,7 +111,7 @@
     return c;
   }
   function checkinNote(state, day, text, now) {
-    if (!/^\d{4}-\d\d-\d\d$/.test(day)) return null;
+    if (!WLD.isDate(day)) return null;
     now = now || new Date();
     var note = cut(String(text || '').trim(), 600);
     var c = state.checkins[day];
@@ -290,7 +290,7 @@
     });
     trim(d);
     if (s.checkins && typeof s.checkins === 'object') Object.keys(s.checkins).forEach(function (k) {
-      var c = s.checkins[k]; if (!/^\d{4}-\d\d-\d\d$/.test(k) || !c || typeof c !== 'object') return;
+      var c = s.checkins[k]; if (!WLD.isDate(k) || !c || typeof c !== 'object') return;
       var o = { at: cut(c.at || '', 40) };
       CHECKIN.forEach(function (q) { if (q.opts.indexOf(c[q.k]) >= 0) o[q.k] = c[q.k]; });
       if (c.note) o.note = cut(c.note, 600); if (c.edited) o.edited = cut(c.edited, 40);
@@ -298,9 +298,9 @@
     });
     trimCheckins(d);
     if (s.plan) d.plan = typeof s.plan.at === 'string' && !isNaN(Date.parse(s.plan.at)) ? (function () { var p = cleanPlan(s.plan); if (p) p.at = cut(s.plan.at, 40); return p; })() : null;
-    if (typeof s.planTried === 'string' && /^\d{4}-\d\d-\d\d$/.test(s.planTried)) d.planTried = s.planTried;
-    if (typeof s.planCancelled === 'string' && /^\d{4}-\d\d-\d\d$/.test(s.planCancelled)) d.planCancelled = s.planCancelled;
-    if (s.skipped && typeof s.skipped === 'object') Object.keys(s.skipped).forEach(function (k) { if (/^\d{4}-\d\d-\d\d$/.test(k)) d.skipped[k] = 1; });
+    if (WLD.isDate(s.planTried)) d.planTried = s.planTried;
+    if (WLD.isDate(s.planCancelled)) d.planCancelled = s.planCancelled;
+    if (s.skipped && typeof s.skipped === 'object') Object.keys(s.skipped).forEach(function (k) { if (WLD.isDate(k)) d.skipped[k] = 1; });
     return d;
   }
 

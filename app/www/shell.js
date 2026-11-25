@@ -486,7 +486,7 @@
       ['since', 'lastBackup', 'syncLater'].forEach(function (k) {
         if (typeof o[k] === 'string' && !isNaN(Date.parse(o[k]))) d[k] = o[k];
       });
-      if (typeof o.nudged === 'string' && /^\d{4}-\d\d-\d\d$/.test(o.nudged)) d.nudged = o.nudged;
+      if (window.WLDates.isDate(o.nudged)) d.nudged = o.nudged;
       return JSON.stringify(d);
     } catch (e) { return null; }
   }

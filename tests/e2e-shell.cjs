@@ -87,7 +87,7 @@ const W = require('./lib/web.cjs');
   });
   await t.step('restoreText validates wl.shell.v1 (sanitizes bad theme/textSize, skips corrupt JSON)', async () => {
     const res = await page.evaluate(() => {
-      const skipped1 = WL.restoreText(JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': JSON.stringify({ theme: 'purple', textSize: 99, nudged: 'bad' }) } }));
+      const skipped1 = WL.restoreText(JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': JSON.stringify({ theme: 'purple', textSize: 99, nudged: '2026-02-30' }) } }));
       WL.applyLook();
       const sh1 = JSON.parse(localStorage.getItem('wl.shell.v1'));
       const skipped2 = WL.restoreText(JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': '{not json', 'wl.pc.v1': '123' } }));
