@@ -78,6 +78,24 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-today');
     assert.ok(!(await page.$('#c-flat')));
   });
+  await t.step('the weekly plan\'s Calm pick leads until he taps "Not for me?" on that plan line', async () => {
+    await page.clock.setSystemTime(new Date(2026, 10, 19, 14, 0));
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+      me.feedback = []; me.plan = { at: new Date(2026, 10, 18, 9, 0).toISOString(), headline: 'h', parts: { calm: { focus: 'Try the quiet timer', why: 'w', prefer: ['timer'] } } };
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+      const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.sessions = [{ id: 'slow', date: '2026-11-17', at: new Date(2026, 10, 17, 12).toISOString(), mins: 5 }]; localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+    });
+    await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-today');
+    assert.ok((await page.textContent('#c-today h3')).includes('Quiet timer'), await page.textContent('#c-today h3'));
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+      me.feedback.push({ id: 'calm/notfit/plan', at: new Date(2026, 10, 19, 13, 0).toISOString(), part: 'calm', about: 'plan:' + me.plan.at.slice(0, 10), kind: 'notfit', a: { reasons: [] } });
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-today');
+    assert.ok(!(await page.textContent('#c-today h3')).includes('Quiet timer'), await page.textContent('#c-today h3'));
+  });
   await t.step('no overflow at 1.0, no errors', async () => { await t.noOverflow(['#calm/s/slow', '#calm/s/body', '#calm/s/shuffle']); assert.deepStrictEqual(t.errors, []); });
   await t.close('calm lengths');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

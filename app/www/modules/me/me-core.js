@@ -147,6 +147,7 @@
     state.feedback.forEach(function (f) {
       if (f.part !== 'calm') return;
       var id = String(f.about).split('@')[0];
+      if (/^plan:/.test(id)) return; // a weekly plan line, not a practice (planFlagged)
       if (f.kind === 'notfit') { score[id] = (score[id] || 0) - 3; if (Array.isArray(f.a.reasons) && f.a.reasons.indexOf('Too long') >= 0) tooLong[id] = 1; return; }
       var h = f.a.helped;
       if (h) score[id] = (score[id] || 0) + (h === 'A lot' ? 2 : h === 'A bit' ? 1 : -1);
@@ -250,6 +251,12 @@
     if ((now || new Date()).getTime() - new Date(p.at).getTime() > 10 * 864e5) return null; // a plan is for one week
     return p.parts[part];
   }
+  /* He tapped "Not for me?" on this week's plan line for a part: the line stays (it says "Noted"), but what the plan
+     asks of that part's suggestions (calm.prefer) stops counting. */
+  function planFlagged(state, part) {
+    var p = state.plan; if (!p || !p.at) return false;
+    return flagged(state, part, 'plan:' + String(p.at).slice(0, 10));
+  }
   function planDue(state, now) {
     now = now || new Date();
     return !state.plan || now.getTime() - new Date(state.plan.at).getTime() > 6.5 * 864e5;
@@ -323,7 +330,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes,
+    notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, planFlagged: planFlagged,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

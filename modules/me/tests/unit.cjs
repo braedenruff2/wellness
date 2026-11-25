@@ -384,4 +384,15 @@ t('calmLikes.flat: latest "Not really" answers in a row (14 days); a newer "A bi
   assert.strictEqual(K.calmLikes(s, D(25)).flat, 2);
   assert.strictEqual(K.calmLikes(s, D(25, 12)).score.ground, -4 + 1 + 2);
 });
+t('planFlagged: "Not for me" on this week\'s plan line for a part; an older plan\'s flag or another part doesn\'t count; no fake practice score', () => {
+  const s = K.defaults();
+  assert.strictEqual(K.planFlagged(s, 'calm'), false);
+  s.plan = { at: D(21, 4).toISOString(), headline: 'h', parts: { calm: { focus: 'f', prefer: ['night', 'ground'] } } };
+  s.feedback.push({ id: 'calm/notfit/plan:2026-11-14', at: D(15).toISOString(), part: 'calm', about: 'plan:2026-11-14', kind: 'notfit', a: { reasons: [] } });
+  s.feedback.push({ id: 'workout/notfit/plan', at: D(22).toISOString(), part: 'workout', about: 'plan:' + s.plan.at.slice(0, 10), kind: 'notfit', a: { reasons: [] } });
+  assert.strictEqual(K.planFlagged(s, 'calm'), false);
+  s.feedback.push({ id: 'calm/notfit/plan2', at: D(24).toISOString(), part: 'calm', about: 'plan:' + s.plan.at.slice(0, 10), kind: 'notfit', a: { reasons: [] } });
+  assert.strictEqual(K.planFlagged(s, 'calm'), true);
+  assert.deepStrictEqual(Object.keys(K.calmLikes(s, D(25)).score), [], 'plan lines are not practices');
+});
 console.log(n + ' me unit tests passed');
