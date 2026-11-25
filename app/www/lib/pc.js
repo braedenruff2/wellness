@@ -215,10 +215,22 @@
   document.addEventListener('click', function (e) {
     var b = e.target && e.target.closest ? e.target.closest('[data-cloud-cancel]') : null; if (!b) return;
     e.preventDefault(); e.stopPropagation();
+    var drafts = {};
+    ['lk-q', 'lk-host', 'lk-code', 'co-real', 'co-answer', 'co-hist-search', 'me-ck-note'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && typeof el.value === 'string') drafts[id] = el.value;
+    });
     var n = 0; String(b.getAttribute('data-cloud-cancel')).split(' ').forEach(function (id) { if (id && cancel(id, true)) n++; });
     if (n && WL.driveSync && WL.driveSync.sync) try { WL.driveSync.sync().catch(function () {}); } catch (x) {}
     if (n) WL.toast('Cancelled: it won’t be answered');
     WL.route();
+    Object.keys(drafts).forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el && el.value !== drafts[id]) {
+        el.value = drafts[id];
+        if (id === 'co-hist-search' && typeof el.oninput === 'function') el.oninput();
+      }
+    });
   });
   if (WL.driveSync && WL.driveSync.onAnswers) WL.driveSync.onAnswers(function () { deliver(); });
   setTimeout(deliver, 2500);

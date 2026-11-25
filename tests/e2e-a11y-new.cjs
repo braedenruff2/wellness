@@ -105,7 +105,13 @@ const W = require('./lib/web.cjs');
       child: { name: 'Baby', birth: '2025-08-01', can: [] }, current: null, history: hist, pending: null, realDraft: ''
     }));
     localStorage.setItem('wl.me.v1', JSON.stringify({
-      checkins: {}, skipped: {}, plan: { at: '2026-11-22T12:00:00.000Z', headline: 'Steady week', parts: {} },
+      checkins: {
+        '2026-11-20': { at: '2026-11-20T12:00:00.000Z', sleep: '5–6 h', wakes: '2', energy: 'OK', mood: 'OK', day: 'Mixed' },
+        '2026-11-21': { at: '2026-11-21T12:00:00.000Z', sleep: '6–7 h', wakes: '1', energy: 'Good', mood: 'Good', day: 'Good' },
+        '2026-11-22': { at: '2026-11-22T12:00:00.000Z', sleep: '4–5 h', wakes: '3+', energy: 'Low', mood: 'OK', day: 'Hard', note: 'Teething night' }
+      },
+      skipped: {},
+      plan: { at: '2026-11-22T12:00:00.000Z', headline: 'Steady week', parts: { home: { focus: 'Protect one nap-time rest', why: 'short sleep' } }, check: 'How did your energy feel?' },
       feedback: [
         { id: 'f1', at: '2026-11-22T12:00:00.000Z', date: '2026-11-22', part: 'coach', kind: 'after', about: 'tip:h20', a: { tried: 'It worked' } },
         { id: 'calm/after/sleep@r', at: new Date(2026, 10, 22, 22, 20).toISOString(), date: '2026-11-22', part: 'calm', kind: 'after', about: 'sleep@r', a: { helped: 'Not really', block: ['Mind racing'] } }
@@ -128,7 +134,7 @@ const W = require('./lib/web.cjs');
     const rgb = (s) => (s.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
     const lum = (c) => { c = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
     const bg = (e) => { while (e) { const b = getComputedStyle(e).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return rgb(b); e = e.parentElement; } return [255, 255, 255]; };
-    const sels = ['p', '.meta', '.no', '.ok', 'b', 'a', 'button', 'summary', '.wk4-rest', 'input[type="search"]', 'textarea', 'select', 'label'].map((s) => rootSel + ' ' + s).join(', ');
+    const sels = ['p', '.meta', '.no', '.ok', 'b', 'a', 'button', 'summary', '.wk4-rest', '.trow .tl', 'input[type="search"]', 'input[type="text"]', 'textarea', 'select', 'label'].map((s) => rootSel + ' ' + s).join(', ');
     return Array.from(document.querySelectorAll(sels)).filter((e) => {
       if (e.offsetParent === null) return false;
       if (e.tagName === 'INPUT' || e.tagName === 'TEXTAREA' || e.tagName === 'SELECT') return true;
@@ -238,6 +244,23 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('a[href="#coach"]'), []);
       await t.noOverflow(['#coach/h/h20']);
     });
+    await t.step('text size ' + ts + ': #me check-in, weekly plan, failed-plan retry & 14-day trend bars', async () => {
+      await page.goto(base + '#me'); await page.waitForSelector('#me-ck'); await page.waitForSelector('#me-plan'); await page.waitForSelector('#me-trend');
+      assert.deepStrictEqual(await small('#me-ck button, #me-ck-note, #me-plan'), []);
+      await t.noOverflow(['#me']);
+      // Weekly-plan failed retry state on #me
+      await page.evaluate(() => {
+        const m = JSON.parse(localStorage.getItem('wl.me.v1'));
+        m.plan = null; m.planTried = '2026-11-23';
+        localStorage.setItem('wl.me.v1', JSON.stringify(m));
+        WL.modules.me.reload();
+      });
+      await page.goto(base + '#home'); await page.goto(base + '#me');
+      await page.waitForSelector('#me-plan-failed'); await page.waitForSelector('#me-plan');
+      assert.deepStrictEqual(await small('#me-ck button, #me-ck-note, #me-plan'), []);
+      await t.noOverflow(['#me']);
+      await seed();
+    });
     await t.step('text size ' + ts + ': Settings Voice, App updates, Drive sync errors, Home #wl-sync-nudge & Link unpaired #lk-advice-card', async () => {
       await page.evaluate(() => { window.__update.allowed = false; window.__update.ready = true; });
       await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-err'); await page.waitForSelector('#wl-sync-ans-err');
@@ -344,6 +367,18 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual((await contrast('#co-hist')).filter((x) => x.r < min), [], theme + ' #co-hist');
       await page.goto(base + '#coach/h/h20'); await page.waitForSelector('a[href="#coach"]');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #coach/h/h20');
+      await page.goto(base + '#me'); await page.waitForSelector('#me-ck'); await page.waitForSelector('#me-plan'); await page.waitForSelector('#me-trend');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #me');
+      await page.evaluate(() => {
+        const m = JSON.parse(localStorage.getItem('wl.me.v1'));
+        m.plan = null; m.planTried = '2026-11-23';
+        localStorage.setItem('wl.me.v1', JSON.stringify(m));
+        WL.modules.me.reload();
+      });
+      await page.goto(base + '#home'); await page.goto(base + '#me');
+      await page.waitForSelector('#me-plan-failed');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #me failed plan');
+      await seed();
       await page.evaluate(() => { window.__update.allowed = false; window.__update.ready = true; });
       await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-err'); await page.waitForSelector('#wl-sync-ans-err');
       await page.waitForSelector('#wl-voice'); await page.waitForSelector('#wl-update');

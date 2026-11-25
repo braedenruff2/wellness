@@ -397,6 +397,44 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     await page.waitForTimeout(50);
     assert.strictEqual((await reqs('tagalog-check')).length, 0);
     assert.strictEqual(await page.evaluate(() => WL.pc.queued().length), 0);
+
+    // Cancelling a waiting cloud request must not discard unsaved text in #lk-q, #co-real, or #co-answer
+    await page.goto(base + '#link');
+    await page.click('#lk-advice');
+    await page.waitForSelector('#lk-queued [data-cloud-cancel]');
+    await page.fill('#lk-q', 'Unsaved follow-up question for later');
+    await page.click('#lk-queued [data-cloud-cancel]');
+    await page.waitForFunction(() => !document.querySelector('#lk-queued'));
+    assert.strictEqual(await page.inputValue('#lk-q'), 'Unsaved follow-up question for later', '#lk-q draft preserved across cancel');
+
+    await page.goto(base + '#coach');
+    await page.click('#co-new');
+    await page.waitForSelector('#co-queued [data-cloud-cancel]');
+    await page.evaluate(() => { document.getElementById('co-real').value = 'Unsaved real situation text'; });
+    await page.click('#co-queued [data-cloud-cancel]');
+    await page.waitForFunction(() => !document.querySelector('#co-queued'));
+    assert.strictEqual(await page.inputValue('#co-real'), 'Unsaved real situation text', '#co-real draft preserved across cancel');
+
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      s.current = { id: 'scn-c1', at: '2026-11-21T10:00:00.000Z', title: 'Dinner throws', skill: 'Limits and boundaries', age: '12 months', scenario: 'She drops food.', question: 'What do you say?', answer: '' };
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      WL.modules.coach.reload();
+      WL.pc.queue('coach-advice', { situation: 'Queued advice' }, { answer: 'Queued advice' });
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#coach');
+    await page.waitForSelector('#co-queued [data-cloud-cancel]');
+    await page.waitForSelector('#co-answer');
+    await page.evaluate(() => { document.getElementById('co-answer').value = 'Unsaved scenario answer draft'; });
+    await page.click('#co-queued [data-cloud-cancel]');
+    await page.waitForFunction(() => !document.querySelector('#co-queued'));
+    assert.strictEqual(await page.inputValue('#co-answer'), 'Unsaved scenario answer draft', '#co-answer draft preserved across cancel');
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      s.current = null; s.realDraft = '';
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      WL.modules.coach.reload();
+    });
   });
   await t.step('no PC and no Drive sync: buttons are off and the note says both ways to get answers', async () => {
     await page.evaluate(() => localStorage.setItem('test.drive.off', '1'));
