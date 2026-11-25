@@ -119,6 +119,8 @@
     var h = '<div class="meta ui">For you</div>';
     if (g.length) h += '<ul class="me-g">' + g.map(function (x) { return '<li>' + esc(x.text) + ' ' + fitLink(x.part, 'guide:' + x.key, x.text) + '</li>'; }).join('') + '</ul>';
     else h += '<p class="meta ui">Thanks for checking in. Answer the quick questions after things you do, and the app learns what fits you.</p>';
+    var wk = K.working(S, new Date());
+    if (wk.length) h += '<p class="meta ui" id="me-working-home">What’s working: ' + esc(wk[0]) + '</p>';
     h += planHtml();
     h += '<div class="row ui"><a class="btn" href="#me">About you</a>' + (c ? '<span class="meta grow" style="text-align:right">Check-in ✓</span>' : '') + '</div>';
     return h;

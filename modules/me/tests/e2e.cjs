@@ -137,6 +137,9 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#home'); await page.goto(base + '#me'); await page.reload(); await page.waitForSelector('#me-working');
     const w = await page.textContent('#me-working');
     assert.ok(w.includes('Body scan helped') && w.includes('felt just right') && w.includes('about right'), w);
+    await page.evaluate(() => { const me = JSON.parse(localStorage.getItem('wl.me.v1')); const d = new Date(), k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); me.skipped[k] = 1; localStorage.setItem('wl.me.v1', JSON.stringify(me)); });
+    await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('.home-card[data-module="me"]');
+    const wh = await page.textContent('#me-working-home'); assert.ok(wh.includes('What’s working: Calm:') && wh.includes('Body scan helped'), wh);
   });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#home', '#me', '#calm', '#workout', '#coach']);
