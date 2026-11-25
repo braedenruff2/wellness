@@ -12,7 +12,7 @@
   function sopts() {
     var M = window.WLMe; if (!M) return {};
     var l = M.calmLikes(), pl = M.planFor('calm');
-    return { score: l.score, tooLong: l.tooLong, rough: M.rough(), racing: !!l.racing, prefer: pl && pl.prefer && !(M.planFlagged && M.planFlagged('calm')) ? pl.prefer : [] };
+    return { score: l.score, tooLong: l.tooLong, rough: M.rough(), racing: !!l.racing, flat: l.flat || 0, prefer: pl && pl.prefer && !(M.planFlagged && M.planFlagged('calm')) ? pl.prefer : [] };
   }
   function fit(id, text) { return window.WLMe ? ' ' + WLMe.fitLink('calm', id, text) : ''; }
   /* pick: a length chosen on the practice's own start screen, for that session only (the saved default stays). */

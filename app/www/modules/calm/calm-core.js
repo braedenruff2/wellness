@@ -348,6 +348,8 @@
       // bedtime, back-to-sleep after midnight. His own answers still count: one that didn't help (score -2 or lower)
       // is left out above, so the next one of these takes its place.
       if (opts.racing && (h >= 21 || h < 5)) r += ({ shuffle: 6, ground: h >= 21 ? 5 : 0, night: h < 5 ? 7 : 0 })[id] || 0;
+      // five or more "Not really" in a row: in the daytime, try moving instead of sitting still (the mindful walk)
+      if ((opts.flat || 0) >= 5 && h >= 7 && h < 20 && id === 'walk') r += 4;
       return r;
     }
     // liked (or planned) ones lead, but not every day: a practice done in the last 2 days drops behind fresh ones

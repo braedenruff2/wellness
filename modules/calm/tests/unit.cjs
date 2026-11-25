@@ -190,4 +190,14 @@ t('feltScores: his own before/after ratings nudge suggestions (2+ rated sessions
   const r = K.suggest(s, new Date(2026, 10, 22, 22, 0));
   assert.strictEqual(r, 'body');
 });
+t('five "Not really" in a row: the daytime suggestion is the mindful walk; evenings and fewer misses unchanged', () => {
+  const s = K.defaults();
+  K.record(s, 'slow', 5, 3, 3, new Date(2026, 10, 20, 12));
+  const noon = new Date(2026, 10, 23, 12, 0);
+  assert.strictEqual(K.suggest(s, noon, { flat: 5 }), 'walk');
+  assert.strictEqual(K.suggest(s, noon, { flat: 4 }), K.suggest(s, noon, {}));
+  assert.strictEqual(K.suggest(s, new Date(2026, 10, 23, 22, 0), { flat: 5 }), K.suggest(s, new Date(2026, 10, 23, 22, 0), {}));
+  K.record(s, 'walk', 6, 3, 3, new Date(2026, 10, 23, 10, 0));
+  assert.notStrictEqual(K.suggest(s, noon, { flat: 5 }), 'walk', 'done today already');
+});
 console.log(n + ' calm unit tests passed');
