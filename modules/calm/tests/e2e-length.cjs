@@ -55,6 +55,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-today');
     assert.ok((await page.textContent('#c-today h3')).includes('Picture-word shuffle'), await page.textContent('#c-today h3'));
     assert.strictEqual(await page.getAttribute('#c-racing a', 'href'), '#journal/journal');
+    assert.ok((await page.textContent('#c-how')).includes('cognitive shuffle'), 'first time: how it works');
     assert.ok(!(await page.$('#c-flat')), 'one "Not really" is no streak');
   });
   await t.step('three "Not really" in a row: the today card says so; the shuffle plays through with its guided lines', async () => {
@@ -69,6 +70,9 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok((await page.textContent('#c-today h3')).includes('Picture-word shuffle'));
     await page.click('#c-today a.btn.primary'); await page.waitForSelector('#c-pp');
     assert.ok(/Begin · 5 min/.test(await page.textContent('#c-pp')), await page.textContent('#c-pp'));
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.sessions.push({ id: 'shuffle', date: '2026-11-10', at: new Date(2026, 10, 10, 22).toISOString(), mins: 5 }); localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
+    await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-today');
+    assert.ok(!(await page.$('#c-how')), 'done once: no explainer');
     // a newer answer that helped ends the streak
     await page.evaluate(() => {
       const me = JSON.parse(localStorage.getItem('wl.me.v1'));
