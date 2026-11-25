@@ -67,7 +67,20 @@ const W = require('./lib/web.cjs');
     words.forEach(([tl, en, box, wrong]) => {
       cards[tl] = { en, box, due: wrong ? '2026-11-17' : '2026-11-28', seen: 2, right: wrong ? 0 : 2, wrong, from: '2026-11-11/1' };
     });
-    localStorage.setItem('wl.tagalog.v1', JSON.stringify({ packs: {}, done: {}, cards, answers: [], reviews: [] }));
+    localStorage.setItem('wl.tagalog.v1', JSON.stringify({
+      packs: {}, done: {}, cards, answers: [], reviews: [],
+      source: 'https://raw.githubusercontent.com/braedenruff2/wellness/main/modules/tagalog/packs/',
+      lastCheck: '2026-11-23T08:00:00.000Z', settings: { slow: true }
+    }));
+    localStorage.setItem('wl.todo.v1', JSON.stringify({
+      tasks: [
+        { id: 't1', text: 'Call dentist', due: '2026-11-20', repeat: null, at: '09:00', done: null, created: '2026-11-18T12:00:00.000Z' },
+        { id: 't2', text: 'Send forms', due: '2026-11-21', repeat: null, at: null, done: null, created: '2026-11-18T13:00:00.000Z' },
+        { id: 't3', text: 'Order filters', due: '2026-11-22', repeat: null, at: null, done: null, created: '2026-11-18T14:00:00.000Z' },
+        { id: 't4', text: 'Take bins out', due: '2026-11-23', repeat: 'weekly', at: '19:00', done: null, created: '2026-11-19T12:00:00.000Z' },
+        { id: 't5', text: 'Buy diapers', due: '2026-11-22', repeat: null, at: null, done: '2026-11-22T14:00:00.000Z', created: '2026-11-21T12:00:00.000Z' }
+      ]
+    }));
     localStorage.setItem('fc.v1', JSON.stringify({
       done: { 1: '2026-11-23' },
       journal: [
@@ -136,7 +149,7 @@ const W = require('./lib/web.cjs');
     const rgb = (s) => (s.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
     const lum = (c) => { c = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
     const bg = (e) => { while (e) { const b = getComputedStyle(e).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return rgb(b); e = e.parentElement; } return [255, 255, 255]; };
-    const sels = ['p', '.meta', '.no', '.ok', 'b', 'a', 'button', 'summary', '.wk4-rest', '.trow .tl', 'input[type="search"]', 'input[type="text"]', 'textarea', 'select', 'label'].map((s) => rootSel + ' ' + s).join(', ');
+    const sels = ['p', '.meta', '.no', '.ok', 'b', 'a', 'button', 'summary', '.wk4-rest', '.trow .tl', 'input[type="search"]', 'input[type="text"]', 'input[type="date"]', 'input[type="time"]', 'textarea', 'select', 'label'].map((s) => rootSel + ' ' + s).join(', ');
     return Array.from(document.querySelectorAll(sels)).filter((e) => {
       if (e.offsetParent === null) return false;
       if (e.tagName === 'INPUT' || e.tagName === 'TEXTAREA' || e.tagName === 'SELECT') return true;
@@ -254,11 +267,27 @@ const W = require('./lib/web.cjs');
       await page.waitForSelector('#tl-missed');
       assert.deepStrictEqual(await small('#tl-missed button'), []);
       await t.noOverflow(['#tagalog/review']);
+      await page.goto(base + '#tagalog/settings'); await page.waitForSelector('#tl-src'); await page.waitForSelector('#tl-slow');
+      assert.deepStrictEqual(await small('#tl-src, #tl-save-src, #tl-fetch, #tl-send, #tl-slow'), []);
+      await t.noOverflow(['#tagalog/settings']);
     });
-    await t.step('text size ' + ts + ': Parenting #co-can-nudge, #co-cloud, #co-teach, #co-hist-search, #co-hist-more, #co-worked & #coach/h/:id Back', async () => {
+    await t.step('text size ' + ts + ': To-do #td-new, #td-move, #td-showdone & #td-sheet controls', async () => {
+      await page.goto(base + '#todo'); await page.waitForSelector('#td-new'); await page.waitForSelector('#td-move'); await page.waitForSelector('#td-showdone');
+      assert.deepStrictEqual(await small('#td-new, #td-form button, #td-move, #td-showdone, [data-tick], [data-more]'), []);
+      await page.click('[data-more="t1"]'); await page.waitForSelector('#td-sheet');
+      assert.deepStrictEqual(await small('#td-sheet input, #td-sheet button'), []);
+      const tdOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(tdOverflow <= 2, '#todo with #td-sheet overflow ' + tdOverflow + 'px');
+      await page.click('#td-cancel');
+      await t.noOverflow(['#todo']);
+    });
+    await t.step('text size ' + ts + ': Parenting #co-can-nudge, #co-cloud, #co-teach, #co-hist-search, #co-hist-more, #co-worked, #coach/setup & #coach/h/:id Back', async () => {
       await page.goto(base + '#coach'); await page.waitForSelector('#co-can-nudge'); await page.waitForSelector('#co-cloud'); await page.waitForSelector('#co-teach'); await page.waitForSelector('#co-hist-search'); await page.waitForSelector('#co-worked'); await page.waitForSelector('#co-hist-more');
       assert.deepStrictEqual(await small('#co-can-nudge a, #co-cloud a, a[href="#coach/setup"], #co-teach button, #co-teach summary, #co-hist-search, #co-hist-more'), []);
       await t.noOverflow(['#coach']);
+      await page.goto(base + '#coach/setup'); await page.waitForSelector('#co-name'); await page.waitForSelector('#co-birth'); await page.waitForSelector('#co-can'); await page.waitForSelector('#co-can-note'); await page.waitForSelector('#co-save');
+      assert.deepStrictEqual(await small('#co-name, #co-birth, #co-can button, #co-can-note, #co-save, a[href="#coach"]'), []);
+      await t.noOverflow(['#coach/setup']);
       await page.goto(base + '#coach/h/h20'); await page.waitForSelector('a[href="#coach"]');
       assert.deepStrictEqual(await small('a[href="#coach"]'), []);
       await t.noOverflow(['#coach/h/h20']);
@@ -384,14 +413,22 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual((await contrast('#tl-voice-nudge')).filter((x) => x.r < min), [], theme + ' #tl-voice-nudge');
       await page.goto(base + '#tagalog/words'); await page.waitForSelector('#tl-word-search');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #tagalog/words');
+      await page.goto(base + '#tagalog/settings'); await page.waitForSelector('#tl-src'); await page.waitForSelector('#tl-slow');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #tagalog/settings');
       await openBuildExercise();
       assert.deepStrictEqual((await contrast('#tl-ex')).filter((x) => x.r < min), [], theme + ' #tl-built');
+      await page.goto(base + '#todo'); await page.waitForSelector('#td-new'); await page.waitForSelector('#td-move'); await page.waitForSelector('#td-showdone');
+      await page.click('[data-more="t1"]'); await page.waitForSelector('#td-sheet');
+      assert.deepStrictEqual((await contrast('#td-sheet')).filter((x) => x.r < min), [], theme + ' #td-sheet');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #todo');
       await page.goto(base + '#coach'); await page.waitForSelector('#co-can-nudge'); await page.waitForSelector('#co-cloud'); await page.waitForSelector('#co-teach'); await page.waitForSelector('#co-hist-search'); await page.waitForSelector('#co-worked');
       assert.deepStrictEqual((await contrast('#co-can-nudge')).filter((x) => x.r < min), [], theme + ' #co-can-nudge');
       assert.deepStrictEqual((await contrast('#co-cloud')).filter((x) => x.r < min), [], theme + ' #co-cloud');
       assert.deepStrictEqual((await contrast('#co-teach')).filter((x) => x.r < min), [], theme + ' #co-teach');
       assert.deepStrictEqual((await contrast('#co-worked')).filter((x) => x.r < min), [], theme + ' #co-worked');
       assert.deepStrictEqual((await contrast('#co-hist')).filter((x) => x.r < min), [], theme + ' #co-hist');
+      await page.goto(base + '#coach/setup'); await page.waitForSelector('#co-name'); await page.waitForSelector('#co-birth'); await page.waitForSelector('#co-can');
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #coach/setup');
       await page.goto(base + '#coach/h/h20'); await page.waitForSelector('a[href="#coach"]');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #coach/h/h20');
       await page.goto(base + '#me'); await page.waitForSelector('#me-ck'); await page.waitForSelector('#me-plan'); await page.waitForSelector('#me-trend');
