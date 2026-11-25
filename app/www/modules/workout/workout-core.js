@@ -522,6 +522,96 @@
     return added;
   }
 
+  /* General adult age-group benchmarks (general fitness reference only, never medical advice).
+     Pushups: ACSM/CSEP single-set endurance norms (men). Plank: general strict-form hold reference. */
+  var AGE_NORMS = {
+    'Pushups': {
+      '20–29': { avg: 23, low: 17, high: 29, good: 35, unit: 'reps', source: 'ACSM/CSEP general adult reference' },
+      '30–39': { avg: 19, low: 13, high: 24, good: 30, unit: 'reps', source: 'ACSM/CSEP general adult reference' },
+      '40–49': { avg: 15, low: 11, high: 20, good: 25, unit: 'reps', source: 'ACSM/CSEP general adult reference' },
+      '50–59': { avg: 13, low: 9, high: 17, good: 22, unit: 'reps', source: 'ACSM/CSEP general adult reference' },
+      '60+':   { avg: 11, low: 8, high: 14, good: 18, unit: 'reps', source: 'ACSM/CSEP general adult reference' }
+    },
+    'Plank': {
+      '20–29': { avg: 60, low: 45, high: 90, good: 90, unit: 'sec', source: 'General strict-form adult reference' },
+      '30–39': { avg: 55, low: 45, high: 75, good: 85, unit: 'sec', source: 'General strict-form adult reference' },
+      '40–49': { avg: 50, low: 40, high: 65, good: 75, unit: 'sec', source: 'General strict-form adult reference' },
+      '50–59': { avg: 40, low: 35, high: 55, good: 65, unit: 'sec', source: 'General strict-form adult reference' },
+      '60+':   { avg: 35, low: 30, high: 45, good: 55, unit: 'sec', source: 'General strict-form adult reference' }
+    },
+    'Walk': {
+      '20–29': { avg: 25, low: 20, high: 30, good: 30, unit: 'min', source: 'WHO/CSEP ~150 min/week activity guide' },
+      '30–39': { avg: 25, low: 20, high: 30, good: 30, unit: 'min', source: 'WHO/CSEP ~150 min/week activity guide' },
+      '40–49': { avg: 25, low: 20, high: 30, good: 30, unit: 'min', source: 'WHO/CSEP ~150 min/week activity guide' },
+      '50–59': { avg: 25, low: 20, high: 30, good: 30, unit: 'min', source: 'WHO/CSEP ~150 min/week activity guide' },
+      '60+':   { avg: 25, low: 20, high: 30, good: 30, unit: 'min', source: 'WHO/CSEP ~150 min/week activity guide' }
+    }
+  };
+  function cleanAge(age) {
+    if (age == null || age === '') return null;
+    var a = Math.floor(+age);
+    return isFinite(a) && a >= 18 && a <= 90 ? a : null;
+  }
+  function ageBracket(age) {
+    var a = cleanAge(age); if (a == null) return null;
+    if (a < 30) return '20–29';
+    if (a < 40) return '30–39';
+    if (a < 50) return '40–49';
+    if (a < 60) return '50–59';
+    return '60+';
+  }
+  function benchmark(exName, age) {
+    var e = EX[exName];
+    if (!e) return null;
+    var unit = e.track === 'sec' ? 'sec' : e.track === 'min' ? 'min' : 'reps';
+    var br = ageBracket(age);
+    if (br && AGE_NORMS[exName] && AGE_NORMS[exName][br]) {
+      var n = AGE_NORMS[exName][br];
+      return { kind: 'age', bracket: br, avg: n.avg, low: n.low, high: n.high, good: n.good, unit: n.unit, source: n.source };
+    }
+    if (e.range) return { kind: 'target', avg: e.range[1], low: e.range[0], high: e.range[1], unit: unit, source: 'Program set target' };
+    return null;
+  }
+
+  /* Last N Monday-to-Sunday weeks (oldest first): [{start, end, label, workouts, sets}]. */
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  function weeklyTrend(state, now, weeks) {
+    now = now || new Date();
+    weeks = weeks || 8;
+    var ws = weekStart(now), todayIso = iso(now), dup = appDone(state);
+    var daySet = {}, setsByDay = {};
+    sessionsWithSets(state).forEach(function (s) {
+      if (s.date > todayIso) return;
+      daySet[s.date] = 1;
+      setsByDay[s.date] = (setsByDay[s.date] || 0) + s.sets.filter(function (x) { return +x.val > 0; }).length;
+    });
+    historyWithSets(state).forEach(function (h) {
+      if (h.date > todayIso) return;
+      daySet[h.date] = 1;
+      if (!dup[h.date + '|' + h.ex]) setsByDay[h.date] = (setsByDay[h.date] || 0) + h.sets.filter(function (v) { return +v > 0; }).length;
+    });
+    var out = [];
+    for (var w = weeks - 1; w >= 0; w--) {
+      var d0 = new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() - 7 * w);
+      var d1 = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + 7);
+      var a = iso(d0), b = iso(d1), workouts = 0, sets = 0;
+      Object.keys(daySet).forEach(function (k) { if (k >= a && k < b) workouts++; });
+      Object.keys(setsByDay).forEach(function (k) { if (k >= a && k < b) sets += setsByDay[k]; });
+      out.push({ start: a, end: iso(new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + 6)), label: MONTHS[d0.getMonth()] + ' ' + d0.getDate(), workouts: workouts, sets: sets });
+    }
+    return out;
+  }
+
+  /* Chronological points for an exercise progress chart: [{date, sets, w, bestVal, totalReps, volume}]. */
+  function exerciseSeries(state, name) {
+    return performances(state, name).map(function (p) {
+      var bestVal = Math.max.apply(null, p.sets.map(Number));
+      var totalReps = p.sets.reduce(function (a, b) { return a + +b; }, 0);
+      var w = p.w > 0 ? +p.w : null;
+      return { date: p.date, sets: p.sets, w: w, bestVal: bestVal, totalReps: totalReps, volume: Math.round(totalReps * (w || 1) * 10) / 10 };
+    });
+  }
+
   function validate(s) {
     if (!s || typeof s !== 'object' || !Array.isArray(s.sessions)) return null;
     var d = defaults(), isDate = WLD.isDate;
@@ -529,6 +619,7 @@
     if (isDate(s.dbAsked)) d.dbAsked = s.dbAsked;
     if (s.target === 2) d.target = 2;
     if (isDate(s.twoAsked)) d.twoAsked = s.twoAsked;
+    if (typeof s.age === 'number') { var ag = cleanAge(s.age); if (ag != null) d.age = ag; }
     Object.keys(s.weights || {}).forEach(function (k) { var w = cleanWeight(s.weights[k]); if (EX[k] && typeof s.weights[k] === 'number' && w != null) d.weights[k] = w; });
     Object.keys(s.next || {}).forEach(function (k) { if (EX[k] && typeof s.next[k] === 'string') d.next[k] = s.next[k]; });
     if (s.rest && typeof s.rest === 'object') Object.keys(s.rest).sort().slice(-200).forEach(function (k) {
@@ -563,6 +654,7 @@
   var api = { fourWeeks: fourWeeks, SORE_LEVELS: SORE_LEVELS, askSore: askSore, setSore: setSore, soreOn: soreOn, targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
     last: last, bestSet: bestSet, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
+    AGE_NORMS: AGE_NORMS, cleanAge: cleanAge, ageBracket: ageBracket, benchmark: benchmark, weeklyTrend: weeklyTrend, exerciseSeries: exerciseSeries,
     validate: validate, iso: iso };
   root.WorkoutCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -3,7 +3,7 @@
   'use strict';
   var W = window.WorkoutCore, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   var store = WL.store('wl.workout.v1', W.defaults);
-  var S = store.load(), view = null, dayChoice = null, forceAhead = false;
+  var S = store.load(), view = null, dayChoice = null, forceAhead = false, chartEx = '', chartMetric = 'best';
   var rest = null, restTimer = null, restHideTimer = null, clockTimer = null; // rest = {end, label, next, set}
   function save() { store.save(S); }
 
@@ -250,13 +250,132 @@
     return h + '<p class="meta" style="margin:.3em 0 0"><span class="wk4-d wk4-workout wk4-key" aria-hidden="true"></span> workout · <span class="wk4-d wk4-rest wk4-key" aria-hidden="true">R</span> rest day you chose</p></div>';
   }
 
+  function shortDate(iso) {
+    var p = String(iso || '').split('-');
+    if (p.length !== 3) return iso || '';
+    var ms = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return (ms[+p[1] - 1] || '') + ' ' + (+p[2]);
+  }
+
+  /* 8-week bar chart of workouts per week with a dashed goal line (WHO/CSEP adult guideline: 2+ strength days/week). */
+  function weeklyChartHtml() {
+    var trend = W.weeklyTrend(S, new Date(), 8);
+    if (!trend.some(function (x) { return x.workouts > 0; })) return '';
+    var target = W.targetOf(S);
+    var maxW = Math.max.apply(null, trend.map(function (x) { return x.workouts; }).concat([target + 1, 4]));
+    var left = 24, right = 312, top = 16, bottom = 92, plotW = right - left, plotH = bottom - top;
+    var step = plotW / trend.length, barW = Math.min(24, Math.floor(step * 0.62));
+    var yAt = function (v) { return bottom - (v / maxW) * plotH; };
+    var svg = '<svg class="wo-svg" id="wo-weekly-chart" viewBox="0 0 320 116" role="img" aria-label="Workouts per week over the last 8 weeks">';
+    [0, target, maxW].filter(function (v, i, a) { return a.indexOf(v) === i; }).forEach(function (v) {
+      var y = yAt(v).toFixed(1);
+      svg += '<line x1="' + left + '" y1="' + y + '" x2="' + right + '" y2="' + y + '" stroke="var(--line)" stroke-width="1"/>';
+      svg += '<text x="' + (left - 5) + '" y="' + (+y + 3).toFixed(1) + '" text-anchor="end">' + v + '</text>';
+    });
+    var ty = yAt(target).toFixed(1);
+    svg += '<line x1="' + left + '" y1="' + ty + '" x2="' + right + '" y2="' + ty + '" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="4 3"/>';
+    svg += '<text class="wo-ref-lbl" x="' + right + '" y="' + Math.max(10, +ty - 4).toFixed(1) + '" text-anchor="end">Goal: ' + target + '/wk</text>';
+    trend.forEach(function (wk, i) {
+      var cx = left + step * (i + 0.5), x = (cx - barW / 2).toFixed(1);
+      var bh = wk.workouts ? Math.max(4, (wk.workouts / maxW) * plotH) : 2;
+      var y = (bottom - bh).toFixed(1);
+      svg += '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + bh.toFixed(1) + '" rx="4" fill="var(--accent)"' + (wk.workouts ? '' : ' opacity="0.22"') + '><title>' + esc(wk.label + ': ' + wk.workouts + ' workout' + (wk.workouts === 1 ? '' : 's') + ', ' + wk.sets + ' sets') + '</title></rect>';
+      if (wk.workouts) svg += '<text class="wo-val" x="' + cx.toFixed(1) + '" y="' + Math.max(11, +y - 4).toFixed(1) + '" text-anchor="middle">' + wk.workouts + '</text>';
+      if (i === 0 || i === 3 || i === 5 || i === trend.length - 1) {
+        svg += '<text x="' + cx.toFixed(1) + '" y="108" text-anchor="middle">' + esc(i === trend.length - 1 ? 'This wk' : wk.label) + '</text>';
+      }
+    });
+    svg += '</svg><p class="meta" style="margin:.3em 0 0">Last 8 weeks · WHO/CSEP adult guideline: 2+ strength days/week.</p>';
+    return svg;
+  }
+
+  /* Interactive per-exercise SVG progress graph with an age-group average or target reference line. */
+  function exerciseChartHtml(rows) {
+    if (!rows.length) return '';
+    if (!chartEx || !rows.some(function (r) { return r.n === chartEx; })) {
+      var pref = rows.filter(function (r) { return r.n === 'Pushups'; })[0] ||
+        rows.filter(function (r) { return r.n === 'Plank'; })[0] ||
+        rows.slice().sort(function (a, b) { return b.p.length - a.p.length; })[0];
+      chartEx = pref.n;
+    }
+    var ex = chartEx, e = W.EX[ex], u = unit(e);
+    var series = W.exerciseSeries(S, ex);
+    var hasWeight = series.some(function (p) { return p.w > 0; });
+    var metric = hasWeight && chartMetric === 'volume' ? 'volume' : 'best';
+    var bm = metric === 'best' ? W.benchmark(ex, S.age) : null;
+    var vals = series.map(function (p) { return metric === 'volume' ? p.volume : p.bestVal; });
+    var rawMax = Math.max.apply(null, vals.concat(bm ? [bm.high || bm.avg, bm.avg] : [1]));
+    var yMax = Math.max(4, Math.ceil(rawMax * 1.15));
+    var left = 36, right = 308, top = 18, bottom = 134, plotW = right - left, plotH = bottom - top;
+    var xAt = function (i) { return series.length === 1 ? left + plotW / 2 : left + (i * plotW / (series.length - 1)); };
+    var yAt = function (v) { return bottom - (v / yMax) * plotH; };
+    var svg = '<svg class="wo-svg" id="wo-ex-svg" viewBox="0 0 320 158" role="img" aria-label="' + esc(ex) + ' progress graph">';
+    [0, Math.round(yMax / 2), yMax].forEach(function (v) {
+      var y = yAt(v).toFixed(1);
+      svg += '<line x1="' + left + '" y1="' + y + '" x2="' + right + '" y2="' + y + '" stroke="var(--line)" stroke-width="1"/>';
+      svg += '<text x="' + (left - 5) + '" y="' + (+y + 3).toFixed(1) + '" text-anchor="end">' + v + '</text>';
+    });
+    if (bm) {
+      if (bm.kind === 'age' && bm.low != null && bm.high != null) {
+        var yHi = yAt(bm.high), yLo = yAt(bm.low);
+        svg += '<rect x="' + left + '" y="' + yHi.toFixed(1) + '" width="' + plotW + '" height="' + Math.max(2, yLo - yHi).toFixed(1) + '" fill="var(--good)" opacity="0.12"/>';
+      }
+      var by = yAt(bm.avg).toFixed(1);
+      svg += '<line x1="' + left + '" y1="' + by + '" x2="' + right + '" y2="' + by + '" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="5 3"/>';
+      var refLbl = bm.kind === 'age' ? 'Age ' + bm.bracket + ' avg: ' + bm.avg + ' ' + bm.unit : 'Target: ' + bm.avg + ' ' + bm.unit;
+      svg += '<text class="wo-ref-lbl" x="' + right + '" y="' + Math.max(11, +by - 4).toFixed(1) + '" text-anchor="end">' + esc(refLbl) + '</text>';
+    }
+    if (series.length >= 2) {
+      var pts = vals.map(function (v, i) { return xAt(i).toFixed(1) + ',' + yAt(v).toFixed(1); });
+      var area = left + ',' + bottom + ' ' + pts.join(' ') + ' ' + right + ',' + bottom;
+      svg += '<polygon points="' + area + '" fill="var(--accent)" opacity="0.14"/>';
+      svg += '<polyline points="' + pts.join(' ') + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    }
+    vals.forEach(function (v, i) {
+      var cx = xAt(i).toFixed(1), cy = yAt(v).toFixed(1), last = i === vals.length - 1;
+      svg += '<circle cx="' + cx + '" cy="' + cy + '" r="' + (last ? 5 : 3.5) + '" fill="var(--accent)" stroke="var(--card)" stroke-width="1.5"><title>' + esc(shortDate(series[i].date) + ': ' + v + (metric === 'volume' ? ' lb·reps' : ' ' + u)) + '</title></circle>';
+      if (last) {
+        var anchor = series.length === 1 ? 'middle' : 'end';
+        svg += '<text class="wo-val" x="' + cx + '" y="' + Math.max(12, +cy - 8).toFixed(1) + '" text-anchor="' + anchor + '">' + esc(v + (metric === 'volume' ? '' : ' ' + u)) + '</text>';
+      }
+    });
+    if (series.length === 1) {
+      svg += '<text x="' + xAt(0).toFixed(1) + '" y="150" text-anchor="middle">' + esc(shortDate(series[0].date)) + '</text>';
+    } else {
+      svg += '<text x="' + left + '" y="150" text-anchor="start">' + esc(shortDate(series[0].date)) + '</text>';
+      if (series.length >= 3) {
+        var mid = Math.floor(series.length / 2);
+        svg += '<text x="' + xAt(mid).toFixed(1) + '" y="150" text-anchor="middle">' + esc(shortDate(series[mid].date)) + '</text>';
+      }
+      svg += '<text x="' + right + '" y="150" text-anchor="end">' + esc(shortDate(series[series.length - 1].date)) + '</text>';
+    }
+    svg += '</svg>';
+    var latest = series[series.length - 1], best = W.bestSet(S, ex);
+    var summary = '<p class="meta" style="margin:.45em 0 0">Best set: <b>' + best.val + ' ' + u + (best.w ? ' @ ' + best.w + ' lb' : '') + '</b> · Latest (' + esc(shortDate(latest.date)) + '): ' + latest.sets.join('/') + (latest.w ? ' @ ' + latest.w + ' lb' : '') + '.</p>';
+    var note = '';
+    if (bm && bm.kind === 'age') {
+      note = '<p class="meta" id="wo-bench-note" style="margin:.25em 0 0">Typical ' + esc(bm.bracket) + ' average: ' + bm.low + '–' + bm.high + ' ' + esc(bm.unit) + ' (midpoint ' + bm.avg + ', strong ' + bm.good + '+) · ' + esc(bm.source) + '. General guidance, not medical advice.</p>';
+    } else if (!S.age) {
+      note = '<p class="meta" id="wo-bench-note" style="margin:.25em 0 0"><a class="link" href="#workout/settings">Set your age in Setup</a> to show an average for your age group on Pushups, Plank and Walk.</p>';
+    } else if (e.range) {
+      note = '<p class="meta" id="wo-bench-note" style="margin:.25em 0 0">Program set target: ' + e.range[0] + '–' + e.range[1] + ' ' + esc(u) + '. Age-group averages are shown on Pushups, Plank and Walk.</p>';
+    }
+    return '<div class="card ui" id="wo-chart-card"><div class="row" style="margin-bottom:8px"><h3 class="grow" style="margin:0">Progress graph</h3></div>' +
+      '<label class="sr" for="wo-chart-ex">Choose exercise to graph</label><select id="wo-chart-ex">' +
+      rows.map(function (r) { return '<option value="' + esc(r.n) + '"' + (r.n === ex ? ' selected' : '') + '>' + esc(r.n) + ' (' + r.p.length + ')</option>'; }).join('') +
+      '</select>' +
+      (hasWeight ? '<div class="chips" style="margin-top:8px"><button class="chip" data-wo-metric="best" aria-pressed="' + (metric === 'best') + '">Best set (' + esc(u) + ')</button><button class="chip" data-wo-metric="volume" aria-pressed="' + (metric === 'volume') + '">Total volume (reps × lb)</button></div>' : '') +
+      svg + summary + note + '</div>';
+  }
+
   function history() {
     var st = W.weekStats(S);
     var h = subnav('history') + '<h1>Progress</h1><div class="card ui"><div class="row"><div class="grow"><b>' + st.thisWeek + '</b> of ' + st.target + ' this week</div>' + weekDots() + '</div>' +
-      '<p class="meta" style="margin:.4em 0 0">' + (st.streak ? st.streak + ' week' + (st.streak > 1 ? 's' : '') + ' in a row with 2+ workouts. ' : '') + st.total + ' workout days logged in all.</p>' + monthRow() + volume() + '</div>';
+      '<p class="meta" style="margin:.4em 0 0">' + (st.streak ? st.streak + ' week' + (st.streak > 1 ? 's' : '') + ' in a row with 2+ workouts. ' : '') + st.total + ' workout days logged in all.</p>' + weeklyChartHtml() + monthRow() + volume() + '</div>';
     var names = Object.keys(W.EX);
     var rows = names.map(function (n) { return { n: n, p: W.performances(S, n), area: W.AREA[n] || 'other' }; }).filter(function (x) { return x.p.length; });
     if (!rows.length) return h + '<p class="meta ui">Log a workout, or import your sheet under Setup, and your progress shows here.</p>';
+    h += '<div id="wo-chart-wrap">' + exerciseChartHtml(rows) + '</div>';
     var areas = W.AREAS.concat('other').filter(function (a) { return rows.some(function (x) { return x.area === a; }); });
     if (areas.length >= 2) {
       var label = function (a) { return a === 'other' ? 'Walk' : a.charAt(0).toUpperCase() + a.slice(1); };
@@ -268,14 +387,35 @@
       var tot = x.p.map(function (p) { return p.sets.reduce(function (a, b) { return a + +b; }, 0) * (p.w || 1); });
       var best = W.bestSet(S, x.n);
       var lp = x.p[x.p.length - 1], e = W.EX[x.n];
-      h += '<div class="card wo-ex" data-area="' + esc(x.area) + '"><div class="row"><h3 class="grow" style="margin:0">' + esc(x.n) + '</h3>' + sparkline(tot.slice(-12)) + '</div>' +
+      h += '<div class="card wo-ex' + (x.n === chartEx ? ' wo-selected' : '') + '" data-area="' + esc(x.area) + '" data-ex="' + esc(x.n) + '"><div class="row"><h3 class="grow" style="margin:0">' + esc(x.n) + '</h3>' + sparkline(tot.slice(-12)) + '</div>' +
         '<p class="meta ui" style="margin:.3em 0 0">Last ' + esc(lp.date) + ': ' + lp.sets.join('/') + (lp.w ? ' @ ' + lp.w + ' lb' : '') + ' ' + unit(e) +
-        (best ? ' · best set ' + best.val + (best.w ? ' @ ' + best.w + ' lb' : '') : '') + ' · ' + x.p.length + ' times</p></div>';
+        (best ? ' · best set ' + best.val + (best.w ? ' @ ' + best.w + ' lb' : '') : '') + ' · ' + x.p.length + ' times</p>' +
+        '<div class="row ui" style="margin-top:2px"><button class="link" data-pick-ex="' + esc(x.n) + '">Show on graph</button></div></div>';
     });
     return h;
   }
 
   function wireHistory() {
+    var rows = Object.keys(W.EX).map(function (n) { return { n: n, p: W.performances(S, n), area: W.AREA[n] || 'other' }; }).filter(function (x) { return x.p.length; });
+    function redrawChart() {
+      var wrap = $('#wo-chart-wrap'); if (!wrap) return;
+      wrap.innerHTML = exerciseChartHtml(rows);
+      $$('.wo-ex').forEach(function (c) { c.classList.toggle('wo-selected', c.dataset.ex === chartEx); });
+      wireChartControls();
+    }
+    function wireChartControls() {
+      var sel = $('#wo-chart-ex');
+      if (sel) sel.onchange = function () { chartEx = sel.value; redrawChart(); };
+      $$('[data-wo-metric]').forEach(function (b) { b.onclick = function () { chartMetric = b.dataset.woMetric; redrawChart(); }; });
+    }
+    wireChartControls();
+    $$('[data-pick-ex]').forEach(function (b) {
+      b.onclick = function () {
+        chartEx = b.dataset.pickEx;
+        redrawChart();
+        var card = $('#wo-chart-card'); if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+    });
     $$('#wo-areas [data-area]').forEach(function (b) {
       b.onclick = function () {
         var area = b.dataset.area;
@@ -292,6 +432,10 @@
     h += '<div class="card ui"><h3>Workouts a week</h3><div class="chips">' + [3, 2].map(function (n) {
       return '<button class="chip" data-target="' + n + '" aria-pressed="' + (W.targetOf(S) === n) + '">' + n + ' a week</button>'; }).join('') + '</div>' +
       '<p class="meta">3 is the plan. 2 still trains every muscle twice a week (full-body days) and fits busy stretches.</p></div>';
+    h += '<div class="card ui" id="wo-age-card"><h3>Your age (optional)</h3><div class="row">' +
+      '<label for="wo-age">Age</label><input type="number" inputmode="numeric" id="wo-age" min="18" max="90" value="' + esc(S.age || '') + '" placeholder="e.g. 32" style="width:6em">' +
+      '<button id="wo-age-save">Save</button>' + (S.age ? '<button class="link" id="wo-age-clear">Clear</button>' : '') + '</div>' +
+      '<p class="meta" style="margin:.4em 0 0">Stays only on this phone. Shows an age-group average line on Move Progress graphs (general fitness reference, not medical advice).</p></div>';
     h += '<div class="card ui"><h3>Harder versions you’ve switched to</h3><p class="meta">When the app says “ready for harder” and you make the switch, tick it so it stops suggesting it.</p><ul class="list">' +
       Object.keys(W.EX).filter(function (n) { return W.EX[n].hard; }).map(function (n) {
         var on = S.next[n] === W.EX[n].hard;
@@ -309,6 +453,16 @@
   function wireSettings() {
     $$('[data-target]').forEach(function (b) { b.onclick = function () { if (+b.dataset.target === 2) S.target = 2; else delete S.target; save(); route(['settings']); }; });
     $$('[data-eq]').forEach(function (b) { b.onclick = function () { S.equipment = b.dataset.eq; save(); route(['settings']); }; });
+    var ageBtn = $('#wo-age-save');
+    if (ageBtn) ageBtn.onclick = function () {
+      var raw = $('#wo-age').value.trim();
+      if (!raw) { delete S.age; save(); WL.toast('Age cleared'); route(['settings']); return; }
+      var a = W.cleanAge(raw);
+      if (a == null) { WL.toast('Enter an age between 18 and 90'); return; }
+      S.age = a; save(); WL.toast('Age saved (' + W.ageBracket(a) + ' benchmarks)'); route(['settings']);
+    };
+    var ageClr = $('#wo-age-clear');
+    if (ageClr) ageClr.onclick = function () { delete S.age; save(); WL.toast('Age cleared'); route(['settings']); };
     $$('[data-hard]').forEach(function (c) { c.onchange = function () { var n = c.dataset.hard; if (c.checked) S.next[n] = W.EX[n].hard; else delete S.next[n]; save(); }; });
     var f = $('#wo-csv');
     if (f) f.onchange = function () {

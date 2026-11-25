@@ -170,10 +170,11 @@ const W = require('./lib/web.cjs');
       await t.noOverflow(['#workout']);
     });
     await t.step('text size ' + ts + ': Move Progress #wo-4w, #wo-areas & Setup checkboxes', async () => {
-      await page.goto(base + '#workout/history'); await page.waitForSelector('#wo-areas'); await page.waitForSelector('#wo-4w');
-      assert.deepStrictEqual(await small('#wo-areas button'), []);
+      await page.goto(base + '#workout/history'); await page.waitForSelector('#wo-areas'); await page.waitForSelector('#wo-4w'); await page.waitForSelector('#wo-chart-card');
+      assert.deepStrictEqual(await small('#wo-areas button, #wo-chart-ex, #wo-chart-card button, #wo-chart-card a, .wo-ex button'), []);
       await t.noOverflow(['#workout/history']);
-      await page.goto(base + '#workout/settings'); await page.waitForSelector('[data-hard]');
+      await page.goto(base + '#workout/settings'); await page.waitForSelector('[data-hard]'); await page.waitForSelector('#wo-age');
+      assert.deepStrictEqual(await small('#wo-age, #wo-age-save, label.row'), []);
       assert.deepStrictEqual(await small('[data-eq], [data-target], label[for="wo-csv"]'), []);
       const hardSideBySide = await page.evaluate(() => Array.from(document.querySelectorAll('[data-hard]')).every((cb) => {
         const sp = cb.nextElementSibling;

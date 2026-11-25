@@ -107,6 +107,26 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(/Last: 15\/15\/15 @ 10 lb/.test(adv) && /Ready for harder/.test(adv), adv);
     await page.goto(base + '#workout/history');
     assert.ok((await page.textContent('main')).includes('Pushups'));
+    await page.waitForSelector('#wo-weekly-chart');
+    await page.waitForSelector('#wo-chart-card');
+    await page.waitForSelector('#wo-ex-svg');
+    assert.ok((await page.textContent('#wo-bench-note')).includes('Set your age in Setup'), 'prompts to set age when unset');
+    // Set age in Setup -> age-group average reference line shows on Progress graph
+    await page.goto(base + '#workout/settings');
+    await page.fill('#wo-age', '34');
+    await page.click('#wo-age-save');
+    await page.waitForFunction(() => document.getElementById('toast').textContent.includes('30–39'));
+    await page.goto(base + '#workout/history');
+    await page.waitForSelector('#wo-ex-svg');
+    assert.ok((await page.textContent('#wo-ex-svg')).includes('Age 30–39 avg: 19 reps'), await page.textContent('#wo-ex-svg'));
+    assert.ok((await page.textContent('#wo-bench-note')).includes('Typical 30–39 average: 13–24 reps'), await page.textContent('#wo-bench-note'));
+    // Switch exercise via dropdown & "Show on graph" button + toggle volume metric on weighted exercise
+    await page.selectOption('#wo-chart-ex', 'Single Leg RDL');
+    await page.waitForSelector('[data-wo-metric="volume"]');
+    await page.click('[data-wo-metric="volume"]');
+    assert.strictEqual(await page.getAttribute('[data-wo-metric="volume"]', 'aria-pressed'), 'true');
+    await page.click('[data-pick-ex="Pushups"]');
+    assert.strictEqual(await page.inputValue('#wo-chart-ex'), 'Pushups');
     const vol = await page.$('#wo-volume');
     assert.ok(vol, 'weekly sets shown after logging'); assert.ok(/legs \d+ \(\d+\) · push/.test(await vol.textContent()), 'weekly sets line');
     assert.strictEqual(await page.locator('[data-me-fit][data-about="balance"]').count(), 1, '"Not for me?" on the balance line');

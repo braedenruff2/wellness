@@ -530,4 +530,42 @@ t('validate and importSheetCsv reject impossible calendar dates (2026-02-30, 202
   assert.strictEqual(W.importSheetCsv(s, csv), 1);
   assert.strictEqual(s.history[0].date, '2026-11-20');
 });
+t('ageBracket, benchmark, weeklyTrend, exerciseSeries, and age validation', () => {
+  assert.strictEqual(W.ageBracket(25), '20–29');
+  assert.strictEqual(W.ageBracket(34), '30–39');
+  assert.strictEqual(W.ageBracket(45), '40–49');
+  assert.strictEqual(W.ageBracket(52), '50–59');
+  assert.strictEqual(W.ageBracket(65), '60+');
+  assert.strictEqual(W.ageBracket(12), null);
+  assert.strictEqual(W.ageBracket(120), null);
+  const p30 = W.benchmark('Pushups', 34);
+  assert.strictEqual(p30.kind, 'age'); assert.strictEqual(p30.bracket, '30–39'); assert.strictEqual(p30.avg, 19);
+  const pl40 = W.benchmark('Plank', 42);
+  assert.strictEqual(pl40.kind, 'age'); assert.strictEqual(pl40.unit, 'sec'); assert.strictEqual(pl40.avg, 50);
+  const noAge = W.benchmark('Pushups', null);
+  assert.strictEqual(noAge.kind, 'target'); assert.strictEqual(noAge.high, 20);
+  const rowBm = W.benchmark('One-Arm Rows', 34);
+  assert.strictEqual(rowBm.kind, 'target');
+  // weeklyTrend across 8 weeks + exerciseSeries
+  const s = W.defaults();
+  W.logSet(s, 'A', 1, 16, null, at(16, 9)); W.logSet(s, 'A', 1, 14, null, at(16, 9, 3)); W.endSession(s, at(16, 9, 30));
+  W.logSet(s, 'A', 1, 20, null, at(18, 9)); W.endSession(s, at(18, 9, 30));
+  W.logSet(s, 'A', 0, 12, 10, at(18, 9, 5));
+  s.history.push({ date: '2026-11-03', ex: 'Pushups', sets: [12, 10], w: null, from: 'sheet' });
+  const tr = W.weeklyTrend(s, at(19, 12), 8);
+  assert.strictEqual(tr.length, 8);
+  assert.strictEqual(tr[7].workouts, 2, 'current week has 2 workout days');
+  assert.strictEqual(tr[7].sets, 4, 'current week has 4 sets');
+  assert.strictEqual(tr[5].workouts, 1, 'two weeks ago has 1 sheet workout');
+  const ser = W.exerciseSeries(s, 'Pushups');
+  assert.deepStrictEqual(ser.map((x) => [x.date, x.bestVal, x.totalReps]), [
+    ['2026-11-03', 12, 22],
+    ['2026-11-16', 16, 30],
+    ['2026-11-18', 20, 20]
+  ]);
+  // validate keeps valid age and drops out-of-range / non-numeric age
+  assert.strictEqual(W.validate({ sessions: [], age: 34 }).age, 34);
+  assert.strictEqual(W.validate({ sessions: [], age: 10 }).age, undefined);
+  assert.strictEqual(W.validate({ sessions: [], age: '34' }).age, undefined);
+});
 console.log(n + ' workout unit tests passed');
