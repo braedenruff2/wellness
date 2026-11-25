@@ -372,6 +372,7 @@ summ = W.summarize(7)
 wline = [l for l in summ.splitlines() if l.startswith("- workout:")][0]
 check("summary: the last weekly target sent is named; it isn't a workout kind", "he aims for 2 workouts a week (his setting)" in wline and "target" not in wline, summ)
 check("prompts: plan around his weekly target", all("workouts a week" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", f), encoding="utf-8").read() for f in ("weekly-plan.md", "advice.md")))
+check("prompts: the weekly plan uses his Calm 'helped' answers", "never put one at 0 of 2 or more in calm.prefer" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", "weekly-plan.md"), encoding="utf-8").read())
 check("prompts: rest days are never 'inconsistent'", all("never call him inconsistent" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", f), encoding="utf-8").read() for f in ("weekly-plan.md", "advice.md")))
 req("POST", "/v1/activity", {"events": [
     {"id": "workout/sore/" + today + "/e100", "at": today + "T12:00:00-04:00", "part": "workout", "kind": "sore", "data": {"date": today, "level": "A bit"}},
