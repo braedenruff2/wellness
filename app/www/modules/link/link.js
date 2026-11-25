@@ -4,6 +4,7 @@
   'use strict';
   var esc = WL.esc, $ = WL.$, pc = WL.pc, A = window.WLActivity;
   var view = null, advice = null, busy = false, found = null, showAll = false;
+  function here() { return !!(view && /^#link(\/|$)/.test(location.hash)); }
 
   function ago(iso) {
     if (!iso) return 'never';
@@ -83,7 +84,7 @@
     return '<div class="card ui"><h3>What gets logged</h3>' +
       '<p class="meta">' + all.length + ' things from the last ' + A.MAX_DAYS + ' days; ' + unsent + ' not sent yet. Faith days, guided prayers and practices, ' +
       'calm sessions with your stress ratings, every workout set, Tagalog lessons, answers and reviews, to-dos and parenting practice.</p>' +
-      '<label class="row"><input type="checkbox" id="lk-jt"' + (P.journalText ? ' checked' : '') + '> <span>Include what I write in my journal and prayers (otherwise only that I wrote, and how much)</span></label>' +
+      '<label class="row" style="flex-wrap:nowrap;align-items:flex-start;margin:10px 0"><input type="checkbox" id="lk-jt" style="margin-top:4px;min-width:20px;min-height:20px"' + (P.journalText ? ' checked' : '') + '><span class="grow">Include what I write in my journal and prayers (otherwise only that I wrote, and how much)</span></label>' +
       (list.length ? '<ul class="list log">' + list.map(function (e) {
         return '<li><span class="meta">' + esc(new Date(e.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })) + '</span> ' +
           esc(A.describe(e)) + (P.sent[e.id] ? '' : ' <span class="meta">· not sent</span>') + '</li>';
@@ -97,9 +98,10 @@
     if (f) f.onclick = function () {
       f.disabled = true; msg('Looking for your PC…');
       pc.request('find').then(function (t) { found = JSON.parse(t || '[]'); }, function () { found = []; }).then(function () {
+        if (!here()) return;
         msg(''); f.disabled = false;
-        $('#lk-found').innerHTML = foundHtml(); wireFound();
-        if (found.length === 1) $('#lk-host').value = found[0].host;
+        var lf = $('#lk-found'); if (lf) { lf.innerHTML = foundHtml(); wireFound(); }
+        var lh = $('#lk-host'); if (found.length === 1 && lh) lh.value = found[0].host;
       });
     };
     wireFound();
@@ -111,19 +113,20 @@
       pr.disabled = true; msg('Pairing… (takes a few seconds)');
       pc.request('pair', host, code).then(function () {
         WL.toast('Paired with your PC');
-        render();
-        pc.sync().then(function () { if (view && location.hash.indexOf('#link') === 0) render(); }, function () {});
-      }, function (e) { pr.disabled = false; msg(e.message, 'no'); });
+        if (here()) render();
+        pc.sync().then(function () { if (here()) render(); }, function () {});
+      }, function (e) { if (!here()) return; pr.disabled = false; msg(e.message, 'no'); });
     };
     var sy = $('#lk-sync');
     if (sy) sy.onclick = function () {
       busy = true; sy.disabled = true; msg('Sending…');
-      pc.sync().then(function (n) { busy = false; WL.toast(n ? 'Sent ' + n + ' new' : 'Up to date'); render(); }, function (e) { busy = false; render(); msg(e.message, 'no'); });
+      pc.sync().then(function (n) { busy = false; WL.toast(n ? 'Sent ' + n + ' new' : 'Up to date'); if (here()) render(); }, function (e) { busy = false; if (here()) { render(); msg(e.message, 'no'); } });
     };
     var te = $('#lk-test');
     if (te) te.onclick = function () {
       msg('Checking…');
       pc.get('/v1/health').then(function (h) {
+        if (!here()) return;
         var ready = !!(h.claude || h.gemini);
         var text = h.claude && h.gemini && h.provider === 'gemini' ? 'Using Gemini backup until Claude resets Wednesday.'
           : h.claude && h.gemini ? 'Claude Code is ready on it (Gemini backup ready).'
@@ -131,7 +134,7 @@
           : h.gemini ? 'Gemini CLI is ready on it (Claude Code was not found).'
           : 'Claude Code was not found on it: install it and sign in once.';
         msg('The PC answered. ' + text, ready ? 'ok' : 'no');
-      }, function (e) { msg(e.message, 'no'); });
+      }, function (e) { if (here()) msg(e.message, 'no'); });
     };
     var ad = $('#lk-advice');
     if (ad) ad.onclick = function () { askAdvice(($('#lk-q') || {}).value || ''); };
@@ -141,7 +144,7 @@
     if (mo) mo.onclick = function () { showAll = true; render(); };
     var fo = $('#lk-forget');
     if (fo) fo.onclick = function () {
-      if (fo.dataset.sure) { clearTimeout(fo._t); pc.request('forget').then(function () { pc.reset(); render(); }); return; }
+      if (fo.dataset.sure) { clearTimeout(fo._t); pc.request('forget').then(function () { pc.reset(); if (here()) render(); }); return; }
       fo.dataset.sure = '1'; fo.textContent = 'Tap again to unpair';
       clearTimeout(fo._t);
       fo._t = setTimeout(function () { if (fo.isConnected) { delete fo.dataset.sure; fo.textContent = 'Unpair this phone'; } }, 4000);

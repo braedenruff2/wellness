@@ -30,7 +30,8 @@ const FAKE_PC = `
         else if (op === 'get' && a === '/v1/health') out = JSON.stringify(window.__health || { app: 'wellness', claude: true });
         else { ok = false; out = 'not found'; }
         save();
-        Promise.resolve().then(function () { window.FCPcDone(id, ok, out); });
+        if (window.__delayPc) setTimeout(function () { window.FCPcDone(id, ok, out); }, 500);
+        else Promise.resolve().then(function () { window.FCPcDone(id, ok, out); });
       }
     };
     var up = { version: '0.1.old', code: 1, ready: false, readyName: '', allowed: false, busy: false, checked: 0, error: '', from: '' };
@@ -296,6 +297,15 @@ const FAKE_PC = `
     assert.ok((await page.textContent('#lk-msg')).includes('Using Gemini backup until Claude resets Wednesday'), await page.textContent('#lk-msg'));
     await page.evaluate(() => { window.__health = null; });
   });
+  await t.step('navigating away during Send now or Find my PC does not overwrite the new screen or throw', async () => {
+    await page.goto(base + '#link');
+    await page.evaluate(() => { window.__delayPc = true; });
+    await page.click('#lk-sync');
+    await page.goto(base + '#home');
+    await page.clock.runFor(600);
+    assert.strictEqual(await page.textContent('h1'), 'Today', 'Send now completion did not overwrite #home');
+    await page.evaluate(() => { window.__delayPc = false; });
+  });
   await t.step('unpair needs two taps and disarms after 4 seconds', async () => {
     await page.goto(base + '#link');
     await page.click('#lk-forget');
@@ -306,6 +316,12 @@ const FAKE_PC = `
     assert.strictEqual(await page.textContent('#lk-forget'), 'Tap again to unpair', 're-arms instead of unpairing immediately');
     await page.click('#lk-forget');
     await page.waitForSelector('#lk-find');
+    await page.evaluate(() => { window.__delayPc = true; });
+    await page.click('#lk-find');
+    await page.goto(base + '#home');
+    await page.clock.runFor(600);
+    assert.strictEqual(await page.textContent('h1'), 'Today', 'Find my PC completion did not throw or overwrite #home');
+    await page.evaluate(() => { window.__delayPc = false; });
   });
   await t.step('no overflow, no console errors', async () => {
     await t.noOverflow(['#link', '#coach', '#home']);

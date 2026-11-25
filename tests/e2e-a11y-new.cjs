@@ -274,7 +274,12 @@ const W = require('./lib/web.cjs');
       await page.evaluate(() => { window.__pcPaired = true; });
       await page.goto(base + '#home'); await page.goto(base + '#link');
       await page.waitForSelector('#lk-sync'); await page.waitForSelector('#lk-test'); await page.waitForSelector('#lk-more'); await page.waitForSelector('#lk-forget');
-      assert.deepStrictEqual(await small('#lk-sync, #lk-test, #lk-more, #lk-forget, #lk-advice-card button'), []);
+      assert.deepStrictEqual(await small('#lk-sync, #lk-test, #lk-more, #lk-forget, #lk-advice-card button, label.row'), []);
+      const jtSideBySide = await page.evaluate(() => {
+        const cb = document.getElementById('lk-jt'), sp = cb && cb.nextElementSibling;
+        return !!(cb && sp && sp.getBoundingClientRect().left > cb.getBoundingClientRect().left);
+      });
+      assert.ok(jtSideBySide, '#lk-jt checkbox sits beside its label text without wrapping');
       await t.noOverflow(['#link']);
       await page.evaluate(() => { window.__pcPaired = false; });
     });
