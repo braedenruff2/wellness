@@ -190,4 +190,16 @@ t('workedTips: tips rated "It worked", newest first, deduped, survives past 7 da
   assert.deepStrictEqual(K.workedTips(s, null), []);
   assert.deepStrictEqual(K.workedTips(s, { feedback: 'bad' }), []);
 });
+t('tipNotes orders feedback chronologically by timestamp and validate/ageMonths reject impossible calendar dates', () => {
+  const s = K.defaults(); s.child = { name: 'Kid', birth: '2025-11-24' };
+  const me = { feedback: [
+    { part: 'coach', kind: 'notfit', about: 'tip:newer', at: '2026-11-20T12:00:00Z', shown: 'Newer tip', a: { reasons: ['I know this already'] } },
+    { part: 'coach', kind: 'notfit', about: 'tip:older', at: '2026-11-18T12:00:00Z', shown: 'Earlier-day logged tip', a: { reasons: ['Too long'] } }
+  ] };
+  assert.deepStrictEqual(K.tipNotes(s, me, 1).map((x) => x.tip), ['Newer tip'], 'earlier-day entry appended later does not displace newer tip');
+  assert.strictEqual(K.ageMonths('2025-02-30', new Date(2026, 10, 20)), null);
+  assert.strictEqual(K.ageText('2025-13-01', new Date(2026, 10, 20)), '');
+  assert.strictEqual(K.validate({ child: { name: 'Kid', birth: '2025-02-30' }, history: [] }).child.birth, '');
+  assert.strictEqual(K.validate({ child: { name: 'Kid', birth: '2024-02-29' }, history: [] }).child.birth, '2024-02-29');
+});
 console.log(n + ' coach tests passed');

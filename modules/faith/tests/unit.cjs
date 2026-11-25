@@ -458,4 +458,13 @@ t('journalText: mixed timezone offsets sort strictly newest-first; answered pray
   assert.ok(txt.includes('- Work: answered or let go 2026-11-21 (Went smoothly)\n'), 'trimmed prayer note included');
 });
 
+t('daysShowedUp ignores invalid or null timestamps in journal, sessions, and prayers', () => {
+  const s = C.defaults();
+  C.finishDay(s, 1, new Date(2026, 10, 18, 9));
+  s.journal.push(null, { id: 'bad', at: 'not-a-date', kind: 'journal', text: 'x' });
+  s.sessions.push(null, { at: 'garbage', kind: 'day', id: 1, title: 'D1', mins: 5 });
+  s.prayers.push(null, { id: 'pbad', at: 'invalid', text: 'p', answered: null });
+  assert.strictEqual(C.daysShowedUp(s), 1);
+});
+
 console.log(n + ' unit tests passed');

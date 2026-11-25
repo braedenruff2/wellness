@@ -275,11 +275,16 @@
     return (h % 12 || 12) + (mi === '00' ? '' : ':' + mi) + (h < 12 ? ' am' : ' pm');
   }
 
+  function isDate(x) {
+    if (typeof x !== 'string' || !/^\d{4}-\d\d-\d\d$/.test(x)) return false;
+    var p = x.split('-'), y = +p[0], mo = +p[1] - 1, d = +p[2], dt = new Date(y, mo, d);
+    return dt.getFullYear() === y && dt.getMonth() === mo && dt.getDate() === d;
+  }
+
   function validate(s) {
     if (!s || !Array.isArray(s.tasks)) return null;
-    var dateRe = /^\d{4}-\d\d-\d\d$/;
     return { tasks: s.tasks.filter(function (t) { return t && typeof t.text === 'string' && t.text.trim(); }).map(function (t) {
-      return { id: String(t.id || id()), text: t.text, due: dateRe.test(t.due) ? t.due : null,
+      return { id: String(t.id || id()), text: t.text, due: isDate(t.due) ? t.due : null,
         done: t.done && !isNaN(new Date(t.done).getTime()) ? new Date(t.done).toISOString() : null,
         created: t.created && !isNaN(new Date(t.created).getTime()) ? new Date(t.created).toISOString() : new Date().toISOString(),
         repeat: ['daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'month2', 'month3', 'yearly'].indexOf(t.repeat) >= 0 ? t.repeat : null,

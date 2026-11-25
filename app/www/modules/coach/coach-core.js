@@ -26,7 +26,11 @@
     if (state.child.canNote) t += (t ? '. Also: ' : '') + state.child.canNote;
     return t;
   }
-  function parse(d) { var p = String(d || '').split('-'); return p.length === 3 ? new Date(+p[0], +p[1] - 1, +p[2]) : null; }
+  function parse(d) {
+    if (typeof d !== 'string' || !/^\d{4}-\d\d-\d\d$/.test(d)) return null;
+    var p = d.split('-'), y = +p[0], mo = +p[1] - 1, day = +p[2], dt = new Date(y, mo, day);
+    return dt.getFullYear() === y && dt.getMonth() === mo && dt.getDate() === day ? dt : null;
+  }
 
   /* Whole months between birth and now (a month counts once its day of the month comes round). */
   function ageMonths(birth, now) {
@@ -143,9 +147,9 @@
      or she already does, and changes tack on what didn't work. me: the wl.me.v1 state (or null). */
   function tipNotes(state, me, max) {
     if (!me || !Array.isArray(me.feedback)) return [];
-    var byId = {}, out = [];
+    var byId = {}, rows = [];
     state.history.forEach(function (h) { if (h && h.id) byId[h.id] = h; });
-    me.feedback.forEach(function (f) {
+    me.feedback.forEach(function (f, idx) {
       if (!f || f.part !== 'coach' || !/^tip:/.test(String(f.about || ''))) return;
       var h = byId[String(f.about).slice(4)], tip = String(f.shown || (h && h.result && h.result.practice) || '').trim();
       if (!tip) return;
@@ -158,9 +162,11 @@
         if (typeof f.note === 'string' && f.note.trim()) o.note = f.note.trim().slice(0, 600);
       } else if (f.kind === 'after' && f.a && typeof f.a.tried === 'string' && f.a.tried !== 'Not yet') o.tried = f.a.tried;
       else return;
-      out.push(o);
+      var t = Date.parse(f.edited || f.at || '');
+      rows.push({ o: o, _t: isNaN(t) ? 0 : t, _i: idx });
     });
-    return out.slice(-(max || 6));
+    rows.sort(function (a, b) { return a._t - b._t || a._i - b._i; });
+    return rows.slice(-(max || 6)).map(function (r) { return r.o; });
   }
 
   /* Tips he marked "It worked" (About you: "Did you try it with her?"), newest first, no repeats,
@@ -213,7 +219,7 @@
     if (!s || typeof s !== 'object') return null;
     var d = defaults();
     if (s.child && typeof s.child.name === 'string') d.child.name = s.child.name.slice(0, 40);
-    if (s.child && /^\d{4}-\d\d-\d\d$/.test(s.child.birth)) d.child.birth = s.child.birth;
+    if (s.child && parse(s.child.birth)) d.child.birth = s.child.birth;
     if (s.child && Array.isArray(s.child.can)) s.child.can.forEach(function (v) { if (CAN.indexOf(v) >= 0 && (d.child.can || []).indexOf(v) < 0) toggleCan(d, v); });
     if (s.child && typeof s.child.canNote === 'string') setCanNote(d, s.child.canNote);
     (Array.isArray(s.history) ? s.history : []).slice(-300).forEach(function (h) {

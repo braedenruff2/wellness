@@ -170,7 +170,7 @@
       var at = new Date(e.at).toISOString();
       if (at < from || at > to || seen[e.id]) return false;
       seen[e.id] = 1; return true;
-    }).sort(function (a, b) { return a.at < b.at ? -1 : a.at > b.at ? 1 : 0; });
+    }).sort(function (a, b) { return Date.parse(a.at) - Date.parse(b.at) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0); });
   }
 
   /* The events not sent yet. sent: {id: 1}. */

@@ -214,9 +214,19 @@ t('applyTicked: "Done" on a notification ticks a one-off once, a repeating task 
 });
 
 t('validate keeps good tasks, drops junk and markup-y fields', () => {
-  const v = T.validate({ tasks: [{ id: 'a', text: 'ok', due: '2026-11-18', repeat: 'daily', at: '07:30' }, { text: '' }, null, { text: 'x', due: '<b>', repeat: 'hourly', done: 'nope', at: '7pm' }] });
-  assert.strictEqual(v.tasks.length, 2); assert.strictEqual(v.tasks[1].due, null); assert.strictEqual(v.tasks[1].repeat, null); assert.strictEqual(v.tasks[1].done, null);
+  const v = T.validate({ tasks: [
+    { id: 'a', text: 'ok', due: '2026-11-18', repeat: 'daily', at: '07:30' },
+    { text: '' }, null,
+    { text: 'x', due: '<b>', repeat: 'hourly', done: 'nope', at: '7pm' },
+    { text: 'bad-feb', due: '2026-02-30' },
+    { text: 'bad-mon', due: '2026-99-99' },
+    { text: 'leap-ok', due: '2028-02-29' }
+  ] });
+  assert.strictEqual(v.tasks.length, 5); assert.strictEqual(v.tasks[1].due, null); assert.strictEqual(v.tasks[1].repeat, null); assert.strictEqual(v.tasks[1].done, null);
   assert.strictEqual(v.tasks[0].at, '07:30'); assert.strictEqual(v.tasks[1].at, null);
+  assert.strictEqual(v.tasks[2].due, null, 'impossible Feb 30 dropped');
+  assert.strictEqual(v.tasks[3].due, null, 'impossible month 99 dropped');
+  assert.strictEqual(v.tasks[4].due, '2028-02-29', 'valid leap day kept');
   assert.strictEqual(T.validate({}), null);
 });
 

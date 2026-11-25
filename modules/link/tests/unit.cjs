@@ -163,4 +163,12 @@ t('check-ins: empty legacy check-in objects without answers or notes are not emi
   assert.strictEqual(ev.length, 1);
   assert.strictEqual(ev[0].id, 'checkin/2026-11-19');
 });
+t('collect: sorts mixed timezone offsets strictly chronologically (timestamp order, not string order)', () => {
+  const fc = FC.defaults();
+  // 2026-11-19T10:00:00-04:00 is 14:00Z (AFTER 12:00Z, even though lexicographically smaller)
+  fc.journal.push({ id: 'later', at: '2026-11-19T10:00:00-04:00', kind: 'journal', text: 'Afternoon UTC' });
+  fc.journal.push({ id: 'earlier', at: '2026-11-19T12:00:00.000Z', kind: 'journal', text: 'Noon UTC' });
+  const ev = A.collect({ 'fc.v1': fc }, {}, now).filter((e) => e.part === 'faith' && e.kind === 'journal');
+  assert.deepStrictEqual(ev.map((e) => e.id), ['faith/j/earlier', 'faith/j/later']);
+});
 console.log(n + ' activity tests passed');
