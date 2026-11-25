@@ -453,6 +453,15 @@ const W = require('./lib/web.cjs');
       await page.fill('#tl-in', 'gusto ko mag-aral ng Tagalog'); await page.click('#tl-check'); await page.waitForSelector('#tl-linker');
       assert.deepStrictEqual(await bad('#tl-fb'), [], theme + ' #tl-linker');
       const o1 = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); assert.ok(o1 <= 2, '#tl-linker overflow ' + o1);
+      for (let k = 0; k < 12 && !(await page.$('#tl-watch')); k++) {
+        if (await page.$('#tl-next')) { await page.click('#tl-next'); continue; }
+        if (await page.$('#tl-ex .opt:not(.word)')) await page.click('#tl-ex .opt:not(.word)');
+        else if (await page.$('#tl-in')) { await page.fill('#tl-in', 'x'); await page.click('#tl-check'); }
+        else await page.click('#tl-check');
+      }
+      assert.deepStrictEqual(await small('#tl-watch [data-say], #tl-again, #tl-ex a.btn'), []);
+      assert.deepStrictEqual(await bad('#tl-watch'), [], theme + ' #tl-watch');
+      const o2 = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); assert.ok(o2 <= 2, '#tl-watch overflow ' + o2);
       await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/l/2026-11-18/5'); await page.waitForSelector('#tl-ex');
       await page.click('#tl-ex .opt'); await page.click('#tl-next'); await page.click('#tl-ex .opt'); await page.click('#tl-next');
       await page.fill('#tl-in', 'Masarap ang adobo'); await page.click('#tl-check'); await page.waitForSelector('#tl-alt');
@@ -476,6 +485,11 @@ const W = require('./lib/web.cjs');
       });
       await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-flat'); await page.waitForSelector('.c-helped');
       assert.deepStrictEqual(await bad('#c-today'), [], theme + ' #c-flat');
+      await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1') || '{"sessions":[]}'); c.sessions = (c.sessions || []).filter((x) => x.id !== 'shuffle'); localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
+      await page.clock.setSystemTime(new Date(2026, 10, 23, 22, 30));
+      await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-today');
+      assert.ok(await page.$('#c-how'), 'the shuffle explainer shows at 22:30 with a racing mind'); assert.deepStrictEqual(await bad('#c-today'), [], theme + ' #c-how');
+      await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
       assert.deepStrictEqual(await bad('.list'), [], theme + ' .c-helped');
       await t.noOverflow(['#calm']);
     });
