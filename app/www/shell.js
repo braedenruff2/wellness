@@ -453,8 +453,10 @@
       }, function (e) { toast((e && e.message) || 'Sync failed'); });
     };
     var f = $('#wl-sync-forget'); if (f) f.onclick = function () {
-      if (f.dataset.sure) { ds.forget(); toast('Drive sync turned off'); return; }
+      if (f.dataset.sure) { clearTimeout(f._t); ds.forget(); toast('Drive sync turned off'); return; }
       f.dataset.sure = '1'; f.textContent = 'Tap again to turn off';
+      clearTimeout(f._t);
+      f._t = setTimeout(function () { if (f.isConnected) { delete f.dataset.sure; f.textContent = 'Turn off Drive sync'; } }, 4000);
     };
   }
   function redrawSync() { var el = $('#wl-sync'); if (el) { el.outerHTML = syncHtml(); wireSync(); } }
@@ -533,7 +535,7 @@
     var ld = $('#wl-logday'); if (ld) ld.onchange = function () { setLogDay(ld.value || null); toast(ld.value ? 'Logging for ' + dayLabel(ld.value) : 'Logging for today'); };
     var ex = $('#wl-export'); if (ex) ex.onclick = function () {
       if (saveFile('wellness-backup-' + isoDate() + '.json', backupText())) {
-        SH.lastBackup = new Date().toISOString(); shellStore.save(SH);
+        SH.lastBackup = new Date().toISOString(); shellStore.save(SH); route();
       }
     };
     var im = $('#wl-import');

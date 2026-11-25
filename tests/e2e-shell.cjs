@@ -65,6 +65,8 @@ const W = require('./lib/web.cjs');
     await page.goto(base + '#settings');
     assert.ok(/It’s been a while/.test(await page.textContent('#view')));
     await Promise.all([page.waitForEvent('download'), page.click('#wl-export')]);
+    const afterExport = await page.textContent('#view');
+    assert.ok(!/It’s been a while/.test(afterExport) && /Last saved /.test(afterExport), 'Settings refreshes immediately after saving a backup');
     await at(20); await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#wl-today');
     assert.strictEqual(await page.$('#wl-backup'), null, 'saved 9 days ago: no nudge');
   });

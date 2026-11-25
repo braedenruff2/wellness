@@ -306,6 +306,10 @@ const FAKE_DRIVE = `
     assert.ok((await page.textContent('#wl-sync')).includes('Choose answers sheet'));
     await page.click('#wl-sync-forget');
     assert.ok((await page.textContent('#wl-sync-forget')).includes('Tap again'));
+    await page.clock.runFor(4100);
+    assert.strictEqual(await page.textContent('#wl-sync-forget'), 'Turn off Drive sync', '#wl-sync-forget disarms after 4 seconds');
+    await page.click('#wl-sync-forget');
+    assert.ok((await page.textContent('#wl-sync-forget')).includes('Tap again'), 're-arms after disarming instead of turning off immediately');
     await page.click('#wl-sync-forget');
     await page.waitForFunction(() => !window.__drive.configured);
     const res = await page.evaluate(async () => {

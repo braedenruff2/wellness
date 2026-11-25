@@ -141,8 +141,10 @@
     if (mo) mo.onclick = function () { showAll = true; render(); };
     var fo = $('#lk-forget');
     if (fo) fo.onclick = function () {
-      if (fo.dataset.sure) { pc.request('forget').then(function () { pc.reset(); render(); }); return; }
+      if (fo.dataset.sure) { clearTimeout(fo._t); pc.request('forget').then(function () { pc.reset(); render(); }); return; }
       fo.dataset.sure = '1'; fo.textContent = 'Tap again to unpair';
+      clearTimeout(fo._t);
+      fo._t = setTimeout(function () { if (fo.isConnected) { delete fo.dataset.sure; fo.textContent = 'Unpair this phone'; } }, 4000);
     };
   }
   function wireFound() {

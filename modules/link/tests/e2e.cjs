@@ -296,9 +296,15 @@ const FAKE_PC = `
     assert.ok((await page.textContent('#lk-msg')).includes('Using Gemini backup until Claude resets Wednesday'), await page.textContent('#lk-msg'));
     await page.evaluate(() => { window.__health = null; });
   });
-  await t.step('unpair needs two taps', async () => {
+  await t.step('unpair needs two taps and disarms after 4 seconds', async () => {
     await page.goto(base + '#link');
-    await page.click('#lk-forget'); await page.click('#lk-forget');
+    await page.click('#lk-forget');
+    assert.strictEqual(await page.textContent('#lk-forget'), 'Tap again to unpair');
+    await page.clock.runFor(4100);
+    assert.strictEqual(await page.textContent('#lk-forget'), 'Unpair this phone', '#lk-forget disarms after 4 seconds');
+    await page.click('#lk-forget');
+    assert.strictEqual(await page.textContent('#lk-forget'), 'Tap again to unpair', 're-arms instead of unpairing immediately');
+    await page.click('#lk-forget');
     await page.waitForSelector('#lk-find');
   });
   await t.step('no overflow, no console errors', async () => {
