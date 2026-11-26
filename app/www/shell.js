@@ -575,8 +575,10 @@
     } catch (e) { return null; }
   }
   function restoreText(text) {
-    var o = JSON.parse(text);
-    if (o && o.app === 'faith-companion' && modules.faith && modules.faith.importOld) { modules.faith.importOld(text); return; }
+    var raw = String(text == null ? '' : text);
+    if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+    var o = JSON.parse(raw);
+    if (o && o.app === 'faith-companion' && modules.faith && modules.faith.importOld) { modules.faith.importOld(raw); return; }
     if (!o || o.app !== 'wellness' || !o.stores || typeof o.stores !== 'object') throw new Error('This is not a backup from this app.');
     var allowed = {}, skipped = []; allowed[SKEY] = 1;
     order.forEach(function (id) { (modules[id].storageKeys || []).forEach(function (k) { allowed[k] = 1; }); });

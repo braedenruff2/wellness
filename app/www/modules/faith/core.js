@@ -355,7 +355,9 @@
   function exportData(state) { return JSON.stringify({ app: 'faith-companion', exported: new Date().toISOString(), state: state }, null, 1); }
   /* A backup is checked field by field, so a damaged or hand-edited file can't break the app or inject markup. */
   function importData(text) {
-    var o = JSON.parse(text);
+    var raw = String(text == null ? '' : text);
+    if (raw.charCodeAt(0) === 0xFEFF) raw = raw.slice(1);
+    var o = JSON.parse(raw);
     var s = o && o.app === 'faith-companion' ? o.state : null;
     if (!s || typeof s !== 'object' || !s.done || typeof s.done !== 'object' || Array.isArray(s.done)) throw new Error('This is not a Faith Companion backup.');
     var d = defaults(), str = function (v) { return typeof v === 'string' ? v : ''; };

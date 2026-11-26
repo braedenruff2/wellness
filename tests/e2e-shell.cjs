@@ -85,17 +85,20 @@ const W = require('./lib/web.cjs');
     page.off('dialog', handler);
     assert.strictEqual(confirms, 2, 'same file triggered onchange a second time');
   });
-  await t.step('restoreText validates wl.shell.v1 (sanitizes bad theme/textSize, skips corrupt JSON)', async () => {
+  await t.step('restoreText validates wl.shell.v1 (sanitizes bad theme/textSize, skips corrupt JSON, handles UTF-8 BOM)', async () => {
     const res = await page.evaluate(() => {
-      const skipped1 = WL.restoreText(JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': JSON.stringify({ theme: 'purple', textSize: 99, nudged: '2026-02-30' }) } }));
+      const skipped1 = WL.restoreText('\uFEFF' + JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': JSON.stringify({ theme: 'purple', textSize: 99, nudged: '2026-02-30' }) } }));
       WL.applyLook();
       const sh1 = JSON.parse(localStorage.getItem('wl.shell.v1'));
       const skipped2 = WL.restoreText(JSON.stringify({ app: 'wellness', stores: { 'wl.shell.v1': '{not json', 'wl.pc.v1': '123' } }));
-      return { skipped1, sh1, skipped2 };
+      WL.restoreText('\uFEFF' + JSON.stringify({ app: 'faith-companion', state: { done: { 1: '2026-11-20' }, journal: [], prayers: [], settings: { minutes: 5 } } }));
+      const fcDone = JSON.parse(localStorage.getItem('fc.v1')).done;
+      return { skipped1, sh1, skipped2, fcDone };
     });
     assert.deepStrictEqual(res.skipped1, []);
     assert.deepStrictEqual(res.sh1, { theme: 'auto', textSize: 1 });
     assert.deepStrictEqual(res.skipped2, ['Settings', 'PC link']);
+    assert.deepStrictEqual(res.fcDone, { 1: '2026-11-20' }, 'legacy faith-companion backup with UTF-8 BOM restores cleanly');
   });
   await t.step('failed Android saveFile does not record lastBackup', async () => {
     const p2 = await page.context().newPage();

@@ -227,10 +227,12 @@ t('Player: back, skip to the end, start part way, double pause/resume are safe',
   const e2 = fakeEnv([]), p2 = new C.Player([{ say: '', wait: 0 }], e2); p2.start(); e2.advance(0); assert.strictEqual(p2.phase, 'ended');
 });
 
-t('export/import round trip; foreign files refused', () => {
+t('export/import round trip; UTF-8 BOM accepted; foreign files refused', () => {
   const s = C.defaults(); C.finishDay(s, 1); C.addEntry(s, 'awe', 'sea');
   const back = C.importData(C.exportData(s));
   assert.deepStrictEqual(back.done, s.done); assert.strictEqual(back.journal[0].text, 'sea');
+  const bom = C.importData('\uFEFF' + C.exportData(s));
+  assert.deepStrictEqual(bom.done, s.done); assert.strictEqual(bom.journal[0].text, 'sea');
   assert.throws(() => C.importData('{"app":"other"}'));
   assert.throws(() => C.importData('nope'));
 });
