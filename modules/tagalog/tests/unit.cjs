@@ -375,6 +375,12 @@ t('slips: last 14 days of hinted answers, newest first, one per exercise, with t
   assert.strictEqual(set.length, out.length, 'slipSet: one exercise per slip');
   set.forEach((x, i) => { assert.strictEqual(x.pack, pk); assert.strictEqual(x.ex.answer, out[i].answer); assert.ok(x.lesson && x.lesson.day); });
   assert.deepStrictEqual(T.slipSet(T.defaults(), [pk], new Date()), []);
+  // the pack was corrected later (same id, the sentence reworded): the old slip has no exercise any more and is left out
+  const fixed = JSON.parse(JSON.stringify(pk));
+  fixed.lessons.forEach((l) => (l.exercises || []).forEach((e) => { if (e.prompt) e.prompt = e.prompt + ' (reworded)'; if (e.say) e.say = e.say + ' na'; }));
+  assert.deepStrictEqual(T.slipSet(st, [fixed], new Date(2026, 10, 26, 12)), [], 'replaced pack: nothing broken offered');
+  assert.deepStrictEqual(T.slips(st, [fixed], new Date(2026, 10, 26, 12)), []);
+  assert.deepStrictEqual(T.slipSet(st, [], new Date(2026, 10, 26, 12)), [], 'pack gone');
 });
 t('practiceSet: among equally missed exercises, a verb-form or linker slip comes first (until answered right)', () => {
   const pk = { id: '2026-11-25', lessons: [{ day: 1, exercises: [

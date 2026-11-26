@@ -774,6 +774,18 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#tl-slips [data-say]'), []);
       assert.deepStrictEqual(await bad('#tl-slips'), [], theme + ' #tl-slips');
       await t.noOverflow(['#tagalog/words']);
+      // Task 234: "Practise these" (#tl-practise-slips) and the run it starts (#tagalog/slips), and its finish screen
+      assert.deepStrictEqual(await small('#tl-practise-slips'), []);
+      await page.click('#tl-practise-slips'); await page.waitForSelector('#tl-slip-run #tl-in');
+      assert.deepStrictEqual(await small('#tl-slip-run button, #tl-slip-run input'), []);
+      assert.deepStrictEqual(await bad('#tl-slip-run'), [], theme + ' #tl-slip-run');
+      let o2 = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); assert.ok(o2 <= 0, '#tagalog/slips overflow ' + o2);
+      await page.fill('#tl-in', 'gusto kong magaaral'); await page.click('#tl-check'); await page.waitForSelector('#tl-fb .no');
+      assert.deepStrictEqual(await bad('#tl-fb'), [], theme + ' #tagalog/slips feedback');
+      await page.click('#tl-next'); await page.waitForSelector('#tl-again');
+      assert.deepStrictEqual(await small('#tl-slip-run a.btn, #tl-slip-run button'), []);
+      assert.deepStrictEqual(await bad('#tl-slip-run'), [], theme + ' #tagalog/slips finish');
+      o2 = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); assert.ok(o2 <= 0, '#tagalog/slips finish overflow ' + o2);
     });
   }
   // Task 226: Home's Calm aim question (#c-aim-home) until it's answered
