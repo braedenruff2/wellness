@@ -166,7 +166,9 @@
     h += '<div class="card ui"><div class="row"><span class="grow">Length</span><div class="chips">' + [2, 5, 10].map(function (m) {
       return '<button class="chip" data-min="' + m + '" aria-pressed="' + (S.settings.minutes === m) + '">' + m + ' min</button>';
     }).join('') + '</div></div><div class="row" style="margin-top:8px"><span class="grow">Read aloud</span>' +
-      '<button class="chip" id="voice-toggle" aria-pressed="' + !!S.settings.voice + '">' + (S.settings.voice ? 'On' : 'Off') + '</button></div></div>';
+      '<button class="chip" id="voice-toggle" aria-pressed="' + !!S.settings.voice + '">' + (S.settings.voice ? 'On' : 'Off') + '</button></div>' +
+      '<div class="row" style="margin-top:8px"><span class="grow">Dark screen late at night (9 pm – 5 am)</span>' +
+      '<button class="chip" id="dark-toggle" aria-pressed="' + (S.settings.darkPray !== false) + '">' + (S.settings.darkPray !== false ? 'On' : 'Off') + '</button></div></div>';
     var wk = C.practicesThisWeek(S);
     h += '<ul class="list">' + PRACTICES.map(function (p) {
       var c = wk[p.id] || 0;
@@ -275,7 +277,14 @@
     pp.textContent = '\u23F8 Pause'; pp.dataset.state = 'playing';
   }
 
-  function keepAwake(on) { WL.keepAwake(on); }
+  /* Late at night (21:00-05:00) a guided prayer goes dark after 20 s (setting "Dark screen late at night", on):
+     no lit phone in a dark room while the voice leads; tap to see the words. */
+  function keepAwake(on) {
+    WL.keepAwake(on);
+    if (!WL.darkScreen) return;
+    if (on && lateNow() && S.settings.darkPray !== false) WL.darkScreen.start({ id: 'fc-dark', label: 'Dark screen while you pray. Tap to see the words.', after: 20000 });
+    else WL.darkScreen.stop();
+  }
 
   function screenJournal(tab) {
     tab = tab || 'all';
@@ -486,6 +495,7 @@
       b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route(); };
     });
     on('#voice-toggle', function (el) { el.onclick = function () { S.settings.voice = !S.settings.voice; save(); route(); }; });
+    on('#dark-toggle', function (el) { el.onclick = function () { S.settings.darkPray = S.settings.darkPray === false; save(); route(); }; });
     on('#j-search', function (el) { el.oninput = function () {
       var q = el.value.trim().toLowerCase(), n = 0;
       [].forEach.call(document.querySelectorAll('#j-list > li'), function (li) {

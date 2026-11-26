@@ -221,25 +221,13 @@
 
   /* A dark screen during sits and the quiet timer (setting, on by default): the app stays awake, so the voice,
      interval bells and end bell keep working, without a lit screen in a dark room. Tap shows the time again. */
-  var DARK_AFTER = 10000;
   function darkOn(p) { return usesAlarm(p) && S.settings.dark !== false; }
+  /* (the cover itself is WL.darkScreen in shell.js, shared with late-night prayers) */
   function scheduleDark() {
     if (!run || run.done || run.paused || !darkOn(run.p)) return;
-    clearTimeout(run.darkT);
-    run.darkT = setTimeout(function () {
-      if (!run || run.done || run.paused || document.getElementById('c-dark')) return;
-      var d = document.createElement('div');
-      d.id = 'c-dark'; d.className = 'c-dark'; d.tabIndex = 0; d.setAttribute('role', 'button');
-      d.setAttribute('aria-label', 'Dark screen for your sit. Tap to show the time.');
-      d.onclick = function () { lightUp(); scheduleDark(); };
-      document.body.appendChild(d); WL.dimScreen(true);
-    }, DARK_AFTER);
+    WL.darkScreen.start({ id: 'c-dark', label: 'Dark screen for your sit. Tap to show the time.', after: 10000 });
   }
-  function lightUp() {
-    if (run) clearTimeout(run.darkT);
-    var d = document.getElementById('c-dark');
-    if (d) { d.parentNode.removeChild(d); WL.dimScreen(false); }
-  }
+  function lightUp() { WL.darkScreen.stop(); }
 
   function stopRun() {
     if (!run) return;
@@ -380,9 +368,6 @@
     $('#c-end').onclick = function () { saveEarly(); stopRun(); location.hash = '#calm'; };
     var pp = $('#c-pp');
     keyHandler = function (ev) {
-      if (document.getElementById('c-dark') && (ev.key === ' ' || ev.code === 'Space' || ev.key === 'Enter')) { // dark screen: a key only lights it
-        ev.preventDefault(); lightUp(); scheduleDark(); return;
-      }
       if (ev.key !== ' ' && ev.code !== 'Space') return;
       var tag = ev.target && ev.target.tagName;
       if (/^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(tag || '') || (ev.target && ev.target.isContentEditable)) return;
@@ -408,8 +393,7 @@
   }
   /* Returning after the screen was locked: if a sit or Quiet timer already passed its end, finish cleanly without a duplicate bell. */
   document.addEventListener('visibilitychange', function () {
-    // back in the app (or the screen unlocked) mid-sit: show the time first, dark again 10 s later
-    if (!document.hidden && document.getElementById('c-dark')) { lightUp(); scheduleDark(); }
+    // (back in the app mid-sit, WL.darkScreen shows the time first and goes dark again 10 s later)
     if (!document.hidden && run && !run.done && !run.paused && usesAlarm(run.p)) {
       var e = elapsed();
       if (e >= run.total) finish(!!(WL.native && WL.native.calmAlarm && e - run.total > 5));

@@ -486,4 +486,12 @@ t('importData rejects impossible calendar dates in done, pastRounds, started, an
   assert.strictEqual(ok.settings.reminder, '21:30');
 });
 
+t('dark screen late at night: on by default, Off kept through export/import', () => {
+  assert.strictEqual(C.defaults().settings.darkPray, true);
+  const s = C.defaults(); s.settings.darkPray = false;
+  assert.strictEqual(C.importData(C.exportData(s)).settings.darkPray, false);
+  const j = C.defaults(); j.settings.darkPray = 'no';
+  assert.strictEqual(C.importData(C.exportData(j)).settings.darkPray, true, 'junk: the default');
+});
+
 console.log(n + ' unit tests passed');

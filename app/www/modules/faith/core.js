@@ -18,7 +18,8 @@
         voice: true,          // speak guided prayers aloud
         rate: 0.9,            // speech rate
         minutes: 5,           // guided prayer length: 2 | 5 | 10
-        bell: true
+        bell: true,
+        darkPray: true        // a guided prayer late at night (21:00-05:00) goes dark after 20 s
       },
       resume: null,           // {screen, day, practice, step, at}
       round: 1,               // 2, 3, ... after "Walk it again"
@@ -391,6 +392,7 @@
     if (typeof st.textSize === 'number' && st.textSize >= 0.8 && st.textSize <= 1.6) ds.textSize = st.textSize;
     if (typeof st.voice === 'boolean') ds.voice = st.voice;
     if (typeof st.bell === 'boolean') ds.bell = st.bell;
+    if (typeof st.darkPray === 'boolean') ds.darkPray = st.darkPray;
     if (typeof st.rate === 'number' && st.rate >= 0.5 && st.rate <= 1.6) ds.rate = st.rate;
     if ([2, 5, 10].indexOf(st.minutes) >= 0) ds.minutes = st.minutes;
     if (typeof st.reminder === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(st.reminder)) ds.reminder = st.reminder;

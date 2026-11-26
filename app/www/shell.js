@@ -171,6 +171,39 @@
   function keepAwake(on) { if (native && native.keepAwake) try { native.keepAwake(!!on); } catch (e) {} }
   /* Screen brightness right down (a dark screen during a sit) or back to the phone's own setting. */
   function dimScreen(on) { if (native && native.dimScreen) try { native.dimScreen(!!on); } catch (e) {} }
+  /* A dark screen during a long practice (Calm sits, late-night prayers): after a while a black cover goes over the
+     page and the brightness drops right down; a tap, Space or Enter, or coming back to the app lights it, and it
+     goes dark again after the same wait. The page keeps running underneath (voice, bells, timers).
+     start({id, label, after}) arms it (again), light() shows the page and re-arms, stop() ends it. */
+  var darkSt = { on: false, t: null, id: 'wl-dark', label: '', after: 10000 };
+  function darkEl() { return document.getElementById(darkSt.id); }
+  function darkArm() {
+    clearTimeout(darkSt.t);
+    if (!darkSt.on) return;
+    darkSt.t = setTimeout(function () {
+      if (!darkSt.on || darkEl()) return;
+      var d = document.createElement('div');
+      d.id = darkSt.id; d.className = 'c-dark wl-dark'; d.tabIndex = 0; d.setAttribute('role', 'button');
+      d.setAttribute('aria-label', darkSt.label || 'Dark screen. Tap to show the page.');
+      d.onclick = function () { darkLight(); };
+      document.body.appendChild(d); dimScreen(true);
+    }, darkSt.after);
+  }
+  function darkUncover() { clearTimeout(darkSt.t); var d = darkEl(); if (d) { d.parentNode.removeChild(d); dimScreen(false); } }
+  function darkLight() { darkUncover(); darkArm(); }
+  function darkStart(o) {
+    o = o || {};
+    if (darkSt.on && darkSt.id !== (o.id || 'wl-dark')) darkUncover();
+    darkSt.on = true; darkSt.id = o.id || 'wl-dark'; darkSt.label = o.label || ''; darkSt.after = o.after || 10000;
+    darkLight();
+  }
+  function darkStop() { darkSt.on = false; darkUncover(); }
+  document.addEventListener('keydown', function (ev) {
+    if (!darkEl() || !(ev.key === ' ' || ev.code === 'Space' || ev.key === 'Enter')) return;
+    ev.preventDefault(); ev.stopPropagation(); darkLight(); // a key only lights the screen (it doesn't also pause)
+  }, true);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && darkEl()) darkLight(); });
+  var darkScreen = { start: darkStart, light: darkLight, stop: darkStop, isDark: function () { return !!darkEl(); } };
 
   /* ---- modules and routing ---- */
   function register(m) { modules[m.id] = m; order.push(m.id); }
@@ -630,7 +663,7 @@
 
   window.WL = {
     register: register, start: start, route: route, logNow: logNow, logDay: getLogDay, setLogDay: setLogDay, store: store, $: $, $$: $$, esc: esc, toast: toast, isoDate: isoDate,
-    speech: speech, bell: bell, softBell: softBell, tick: tick, keepAwake: keepAwake, dimScreen: dimScreen, wordsSeconds: wordsSeconds, applyLook: applyLook, themeNow: themeNow,
+    speech: speech, bell: bell, softBell: softBell, tick: tick, keepAwake: keepAwake, dimScreen: dimScreen, darkScreen: darkScreen, wordsSeconds: wordsSeconds, applyLook: applyLook, themeNow: themeNow,
     refreshToday: refreshToday, saveFile: saveFile, native: native, modules: modules, backupText: backupText, restoreText: restoreText
   };
 })();
