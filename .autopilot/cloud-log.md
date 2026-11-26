@@ -1,5 +1,11 @@
 # Cloud log
 
+## 2026-11-26 15:50-16:00 AST (run2, back from Singing Helper; APK 0.1.20261126.1959, real key, cert 6795e499...)
+- Done 234 (a11y: Slips > Practise these run + finish), 235 (slipSet leaves out exercises a corrected pack no longer has: unit), 236 (e2e: undoing a rest day, also Home's "Rest today (tired)", plans the workout again on Home), 238 (unit: repeating to-dos done late keep their rhythm, also the 31st, weekdays, DST). Added 231-238.
+- Cross-review: Gemini d04e484 (Gemini CLI path) and bb703a1 (Antigravity CLI `agy` with stream-json as the PC backup): read; no bug found in the code; the agy flags themselves can't be checked here.
+- Tested: full suite at 9140705 (82 suites, none skipped; this APK's code).
+- Check on the phone: Tagalog > Your words > Slips to watch > Practise these.
+
 ## 2026-11-26 14:42-15:20 AST (run2, a second run alongside the 12:37 one; no APK: the other run builds)
 - Done 230 (tests/e2e-narrow.cjs: Home at 320 px, text 1.3, light/dark/night, every card in its fullest state; nothing overflows or is clipped), 228 (modules/tagalog/tests/perf.cjs: slips/practiceSet with 2000 answers and 4 packs ~1 ms), 227 (Your words > Slips to watch > "Practise these": #tagalog/slips runs those exercises once via TagalogCore.slipSet; answers recorded, no box/due change). My 229 duplicated the other run's (its claim wasn't pushed in time); theirs kept.
 - Cross-review: no Gemini commits since its last log entry; no gemini-work branch.
