@@ -1,5 +1,11 @@
 # Cloud log
 
+## 2026-11-26 14:42-15:20 AST (run2, a second run alongside the 12:37 one; no APK: the other run builds)
+- Done 230 (tests/e2e-narrow.cjs: Home at 320 px, text 1.3, light/dark/night, every card in its fullest state; nothing overflows or is clipped), 228 (modules/tagalog/tests/perf.cjs: slips/practiceSet with 2000 answers and 4 packs ~1 ms), 227 (Your words > Slips to watch > "Practise these": #tagalog/slips runs those exercises once via TagalogCore.slipSet; answers recorded, no box/due change). My 229 duplicated the other run's (its claim wasn't pushed in time); theirs kept.
+- Cross-review: no Gemini commits since its last log entry; no gemini-work branch.
+- Tested: full suite at 844c1b2 (82 suites, none skipped).
+- Check on the phone (next APK): Tagalog > Your words > Slips to watch > Practise these.
+
 ## 2026-11-26 13:20-14:35 AST (same run, continued; APK 0.1.20261126.1834, real key, cert 6795e499...)
 - Done 217 (Home's Calm card asks "What do you want from Calm?" until answered; a done day keeps the done card), 218 (the live session clock leaves out breaks over 90 min: WorkoutCore.activeTime; history has no length, so only the clock), 215 (weeklySummary hints carry `about`, HINT_ABOUT), 216 (no false hints across every bundled pack), 219 (Your words: "Slips to watch"), 220 (a11y), 221 (practice tie-break), 213 (rough-day 10-min sit also in Home's today list). Added 215-222 (222 dropped: exists).
 - Independent review (subagent) of today's diff: bug: a doubled letter ("sallamat", "kumainn", "umagaa") got the verb-form hint / cause: redup accepted any doubled letter / fixed: one-letter copies only a vowel at the root start, CV copies only at the root start or after -um- / test: unit. Also "after kailangan" now found with the linker (kailangang). Its second finding (session clock vs "Log for an earlier day") can't happen: the clock is hidden in that mode; e2e-break pins it.
