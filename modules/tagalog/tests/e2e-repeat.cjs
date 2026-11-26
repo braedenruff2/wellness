@@ -31,7 +31,10 @@ const Wb = require('../../../tests/lib/web.cjs');
     for (const ok of [true, false]) { seen.push(await page.textContent('#tl-card .big')); await reveal(); await page.click(ok ? '#tl-yes' : '#tl-no'); }
     assert.deepStrictEqual(seen, missed, 'the missed ones, in order');
     const after2 = await store();
-    assert.deepStrictEqual(after2.cards, after1.cards, 'no box or due date changed by the repeat');
+    const sched = (c) => Object.fromEntries(Object.entries(c).map(([k, v]) => [k, [v.box, v.due, v.seen, v.right, v.wrong]]));
+    assert.deepStrictEqual(sched(after2.cards), sched(after1.cards), 'no box, due date or count changed by the repeat');
+    const am = Object.values(after2.cards).map((c) => c.againMiss || 0).sort();
+    assert.deepStrictEqual(am, [0, 0, 1], 'the one still missed on the second go counts as a hard word; the rest nothing');
     assert.strictEqual(after2.reviews.length, after1.reviews.length, 'no extra review logged');
     assert.ok(/1 of 2 this time/.test(await page.textContent('#tl-again-done')));
     assert.ok(/that one again/.test(await page.textContent('#tl-repeat')), 'one left: again');

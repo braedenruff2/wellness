@@ -325,4 +325,15 @@ t('hintKind is stored with a wrong answer, survives validate, and goes into the 
   const sum = T.weeklySummary(st, [], new Date(2026, 10, 26));
   assert.deepStrictEqual(sum.hints, [{ kind: 'pronoun', prompt: 'Why is she crying?', given: 'bakit umiiyak siya' }]);
 });
+t('a word still missed in a review repeat counts toward Hard words; no box or due change; kept by validate', () => {
+  const s = T.defaults();
+  s.cards = { salamat: { en: 'thank you', box: 2, due: '2026-11-30', seen: 4, right: 3, wrong: 1, from: 'x' }, tubig: { en: 'water', box: 3, due: '2026-12-02', seen: 4, right: 4, wrong: 0, from: 'x' } };
+  assert.deepStrictEqual(T.weakWords(s), ['salamat']);
+  T.againMiss(s, 'tubig'); T.againMiss(s, 'tubig'); T.againMiss(s, 'nope');
+  assert.deepStrictEqual([s.cards.tubig.box, s.cards.tubig.due, s.cards.tubig.wrong], [3, '2026-12-02', 0], 'schedule untouched');
+  assert.deepStrictEqual(T.weakWords(s), ['tubig', 'salamat'], '2 misses in 6 tries beats 1 in 4');
+  const v = T.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.cards.tubig.againMiss, 2);
+  assert.strictEqual(v.cards.salamat.againMiss, undefined);
+});
 console.log(n + ' tagalog unit tests passed');

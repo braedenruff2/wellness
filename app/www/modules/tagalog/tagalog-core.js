@@ -257,9 +257,13 @@
       weekDays: Object.keys(days).length, weekAccuracy: weekAns.length ? weekAns.filter(function (a) { return a.ok; }).length / weekAns.length : null };
   }
 
+  /* Hard words: missed most often (a word still missed when he went through the misses again, card.againMiss,
+     counts too; that extra practice never changes its box or due date). */
+  function missCount(c) { return (c.wrong || 0) + (c.againMiss || 0); }
+  function againMiss(state, k) { var c = state.cards[k]; if (c) c.againMiss = Math.min(999, (c.againMiss || 0) + 1); return c; }
   function weakWords(state, n) {
-    return Object.keys(state.cards).filter(function (k) { return state.cards[k].wrong > 0; })
-      .sort(function (a, b) { var A = state.cards[a], B = state.cards[b]; return (B.wrong / (B.seen || 1)) - (A.wrong / (A.seen || 1)) || B.wrong - A.wrong; })
+    return Object.keys(state.cards).filter(function (k) { return missCount(state.cards[k]) > 0; })
+      .sort(function (a, b) { var A = state.cards[a], B = state.cards[b]; return (missCount(B) / ((B.seen || 0) + (B.againMiss || 0) || 1)) - (missCount(A) / ((A.seen || 0) + (A.againMiss || 0) || 1)) || missCount(B) - missCount(A); })
       .slice(0, n || 10);
   }
 
@@ -301,6 +305,7 @@
       var c = s.cards[k];
       if (c && typeof c.en === 'string' && WLD.isDate(c.due) && k.length < 120)
         d.cards[k] = { en: c.en, box: Math.max(0, Math.min(INTERVALS.length - 1, +c.box || 1)), due: c.due, seen: +c.seen || 0, right: +c.right || 0, wrong: +c.wrong || 0, from: String(c.from || '') };
+        if (+c.againMiss > 0) d.cards[k].againMiss = Math.min(999, Math.floor(+c.againMiss));
     });
     (Array.isArray(s.answers) ? s.answers : []).slice(-2000).forEach(function (a) {
       if (!a || isNaN(new Date(a.at).getTime())) return; // a damaged entry is dropped, not the whole Tagalog backup
@@ -325,7 +330,7 @@
 
   var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, hintKind: hintKind, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
-    advice: advice, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
+    advice: advice, againMiss: againMiss, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

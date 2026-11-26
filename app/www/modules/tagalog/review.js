@@ -75,7 +75,12 @@
         $('#tl-btns').innerHTML = '<button id="tl-no">Not yet</button><button class="primary" id="tl-yes">Got it</button>';
         // a double-tap on Show would land on "Not yet" (now where Show was): ignore taps for a moment
         var shownAt = Date.now(), late = function () { return Date.now() - shownAt >= 400; };
-        $('#tl-no').onclick = function () { if (!late()) return; if (!hard && !again) { T.review(S, k, false, ctx.logNow()); ctx.save(); } missed.push(k); i++; show(); };
+        $('#tl-no').onclick = function () {
+          if (!late()) return;
+          if (!hard && !again) { T.review(S, k, false, ctx.logNow()); ctx.save(); }
+          else if (again && T.againMiss) { T.againMiss(S, k); ctx.save(); } // still missed on another go: a hard word (no box change)
+          missed.push(k); i++; show();
+        };
         $('#tl-yes').onclick = function () { if (!late()) return; if (!hard && !again) { T.review(S, k, true, ctx.logNow()); ctx.save(); } i++; show(); };
       };
     }
