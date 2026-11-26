@@ -412,4 +412,16 @@ t('quietScript: opening lines up to the main instruction, one long silence, the 
   assert.strictEqual(K.validate({ sessions: [], settings: { sitQuiet: true } }).settings.sitQuiet, true);
   assert.strictEqual(K.validate({ sessions: [], settings: { sitQuiet: 'y' } }).settings.sitQuiet, false);
 });
+t('going back a stage and returning: earlier sits at the later stage still count toward "Move on"', () => {
+  const s = K.defaults();
+  const sit = (d, id, f) => { const r = K.record(s, id, 20, null, null, new Date(2026, 10, d, 7)); K.rateSit(r, f); };
+  K.setStage(s, 'follow');
+  sit(1, 'follow', 3); sit(2, 'follow', 3); sit(3, 'follow', 1); sit(4, 'follow', 1); sit(5, 'follow', 1);
+  assert.strictEqual(K.pathStatus(s, new Date(2026, 10, 5, 12)).back, true);
+  K.setStage(s, 'count'); sit(6, 'count', 3); sit(7, 'count', 3);
+  K.setStage(s, 'follow'); sit(8, 'follow', 3); sit(9, 'follow', 3); sit(10, 'follow', 3);
+  const st = K.pathStatus(s, new Date(2026, 10, 10, 12));
+  assert.strictEqual(st.sits, 8, 'all 8 follow sits, before and after going back');
+  assert.deepStrictEqual([st.steady, st.lost, st.ready, st.back], [3, 2, true, false], JSON.stringify(st));
+});
 console.log(n + ' calm unit tests passed');
