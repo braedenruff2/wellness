@@ -348,6 +348,19 @@
     return h;
   }
 
+  /* How much of the phone's storage for the app (about 5 million characters in a WebView) the saved parts use. */
+  var SPACE = 5000000;
+  function spaceUsed() {
+    var n = 0;
+    try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (/^(wl|fc)\./.test(k)) n += k.length + (localStorage.getItem(k) || '').length; } } catch (e) { return null; }
+    return n;
+  }
+  function spaceHtml() {
+    var n = spaceUsed(); if (n == null) return '';
+    var pc = Math.max(n > 0 ? 1 : 0, Math.round(100 * n / SPACE));
+    return '<p class="meta" id="wl-space">Saved on this phone: about ' + pc + '% of the space the app has.' +
+      (pc >= 70 ? ' <b>It’s getting full: save a backup now, and tell Claude so older history can be trimmed.</b>' : '') + '</p>';
+  }
   function settingsHtml() {
     var L = look();
     function chips(name, vals, cur, labels) {
@@ -363,7 +376,8 @@
     h += saveFailHtml('wl-savefail-s');
     h += '<div class="card ui"><h3>Backup</h3><p class="meta">Everything lives only on this phone. Save a backup file now and then (all parts of the app in one file).' +
       (SH.lastBackup ? ' Last saved ' + esc(new Date(SH.lastBackup).toLocaleDateString()) + '.' : '') + (backupDue() ? ' <b>It’s been a while: save one now.</b>' : '') + '</p>' +
-      '<div class="row"><button id="wl-export">Save a backup</button><label class="btn" for="wl-import">Restore a backup</label><input type="file" id="wl-import" accept=".json,application/json" class="sr"></div></div>';
+      '<div class="row"><button id="wl-export">Save a backup</button><label class="btn" for="wl-import">Restore a backup</label><input type="file" id="wl-import" accept=".json,application/json" class="sr"></div>' +
+      spaceHtml() + '</div>';
     return h;
   }
 

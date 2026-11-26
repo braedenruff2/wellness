@@ -159,6 +159,16 @@ const W = require('./lib/web.cjs');
     await page.clock.runFor(100);
     assert.strictEqual(await page.$('#x-dark'), null, 'gone after a route change, and not re-armed');
   });
+  await t.step('Settings > Backup says how full the phone\'s space for the app is; a warning from 70%', async () => {
+    await page.goto(base + '#settings'); await page.waitForSelector('#wl-space');
+    assert.ok(/Saved on this phone: about \d+% of the space/.test(await page.textContent('#wl-space')));
+    assert.ok(!/getting full/.test(await page.textContent('#wl-space')));
+    await page.evaluate(() => localStorage.setItem('wl.test.big', 'x'.repeat(3600000)));
+    await page.goto(base + '#home'); await page.goto(base + '#settings'); await page.waitForSelector('#wl-space');
+    const txt = await page.textContent('#wl-space');
+    assert.ok(/about 7\d% /.test(txt) && /getting full/.test(txt), txt);
+    await page.evaluate(() => localStorage.removeItem('wl.test.big'));
+  });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('shell browser');
 })().catch((e) => { console.error(e); process.exit(1); });
