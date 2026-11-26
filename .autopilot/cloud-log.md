@@ -1,5 +1,11 @@
 # Cloud log
 
+## 2026-11-26 01:50-02:25 AST (same run, continued; APK 0.1.20261126.0622, real key, cert 6795e499...)
+- Second singing-helper turn in between (Claude Autopilot logs\singing-helper.md).
+- Done 191 (Your week: "..., steadiest in the morning"), 192 (dark-screen hint only for the first 3 sits/timers, counted from sessions), 179 (e2e: Home rest days read as rest days he chose), 194 (bug: Android Back during a dark sit or prayer went back in history and ended it / fixed: MainActivity.goBack asks window.FCBack first, which only lights the screen / test: CalmAlarmTest.backHandled, e2e-shell), 196 (README dark-screen summary). Dropped 189. Added 193-196.
+- Tested: full suite at 1a353b5 (77 suites, none skipped; this APK's code).
+- Check on the phone: during a dark Calm sit press Back once: the screen lights, the sit goes on; press Back again to leave.
+
 ## 2026-11-26 01:35-01:50 AST (same run, continued; APK 0.1.20261126.0546, real key, cert 6795e499...)
 - Done 165 (Calm sit settings under "Sits and the quiet timer"), 183-185 (a11y for the review repeat; blocked storage in Settings; bad lengths in #calm/s/<id>/<min>: no fixes needed), 186 (path note points long sitters to Quiet sit), 187 (weekly-plan prompt knows the sit options and the time-of-day note), 188 (late-night practices go dark: e2e). Added 186-192.
 - Tested: full suite at 107963c (77 suites, none skipped; this APK's code); test_pc after 920633e.
