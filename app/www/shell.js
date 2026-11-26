@@ -605,6 +605,7 @@
     var id = parts[0] || 'home';
     var m = modules[id];
     speech.stop(); // nothing keeps talking on a screen that has no Stop button
+    darkStop(); // nor stays dark (each part also stops it when it leaves)
     if (current && current.leave) try { current.leave(); } catch (e) {}
     document.body.className = '';
     current = m || null;

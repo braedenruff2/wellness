@@ -150,6 +150,14 @@ const W = require('./lib/web.cjs');
     });
     await page.clock.runFor(100);
     assert.deepStrictEqual(r, { one: 1, switched: 0, afterSwitch: 1, id: 'b-dark', stopped: 0, staysOff: 0 }, JSON.stringify(r));
+    // a route change ends it, even if a part forgot to
+    await page.evaluate(() => window.WL.darkScreen.start({ id: 'x-dark', after: 10 }));
+    await page.clock.runFor(50);
+    assert.ok(await page.$('#x-dark'), 'dark');
+    await page.evaluate(() => { location.hash = '#settings'; });
+    await page.waitForSelector('#view');
+    await page.clock.runFor(100);
+    assert.strictEqual(await page.$('#x-dark'), null, 'gone after a route change, and not re-armed');
   });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('shell browser');
