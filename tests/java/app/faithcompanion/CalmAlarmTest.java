@@ -23,6 +23,12 @@ public class CalmAlarmTest {
         for (int i = 0; i < 150; i++) big.append('a');
         eq(CalmAlarm.bodyFor(big.toString()).length(), 120, "long label truncated");
 
+        eq(CalmAlarm.allowedHash("#calm"), "#calm", "Calm bell opens Calm");
+        eq(CalmAlarm.allowedHash("#todo"), "#todo", "to-do");
+        eq(CalmAlarm.allowedHash("#workout"), "#workout", "rest timer");
+        eq(CalmAlarm.allowedHash("#calm/s/count"), null, "no deeper hashes");
+        eq(CalmAlarm.allowedHash("javascript:alert(1)"), null, "nothing else");
+        eq(CalmAlarm.allowedHash(null), null, "none");
         System.out.println("CalmAlarmTest ok");
     }
 }

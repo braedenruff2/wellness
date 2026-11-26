@@ -162,10 +162,7 @@ public class MainActivity extends Activity {
     }
 
     /** The screen a notification asks for (only these, never a hash from elsewhere). */
-    private static String openHash(Intent i) {
-        String h = i == null ? null : i.getStringExtra("openHash");
-        return "#workout".equals(h) || "#todo".equals(h) || "#calm".equals(h) ? h : null;
-    }
+    private static String openHash(Intent i) { return CalmAlarm.allowedHash(i == null ? null : i.getStringExtra("openHash")); }
 
     private void done(String id) {
         runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCSpeechDone&&FCSpeechDone(" + jsString(id) + ")", null); });
