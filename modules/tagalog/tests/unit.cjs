@@ -291,6 +291,16 @@ t('check: a dropped hyphen is forgiven ("magaral" for "mag-aral"), a changed ver
   assert.strictEqual(T.check({ type: 'type', prompt: 'p', answer: 'Salamat po.' }, 'salamatpo'), false, 'only a hyphen may go, not a space');
   assert.strictEqual(T.altOf(g, 'gusto kong magaral ng tagalog'), '', 'the lesson\'s own words: no "lesson\'s version" note');
 });
+t('typed as a phone keyboard sends it: capital, trailing space or stop, double space, smart or dropped apostrophe (task 223)', () => {
+  const ex = { type: 'type', prompt: 'p', answer: 'Gusto kong mag-aral ng Tagalog.' };
+  for (const g of ['Gusto kong magaral ng Tagalog. ', 'Gusto  kong mag-aral ng Tagalog.', 'gusto kong mag\u2011aral ng tagalog!', ' Gusto kong mag aral ng Tagalog\n']) assert.ok(T.check(ex, g), JSON.stringify(g));
+  const e2 = { type: 'type', prompt: 'p', answer: 'Ma\'am, salamat po.' };
+  for (const g of ['Ma\u2019am, salamat po.', 'Maam salamat po', 'ma`am salamat po']) assert.ok(T.check(e2, g), g);
+  const e3 = { type: 'type', prompt: 'p', answer: '\'Di ko alam.' };
+  assert.ok(T.check(e3, 'di ko alam') && T.check(e3, '’di ko alam'));
+  assert.ok(!T.check(e3, 'hindi ko alam'), 'other words are not the same answer');
+  assert.strictEqual(T.altOf(e2, 'Maam salamat po'), '', 'same words: no "lesson\'s version" note');
+});
 t('aspectHint: the verb with or without its repeated syllable gets "Almost" and the right form; anything else nothing', () => {
   const g = { type: 'type', prompt: 'I want to study Tagalog.', answer: 'Gusto kong mag-aral ng Tagalog.', accept: ['gusto kong mag aral ng tagalog'] };
   assert.strictEqual(T.aspectHint(g, 'gusto kong magaaral ng tagalog'), 'Almost: after gusto the verb stays plain: mag-aral, without the repeated syllable (that means "is doing" or "will do"): Gusto kong mag-aral ng Tagalog.');

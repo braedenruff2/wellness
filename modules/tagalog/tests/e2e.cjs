@@ -168,7 +168,7 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     await page.click('#tl-again');
     await page.click('#tl-ex .opt'); await page.click('#tl-next');
     await page.click('#tl-check'); await page.click('#tl-next');
-    await page.fill('#tl-in', 'gusto kong magaral ng tagalog'); await page.click('#tl-check');
+    await page.fill('#tl-in', 'Gusto  kong magaral ng Tagalog. '); await page.click('#tl-check'); // as a phone keyboard sends it
     assert.ok((await page.textContent('#tl-fb')).includes('Right'), 'a dropped hyphen is fine');
     await page.evaluate((raw) => { localStorage.setItem('wl.tagalog.v1', raw); window.WL.modules.tagalog.reload(); }, saved);
   });

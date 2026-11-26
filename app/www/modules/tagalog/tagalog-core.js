@@ -54,9 +54,10 @@
     return s.replace(/[’‘`´']/g, "'").replace(/[-‐‑–—_/]/g, ' ').replace(/[.,!?;:"“”…()¿¡]/g, '').replace(/\s+/g, ' ').trim();
   }
   /* norm(), but the hyphen after a prefix before a vowel just goes ("magaral" for "mag-aral", "pagibig" for
-     "pag-ibig": a common way to type it). A doubled word keeps its break ("araw-araw" is not "arawaraw"). */
+     "pag-ibig": a common way to type it), and so do apostrophes ("maam", "yan", "di"). A doubled word keeps its break
+     ("araw-araw" is not "arawaraw"). */
   function normJoin(s) {
-    return norm(String(s || '').replace(/(^|[^A-Za-zÀ-ÿ])([A-Za-z]{1,6})[-‐‑]([aeiouAEIOU][A-Za-zÀ-ÿ]*)/g, function (m, pre, a, b) {
+    return norm(String(s || '').replace(/[’‘`´']/g, '').replace(/(^|[^A-Za-zÀ-ÿ])([A-Za-z]{1,6})[-‐‑]([aeiouAEIOU][A-Za-zÀ-ÿ]*)/g, function (m, pre, a, b) {
       return b.toLowerCase().indexOf(a.toLowerCase()) === 0 ? m : pre + a + b;
     }));
   }
@@ -66,7 +67,7 @@
     var ok = [ex.answer].concat(ex.accept || []).map(norm);
     if (ok.indexOf(g) >= 0 || ok.indexOf(g.replace(/\bho\b/g, 'po')) >= 0) return true;
     var gj = normJoin(given).replace(/\bho\b/g, 'po');
-    if ([ex.answer].concat(ex.accept || []).some(function (a) { return /[-‐‑]/.test(a) && normJoin(a).replace(/\bho\b/g, 'po') === gj; })) return true;
+    if ([ex.answer].concat(ex.accept || []).some(function (a) { return /[-‐‑’‘`´']/.test(a) && normJoin(a).replace(/\bho\b/g, 'po') === gj; })) return true;
     // a missing "po"/"ho" only where the lesson marks it optional (poOptional), never by default
     return !!ex.poOptional && ok.map(noPo).indexOf(noPo(g)) >= 0;
   }
