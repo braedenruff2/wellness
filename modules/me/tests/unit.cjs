@@ -448,4 +448,104 @@ t('painNote: pain after two workouts in 14 days; "None" or older answers don\'t 
   assert.strictEqual(K.painNote(s, now), false);
   assert.strictEqual(K.painNote(s, D(25 + 15, 9)), false, 'two weeks later the answers are old too');
 });
+t('Task 139: mixed timezone offsets and earlier-day bounds in calmLikes, calmHelped, working, painNote, guidance, forPlan + cleanPlan prefer trim-before-dedup', () => {
+  // cleanPlan trims calm.prefer before deduplicating so 'night' and ' night ' don't duplicate
+  const p = K.cleanPlan({ headline: 'h', parts: { calm: { focus: 'f', prefer: ['night', ' night ', '  ', 'shuffle', 'shuffle ', 'body', 'slow'] } } }, D(25));
+  assert.deepStrictEqual(p.parts.calm.prefer, ['night', 'shuffle', 'body']);
+
+  // Reference point: 2026-11-25T12:00:00Z
+  // 14 days before is 2026-11-11T12:00:00Z:
+  //   '2026-11-11T11:30:00-02:00' == 2026-11-11T13:30:00Z (INSIDE 14 days, though string < '2026-11-11T12:00:00.000Z')
+  //   '2026-11-11T13:00:00+02:00' == 2026-11-11T11:00:00Z (OUTSIDE 14 days, though string > '2026-11-11T12:00:00.000Z')
+  //   '2026-11-26T12:00:00Z'      == FUTURE relative to now (excluded)
+  const now = new Date('2026-11-25T12:00:00.000Z');
+  const in14 = '2026-11-11T11:30:00-02:00';
+  const out14 = '2026-11-11T13:00:00+02:00';
+  const fut = '2026-11-26T12:00:00.000Z';
+
+  // calmLikes: flat respects numeric 14-day window & ignores future answers
+  const cl = K.defaults();
+  cl.feedback.push(
+    { id: 'c1', at: out14, part: 'calm', about: 'body@1', kind: 'after', a: { helped: 'Not really' } },
+    { id: 'c2', at: in14, part: 'calm', about: 'body@2', kind: 'after', a: { helped: 'Not really' } },
+    { id: 'c3', at: '2026-11-24T12:00:00Z', part: 'calm', about: 'body@3', kind: 'after', a: { helped: 'Not really' } },
+    { id: 'c4', at: fut, part: 'calm', about: 'body@4', kind: 'after', a: { helped: 'A lot' } }
+  );
+  assert.strictEqual(K.calmLikes(cl, now).flat, 2, 'in14 + Nov 24 count; out14 and future A lot excluded');
+
+  // calmLikes: racing respects numeric 7-day window & ignores future night answers
+  // 7 days before 2026-11-25T12:00:00Z is 2026-11-18T12:00:00Z
+  const cr = K.defaults();
+  const nightIn7 = new Date(2026, 10, 19, 23, 0);
+  const nightOut7 = new Date(2026, 10, 17, 23, 0);
+  const nightFut = new Date(2026, 10, 27, 23, 0);
+  cr.feedback.push(
+    { id: 'r0', at: nightOut7.toISOString(), part: 'calm', about: 'sleep@0', kind: 'after', a: { block: ['Mind racing'] } },
+    { id: 'r1', at: nightIn7.toISOString(), part: 'calm', about: 'sleep@1', kind: 'after', a: { block: ['Mind racing'] } },
+    { id: 'r2', at: nightFut.toISOString(), part: 'calm', about: 'sleep@2', kind: 'after', a: { helped: 'A lot' } },
+    { id: 'r3', at: new Date(2026, 10, 28, 23, 0).toISOString(), part: 'calm', about: 'sleep@3', kind: 'after', a: { helped: 'A lot' } }
+  );
+  assert.strictEqual(K.calmLikes(cr, now).racing, true, 'future night answers do not push in-range racing out');
+
+  // calmHelped with explicit since/until handles mixed offsets numerically
+  const ch = K.calmHelped(cl, '2026-11-11T12:00:00.000Z', '2026-11-25T12:00:00.000Z');
+  assert.deepStrictEqual(ch, { body: { yes: 0, n: 2 } }, 'in14 & Nov 24 only');
+
+  // painNote: in14 + Nov 24 = 2 (true), out14 doesn't count, future notfit doesn't hide earlier-day painNote
+  const pn = K.defaults();
+  pn.feedback.push(
+    { id: 'w1', at: in14, part: 'workout', about: 'w1', kind: 'after', a: { pain: 'A little' } },
+    { id: 'w2', at: '2026-11-24T12:00:00Z', part: 'workout', about: 'w2', kind: 'after', a: { pain: 'A little' } },
+    { id: 'nf-fut', at: fut, part: 'workout', about: 'guide:pain', kind: 'notfit', a: { reasons: [] } }
+  );
+  assert.strictEqual(K.painNote(pn, now), true, 'in14 counts and future notfit does not hide earlier-day painNote');
+  const pnOut = K.defaults();
+  pnOut.feedback.push(
+    { id: 'w1', at: out14, part: 'workout', about: 'w1', kind: 'after', a: { pain: 'A little' } },
+    { id: 'w2', at: '2026-11-24T12:00:00Z', part: 'workout', about: 'w2', kind: 'after', a: { pain: 'A little' } }
+  );
+  assert.strictEqual(K.painNote(pnOut, now), false, 'out14 with +02:00 offset does not falsely pass 14-day cutoff');
+
+  // guidance: notfit 14-day hide uses numeric timestamp (out14 expired, in14 active, future ignored)
+  const gd = K.defaults();
+  for (let d = 19; d <= 25; d++) K.checkin(gd, '2026-11-' + d, 'sleep', '4–5 h', now);
+  gd.feedback.push({ id: 'nf-out', at: out14, part: 'home', about: 'guide:shortsleep', kind: 'notfit', a: { reasons: [] } });
+  assert.ok(K.guidance(gd, now, 10).some((g) => g.key === 'shortsleep'), 'out14 notfit is expired despite larger string');
+  gd.feedback.push({ id: 'nf-in', at: in14, part: 'home', about: 'guide:shortsleep', kind: 'notfit', a: { reasons: [] } });
+  assert.ok(!K.guidance(gd, now, 10).some((g) => g.key === 'shortsleep'), 'in14 notfit is active despite smaller string');
+
+  // working: mixed timezone offsets on 30-day cutoff (2026-10-26T12:00:00Z) for both calm feedback and meditation sits
+  const in30 = '2026-10-26T11:30:00-02:00'; // 13:30Z -> inside 30d
+  const out30 = '2026-10-26T13:00:00+02:00'; // 11:00Z -> outside 30d
+  const wk = K.defaults();
+  wk.feedback.push(
+    { id: 'wk1', at: in30, part: 'calm', about: 'body@1', kind: 'after', a: { helped: 'A lot' } },
+    { id: 'wk2', at: out30, part: 'calm', about: 'body@2', kind: 'after', a: { helped: 'Not really' } },
+    { id: 'wk3', at: '2026-11-24T12:00:00Z', part: 'workout', about: 'w1', kind: 'after', a: { hard: 'Just right', pain: 'None' } },
+    { id: 'wk4', at: '2026-11-24T13:00:00Z', part: 'tagalog', about: 't1', kind: 'after', a: { level: 'About right' } },
+    { id: 'wk5', at: fut, part: 'calm', about: 'body@3', kind: 'after', a: { helped: 'Not really' } }
+  );
+  assert.deepStrictEqual(K.working(wk, now)[0], 'Calm: Body scan helped 1 of 1.');
+  const calmTrain = {
+    settings: { aim: 'train' },
+    sessions: [
+      { id: 'count', at: out30, focus: 1 },
+      { id: 'count', at: in30, focus: 3 },
+      { id: 'count', at: '2026-11-24T12:00:00Z', focus: 3 },
+      { id: 'count', at: fut, focus: 1 }
+    ]
+  };
+  assert.strictEqual(K.working(wk, now, calmTrain)[0], 'Meditation: attention mostly steady in 2 of 2 sits.');
+
+  // forPlan: uses numeric 14-day window, excludes future, sorts chronologically
+  const fp = K.defaults();
+  fp.feedback.push(
+    { id: 'f-late', at: '2026-11-24T12:00:00Z', part: 'calm', about: 'a', kind: 'after', a: { helped: 'A lot' } },
+    { id: 'f-out', at: out14, part: 'calm', about: 'b', kind: 'after', a: { helped: 'A lot' } },
+    { id: 'f-in', at: in14, part: 'calm', about: 'c', kind: 'after', a: { helped: 'A lot' } },
+    { id: 'f-fut', at: fut, part: 'calm', about: 'd', kind: 'after', a: { helped: 'A lot' } }
+  );
+  const res = K.forPlan(fp, now);
+  assert.deepStrictEqual(res.feedback.map((x) => x.about), ['c', 'a'], 'forPlan keeps in14 and Nov 24 in chronological order');
+});
 console.log(n + ' me unit tests passed');

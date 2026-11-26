@@ -132,8 +132,24 @@
     return c.sleep === 'Under 4 h' || c.sleep === '4–5 h' || c.wakes === '3+' || c.energy === 'Low';
   }
 
+  function atMs(x) { var t = x && x.at ? Date.parse(x.at) : NaN; return isNaN(t) ? NaN : t; }
+  function toMs(v) {
+    if (v == null) return null;
+    if (typeof v === 'number') return isFinite(v) ? v : null;
+    if (v instanceof Date) return isFinite(v.getTime()) ? v.getTime() : null;
+    var t = Date.parse(v);
+    return isNaN(t) ? null : t;
+  }
+  function inRange(x, sinceMs, nowMs) {
+    var t = atMs(x);
+    if (isNaN(t)) return false;
+    if (sinceMs != null && t < sinceMs) return false;
+    if (nowMs != null && t > nowMs) return false;
+    return true;
+  }
+
   function byTime(arr) {
-    return arr.map(function (f, i) { var t = Date.parse(f.at); return { f: f, t: isNaN(t) ? 0 : t, i: i }; })
+    return arr.map(function (f, i) { var t = atMs(f); return { f: f, t: isNaN(t) ? 0 : t, i: i }; })
       .sort(function (a, b) { return a.t - b.t || a.i - b.i; })
       .map(function (x) { return x.f; });
   }
@@ -161,22 +177,25 @@
       if (Array.isArray(f.a.block) && f.a.block.indexOf('Too long') >= 0) tooLong[id] = 1;
     });
     now = now || new Date();
+    var nowMs = now.getTime(), since7Ms = nowMs - 7 * 864e5, since14Ms = nowMs - 14 * 864e5;
     var after = all.filter(function (f) { return f.kind === 'after'; });
-    var since = new Date(now.getTime() - 7 * 864e5).toISOString();
-    var night = after.filter(function (f) { var h = new Date(f.at).getHours(); return h >= 21 || h < 5; }).slice(-2);
-    var racing = night.some(function (f) { return f.at >= since && Array.isArray(f.a.block) && f.a.block.indexOf('Mind racing') >= 0; });
+    var night = after.filter(function (f) { var t = atMs(f); if (isNaN(t) || t > nowMs) return false; var h = new Date(t).getHours(); return h >= 21 || h < 5; }).slice(-2);
+    var racing = night.some(function (f) { return atMs(f) >= since7Ms && Array.isArray(f.a.block) && f.a.block.indexOf('Mind racing') >= 0; });
     // flat: how many of his latest calm answers in a row (last 14 days) said it helped "Not really"
-    var since14 = new Date(now.getTime() - 14 * 864e5).toISOString(), flat = 0;
-    var rated = after.filter(function (f) { return f.a.helped && f.at >= since14; });
+    var flat = 0;
+    var rated = after.filter(function (f) { return f.a.helped && inRange(f, since14Ms, nowMs); });
     for (var i = rated.length - 1; i >= 0 && rated[i].a.helped === 'Not really'; i--) flat++;
     return { score: score, tooLong: tooLong, racing: racing, flat: flat };
   }
 
   /* Per Calm practice: how many of his "Did it help?" answers said it helped (A lot / A bit) out of all of them. */
-  function calmHelped(state, since) {
-    var out = {};
+  function calmHelped(state, since, until) {
+    var out = {}, sinceMs = toMs(since), untilMs = toMs(until);
     calmFeedback(state, 'after').forEach(function (f) {
-      if (!f.a.helped || (since && f.at < since)) return;
+      if (!f.a.helped) return;
+      if (sinceMs != null || untilMs != null) {
+        if (!inRange(f, sinceMs, untilMs)) return;
+      }
       var id = String(f.about).split('@')[0], o = out[id] = out[id] || { yes: 0, n: 0 };
       o.n++; if (f.a.helped === 'A lot' || f.a.helped === 'A bit') o.yes++;
     });
@@ -188,13 +207,13 @@
      line is about his sits' steadiness (focus 1-3 on the session), not whether a practice eased stress. */
   function working(state, now, calm) {
     now = now || new Date();
-    var since = new Date(now.getTime() - 30 * 864e5).toISOString(), out = [];
+    var nowMs = now.getTime(), sinceMs = nowMs - 30 * 864e5, out = [];
     var train = !!(calm && calm.settings && calm.settings.aim === 'train');
-    var by = train ? {} : calmHelped(state, since);
+    var by = train ? {} : calmHelped(state, sinceMs, nowMs);
     var calmN = Object.keys(by).reduce(function (a, k) { return a + by[k].n; }, 0);
-    var sits = train ? (calm.sessions || []).filter(function (x) { return x && [1, 2, 3].indexOf(x.focus) >= 0 && String(x.at || '') >= since && String(x.at || '') <= now.toISOString(); }) : [];
+    var sits = train ? (calm.sessions || []).filter(function (x) { return x && [1, 2, 3].indexOf(x.focus) >= 0 && inRange(x, sinceMs, nowMs); }) : [];
     calmN += sits.length;
-    var f = state.feedback.filter(function (x) { return x.kind === 'after' && x.at >= since && x.a && typeof x.a === 'object'; });
+    var f = state.feedback.filter(function (x) { return x && x.kind === 'after' && inRange(x, sinceMs, nowMs) && x.a && typeof x.a === 'object'; });
     var wo = f.filter(function (x) { return x.part === 'workout' && x.a.hard; }),
       tl = f.filter(function (x) { return x.part === 'tagalog' && x.a.level; });
     if (calmN + wo.length + tl.length < 3) return [];
@@ -215,9 +234,9 @@
      the last 14 days: Move shows one general line about it. */
   function painNote(state, now) {
     now = now || new Date();
-    var since = new Date(now.getTime() - 14 * 864e5).toISOString();
-    if (state.feedback.some(function (f) { return f.kind === 'notfit' && f.part === 'workout' && f.about === 'guide:pain' && f.at >= since; })) return false;
-    return state.feedback.filter(function (f) { return f.part === 'workout' && f.kind === 'after' && f.at >= since && f.a && (f.a.pain === 'A little' || f.a.pain === 'Yes, I stopped'); }).length >= 2;
+    var nowMs = now.getTime(), sinceMs = nowMs - 14 * 864e5;
+    if (state.feedback.some(function (f) { return f && f.kind === 'notfit' && f.part === 'workout' && f.about === 'guide:pain' && inRange(f, sinceMs, nowMs); })) return false;
+    return state.feedback.filter(function (f) { return f && f.part === 'workout' && f.kind === 'after' && inRange(f, sinceMs, nowMs) && f.a && (f.a.pain === 'A little' || f.a.pain === 'Yes, I stopped'); }).length >= 2;
   }
   function lastN(state, part, kind, n) {
     return byTime(state.feedback.filter(function (f) {
@@ -235,8 +254,8 @@
   function guidance(state, now, max) {
     now = now || new Date(); var out = [];
     // a line he marked "not for me" stays hidden for two weeks (keys are stable even when the numbers in it change)
-    var since = new Date(now.getTime() - 14 * 864e5).toISOString(), hidden = {};
-    state.feedback.forEach(function (f) { if (f.kind === 'notfit' && /^guide:/.test(f.about) && f.at >= since) hidden[f.about.slice(6)] = 1; });
+    var nowMs = now.getTime(), sinceMs = nowMs - 14 * 864e5, hidden = {};
+    state.feedback.forEach(function (f) { if (f && f.kind === 'notfit' && /^guide:/.test(f.about) && inRange(f, sinceMs, nowMs)) hidden[f.about.slice(6)] = 1; });
     var today = state.checkins[iso(now)], week = recentCheckins(state, now, 7);
     if (rough(state, now)) out.push({ key: 'rough', part: 'home', text: 'Rough night. Keep today small: the one-minute reset, a shorter workout (or rest), and lie down when she naps if you can.' });
     // today's explicit check-in note (sick/teething or busy day) belongs near the top so multi-day trends never hide it on Home
@@ -251,7 +270,7 @@
     var r5 = recentCheckins(state, now, 5), broken = r5.filter(function (c) { return c.wakes === '2' || c.wakes === '3+'; }).length;
     if (broken >= 3 && !out.some(function (g) { return g.key === 'shortsleep'; })) out.push({ key: 'brokennights', part: 'home', text: 'Broken nights on ' + broken + ' of the last ' + r5.length + ' check-ins. On these days a nap beats a workout, and Calm’s “Back to sleep” helps after a night feed.' });
     // his last bedtime wind-down didn't help because his mind was racing: the next evening, write it down first
-    var wd = byTime(state.feedback.filter(function (x) { return x.part === 'calm' && x.kind === 'after' && /^(sleep|night)@/.test(String(x.about)); })).slice(-1)[0];
+    var wd = byTime(state.feedback.filter(function (x) { return x && x.part === 'calm' && x.kind === 'after' && /^(sleep|night)@/.test(String(x.about)) && inRange(x, null, nowMs); })).slice(-1)[0];
     if (wd && now.getHours() >= 17 && Array.isArray(wd.a.block) && wd.a.block.indexOf('Mind racing') >= 0) {
       var wdDay = iso(new Date(wd.at)), y = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
       if (wdDay === y || wdDay === iso(now)) out.push({ key: 'mindracing', part: 'calm', text: 'Your mind was racing at your last wind-down. Tonight, write down what’s on it first (a few lines in the Journal, or any paper), then do the wind-down.' });
@@ -298,8 +317,14 @@
       if (Array.isArray(x.prefer)) {
         // calm.prefer boosts practices by id: keep only real ones (a typo or an old id would boost nothing), at most 3
         var CC = typeof CalmCore !== 'undefined' ? CalmCore : root.CalmCore, ids = k === 'calm' && CC ? CC.PRACTICES.map(function (q) { return q.id; }) : null;
-        y.prefer = x.prefer.filter(function (s, i, a) { return typeof s === 'string' && (!ids || ids.indexOf(s.trim()) >= 0) && a.indexOf(s) === i; })
-          .map(function (s) { return cut(s.trim(), 40); }).slice(0, ids ? 3 : 5);
+        var seen = {}, maxP = ids ? 3 : 5;
+        y.prefer = [];
+        x.prefer.forEach(function (s) {
+          if (typeof s !== 'string') return;
+          var t = cut(s.trim(), 40);
+          if (!t || (ids && ids.indexOf(t) < 0) || seen[t] || y.prefer.length >= maxP) return;
+          seen[t] = 1; y.prefer.push(t);
+        });
       }
       out.parts[k] = y;
     });
@@ -332,10 +357,10 @@
   function forPlan(state, now) {
     now = now || new Date();
     var fromDay = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14)), today = iso(now);
-    var from = new Date(now.getTime() - 14 * 864e5).toISOString();
+    var nowMs = now.getTime(), fromMs = nowMs - 14 * 864e5;
     var cks = {};
     Object.keys(state.checkins).forEach(function (d) { if (d >= fromDay && d <= today) cks[d] = state.checkins[d]; });
-    return { checkins: cks, feedback: state.feedback.filter(function (f) { return f.at >= from; }).map(function (f) {
+    return { checkins: cks, feedback: byTime(state.feedback.filter(function (f) { return inRange(f, fromMs, nowMs); })).map(function (f) {
       return { at: f.at, part: f.part, about: f.about, kind: f.kind, a: f.a, shown: f.shown, note: f.note };
     }).slice(-150) };
   }
