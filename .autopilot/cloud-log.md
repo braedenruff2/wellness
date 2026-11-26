@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-26 16:35-17:05 AST (run2, continued; APK 0.1.20261126.2041, real key, cert 6795e499...)
+- bug: after "Restore from Drive" (or a backup file) while a sync write was on its way, Drive kept the old data for up to 30 min / cause: nothing synced after a restore; the in-flight write carried the old snapshot / fixed: shell.js syncAfterRestore() runs a sync right after any restore (queued behind an in-flight write) / test: e2e-sync +2 (fails without the fix).
+- Done 240, 241 (e2e-narrow: 20 pages at 320 px / 1.3 with a year of data), 242 (e2e-perf also times history, Faith journal, Pray now). 243 and 245 existed.
+- Tested: full suite after rebase (85 suites, none skipped; this APK's code).
+
 ## 2026-11-26 16:00-16:45 AST (run2, continued; APK 0.1.20261126.2016, real key, cert 6795e499...)
 - Done 233 (tests/e2e-perf.cjs: a year of data at CPU 4x: Home ~55 ms, every card and page well under budget; tests/lib/year.cjs now shared with storage-size), 232 (tests/e2e-backup-year.cjs: a year's backup restores exactly), 246 (tests/e2e-backup-old.cjs: an older version's backup restores, every part opens). 231/237 existed; 239 dropped. Added 239-246.
 - bug: restoring a backup dropped each Tagalog card's last-review day / cause: validate() didn't copy card.last / fixed: kept when a date / test: unit + e2e-backup-year.
