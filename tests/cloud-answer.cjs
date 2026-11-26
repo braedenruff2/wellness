@@ -100,5 +100,20 @@ test('prepare with sheet CSV skips already-answered ids (still includes missing 
   assert.ok(!fs.existsSync(path.join(w2, 'r1.prompt.md')));
   assert.ok(fs.readFileSync(path.join(w2, 'r3.prompt.md'), 'utf8').includes('waves ✓ and smiles 😊'));
 });
+test('a year of heavy use: the advice and weekly-plan prompts stay small (under 20 KB each)', () => {
+  const { simulate } = require('./lib/year.cjs');
+  const st = simulate(365);
+  const end = new Date(2027, 10, 17, 18, 0);
+  const big = { app: 'wellness', exported: end.toISOString(), stores: Object.fromEntries(Object.entries(st).map(([k, v]) => [k, JSON.stringify(v)])),
+    requests: [{ id: 'y1', task: 'weekly-plan', input: {}, at: end.toISOString() }, { id: 'y2', task: 'advice', input: { question: 'How is my week going?' }, at: end.toISOString() }], acked: [] };
+  const f = path.join(work, 'year-sync.json'); fs.writeFileSync(f, JSON.stringify(big));
+  const w = path.join(work, 'year'); const l = T.prepare(f, w, end);
+  assert.deepStrictEqual(l.map((x) => x.error), [null, null]);
+  for (const id of ['y1', 'y2']) {
+    const size = fs.statSync(path.join(w, id + '.prompt.md')).size;
+    console.log('   ' + id + ' prompt ' + size + ' bytes');
+    assert.ok(size < 20000, id + ' prompt is ' + size + ' bytes');
+  }
+});
 fs.rmSync(work, { recursive: true, force: true });
 console.log(n + ' cloud-answer tests passed');
