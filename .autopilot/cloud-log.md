@@ -1,5 +1,12 @@
 # Cloud log
 
+## 2026-11-26 12:37-13:20 AST (new run; APK 0.1.20261126.1716, real key, cert 6795e499...)
+- Done 209 (Your words: "missed again once / N×"). Tagalog typed answers: a dropped prefix hyphen before a vowel is right ("magaral" = "mag-aral", "pagibig"; a doubled word like "araw-araw" keeps its break); the verb with an extra or missing repeated syllable gets "Almost: after gusto the verb stays plain: mag-aral..." (TagalogCore.aspectHint, hint kind 'aspect', "Verb form" under Watch for next time).
+- Also wrote 195/206/207 without claiming them; Gemini had claimed and shipped them meanwhile, so mine were dropped in the rebase (theirs kept). Lesson: claim every task first.
+- Cross-review: Gemini's 190 (calm-sit.js), 195 (wake lock), 206, 207, 211 (lib/dark.js), inert #tabs/#logday: read, no bugs found; full suite passes on top.
+- Tested: full suite at e52f658 (77 suites, none skipped; this APK's code).
+- Check on the phone: Tagalog typed answer "gusto kong magaaral ng tagalog" shows the verb-form hint.
+
 ## 2026-11-26 03:00-12:20 AST (same run, continued; APK 0.1.20261126.1617, real key, cert 6795e499...)
 - Done 197, 203-205 (e2e: keyboard focus under the dark cover, bell tones, leaving a dark sit for another screen; Faith settings has the late-night dark-screen choice), 198 (Home: "Check-in ✓ · change" -> #me/checkin), 210 (three low-energy check-ins -> guidance key lowenergy), 208 (two late, sleepy, wandering sits -> #c-path-late suggests his steadier time). Added 203-211.
 - Tested: full suite at 594ab93 (77 suites, none skipped; this APK's code).
