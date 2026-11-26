@@ -18,6 +18,8 @@ import android.os.Build;
 public class CalmAlarm extends BroadcastReceiver {
     static final String FIRE = "app.faithcompanion.CALM_BELL", CHANNEL = "calm_bell";
     static final long MAX_DELAY_MS = 4L * 3600_000L;
+    /** Its own ids: 7 and 8 belong to Updater / TodoAlarm (tests/android-ids.cjs). */
+    static final int NOTIF_ID = 9, OPEN_CODE = 9, FIRE_CODE = 9;
     static volatile boolean appVisible;
 
     static long clampDelayMs(long ms) {
@@ -39,7 +41,7 @@ public class CalmAlarm extends BroadcastReceiver {
     private static PendingIntent intent(Context c, String label) {
         Intent i = new Intent(c, CalmAlarm.class).setAction(FIRE);
         if (label != null) i.putExtra("label", label);
-        return PendingIntent.getBroadcast(c, 7, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        return PendingIntent.getBroadcast(c, FIRE_CODE, i, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 
     /** ms from now; 0 or less cancels. */
@@ -56,7 +58,7 @@ public class CalmAlarm extends BroadcastReceiver {
     }
 
     static void cancelShown(Context c) {
-        try { ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(7); } catch (Exception ignored) { }
+        try { ((NotificationManager) c.getSystemService(Context.NOTIFICATION_SERVICE)).cancel(NOTIF_ID); } catch (Exception ignored) { }
     }
 
     @Override public void onReceive(Context c, Intent i) {
@@ -70,10 +72,10 @@ public class CalmAlarm extends BroadcastReceiver {
         nm.createNotificationChannel(ch);
         Intent open = new Intent(c, MainActivity.class).putExtra("openHash", "#calm")
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent pi = PendingIntent.getActivity(c, 8, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent pi = PendingIntent.getActivity(c, OPEN_CODE, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(c, CHANNEL).setSmallIcon(R.drawable.ic_note)
             .setContentTitle("Calm session complete").setContentText(bodyFor(i.getStringExtra("label")))
             .setContentIntent(pi).setAutoCancel(true).setTimeoutAfter(120_000).setCategory(Notification.CATEGORY_ALARM).build();
-        try { nm.notify(7, n); } catch (SecurityException ignored) { }
+        try { nm.notify(NOTIF_ID, n); } catch (SecurityException ignored) { }
     }
 }
