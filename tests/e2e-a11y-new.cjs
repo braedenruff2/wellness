@@ -692,10 +692,10 @@ const W = require('./lib/web.cjs');
       await page.click('#fc-dark'); await page.click('#end');
     });
   }
-  // Task 182: Home's Move card on a rough day ("Rest today (tired)") and Calm's rough-day card line
+  // Tasks 182 & 207: Home's Move card on a rough day ("Rest today (tired)"), Calm's rough-day card line, and "Check-in ✓ · change" (#me-ci-change)
   for (const [ts, theme] of [[1, 'light'], [1.3, 'light'], [1, 'dark'], [1, 'night']]) {
     const min = theme === 'night' ? 3 : 4.5;
-    await t.step('rough-day Home cards at ' + ts + 'x ' + theme + ': #wo-rough-rest, #c-card-rough', async () => {
+    await t.step('rough-day Home cards & #me-ci-change at ' + ts + 'x ' + theme + ': #wo-rough-rest, #c-card-rough, #me-ci-change', async () => {
       await look(ts, theme); await seed();
       const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
       await page.clock.setSystemTime(new Date(2026, 10, 24, 8, 0));
@@ -707,9 +707,10 @@ const W = require('./lib/web.cjs');
         c.sessions = (c.sessions || []).filter((x) => x.date !== '2026-11-24'); localStorage.setItem('wl.calm.v1', JSON.stringify(c));
         const w = JSON.parse(localStorage.getItem('wl.workout.v1') || '{}'); if (w.rest) delete w.rest['2026-11-24']; localStorage.setItem('wl.workout.v1', JSON.stringify(w));
       });
-      await page.goto(base + '#calm'); await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#wo-rough-rest');
-      assert.deepStrictEqual(await small('#wo-rough-rest, .home-card[data-module="workout"] .me-fit'), []);
+      await page.goto(base + '#calm'); await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#wo-rough-rest'); await page.waitForSelector('#me-ci-change');
+      assert.deepStrictEqual(await small('#wo-rough-rest, .home-card[data-module="workout"] .me-fit, #me-ci-change'), []);
       assert.deepStrictEqual(await bad('.home-card[data-module="workout"]'), [], theme + ' Move card');
+      assert.deepStrictEqual(await bad('.home-card[data-module="me"]'), [], theme + ' About-you card (#me-ci-change)');
       if (await page.$('#c-card-rough')) assert.deepStrictEqual(await bad('.home-card[data-module="calm"]'), [], theme + ' Calm card');
       await t.noOverflow(['#home']);
     });
