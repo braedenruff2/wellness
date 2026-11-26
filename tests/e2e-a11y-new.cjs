@@ -599,9 +599,8 @@ const W = require('./lib/web.cjs');
       await t.noOverflow(['#calm']);
       await page.goto(base + '#calm/s/open'); await page.waitForSelector('#c-len');
       assert.deepStrictEqual(await small('#c-len [data-len], #c-pp, #c-quiet'), []);
-      assert.ok(await page.$('#c-rough') && await page.$('#c-dark-hint'), 'rough-day line and dark-screen hint shown');
-      assert.deepStrictEqual(await bad('#c-rough'), [], theme + ' #c-rough');
-      assert.deepStrictEqual(await bad('#c-dark-hint'), [], theme + ' #c-dark-hint');
+      assert.ok(await page.$('#c-rough'), 'rough-day line shown');
+      assert.deepStrictEqual(await bad('#c-rough'), [], theme + ' #c-rough'); // (#c-dark-hint, same .meta style, shows only for the first 3 sits)
       assert.deepStrictEqual(await bad('#c-quiet-row'), [], theme + ' #c-quiet');
       await t.noOverflow(['#calm/s/open']);
       await page.click('#c-pp');

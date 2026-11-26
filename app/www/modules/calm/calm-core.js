@@ -442,7 +442,7 @@
     var best = ok.slice().sort(function (a, b) { return b.share - a.share || b.n - a.n; })[0];
     var worst = ok.slice().sort(function (a, b) { return a.share - b.share || b.n - a.n; })[0];
     if (best.i === worst.i || best.steady < 1 || best.share - worst.share < 1 / 3 - 1e-9) return null;
-    return { best: PARTS[best.i][0], worst: PARTS[worst.i][0],
+    return { best: PARTS[best.i][0], worst: PARTS[worst.i][0], bestIn: PARTS[best.i][1],
       text: 'Your steadiest sits have been ' + PARTS[best.i][1] + ' (' + best.steady + ' of ' + best.n + ' mostly steady; ' + PARTS[worst.i][1] + ' ' + worst.steady + ' of ' + worst.n + ').' };
   }
   function pathStatus(state, now) {

@@ -201,7 +201,7 @@
       (p.path ? '' : rating('c-before', 'How stressed are you right now?')) +
       lengthChips(p) + quietChip(p) + roughLine(p) +
       '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">▶ Begin · ' + mins(p) + ' min</button></div>' +
-      (darkOn(p) ? '<p class="meta" id="c-dark-hint" style="text-align:center">The screen goes dark while you sit, so you needn’t lock the phone. Tap it to see the time.</p>' : '') +
+      (darkOn(p) && darkHint() ? '<p class="meta" id="c-dark-hint" style="text-align:center">The screen goes dark while you sit, so you needn’t lock the phone. Tap it to see the time.</p>' : '') +
       '<div id="c-after" hidden>' + (p.path ? sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button></div></div></div>';
   }
   /* After a sit on the path: how steady attention was, and what got in the way (optional; kept on the session). */
@@ -223,6 +223,8 @@
   /* A dark screen during sits and the quiet timer (setting, on by default): the app stays awake, so the voice,
      interval bells and end bell keep working, without a lit screen in a dark room. Tap shows the time again. */
   function darkOn(p) { return usesAlarm(p) && S.settings.dark !== false; }
+  /* The "screen goes dark" hint, for his first 3 sits or quiet timers (after that he knows). */
+  function darkHint() { return S.sessions.filter(function (x) { return x && (K.PATH.indexOf(x.id) >= 0 || x.id === 'timer'); }).length < 3; }
   /* (the cover itself is WL.darkScreen in shell.js, shared with late-night prayers) */
   function scheduleDark() {
     if (!run || run.done || run.paused || !darkOn(run.p)) return;
@@ -444,7 +446,8 @@
     route: route, leave: leave, card: card,
     week: function () {
       var st = K.stats(S); if (!st.weekDays) return '';
-      var w = K.pathWeek(S), sits = w.sits ? '; ' + w.sits + ' sit' + (w.sits === 1 ? '' : 's') + ' on the meditation path' + (S.settings.aim === 'train' ? ' (stage ' + K.pathStatus(S).n + ': ' + titleOf(K.stageOf(S)) + ')' : '') : '';
+      var w = K.pathWeek(S), pw = w.sits ? K.pathWhen(S) : null;
+      var sits = w.sits ? '; ' + w.sits + ' sit' + (w.sits === 1 ? '' : 's') + ' on the meditation path' + (S.settings.aim === 'train' ? ' (stage ' + K.pathStatus(S).n + ': ' + titleOf(K.stageOf(S)) + ')' : '') + (pw ? ', steadiest ' + pw.bestIn : '') : '';
       return st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') + ' of calm (' + st.weekMins + ' min)' + sits;
     },
     today: function () {

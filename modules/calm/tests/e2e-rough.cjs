@@ -61,6 +61,10 @@ const Wb = require('../../../tests/lib/web.cjs');
     });
     await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-path');
     assert.ok(/Quiet sit/.test(await page.textContent('#c-why-quiet')), 'the path note points long sitters to Quiet sit');
+    await page.clock.setSystemTime(new Date(2026, 10, 23, 19, 0)); // a Sunday evening: that week has all five sits
+    const wk = await page.evaluate(() => WL.modules.calm.week());
+    assert.ok(/sits on the meditation path \(stage 1: Counting breaths\), steadiest in the morning/.test(wk), wk);
+    await page.clock.setSystemTime(new Date(2026, 10, 26, 7, 30));
     assert.strictEqual((await page.textContent('#c-path-when')).trim(), 'Your steadiest sits have been in the morning (2 of 3 mostly steady; late at night 0 of 2).');
     await page.click('#c-recent summary');
     const rec = await page.textContent('#c-recent');

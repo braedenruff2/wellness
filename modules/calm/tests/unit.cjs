@@ -379,6 +379,7 @@ t('pathWhen: steadiest time of day from 4+ rated sits in 30 days, by local hour;
   const w = K.pathWhen(s, new Date(2026, 10, 22, 12));
   assert.deepStrictEqual([w.best, w.worst], ['morning', 'late'], JSON.stringify(w));
   assert.strictEqual(w.text, 'Your steadiest sits have been in the morning (2 of 3 mostly steady; late at night 0 of 2).');
+  assert.strictEqual(w.bestIn, 'in the morning');
   assert.strictEqual(K.pathStatus(s, new Date(2026, 10, 22, 12)).when.best, 'morning', 'pathStatus carries it');
   assert.strictEqual(K.pathWhen(s, new Date(2026, 11, 25, 12)), null, 'older than 30 days: none');
   assert.strictEqual(K.pathWhen(s, new Date(2026, 10, 21, 12)), null, 'sits after "now" are left out');

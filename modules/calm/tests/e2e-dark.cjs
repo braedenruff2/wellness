@@ -185,6 +185,16 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#c-save');
   });
 
+  await t.step('the dark-screen hint is for the first 3 sits only', async () => {
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.settings.dark = true; c.sessions = c.sessions.filter((x) => x.id !== 'timer' && !['count', 'follow', 'note', 'change', 'open'].includes(x.id)); localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
+    const hint = async () => { await page.goto(base + '#calm'); await page.reload(); await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-pp'); return !!(await page.$('#c-dark-hint')); };
+    assert.strictEqual(await hint(), true, 'no sits yet: hint');
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); for (let i = 0; i < 2; i++) c.sessions.push({ id: 'count', date: '2026-11-2' + i, at: new Date(2026, 10, 20 + i, 7).toISOString(), mins: 20 }); localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
+    assert.strictEqual(await hint(), true, '2 sits: still');
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.sessions.push({ id: 'timer', date: '2026-11-23', at: new Date(2026, 10, 23, 7).toISOString(), mins: 10 }); localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
+    assert.strictEqual(await hint(), false, 'after 3 (a quiet timer counts): gone');
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('calm dark screen');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
