@@ -354,7 +354,8 @@ t('hintKind is stored with a wrong answer, survives validate, and goes into the 
   const v = T.validate(Object.assign({}, st, { answers: st.answers.concat([{ at: '2026-11-25T10:00:00Z', ok: false, prompt: 'x', hint: 'evil' }]) }));
   assert.strictEqual(v.answers[0].hint, 'pronoun'); assert.strictEqual(v.answers[2].hint, undefined);
   const sum = T.weeklySummary(st, [], new Date(2026, 10, 26));
-  assert.deepStrictEqual(sum.hints, [{ kind: 'pronoun', prompt: 'Why is she crying?', given: 'bakit umiiyak siya' }]);
+  assert.deepStrictEqual(sum.hints, [{ kind: 'pronoun', about: T.HINT_ABOUT.pronoun, prompt: 'Why is she crying?', given: 'bakit umiiyak siya' }]);
+  for (const k of T.HINT_KINDS) assert.ok(T.HINT_ABOUT[k] && T.HINT_ABOUT[k].length > 20, 'every hint kind is explained for the lesson writer: ' + k);
 });
 t('a word still missed in a review repeat counts toward Hard words; no box or due change; kept by validate', () => {
   const s = T.defaults();

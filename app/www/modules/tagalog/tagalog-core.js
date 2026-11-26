@@ -206,6 +206,13 @@
     return linkerHint(ex, given) ? 'linker' : aspectHint(ex, given) ? 'aspect' : '';
   }
   var HINT_KINDS = ['order', 'pronoun', 'linker', 'aspect'];
+  /* One line per kind for whoever writes next week's lessons from the weekly summary (the PC lesson job, a cloud run). */
+  var HINT_ABOUT = {
+    order: 'ang/ng word order: the doer (ang) comes after the verb and its object',
+    pronoun: 'short words (ako, siya, ko, na, po...) go right after the first word',
+    linker: 'a missing linker: -ng after a vowel or n, na otherwise (gusto kong, apat na)',
+    aspect: 'verb form: the plain form after gusto/kailangan/puwede vs. the repeated-syllable form for "is doing / will do"'
+  };
 
   function allPacks(state, bundled) {
     var m = {};
@@ -333,7 +340,7 @@
       lessonsDone: Object.keys(state.done).sort(), weakWords: weakWords(state, 15).map(function (k) { var c = state.cards[k]; return { tl: k, en: c.en, right: c.right, wrong: c.wrong }; }),
       missed: Object.keys(wrongPrompts).sort(function (a, b) { return wrongPrompts[b] - wrongPrompts[a]; }).slice(0, 15),
       // the specific slips the app recognised (word order, a short word out of second place, a missing linker), newest last
-      hints: state.answers.slice(-300).filter(function (a) { return a.hint; }).slice(-20).map(function (a) { return { kind: a.hint, prompt: a.prompt, given: a.given || '' }; }),
+      hints: state.answers.slice(-300).filter(function (a) { return a.hint; }).slice(-20).map(function (a) { return { kind: a.hint, about: HINT_ABOUT[a.hint] || '', prompt: a.prompt, given: a.given || '' }; }),
       packs: packs.map(function (p) { return p.id; }) };
   }
 
@@ -377,7 +384,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, againMiss: againMiss, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;
