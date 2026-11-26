@@ -758,6 +758,24 @@ const W = require('./lib/web.cjs');
       await t.noOverflow(['#calm']);
     });
   }
+  // Task 220: the verb-form hint (#tl-aspect, the longest hint text) and Your words' "Slips to watch" (#tl-slips)
+  for (const [ts, theme] of [[1, 'light'], [1.3, 'light'], [1, 'dark'], [1, 'night']]) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step('verb-form hint and slips at ' + ts + 'x ' + theme + ': #tl-aspect, #tl-slips', async () => {
+      await look(ts, theme); await seed();
+      const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
+      await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/l/2026-11-25/1'); await page.reload(); await page.waitForSelector('#tl-ex');
+      await page.click('#tl-ex .opt'); await page.click('#tl-next');
+      await page.click('#tl-check'); await page.click('#tl-next');
+      await page.fill('#tl-in', 'gusto kong magaaral ng tagalog'); await page.click('#tl-check'); await page.waitForSelector('#tl-aspect');
+      assert.deepStrictEqual(await bad('#tl-fb'), [], theme + ' #tl-aspect');
+      const o = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); assert.ok(o <= 2, '#tl-aspect overflow ' + o);
+      await page.goto(base + '#tagalog/words'); await page.waitForSelector('#tl-slips');
+      assert.deepStrictEqual(await small('#tl-slips [data-say]'), []);
+      assert.deepStrictEqual(await bad('#tl-slips'), [], theme + ' #tl-slips');
+      await t.noOverflow(['#tagalog/words']);
+    });
+  }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y of new UI');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
