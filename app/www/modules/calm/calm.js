@@ -33,8 +33,9 @@
   }
   /* A path sit on a rough day (short sleep, broken night or low energy in today's check-in): a shorter sit is fine.
      The 10-min chip picks it for this sit only; the saved length stays. */
+  function roughDay(p) { return !!(p.path && window.WLMe && WLMe.rough && WLMe.rough() && (S.settings.sitMinutes || 20) > 10); }
   function roughLine(p) {
-    if (!p.path || !window.WLMe || !WLMe.rough || !WLMe.rough() || mins(p) <= 10) return '';
+    if (!roughDay(p)) return '';
     return '<p class="meta" id="c-rough" style="text-align:center;margin:0 0 6px">Short night: a 10-minute sit counts just as much today.</p>';
   }
   function quietChip(p) {
@@ -331,7 +332,7 @@
     $$('#c-len [data-len]').forEach(function (b) { b.onclick = function () {
       pick = { id: p.id, m: +b.dataset.len };
       // a sit length is kept for next time (not the shorter one picked because of a rough night)
-      if (p.path && !($('#c-rough') && pick.m <= 10)) { S.settings.sitMinutes = pick.m; save(); }
+      if (p.path && !(roughDay(p) && pick.m <= 10)) { S.settings.sitMinutes = pick.m; save(); }
       $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
       $('#c-pp').textContent = '▶ Begin · ' + pick.m + ' min';
     }; });

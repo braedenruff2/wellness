@@ -140,6 +140,8 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.waitForSelector('#c-pp');
     assert.ok(/Begin · 10 min/.test(await page.textContent('#c-pp')));
     assert.strictEqual(await page.getAttribute('[data-len="10"]', 'aria-pressed'), 'true');
+    assert.ok(await page.$('#c-rough'), 'the short-night line is there too');
+    await page.click('[data-len="20"]'); await page.click('[data-len="10"]'); // changed his mind twice
     assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).settings.sitMinutes), 20, 'his length stays 20');
     await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-pp');
     assert.ok(/Begin · 20 min/.test(await page.textContent('#c-pp')), 'opened another way: his usual 20');

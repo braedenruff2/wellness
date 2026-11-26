@@ -158,6 +158,15 @@ const W = require('./lib/web.cjs');
       window.WL.darkScreen.stop(); return [d1, n];
     });
     assert.deepStrictEqual(asked, [true, 2], 'asked on start and again after a tap');
+    // a screen reader: while dark the cover has focus and the page under it is out of reach; lit, all back
+    const sr = await page.evaluate(async () => {
+      window.WL.darkScreen.start({ id: 's-dark', after: 10 }); await new Promise((r) => setTimeout(r, 30));
+      const v = document.getElementById('view'), d = document.getElementById('s-dark');
+      const during = [document.activeElement === d, v.hasAttribute('inert'), v.getAttribute('aria-hidden')];
+      window.WL.darkScreen.stop();
+      return during.concat([v.hasAttribute('inert'), v.hasAttribute('aria-hidden')]);
+    });
+    assert.deepStrictEqual(sr, [true, true, 'true', false, false], JSON.stringify(sr));
     // Android's Back while dark only lights the screen
     const back = await page.evaluate(async () => {
       window.WL.darkScreen.start({ id: 'k-dark', after: 10 }); await new Promise((r) => setTimeout(r, 30));

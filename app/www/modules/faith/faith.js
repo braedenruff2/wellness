@@ -267,9 +267,9 @@
     };
     player = new C.Player(session.steps, env);
     if (!from || !session.started) session.started = Date.now();
+    player.from = from || 0; // before keepAwake: the dark-screen wait is sized from the step it starts at
     keepAwake(true);
     bell();
-    player.from = from || 0;
     // a paused-before-it-began player stays paused; Resume starts it (core.js Player.pause in 'idle')
     clearTimeout(startTimer);
     var cur = player;

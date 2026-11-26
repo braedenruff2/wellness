@@ -187,9 +187,20 @@
       d.setAttribute('aria-label', darkSt.label || 'Dark screen. Tap to show the page.');
       d.onclick = function () { darkLight(); };
       document.body.appendChild(d); dimScreen(true);
+      // a screen reader: the page under the cover is out of reach, and the cover has focus, so a double-tap lights
+      // the screen instead of pressing whatever was focused underneath (Pause)
+      var v = document.getElementById('view'); if (v) { v.setAttribute('inert', ''); v.setAttribute('aria-hidden', 'true'); }
+      try { d.focus(); } catch (e) {}
     }, typeof darkSt.after === 'function' ? darkSt.after() : darkSt.after); // after: ms, or a function asked each time
   }
-  function darkUncover() { clearTimeout(darkSt.t); var d = darkEl(); if (d) { d.parentNode.removeChild(d); dimScreen(false); } }
+  function darkUncover() {
+    clearTimeout(darkSt.t);
+    var d = darkEl();
+    if (d) {
+      d.parentNode.removeChild(d); dimScreen(false);
+      var v = document.getElementById('view'); if (v) { v.removeAttribute('inert'); v.removeAttribute('aria-hidden'); }
+    }
+  }
   function darkLight() { darkUncover(); darkArm(); }
   function darkStart(o) {
     o = o || {};
