@@ -163,6 +163,28 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#c-end'); await page.waitForSelector('#c-today');
   });
 
+  await t.step('a whole 20-min Quiet sit, dark screen and a bell every 5 min: 3 bells, then the questions on a lit screen', async () => {
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); Object.assign(c.settings, { dark: true, interval: 5, sitQuiet: true, sitMinutes: 20 }); localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
+    await page.goto(base + '#calm'); await page.reload();
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-pp');
+    assert.strictEqual(await page.getAttribute('#c-quiet', 'aria-pressed'), 'true');
+    await page.evaluate(() => { window.__spoken = []; });
+    await page.click('#c-pp');
+    const o1 = await page.evaluate(() => window.__oscs);
+    let darkSeen = 0;
+    for (let i = 0; i < 125; i++) { await page.clock.runFor(10000); if (await dark()) darkSeen++; if (await page.isVisible('#c-after')) break; }
+    await page.waitForSelector('#c-after:not([hidden])');
+    assert.ok(darkSeen > 100, 'dark for most of the sit (' + darkSeen + ' of the 10-s checks)');
+    assert.strictEqual(await dark(), false, 'the questions are on a lit screen');
+    assert.ok(await page.isVisible('#c-focus'));
+    assert.strictEqual(await page.evaluate(() => window.__oscs) - o1, 6, 'soft bells at 5, 10 and 15 min (1 tone each), then the end bell (3 tones)');
+    const n = await page.evaluate(() => window.__spoken.length);
+    assert.ok(n >= 4 && n <= 5, 'quiet: only the opening and the close were spoken (' + n + ')');
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions.slice(-1)[0]);
+    assert.ok(s.id === 'count' && s.mins >= 17 && s.mins <= 21, JSON.stringify(s));
+    await page.click('#c-save');
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('calm dark screen');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
