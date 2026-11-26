@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-26 02:25-02:45 AST (same run, continued; APK 0.1.20261126.0644, real key, cert 6795e499...)
+- Took Gemini's open [any] tasks 145, 146, 147 (no Gemini commits or claims since 22:28): a11y for the path's "Back to" offer; Calm path unit tests across DST and mixed UTC offsets; journal e2e for earlier-day entries and the gentle note. No fixes needed. Also 193 (earlier-day logging across midnight: e2e), 200 (the day after a "Tired" rest day: "as planned, or two sets of each"), 202 (a year as a backup/sync file: 3.1 M chars; Java 4 MB round-trip).
+- Independent review (subagent) of today's changes found 3 bugs, fixed in 95e484a: bug: from Home's rough-day link, tapping 20 then 10 saved 10 as his sit length / cause: the guard looked for #c-rough, not drawn at 10 min / fixed: roughDay() / test: e2e-rough. bug: Faith "Carry on" at night sized the dark wait from step 0 / fixed: player.from set before keepAwake. bug: with TalkBack a double-tap on the dark cover pressed Pause underneath / fixed: the cover takes focus, #view inert + aria-hidden while dark / test: e2e-shell.
+- Tested: full suite at 28248da (77 suites, none skipped; this APK's code); storage-size and java after 57b2126.
+
 ## 2026-11-26 01:50-02:25 AST (same run, continued; APK 0.1.20261126.0622, real key, cert 6795e499...)
 - Second singing-helper turn in between (Claude Autopilot logs\singing-helper.md).
 - Done 191 (Your week: "..., steadiest in the morning"), 192 (dark-screen hint only for the first 3 sits/timers, counted from sessions), 179 (e2e: Home rest days read as rest days he chose), 194 (bug: Android Back during a dark sit or prayer went back in history and ended it / fixed: MainActivity.goBack asks window.FCBack first, which only lights the screen / test: CalmAlarmTest.backHandled, e2e-shell), 196 (README dark-screen summary). Dropped 189. Added 193-196.
