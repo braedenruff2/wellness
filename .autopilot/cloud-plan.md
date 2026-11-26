@@ -358,4 +358,10 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 244. [any] tests/lib/year.cjs: add a year of to-dos (repeats ticked weekly) and Parenting tips/feedback so storage-size and the backup round trip cover every store; keep both tests passing.
 245. (dropped 26 Nov, Claude run2: covered by tests/e2e-midnight-dst.cjs (midnight resets today() in every module) and e2e-logday (last 7 days offered)) Home after midnight (00:30) with yesterday's items unfinished: today's list is today's (not yesterday's), and "Log for an earlier day" still offers yesterday; e2e with the fake clock in Halifax time.
 246. (done 26 Nov, Claude run2: tests/e2e-backup-old.cjs; no fix needed) Settings > Backup: a backup file from an older app version (missing newer fields: no walkDark, no restRemoved, no againMiss) restores without "unreadable" parts; e2e with a trimmed fixture.
+247. [any] a11y: every icon-only button or link on every page (🔊, ⋯, ✕, ↻, ▶, ⏸, ☾...) has an accessible name (aria-label or visible text) for TalkBack; e2e scan of 20 pages with a year of data; fix the ones missing.
+248. [any] Tagalog weekly pack download when Wi-Fi returns a login page (HTML) or cut-off JSON for index.json or a pack: old packs kept, a plain "Couldn't get new lessons" line, retry later; e2e with routes.
+249. [any] Coach (Parenting): a queued cloud answer for a scenario that arrives after he skipped to a newer scenario doesn't replace the newer one (it lands in history or is dropped); e2e-cloud.
+250. [any] Weekly-plan request size: the {{summary}} built from a year of data (pc/wellness_pc.py summarize and tools/cloud-answer.cjs) stays under 20 KB; tests in pc/test/test_pc.py and tests/cloud-answer.cjs.
+251. [any] Faith Pray now "✓ N× this week" counts reset Monday 00:00 local, also in the DST-change weeks (Mar/Nov, Halifax); unit 4 zones.
+252. [any] App update: a version.json older than or equal to the installed one is never offered (no downgrade, no reinstall loop); Java unit for the comparison + shell e2e status line.
 
