@@ -194,7 +194,7 @@
         : '<div class="line" id="c-line">' + esc(p.blurb || '') + '</div>') +
       '<div class="meta" id="c-left" style="text-align:center;min-height:1.4em"></div>' +
       (p.path ? '' : rating('c-before', 'How stressed are you right now?')) +
-      lengthChips(p) + quietChip(p) + roughLine(p) +
+      lengthChips(p) + quietChip(p) + Sit.firstSitTip(S, p) + roughLine(p) +
       '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">▶ Begin · ' + mins(p) + ' min</button></div>' +
       (Sit.darkOn(S, p) && Sit.darkHint(S) ? '<p class="meta" id="c-dark-hint" style="text-align:center">The screen goes dark while you sit, so you needn’t lock the phone. Tap it to see the time.</p>' : '') +
       '<div id="c-after" hidden>' + (p.path ? Sit.sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button></div></div></div>';
@@ -249,6 +249,7 @@
     var pp = $('#c-pp'); pp.textContent = '⏸ Pause'; pp.dataset.state = 'playing';
     var lc = $('#c-len'); if (lc) lc.hidden = true;
     var qr = $('#c-quiet-row'); if (qr) qr.hidden = true;
+    var ft = $('#c-first-tip'); if (ft) ft.hidden = true;
     if ($('#c-before')) $('#c-before').hidden = true;
     var progress = function () {
       var e = elapsed();

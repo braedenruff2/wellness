@@ -199,6 +199,35 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.$('#c-path-late'), null);
   });
 
+  await t.step('first path sit mentions Quiet sit and the soft bell; gone after the first sit (and never on other practices)', async () => {
+    await page.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem('wl.calm.v1'));
+      c.sessions = c.sessions.filter((x) => !['count', 'follow', 'note', 'change', 'open'].includes(x.id));
+      localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+    });
+    await page.goto(base + '#calm'); await page.reload();
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-first-tip');
+    const tip = await page.textContent('#c-first-tip');
+    assert.ok(/Quiet sit/.test(tip) && /soft bell/.test(tip), tip);
+    await t.noOverflow(['#calm/s/count']);
+    await page.goto(base + '#calm/s/timer'); await page.waitForSelector('#c-pp');
+    assert.strictEqual(await page.$('#c-first-tip'), null, 'not on quiet timer');
+    await page.goto(base + '#calm/s/body'); await page.waitForSelector('#c-pp');
+    assert.strictEqual(await page.$('#c-first-tip'), null, 'not on non-path practice');
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-first-tip');
+    await page.click('#c-pp');
+    assert.ok(await page.isHidden('#c-first-tip'), 'hides once the sit starts');
+    await page.click('#c-end'); await page.waitForSelector('#c-today');
+    await page.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem('wl.calm.v1'));
+      c.sessions.push({ id: 'count', date: '2026-12-03', at: new Date(2026, 11, 3, 12, 5).toISOString(), mins: 10 });
+      localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+    });
+    await page.goto(base + '#calm'); await page.reload();
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-pp');
+    assert.strictEqual(await page.$('#c-first-tip'), null, 'gone after the first path sit');
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('calm rough day');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

@@ -24,6 +24,12 @@
     if (!p || !p.path) return '';
     return '<div class="row" id="c-quiet-row" style="justify-content:center;margin:0 0 6px;gap:6px"><button class="chip" id="c-quiet" aria-pressed="' + !!S.settings.sitQuiet + '">Quiet sit: only the opening and the close</button></div>';
   }
+  /* Mention Quiet sit and the optional interval bell once, on his very first meditation-path sit. */
+  function firstSitTip(S, p) {
+    var K = root.CalmCore;
+    if (!p || !p.path || S.sessions.some(function (x) { return x && K.PATH.indexOf(x.id) >= 0; })) return '';
+    return '<p class="meta" id="c-first-tip" style="text-align:center;margin:0 0 6px">Tip: try Quiet sit for silence after the opening, or turn on a soft bell every 5 or 10 min in Calm settings.</p>';
+  }
   /* After a sit on the path: how steady attention was, and what got in the way (optional; kept on the session). */
   function sitQuestions() {
     var K = root.CalmCore, esc = root.WL.esc;
@@ -72,7 +78,7 @@
 
   root.CalmSit = {
     usesAlarm: usesAlarm, alarmLabel: alarmLabel, calmAlarm: calmAlarm,
-    roughDay: roughDay, roughLine: roughLine, quietChip: quietChip, sitQuestions: sitQuestions,
+    roughDay: roughDay, roughLine: roughLine, quietChip: quietChip, firstSitTip: firstSitTip, sitQuestions: sitQuestions,
     darkOn: darkOn, darkHint: darkHint, scheduleDark: scheduleDark, lightUp: lightUp,
     intervalEvery: intervalEvery, ringInterval: ringInterval, sessionTime: sessionTime
   };
