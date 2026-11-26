@@ -130,6 +130,27 @@ const W = require('./lib/web.cjs');
     await page.waitForSelector('#new-prayer');
     assert.strictEqual(await page.getAttribute('.subnav a[href="#faith/prayers"]', 'aria-current'), 'page');
   });
+  await t.step('WL.darkScreen: one cover at a time (switching ids too), start and stop idempotent', async () => {
+    await page.goto(base + '#home'); await page.waitForSelector('#wl-today');
+    const r = await page.evaluate(async () => {
+      const D = window.WL.darkScreen, covers = () => document.querySelectorAll('.wl-dark').length;
+      const out = {};
+      D.start({ id: 'a-dark', after: 10 }); D.start({ id: 'a-dark', after: 10 });
+      await new Promise((r) => setTimeout(r, 30));
+      out.one = covers();
+      D.start({ id: 'b-dark', after: 10 });
+      out.switched = covers();
+      await new Promise((r) => setTimeout(r, 30));
+      out.afterSwitch = covers(); out.id = document.querySelector('.wl-dark') && document.querySelector('.wl-dark').id;
+      D.stop(); D.stop();
+      out.stopped = covers();
+      await new Promise((r) => setTimeout(r, 30));
+      out.staysOff = covers();
+      return out;
+    });
+    await page.clock.runFor(100);
+    assert.deepStrictEqual(r, { one: 1, switched: 0, afterSwitch: 1, id: 'b-dark', stopped: 0, staysOff: 0 }, JSON.stringify(r));
+  });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('shell browser');
 })().catch((e) => { console.error(e); process.exit(1); });
