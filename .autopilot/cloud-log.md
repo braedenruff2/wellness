@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-25 20:10-20:20 AST (same run, continued; APK 0.1.20261126.0018, real key)
+- Done 143 (path offers "Back to <previous stage>" after 3 of the last 5 rated sits at a later stage were "Mostly lost in thought"), 142 (Sunday "Your week" names path sits and stage; #me / Home "What's working" says "Meditation: attention mostly steady in N of M sits" instead of the stress line when he trains the mind). 142 wasn't claimed separately (my own follow-up task, nobody else had it).
+- Tested: full suite, 68 suites, none skipped, at f73021f (this APK's code); calm + me unit in 4 zones.
+- Check on the phone: after a few sits, About you > What's working starts with "Meditation: ...".
+
 ## 2026-11-25 19:40-20:10 AST (cloud run; PC reachable; APK 0.1.20261126.0005, real key, cert 6795e499...)
 - Cross-reviewed Gemini's 05fb17c..3efdf32 (tasks 99-101, 123, 124, 134, 136, 137): sound, nothing to fix.
 - Done 141: Calm meditation path. #calm asks once what Calm is for (feeling calmer / training the mind; switch in the Calm settings card). With "train": a path card (stage N of 5, sits and steadiness, a tip from the last sit's obstacle, "Move on" after 6+ sits with 3 of the last 5 "Mostly steady", any stage selectable) and the stage sit leads the today card and Home once a day from 05:00. Sits: count, follow, note, change, open; 10/15/20/30 min (remembered, default 20); no stress ratings; afterwards "How steady was your attention?" + "What got in the way?" saved on the session (no "Did it help?"). Activity sends focus/hind and a daily calm/aim; pc summary + weekly-plan prompt use them. Link's log lists each part's daily setting once (it kept only one target overall).
