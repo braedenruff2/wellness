@@ -46,4 +46,9 @@ const z365 = sizes(s365);
 console.log('365 days total', total(z365), 'calm', z365['wl.calm.v1']);
 assert.ok(z365['wl.calm.v1'] < 400000, 'a year of Calm (3 a day incl. a rated sit) stays small: ' + z365['wl.calm.v1']);
 assert.ok(total(z365) < 4000000, 'a year of everything stays under the quota: ' + total(z365));
+// the backup / Drive sync file has the same stores as JSON strings: a year must stay well under what the phone reads
+// back from Drive (Sync.MAX_READ_BYTES, 16 MB) and quick to write
+const backup = JSON.stringify({ app: 'wellness', exported: new Date().toISOString(), stores: Object.fromEntries(Object.entries(s365).map(([k, v]) => [k, JSON.stringify(v)])), requests: [], acked: [] });
+console.log('a year as a backup/sync file:', backup.length, 'chars');
+assert.ok(Buffer.byteLength(backup, 'utf8') < 4 * 1024 * 1024, 'backup of a year < 4 MB: ' + Buffer.byteLength(backup, 'utf8'));
 console.log('storage size checks passed');

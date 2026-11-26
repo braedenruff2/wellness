@@ -48,6 +48,11 @@ public class SyncTest {
         String readBack = Sync.readStream(new ByteArrayInputStream(out.toByteArray()), 1024);
         ok(sample.equals(readBack), "utf-8 stream round-trip");
         ok("".equals(Sync.readStream(new ByteArrayInputStream(new byte[0]), 1024)), "empty stream");
+        StringBuilder big4 = new StringBuilder(4 * 1024 * 1024 + 16);
+        while (big4.length() < 4 * 1024 * 1024) big4.append("{\"k\":\"Magandang umaga\"},");
+        ByteArrayOutputStream bigOut = new ByteArrayOutputStream();
+        Sync.writeStream(bigOut, big4.toString());
+        ok(big4.toString().equals(Sync.readStream(new ByteArrayInputStream(bigOut.toByteArray()), Sync.MAX_READ_BYTES)), "a 4 MB sync file (a year of use) round-trips");
 
         boolean capped = false;
         try {
