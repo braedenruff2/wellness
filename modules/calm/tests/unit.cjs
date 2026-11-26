@@ -425,4 +425,27 @@ t('going back a stage and returning: earlier sits at the later stage still count
   assert.strictEqual(st.sits, 8, 'all 8 follow sits, before and after going back');
   assert.deepStrictEqual([st.steady, st.lost, st.ready, st.back], [3, 2, true, false], JSON.stringify(st));
 });
+t('path across DST changes (8 Mar / 1 Nov 2026) and sits saved with other UTC offsets', () => {
+  // sits a day apart around both changes, at 7 am local: one per day, in order, the week counts them all
+  for (const [y, m, d0] of [[2026, 2, 5], [2026, 9, 29]]) {
+    const s = K.defaults();
+    for (let i = 0; i < 7; i++) { const r = K.record(s, 'count', 20, null, null, new Date(y, m, d0 + i, 7)); K.rateSit(r, i < 4 ? 1 : 3); }
+    const dates = s.sessions.map((x) => x.date);
+    assert.strictEqual(new Set(dates).size, 7, 'one date per sit: ' + dates);
+    const st = K.pathStatus(s, new Date(y, m, d0 + 6, 20));
+    assert.deepStrictEqual([st.sits, st.steady, st.lost], [7, 3, 2], JSON.stringify(st));
+    const wk = K.pathWeek(s, new Date(y, m, d0 + 6, 20));
+    assert.ok(wk.sits >= 1 && wk.mins === wk.sits * 20, JSON.stringify(wk));
+  }
+  // a sit saved by a phone in another zone: its date is the one it was saved with, its time an absolute instant
+  const s = K.defaults();
+  s.sessions.push({ id: 'count', date: '2026-11-20', at: '2026-11-20T06:30:00-04:00', mins: 20, focus: 3 });
+  s.sessions.push({ id: 'count', date: '2026-11-21', at: '2026-11-21T19:30:00+08:00', mins: 20, focus: 1 }); // Manila evening
+  s.sessions.push({ id: 'count', date: '2026-11-22', at: '2026-11-22T10:00:00Z', mins: 20, focus: 3 });
+  const v = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.sessions.length, 3, 'mixed offsets all kept');
+  const st = K.pathStatus(v, new Date(2026, 10, 22, 23));
+  assert.deepStrictEqual([st.sits, st.steady, st.lost], [3, 2, 1]);
+  assert.deepStrictEqual(K.pathWeek(v, new Date(2026, 10, 22, 23)).mins, K.pathWeek(v, new Date(2026, 10, 22, 23)).sits * 20);
+});
 console.log(n + ' calm unit tests passed');

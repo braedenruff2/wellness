@@ -160,6 +160,24 @@ const Wb = require('../../../tests/lib/web.cjs');
     }
   });
 
+  await t.step('logging for an earlier day: a sit that crosses midnight keeps the day he chose, and Recent shows it', async () => {
+    await page.clock.setSystemTime(new Date(2026, 10, 29, 23, 55));
+    await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#wl-logday');
+    const opts = await page.$$eval('#wl-logday option', (o) => o.map((x) => x.value));
+    assert.ok(opts.includes('2026-11-28'), opts.join());
+    await page.selectOption('#wl-logday', '2026-11-28');
+    await page.goto(base + '#calm/s/timer'); await page.waitForSelector('#c-len');
+    await page.click('[data-len="10"]'); await page.click('#c-pp');
+    for (let i = 0; i < 12; i++) { await page.clock.runFor(60000); if (await page.isVisible('#c-after')) break; }
+    await page.waitForSelector('#c-after:not([hidden])');
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions.slice(-1)[0]);
+    assert.strictEqual(s.date, '2026-11-28', 'the day he chose, not the start or end date: ' + JSON.stringify(s));
+    await page.click('#c-save');
+    await page.waitForSelector('#c-recent');
+    await page.click('#c-recent summary');
+    assert.ok(/Quiet timer[^]*Nov 28/.test(await page.textContent('#c-recent')), await page.textContent('#c-recent'));
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('calm rough day');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
