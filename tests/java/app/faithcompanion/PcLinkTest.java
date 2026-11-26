@@ -23,7 +23,9 @@ public class PcLinkTest {
         java.io.ByteArrayOutputStream apk = new java.io.ByteArrayOutputStream();
         check("app download from the PC", l.download("/v1/app/apk", apk, 10000) == 250000 && apk.size() == 250000, apk.size());
         check("a version file without a code is refused", Updater.parseCode("{\"name\":\"x\"}") == null && Updater.parseCode("<html>") == null, "");
-        PcLink bad = new PcLink(l.host, l.port, "00" + l.fp.substring(2), l.token, "x");
+        String wrongFp = (l.fp.startsWith("00") ? "ff" : "00") + l.fp.substring(2);
+        check("wrong fingerprint differs from real cert", !wrongFp.equals(l.fp) && wrongFp.length() == l.fp.length(), wrongFp);
+        PcLink bad = new PcLink(l.host, l.port, wrongFp, l.token, "x");
         try { bad.get("/v1/health", 5000); check("another certificate is refused", false, "answered"); }
         catch (java.io.IOException e) { check("another certificate is refused", true, null); }
         PcLink nokey = new PcLink(l.host, l.port, l.fp, PcLink.b64(new byte[32]), "x");
