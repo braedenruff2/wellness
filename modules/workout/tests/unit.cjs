@@ -568,4 +568,13 @@ t('ageBracket, benchmark, weeklyTrend, exerciseSeries, and age validation', () =
   assert.strictEqual(W.validate({ sessions: [], age: 10 }).age, undefined);
   assert.strictEqual(W.validate({ sessions: [], age: '34' }).age, undefined);
 });
+t('the day after a "Tired" rest day (e.g. from Home after a short night): as planned, or two sets', () => {
+  const s = W.defaults();
+  W.logSet(s, 'A', 0, 12, 10, at(19, 9)); W.endSession(s, at(19, 10));
+  W.logRest(s, '2026-11-22', 'Tired', at(22, 9)); // Sunday
+  assert.ok(/Rested yesterday/.test(W.coach(s, at(23, 8))), W.coach(s, at(23, 8))); // Monday (a new week)
+  assert.ok(!/Rested yesterday/.test(W.coach(s, at(24, 8))), 'only the next day');
+  W.logRest(s, '2026-11-23', 'Busy day', at(23, 9));
+  assert.ok(!/Rested yesterday/.test(W.coach(s, at(23, 10))), 'resting again today: the rest line');
+});
 console.log(n + ' workout unit tests passed');

@@ -441,6 +441,7 @@
     if (soreToday === 'A bit') return 'A bit sore is normal: warm up well and it usually eases once you’re moving.';
     var yIso = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
     if (restOn(state, yIso) === 'Sore') return 'Still sore? Do two sets of each today and keep the weights the same; moving usually eases it. If it still hurts to move, rest one more day.';
+    if (restOn(state, yIso) === 'Tired') return 'Rested yesterday: today’s workout as planned, or two sets of each if you’re still tired.';
     if (gap != null && gap > 10) return 'It’s been ' + gap + ' days. Start easy today: do two sets of each, not three.';
     // the first workouts back (1-2 in the last 4 weeks): soreness is normal and drops after a couple of weeks; leave reps in reserve
     var from28 = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28)), recent = {};

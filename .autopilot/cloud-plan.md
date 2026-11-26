@@ -310,6 +310,6 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 197. [any] Keyboard/TalkBack with the dark cover up: Tab stays on the cover (the page under it is inert); Enter lights it; e2e in tests/e2e-shell.cjs (keyboard Tab, then Enter).
 198. [any] Home check-in: once done, a small "Change today's answers" link reopens it with the answers kept (if it doesn't exist); e2e.
 199. [any] Tagalog: a word still missed in a "Go through these again" round counts toward Hard words (TagalogCore.weakWords) without touching its box or due date (e.g. card.againMiss); unit + e2e.
-200. [any] Workout coach(): the day after a "Tired" rest day, the Move line says "Rested yesterday: today's workout as planned, or the lighter version if you're still tired"; unit across Mon/Sun.
+200. (done 26 Nov, Claude: coach(); unit 4 zones) Workout coach(): the day after a "Tired" rest day, the Move line says "Rested yesterday: today's workout as planned, or the lighter version if you're still tired"; unit across Mon/Sun.
 201. [any] Settings > Backup: under the space line, a <details> with each part's share (Tagalog, Parenting, Faith, Calm, Workout, About you), largest first; e2e.
 202. [any] tests/storage-size.cjs: the backup/sync JSON of a year of use (WL export shape) stays under 4 MB; note the Java Sync write path handles that size in one go (SyncTest with a 4 MB string).
