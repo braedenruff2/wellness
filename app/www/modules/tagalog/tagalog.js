@@ -237,7 +237,7 @@
     var sl = T.slips ? T.slips(S, packs(), new Date(), 6) : [];
     if (sl.length) h += '<div class="card"><h2>Slips to watch</h2><p class="meta ui">From the last two weeks: the lesson’s sentence, to hear and say once more.</p><ul class="list" id="tl-slips">' + sl.map(function (x) {
       return '<li class="row"><span class="grow"><span class="meta">' + esc(SLIP_LABEL[x.kind] || '') + (x.given ? ' · you wrote “' + esc(x.given) + '”' : '') + '</span><br><b lang="tl">' + esc(x.answer) + '</b></span>' + hear(x.answer) + '</li>';
-    }).join('') + '</ul></div>';
+    }).join('') + '</ul><div class="row ui"><a class="btn primary" id="tl-practise-slips" href="#tagalog/slips">Practise these</a><span class="meta">Each one once more. Your review days stay as they are.</span></div></div>';
     var rest = keys.filter(function (k) { return hard.indexOf(k) < 0; }).sort(function (a, b) { return a.localeCompare(b); });
     if (rest.length) h += '<div class="card"><h2>All the others</h2><ul class="list" id="tl-all">' + rest.map(row).join('') + '</ul></div>';
     return h;
@@ -359,6 +359,16 @@
         return '<p class="ui"><b>' + right + ' of ' + n + ' right.</b> ' + (right === n ? 'Excellent.' : 'The ones you missed come back first next time.') +
           '</p>' + (window.WLMe ? WLMe.askHtml('tagalog', 'practice@' + new Date().toISOString().slice(0, 16), 'Quick question (optional): it shapes next week’s lessons') : '') + '<div class="row ui"><a class="btn primary" href="#tagalog">Done</a><button id="tl-more">Another 8</button></div>';
       }, function () { $('#tl-more').onclick = function () { route(['practice']); }; });
+      return;
+    }
+    if (parts[0] === 'slips') {
+      var ss = T.slipSet(S, packs(), new Date(), 6);
+      if (!ss.length) { view.innerHTML = subnav('') + '<h1>Slips to watch</h1><p class="ui">No slips from the last two weeks. Nice.</p><div class="row ui"><a class="btn" href="#tagalog/words">Your words</a></div>'; return; }
+      view.innerHTML = subnav('') + '<h1>Slips to watch</h1><p class="meta ui">The sentences you nearly had. Say each answer out loud too.</p><div class="card" id="tl-slip-run"><div id="tl-ex"></div></div>';
+      runSet(ss, function (right, n) {
+        return '<p class="ui"><b>' + right + ' of ' + n + ' right.</b> ' + (right === n ? 'All of them this time.' : 'The ones you missed stay on the list.') + '</p>' +
+          '<div class="row ui"><a class="btn primary" href="#tagalog/words">Your words</a><button id="tl-again">Go again</button></div>';
+      });
       return;
     }
     if (parts[0] === 'review') { var hd = parts[1] === 'hard'; view.innerHTML = TagalogReview.html(reviewCtx, hd); TagalogReview.run(reviewCtx, hd); return; }

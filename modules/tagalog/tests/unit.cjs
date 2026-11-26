@@ -371,6 +371,10 @@ t('slips: last 14 days of hinted answers, newest first, one per exercise, with t
   assert.deepStrictEqual(out.map((x) => [x.kind, x.answer, x.given]), [['pronoun', 'Bakit siya umiiyak?', 'bakit umiiyak siya'], ['aspect', 'Gusto kong mag-aral ng Tagalog.', 'gusto kong magaaral ng tagalog']]);
   assert.strictEqual(T.slips(st, [pk], new Date(2026, 10, 26, 12), 1).length, 1, 'at most n');
   assert.deepStrictEqual(T.slips(T.defaults(), [pk], new Date()), []);
+  const set = T.slipSet(st, [pk], new Date(2026, 10, 26, 12));
+  assert.strictEqual(set.length, out.length, 'slipSet: one exercise per slip');
+  set.forEach((x, i) => { assert.strictEqual(x.pack, pk); assert.strictEqual(x.ex.answer, out[i].answer); assert.ok(x.lesson && x.lesson.day); });
+  assert.deepStrictEqual(T.slipSet(T.defaults(), [pk], new Date()), []);
 });
 t('practiceSet: among equally missed exercises, a verb-form or linker slip comes first (until answered right)', () => {
   const pk = { id: '2026-11-25', lessons: [{ day: 1, exercises: [

@@ -20,6 +20,31 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#tl-slips [data-say]');
     assert.deepStrictEqual(await page.evaluate(() => window.__spoken[window.__spoken.length - 1]), { text: 'Gusto kong mag-aral ng Tagalog.', lang: 'fil-PH' });
   });
+  await t.step('"Practise these" runs exactly those exercises once: answers recorded, no box or due change', async () => {
+    const before = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).cards);
+    assert.strictEqual(await page.getAttribute('#tl-practise-slips', 'href'), '#tagalog/slips');
+    const h = await page.$eval('#tl-practise-slips', (e) => Math.round(e.getBoundingClientRect().height));
+    assert.ok(h >= 44, 'tap target ' + h);
+    await page.click('#tl-practise-slips'); await page.waitForSelector('#tl-slip-run #tl-in');
+    assert.ok((await page.textContent('#tl-slip-run')).includes('1 of 1'));
+    assert.ok((await page.textContent('#tl-slip-run')).includes('I want to study Tagalog.'));
+    await page.fill('#tl-in', 'Gusto kong mag-aral ng Tagalog'); await page.click('#tl-check');
+    await page.waitForSelector('#tl-fb .ok'); await page.click('#tl-next');
+    await page.waitForSelector('#tl-again');
+    assert.ok(/1 of 1 right/.test(await page.textContent('#tl-slip-run')));
+    const st = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')));
+    assert.deepStrictEqual(st.cards, before, 'boxes and due dates untouched');
+    const last = st.answers[st.answers.length - 1];
+    assert.ok(last.ok && last.prompt === 'I want to study Tagalog.' && last.pack === '2026-11-25', JSON.stringify(last));
+    assert.strictEqual(st.answers.length, 2);
+    await page.click('#tl-again'); await page.waitForSelector('#tl-slip-run #tl-in'); // Go again restarts the same one
+  });
+  await t.step('#tagalog/slips with no slips: a plain line, a way back', async () => {
+    await seed([]); await page.goto(base + '#tagalog/words'); await page.reload(); await page.goto(base + '#tagalog/slips');
+    await page.waitForSelector('#view a[href="#tagalog/words"]');
+    assert.ok(/No slips from the last two weeks/.test(await page.textContent('#view')));
+    await page.click('#view a[href="#tagalog/words"]'); await page.waitForSelector('#tl-all');
+  });
   await t.step('older than two weeks, or no hint: no card', async () => {
     await seed([ans('2026-11-01T23:10:00.000Z', 'gusto kong magaaral ng tagalog', 'aspect'), Object.assign(ans('2026-11-25T23:10:00.000Z', 'x'), { hint: undefined })]);
     await page.reload(); await page.waitForSelector('#tl-all');

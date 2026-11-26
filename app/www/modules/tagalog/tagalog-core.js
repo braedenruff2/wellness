@@ -215,7 +215,7 @@
   var HINT_KINDS = ['order', 'pronoun', 'linker', 'aspect'];
   /* The specific slips of the last 14 days (answers that got an order / pronoun / linker / verb-form hint), newest
      first, one per exercise, with the lesson's own sentence: [{kind, answer, given, at}], at most n. */
-  function slips(state, packs, now, n) {
+  function slipItems(state, packs, now, n) {
     var since = (now || new Date()).getTime() - 14 * 864e5, seen = {}, out = [];
     var byId = {}; (packs || []).forEach(function (p) { if (p && p.id) byId[p.id] = p; });
     for (var i = state.answers.length - 1; i >= 0 && out.length < (n || 6); i--) {
@@ -224,12 +224,19 @@
       var key = a.pack + '/' + a.day + '/' + a.prompt; if (seen[key]) continue; seen[key] = 1;
       var p = byId[a.pack], l = p && (p.lessons || []).filter(function (x) { return x.day === a.day; })[0];
       var ex = l && (l.exercises || []).filter(function (e) { return String(e.prompt || e.say || '').slice(0, 120) === a.prompt && e.answer; })[0];
-      if (ex) out.push({ kind: a.hint, answer: ex.answer, given: a.given || '', at: a.at });
+      if (ex) out.push({ kind: a.hint, answer: ex.answer, given: a.given || '', at: a.at, ref: { pack: p, lesson: l, ex: ex } });
     }
     return out;
   }
   /* The short label shown with a slip (Watch for next time, Slips to watch). */
   var HINT_LABEL = { order: 'Word order', pronoun: 'Short words go second', linker: 'Linker', aspect: 'Verb form' };
+  function slips(state, packs, now, n) {
+    return slipItems(state, packs, now, n).map(function (x) { return { kind: x.kind, answer: x.answer, given: x.given, at: x.at }; });
+  }
+  /* The exercises behind "Slips to watch", same order, as a practice set ({pack, lesson, ex}). */
+  function slipSet(state, packs, now, n) {
+    return slipItems(state, packs, now, n).map(function (x) { return x.ref; });
+  }
   /* One line per kind for whoever writes next week's lessons from the weekly summary (the PC lesson job, a cloud run). */
   var HINT_ABOUT = {
     order: 'ang/ng word order: the doer (ang) comes after the verb and its object',
@@ -410,7 +417,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, HINT_LABEL: HINT_LABEL, slips: slips, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, HINT_LABEL: HINT_LABEL, slips: slips, slipSet: slipSet, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, againMiss: againMiss, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;
