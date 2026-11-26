@@ -23,7 +23,7 @@
     walking = on;
     WL.keepAwake(on);
     if (!WL.darkScreen) return;
-    if (on) WL.darkScreen.start({ id: 'tl-dark', label: 'Dark screen while you listen. Tap to show the lesson.', after: 15000 });
+    if (on && S.settings.walkDark !== false) WL.darkScreen.start({ id: 'tl-dark', label: 'Dark screen while you listen. Tap to show the lesson.', after: 15000 });
     else WL.darkScreen.stop();
   }
   function stopAudio() { stopPlayback(); WL.speech.stop(); if (window.TagalogReview) TagalogReview.clearKey(); }
@@ -268,7 +268,8 @@
       '<div class="row" style="margin-top:8px"><button id="tl-save-src">Save</button><button class="primary" id="tl-fetch"' + (S.source ? '' : ' disabled') + '>Check for new lessons</button></div>' +
       (S.lastCheck ? '<p class="meta">Last checked ' + esc(new Date(S.lastCheck).toLocaleString()) + '</p>' : '') + '</div>';
     h += '<div class="card ui"><h3>Send my week</h3><p class="meta">So next week’s lessons fit you: save this small file (lessons done, words you missed) and put it in the <b>wellness-progress</b> folder on your PC’s Desktop before Wednesday noon. Nothing else is shared.</p><button id="tl-send">Save my week’s summary</button></div>';
-    h += '<div class="card ui"><h3>Voice</h3><div class="chips"><button class="chip" id="tl-slow" aria-pressed="' + !!(S.settings && S.settings.slow) + '">Slower Tagalog voice</button></div>' +
+    h += '<div class="card ui"><h3>Voice</h3><div class="chips"><button class="chip" id="tl-slow" aria-pressed="' + !!(S.settings && S.settings.slow) + '">Slower Tagalog voice</button>' +
+      '<button class="chip" id="tl-walkdark" aria-pressed="' + !(S.settings && S.settings.walkDark === false) + '">Dark screen while listening</button></div>' +
       '<p class="meta">Uses your phone’s Filipino voice. If you hear English pronunciation, install it: Android Settings › Languages › Text-to-speech › Google › Install voice data › Filipino.</p></div>';
     return h;
   }
@@ -371,6 +372,7 @@
       $('#tl-fetch').onclick = function () { fetchPacks(true).then(function () { if (location.hash === '#tagalog/settings' && !editingSrc() && !$('#me-sheet')) route(['settings']); }); };
       $('#tl-send').onclick = function () { WL.saveFile('tagalog-week-' + T.iso(new Date()) + '.json', JSON.stringify(weekSummary(), null, 1)); };
       $('#tl-slow').onclick = function () { S.settings.slow = !S.settings.slow; save(); route(['settings']); };
+      $('#tl-walkdark').onclick = function () { S.settings.walkDark = S.settings.walkDark === false; save(); route(['settings']); };
       return;
     }
     view.innerHTML = home();

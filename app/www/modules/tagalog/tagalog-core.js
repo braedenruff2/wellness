@@ -9,7 +9,7 @@
   var INTERVALS = [0, 1, 2, 4, 8, 16, 32]; // days until the next review, by box
   // where new weeks come from (the PC pushes the wellness folder to this GitHub repo; changeable in the app)
   var DEFAULT_SOURCE = 'https://raw.githubusercontent.com/braedenruff2/wellness/main/modules/tagalog/packs/';
-  function defaults() { return { packs: {}, done: {}, cards: {}, answers: [], reviews: [], source: DEFAULT_SOURCE, lastCheck: null, settings: { slow: true } }; }
+  function defaults() { return { packs: {}, done: {}, cards: {}, answers: [], reviews: [], source: DEFAULT_SOURCE, lastCheck: null, settings: { slow: true, walkDark: true } }; }
   var iso = WLD.iso;
   var addDays = WLD.addDays;
 
@@ -314,6 +314,7 @@
     });
     Object.keys(s.packs || {}).forEach(function (k) { if (!checkPack(s.packs[k]).length) d.packs[k] = s.packs[k]; });
     if (s.settings && typeof s.settings.slow === 'boolean') d.settings.slow = s.settings.slow;
+    if (s.settings && typeof s.settings.walkDark === 'boolean') d.settings.walkDark = s.settings.walkDark;
     if (s.packHash && typeof s.packHash === 'object') Object.keys(s.packHash).forEach(function (k) { if (d.packs[k] && /^[0-9a-f]{12}$/.test(s.packHash[k])) (d.packHash = d.packHash || {})[k] = s.packHash[k]; });
     (Array.isArray(s.checks) ? s.checks : []).slice(-20).forEach(function (c) {
       if (c && !isNaN(new Date(c.at).getTime())) (d.checks = d.checks || []).push({ at: new Date(c.at).toISOString(), prompt: String(c.prompt || '').slice(0, 300), given: String(c.given || '').slice(0, 300), a: cleanCheck(c.a) });
