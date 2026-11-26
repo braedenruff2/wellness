@@ -33,6 +33,18 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.reload(); await page.waitForSelector('#sessclock');
     assert.ok(/^Session 21:\d\d$/.test(await page.textContent('#sessclock')), await page.textContent('#sessclock'));
   });
+  await t.step('across midnight: 23:30 -> 00:20 with a set every 10 min reads 50:00 (task 225)', async () => {
+    await page.clock.setSystemTime(new Date(2026, 10, 24, 0, 20));
+    await page.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('wl.workout.v1'));
+      const t0 = new Date(2026, 10, 23, 23, 30).getTime();
+      w.sessions = [{ id: 'm1', date: '2026-11-23', day: 'C', start: new Date(t0).toISOString(), end: null,
+        sets: [1, 2, 3, 4, 5].map((k) => ({ i: 0, ex: 'Single Leg RDL', n: k, val: 20, w: 10, at: new Date(t0 + k * 600e3).toISOString() })) }];
+      localStorage.setItem('wl.workout.v1', JSON.stringify(w));
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('#sessclock');
+    assert.strictEqual(await page.textContent('#sessclock'), 'Session 50:00');
+  });
   await t.step('logging for an earlier day: no session clock (its sets carry that day\'s date; review 26 Nov)', async () => {
     await page.goto(base + '#home'); await page.selectOption('#wl-logday', '2026-11-22');
     await page.evaluate(() => {
