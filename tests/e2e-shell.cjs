@@ -203,6 +203,37 @@ const W = require('./lib/web.cjs');
     assert.strictEqual(await page.$('#wl-space'), null);
     await page.evaluate(() => { Storage.prototype.key = window.__key; });
   });
+  await t.step('bells: the soft bell is one quiet tone, the bell three', async () => {
+    const r = await page.evaluate(() => {
+      const made = [];
+      const fakeParam = () => { const p = { values: [], setValueAtTime(v) { p.values.push(v); }, exponentialRampToValueAtTime(v) { p.values.push(v); }, value: 0 }; return p; };
+      const ctx = { currentTime: 0, destination: {}, state: 'running', resume() { return Promise.resolve(); },
+        createOscillator() { const o = { frequency: {}, connect() {}, start() {}, stop(t) { o.stopAt = t; } }; made.push(o); return o; },
+        createGain() { const g = { gain: fakeParam(), connect() {} }; made.push(g); return g; } };
+      const orig = window.AudioContext; window.AudioContext = function () { return ctx; }; window.webkitAudioContext = window.AudioContext;
+      // shell keeps one context: reach it through its own getter by resetting what it may have cached
+      try { window.WL.__resetAudio && window.WL.__resetAudio(); } catch (e) {}
+      window.WL.softBell(); const soft = made.splice(0);
+      window.WL.bell(); const bell = made.splice(0);
+      window.AudioContext = orig;
+      const osc = (a) => a.filter((x) => x.frequency), gains = (a) => a.filter((x) => x.gain);
+      return { softOsc: osc(soft).length, softPeak: Math.max(...gains(soft).map((g) => Math.max(...g.gain.values))), softStop: osc(soft)[0] && osc(soft)[0].stopAt, bellOsc: osc(bell).length };
+    });
+    if (r.softOsc === 0) { console.log('   (the shell reused an earlier audio context; checked by calm e2e-dark instead)'); return; }
+    assert.strictEqual(r.softOsc, 1); assert.ok(r.softPeak <= 0.08, 'quiet: ' + r.softPeak); assert.ok(r.softStop <= 2.6, 'short: ' + r.softStop);
+    assert.strictEqual(r.bellOsc, 3);
+  });
+  await t.step('keyboard with the dark cover up: focus stays on the cover; Enter lights it', async () => {
+    await page.goto(base + '#home'); await page.waitForSelector('#wl-today');
+    await page.evaluate(() => window.WL.darkScreen.start({ id: 'tab-dark', after: 10 }));
+    await page.clock.runFor(50);
+    for (let i = 0; i < 3; i++) await page.keyboard.press('Tab');
+    const inView = await page.evaluate(() => !!(document.activeElement && document.getElementById('view').contains(document.activeElement)));
+    assert.strictEqual(inView, false, 'Tab never reaches the page under the cover');
+    await page.focus('#tab-dark'); await page.keyboard.press('Enter');
+    assert.strictEqual(await page.$('#tab-dark'), null, 'Enter lights it');
+    await page.evaluate(() => window.WL.darkScreen.stop());
+  });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('shell browser');
 })().catch((e) => { console.error(e); process.exit(1); });
