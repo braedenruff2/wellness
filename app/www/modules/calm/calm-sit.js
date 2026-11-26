@@ -4,7 +4,11 @@
   'use strict';
 
   function usesAlarm(p) { return !!(p && (p.path || p.kind === 'timer')); }
-  function alarmLabel(p, m) { return p.title + ' · ' + m + ' min'; }
+  /* "Quiet timer · 20 min", or "Quiet timer · 1:40" for an exact time with seconds. */
+  function alarmLabel(p, m) {
+    var secs = Math.round((+m || 0) * 60);
+    return p.title + ' · ' + (secs % 60 ? Math.floor(secs / 60) + ':' + (secs % 60 < 10 ? '0' : '') + secs % 60 : secs / 60 + ' min');
+  }
   /* Android end-of-session bell when the phone locks during a sit or Quiet timer (the page's own bell rings on screen). */
   function calmAlarm(ms, label) {
     var n = root.WL && root.WL.native;

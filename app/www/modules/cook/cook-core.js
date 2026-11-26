@@ -41,8 +41,8 @@
     {
       id: 'eggs-toast', title: 'Soft scrambled eggs, spinach & toast', meal: 'breakfast', mins: 10, effort: 'quick',
       protein: '~24 g protein', workoutFit: true,
-      babyNote: 'Cook a plain portion of soft scrambled egg and finely chopped wilted spinach for {child} before adding salt; serve warm with soft toast strips.',
-      tip: 'Use medium-low heat and take the pan off the burner while the eggs still look slightly glossy — residual heat finishes them.',
+      babyNote: 'Scramble a plain portion for {child} until the egg is cooked through (no runny bits), with finely chopped wilted spinach, before adding salt; serve warm with soft toast strips.',
+      tip: 'Use medium-low heat and stir slowly. Take {child}’s portion when it is fully set; yours can come off the heat while it still looks slightly glossy.',
       ingredients: [
         { name: 'eggs', qty: 3, unit: 'pcs', cat: 'dairy', shelfDays: 21 },
         { name: 'spinach', qty: 2, unit: 'cups', cat: 'produce', shelfDays: 4 },
@@ -96,7 +96,7 @@
     {
       id: 'egg-wrap', title: 'Quick egg, cheese & avocado wrap', meal: 'breakfast', mins: 10, effort: 'quick',
       protein: '~26 g protein', workoutFit: true,
-      babyNote: 'Give {child} soft scrambled egg, mashed avocado, and small torn pieces of warm tortilla.',
+      babyNote: 'Give {child} scrambled egg cooked until firm, mashed avocado, and small torn pieces of warm tortilla.',
       tip: 'Warm the tortilla for 15 seconds in the pan or microwave so it folds without cracking.',
       ingredients: [
         { name: 'eggs', qty: 3, unit: 'pcs', cat: 'dairy', shelfDays: 21 },
@@ -113,10 +113,10 @@
     {
       id: 'tuna-rice', title: '10-minute tuna, avocado & cucumber rice bowl', meal: 'lunch', mins: 10, effort: 'quick',
       protein: '~34 g protein', workoutFit: true,
-      babyNote: 'Mix plain drained tuna with mashed avocado and soft rice for {child} before adding soy sauce or mayo.',
+      babyNote: 'Mix plain drained light tuna with mashed avocado and soft rice for {child} before adding soy sauce or mayo; peel the cucumber and cut hers into thin strips or tiny dice.',
       tip: 'Use leftover cooked rice (warm it with a splash of water covered for 60 seconds so it steams soft again).',
       ingredients: [
-        { name: 'canned tuna', qty: 2, unit: 'cans', cat: 'pantry', shelfDays: 365 },
+        { name: 'canned light tuna', qty: 2, unit: 'cans', cat: 'pantry', shelfDays: 365 },
         { name: 'rice', qty: 1.5, unit: 'cups', cat: 'pantry', shelfDays: 180 },
         { name: 'avocado', qty: 0.5, unit: 'pcs', cat: 'produce', shelfDays: 4 },
         { name: 'cucumber', qty: 0.5, unit: 'pcs', cat: 'produce', shelfDays: 6 },
@@ -158,12 +158,12 @@
         { name: 'carrot', qty: 2, unit: 'pcs', cat: 'produce', shelfDays: 14 },
         { name: 'onion', qty: 1, unit: 'pcs', cat: 'produce', shelfDays: 21 },
         { name: 'garlic', qty: 2, unit: 'cloves', cat: 'produce', shelfDays: 21 },
-        { name: 'chicken broth', qty: 4, unit: 'cups', cat: 'pantry', shelfDays: 180 }
+        { name: 'low-sodium chicken broth', qty: 4, unit: 'cups', cat: 'pantry', shelfDays: 180 }
       ],
       steps: [
         'Rinse lentils under cold water until the water runs mostly clear. Dice onion, carrots, and garlic.',
         'Heat 1 tbsp oil in a pot over medium heat. Cook onion and carrots 4 minutes until softened, then add garlic for 30 seconds.',
-        'Add lentils and broth (or water), bring to a boil, then lower to a gentle simmer for 15–18 minutes until thick and soft.',
+        'Add lentils and low-sodium broth (or water; regular broth is salty for {child}), bring to a boil, then lower to a gentle simmer for 15–18 minutes until thick and soft.',
         'Scoop {child}’s portion first, then season yours with salt, pepper, and a squeeze of lemon if handy.'
       ]
     },
@@ -313,7 +313,7 @@
     {
       id: 'snack-eggs', title: 'Hard-boiled eggs & cucumber slices', meal: 'snack', mins: 12, effort: 'batch',
       protein: '~14 g protein', workoutFit: true,
-      babyNote: 'Mash boiled egg yolk + white with a little yogurt or avocado for {child} so it isn’t dry.',
+      babyNote: 'Mash boiled egg yolk + white with a little yogurt or avocado for {child} so it isn’t dry; peel her cucumber and cut it into thin strips or tiny dice (round slices are a choking risk).',
       tip: 'Boil 6 eggs at once on Sunday and keep them in the fridge for 5 days of grab-and-go protein.',
       ingredients: [
         { name: 'eggs', qty: 2, unit: 'pcs', cat: 'dairy', shelfDays: 21 },
@@ -352,12 +352,26 @@
     if (w.endsWith('s') && w.length > 3 && !w.endsWith('ss')) return w.slice(0, -1);
     return w;
   }
+  var CUTS = ['thighs', 'breasts', 'drumsticks', 'wings', 'legs', 'fillets', 'mince', 'strips', 'pieces', 'chunks', 'cubes', 'florets', 'leaves', 'slices', 'steaks', 'boneless', 'skinless'].map(stem);
+  // words that make a different food of the next one: peanut butter, sweet potato, oat milk, cream cheese, bell pepper
+  var OTHER_FOOD = ['peanut', 'almond', 'cashew', 'nut', 'apple', 'coconut', 'oat', 'soy', 'rice', 'cocoa', 'sweet', 'cream', 'sour', 'bell', 'chili', 'chilli', 'hot', 'baking', 'corn', 'egg', 'fish', 'oyster'].map(stem);
   function sameFood(a, b) {
     var na = norm(a), nb = norm(b);
     if (!na || !nb) return false;
     if (na === nb || stem(na) === stem(nb)) return true;
-    // match "chicken thighs" <-> "chicken", "red lentils" <-> "lentils", etc.
-    return na.indexOf(nb) >= 0 || nb.indexOf(na) >= 0;
+    // whole words: the shorter name inside the longer one, with only describing words before it ("red lentils",
+    // "ground beef", "boneless chicken") and only a cut or part after it ("chicken thighs", "broccoli florets"). So
+    // "peanut butter" is not butter, "sweet potato" not potato, "chicken broth" not chicken, "tomato sauce" not tomato.
+    var wa = na.split(' ').map(stem), wb = nb.split(' ').map(stem);
+    var lng = wa.length >= wb.length ? wa : wb, sht = lng === wa ? wb : wa, n = sht.length;
+    if (lng.length === n) return false;
+    for (var i = 0; i + n <= lng.length; i++) {
+      if (lng.slice(i, i + n).join(' ') !== sht.join(' ')) continue;
+      var before = lng.slice(0, i), after = lng.slice(i + n);
+      if (before.some(function (w) { return OTHER_FOOD.indexOf(w) >= 0; })) continue;
+      if (after.every(function (w) { return CUTS.indexOf(w) >= 0; })) return true;
+    }
+    return false;
   }
 
   function weekStartDate(now) {
@@ -539,6 +553,8 @@
     now = now || new Date();
     opts = opts || {};
     var days = weekDays(now), wk = days[0];
+    // an earlier week (a log day in the past, a clock set back) never replaces the week already planned
+    if (state.plan && isDate(state.plan.week) && state.plan.week > wk) return state.plan;
     if (!state.plan || state.plan.week !== wk) {
       state.plan = { week: wk, days: {}, note: '', source: 'offline', updated: now.toISOString() };
     }
@@ -630,8 +646,9 @@
               tip: typeof m.tip === 'string' ? m.tip.slice(0, 300) : '',
               ingredients: (Array.isArray(m.ingredients) ? m.ingredients : []).slice(0, 15).map(function (x) {
                 if (typeof x === 'string') return { name: x.slice(0, 60), qty: 1, unit: '', cat: 'produce' };
-                return { name: String(x && x.name || '').slice(0, 60), qty: isFinite(+x.qty) && +x.qty > 0 ? +x.qty : 1, unit: String(x && x.unit || '').slice(0, 20), cat: CATS.indexOf(x && x.cat) >= 0 ? x.cat : 'produce' };
-              }).filter(function (x) { return x.name; }),
+                if (!x || typeof x !== 'object') return null;
+                return { name: String(x.name || '').slice(0, 60), qty: isFinite(+x.qty) && +x.qty > 0 ? +x.qty : 1, unit: String(x.unit || '').slice(0, 20), cat: CATS.indexOf(x.cat) >= 0 ? x.cat : 'produce' };
+              }).filter(function (x) { return x && x.name; }),
               steps: m.steps.filter(function (s) { return typeof s === 'string' && s.trim(); }).slice(0, 10).map(function (s) { return s.trim().slice(0, 300); })
             };
           }
@@ -818,7 +835,10 @@
       }
     });
     if (s.aiRecipes && typeof s.aiRecipes === 'object') {
-      Object.keys(s.aiRecipes).slice(0, 40).forEach(function (k) {
+      // the ones this plan uses first, then the newest (ids are ai-<YYYY-MM-DD>-<meal>), so a restore keeps this week's
+      var inPlan = {};
+      Object.keys(d.plan.days).forEach(function (day) { MEALS.forEach(function (m) { var x = d.plan.days[day][m]; if (x && x.recipeId) inPlan[x.recipeId] = 1; }); });
+      Object.keys(s.aiRecipes).sort(function (a, b) { return (inPlan[b] || 0) - (inPlan[a] || 0) || (a < b ? 1 : a > b ? -1 : 0); }).slice(0, 40).forEach(function (k) {
         var r = s.aiRecipes[k];
         if (!r || typeof r.title !== 'string' || !r.title.trim()) return;
         d.aiRecipes[k] = {
@@ -828,13 +848,31 @@
           babyNote: typeof r.babyNote === 'string' ? r.babyNote.slice(0, 300) : '',
           tip: typeof r.tip === 'string' ? r.tip.slice(0, 300) : '',
           ingredients: (Array.isArray(r.ingredients) ? r.ingredients : []).slice(0, 15).map(function (x) {
-            return { name: String(x && x.name || '').slice(0, 60), qty: isFinite(+x.qty) && +x.qty > 0 ? +x.qty : 1, unit: String(x && x.unit || '').slice(0, 20), cat: CATS.indexOf(x && x.cat) >= 0 ? x.cat : 'produce' };
-          }).filter(function (x) { return x.name; }),
+            if (!x || typeof x !== 'object') return null;
+            return { name: String(x.name || '').slice(0, 60), qty: isFinite(+x.qty) && +x.qty > 0 ? +x.qty : 1, unit: String(x.unit || '').slice(0, 20), cat: CATS.indexOf(x.cat) >= 0 ? x.cat : 'produce' };
+          }).filter(function (x) { return x && x.name; }),
           steps: (Array.isArray(r.steps) ? r.steps : []).filter(function (st) { return typeof st === 'string' && st.trim(); }).slice(0, 10).map(function (st) { return st.trim().slice(0, 300); })
         };
       });
     }
+    if (s.lastPhoto && typeof s.lastPhoto === 'object') {
+      var pi = cleanPhotoItems(s.lastPhoto.items);
+      if (pi.length) d.lastPhoto = { at: typeof s.lastPhoto.at === 'string' && !isNaN(Date.parse(s.lastPhoto.at)) ? s.lastPhoto.at : new Date().toISOString(), summary: String(s.lastPhoto.summary || '').slice(0, 300), items: pi };
+    }
     return d;
+  }
+
+  /* A fridge-photo answer's items, only what the app can show and add: [{name, qty, unit, status, cat, expiresInDays}]. */
+  function cleanPhotoItems(items) {
+    return (Array.isArray(items) ? items : []).filter(function (x) { return x && typeof x.name === 'string' && x.name.trim(); }).slice(0, 20).map(function (x) {
+      var o = { name: x.name.trim().slice(0, 80) };
+      if (x.qty != null && x.qty !== '' && isFinite(+x.qty) && +x.qty > 0) o.qty = Math.round(+x.qty * 100) / 100;
+      if (typeof x.unit === 'string' && x.unit.trim()) o.unit = x.unit.trim().slice(0, 20);
+      if (STATUS.indexOf(x.status) >= 0) o.status = x.status;
+      if (CATS.indexOf(x.cat) >= 0) o.cat = x.cat;
+      if (x.expiresInDays != null && x.expiresInDays !== '' && isFinite(+x.expiresInDays) && +x.expiresInDays >= 0) o.expiresInDays = Math.min(365, Math.round(+x.expiresInDays));
+      return o;
+    });
   }
 
   var api = {
@@ -847,7 +885,7 @@
     ensureWeekPlan: ensureWeekPlan, markSlot: markSlot, swapSlot: swapSlot, applyAiPlan: applyAiPlan,
     shoppingList: shoppingList, toggleBought: toggleBought,
     logMe: logMe, logChild: logChild, removeLog: removeLog, dayLogs: dayLogs, childSummary: childSummary,
-    validate: validate
+    sameFood: sameFood, cleanPhotoItems: cleanPhotoItems, validate: validate
   };
   root.CookCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

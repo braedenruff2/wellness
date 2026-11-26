@@ -77,7 +77,7 @@
       (ing.length ? '<p class="meta" style="margin:.2em 0 .5em"><b>Ingredients:</b> ' + esc(ing.join(', ')) + '.</p>' : '') +
       '<ol style="margin:0 0 .6em;padding-left:1.3em">' + (r.steps || []).map(function (s) { return '<li style="margin:.3em 0">' + esc(pers(s)) + '</li>'; }).join('') + '</ol>' +
       (r.babyNote ? '<p class="gentle" style="margin:.4em 0"><b>For ' + esc(childLabel()) + ':</b> ' + esc(pers(r.babyNote)) + '</p>' : '') +
-      (r.tip ? '<p class="meta" style="margin:.3em 0 0"><b>Beginner tip:</b> ' + esc(r.tip) + '</p>' : '') +
+      (r.tip ? '<p class="meta" style="margin:.3em 0 0"><b>Beginner tip:</b> ' + esc(pers(r.tip)) + '</p>' : '') +
       '</details>';
   }
 
@@ -375,7 +375,7 @@
     }).then(function (ans) {
       photoBusy = false;
       if (ans && Array.isArray(ans.items) && ans.items.length) {
-        S.lastPhoto = { at: new Date().toISOString(), summary: String(ans.summary || '').slice(0, 300), items: ans.items.slice(0, 20) };
+        S.lastPhoto = { at: new Date().toISOString(), summary: String(ans.summary || '').slice(0, 300), items: K.cleanPhotoItems(ans.items) };
         save();
         WL.toast('Found ' + S.lastPhoto.items.length + ' item' + (S.lastPhoto.items.length === 1 ? '' : 's'));
       } else {
@@ -398,7 +398,7 @@
     });
     WL.pc.onCloudAnswer('cook-photo', function (e, ans) {
       if (!e && ans && Array.isArray(ans.items)) {
-        S.lastPhoto = { at: new Date().toISOString(), summary: String(ans.summary || '').slice(0, 300), items: ans.items.slice(0, 20) };
+        S.lastPhoto = { at: new Date().toISOString(), summary: String(ans.summary || '').slice(0, 300), items: K.cleanPhotoItems(ans.items) };
         save(); WL.toast('Photo inventory result arrived');
       } else if (e) photoErr = e;
       if (view && /^#cook/.test(location.hash)) render();

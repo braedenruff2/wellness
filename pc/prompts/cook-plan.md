@@ -11,7 +11,7 @@ Write a practical 7-day meal plan (Monday through Sunday) for a beginner cook:
 - **Use expiring items first** (put recipes that use items with `daysLeft <= 3` on the earliest days so nothing spoils).
 - **Support his Move workouts** (solid protein + simple carbs + veggies, especially on workout days, general guidance only).
 - **Beginner-friendly**: 10–35 min meals, minimal pots/pans, clear step-by-step instructions with visual doneness cues (no jargon).
-- **Baby adaptation**: include a short `babyNote` explaining how to set aside a soft, low-salt portion for his daughter (fitting her age; no honey if under 12 months; soft/squishable textures).
+- **Baby adaptation**: include a short `babyNote` explaining how to set aside a soft, low-salt portion for his daughter (fitting her age; no honey if under 12 months; soft/squishable textures). For a toddler: eggs, meat and fish fully cooked; never whole nuts, popcorn or hard raw vegetables (raw carrot or cucumber rounds); grapes, cherry tomatoes and blueberries quartered or squashed; smooth nut butter only thinly spread; low-sodium broth; light tuna, not albacore.
 
 Return ONLY one JSON object (no markdown fences):
 {

@@ -174,4 +174,80 @@ t('validate: round-trips clean state and strips corrupt dates/entries', () => {
   assert.strictEqual(K.validate(null), null);
 });
 
+t('a log day in an earlier week never replaces this week\'s plan (made / Mama cooked marks stay)', () => {
+  const s = K.defaults();
+  K.ensureWeekPlan(s, now);
+  const wk = s.plan.week, tue = '2026-11-24';
+  K.markSlot(s, tue, 'dinner', 'mama', '', now);
+  K.ensureWeekPlan(s, new Date(2026, 10, 22, 12, 0)); // Sunday of last week (Log for an earlier day)
+  assert.strictEqual(s.plan.week, wk);
+  assert.strictEqual(s.plan.days[tue].dinner.status, 'mama');
+  K.ensureWeekPlan(s, new Date(2026, 11, 1, 12, 0)); // next week: a new plan
+  assert.strictEqual(s.plan.week, '2026-11-30');
+});
+
+t('sameFood: whole words; a describing word before or a cut after still matches, a different food does not', () => {
+  const yes = [['chicken thighs', 'chicken'], ['Chicken breasts', 'chicken'], ['boneless skinless chicken thighs', 'chicken'], ['red lentils', 'lentils'], ['ground beef', 'beef'], ['broccoli florets', 'broccoli'], ['baby spinach', 'spinach'], ['tomatoes', 'tomato'], ['eggs', 'egg'], ['greek yogurt', 'yogurt'], ['frozen peas', 'peas']];
+  const no = [['peanut butter', 'butter'], ['chicken broth', 'chicken'], ['tomato sauce', 'tomato'], ['sweet potato', 'potatoes'], ['oat milk', 'milk'], ['rice noodles', 'rice'], ['cream cheese', 'cheese'], ['egg noodles', 'eggs'], ['carrots', 'car']];
+  for (const [a, b] of yes) { assert.strictEqual(K.sameFood(a, b), true, a + ' ~ ' + b); assert.strictEqual(K.sameFood(b, a), true, b + ' ~ ' + a); }
+  for (const [a, b] of no) { assert.strictEqual(K.sameFood(a, b), false, a + ' !~ ' + b); assert.strictEqual(K.sameFood(b, a), false, b + ' !~ ' + a); }
+});
+
+t('Made it on a recipe with peanut butter leaves the butter alone; peanut butter still goes on the shopping list', () => {
+  const s = K.defaults();
+  K.addPantryItem(s, { name: 'butter', qty: 1, unit: 'pack', cat: 'dairy', status: 'plenty' }, now);
+  K.addPantryItem(s, { name: 'tomato', qty: 4, unit: 'pcs', cat: 'produce', status: 'plenty' }, now);
+  const r = K.RECIPES.find((x) => x.ingredients.some((i) => i.name === 'peanut butter'));
+  K.deductRecipe(s, r.id, now);
+  assert.strictEqual(s.pantry.find((p) => p.name === 'butter').status, 'plenty');
+  // this week's only planned meals: the peanut-butter one and one with tomato sauce (butter and tomato are plenty)
+  K.ensureWeekPlan(s, now);
+  Object.values(s.plan.days).forEach((day) => Object.keys(day).forEach((m) => { day[m].status = 'made'; }));
+  const ts = K.RECIPES.find((x) => x.ingredients.some((i) => i.name === 'tomato sauce'));
+  s.plan.days['2026-11-27'].breakfast = { recipeId: r.id, title: r.title, status: 'planned', note: '' };
+  s.plan.days['2026-11-27'].dinner = { recipeId: ts.id, title: ts.title, status: 'planned', note: '' };
+  const names = K.shoppingList(s, now).map((x) => x.name);
+  assert.ok(names.includes('peanut butter'), 'peanut butter to buy: ' + names);
+  assert.ok(names.includes('tomato sauce'), 'tomato sauce to buy: ' + names);
+  assert.ok(!names.includes('butter') && !names.includes('tomato'));
+});
+
+t('AI plan: a null or odd ingredient is skipped, not a crash', () => {
+  const s = K.defaults();
+  const ok = K.applyAiPlan(s, { days: [{ dinner: { title: 'Rice bowl', steps: ['Cook rice'], ingredients: [null, 7, 'rice', { name: 'eggs', qty: 2 }] } }] }, now);
+  assert.ok(ok);
+  const r = Object.values(s.aiRecipes)[0];
+  assert.deepStrictEqual(r.ingredients.map((x) => x.name), ['rice', 'eggs']);
+  const v = K.validate(JSON.parse(JSON.stringify(Object.assign({}, s, { aiRecipes: { x: Object.assign({}, r, { ingredients: [null, { name: 'milk' }] }) } }))));
+  assert.deepStrictEqual(v.aiRecipes.x.ingredients.map((x) => x.name), ['milk']);
+});
+
+t('validate keeps the AI recipes this week\'s plan uses (and the newest), and a waiting photo scan', () => {
+  const s = K.defaults();
+  K.ensureWeekPlan(s, now);
+  for (let w = 0; w < 3; w++) for (let d = 0; d < 7; d++) for (const m of ['breakfast', 'lunch', 'dinner']) {
+    const date = K.iso(new Date(2026, 10, 9 + 7 * w + d)), id = 'ai-' + date + '-' + m;
+    s.aiRecipes[id] = { id, title: 'AI ' + date + ' ' + m, meal: m, mins: 20, protein: '', babyNote: '', tip: '', ingredients: [{ name: 'rice', qty: 1, unit: '', cat: 'pantry' }], steps: ['a'] };
+    if (w === 2) s.plan.days[date] = Object.assign(s.plan.days[date] || {}, { [m]: { recipeId: id, title: 'AI', status: 'planned', note: '' } });
+  }
+  assert.strictEqual(Object.keys(s.aiRecipes).length, 63);
+  const v = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(Object.keys(v.aiRecipes).length, 40);
+  Object.keys(v.plan.days).forEach((day) => ['breakfast', 'lunch', 'dinner'].forEach((m) => { const x = v.plan.days[day][m]; if (x && /^ai-/.test(x.recipeId)) assert.ok(v.aiRecipes[x.recipeId], 'kept ' + x.recipeId); }));
+  assert.ok(v.aiRecipes['ai-2026-11-22-dinner'] && !v.aiRecipes['ai-2026-11-09-breakfast'], 'newest kept, oldest dropped');
+  s.lastPhoto = { at: now.toISOString(), summary: 'Fridge', items: [null, { name: 'Milk', qty: '2', unit: 'L', status: 'low', cat: 'dairy', expiresInDays: 4 }, { name: '' }, { name: 'Kale', expiresInDays: 'x' }] };
+  const v2 = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.deepStrictEqual(v2.lastPhoto.items, [{ name: 'Milk', qty: 2, unit: 'L', status: 'low', cat: 'dairy', expiresInDays: 4 }, { name: 'Kale' }]);
+  assert.strictEqual(v2.lastPhoto.summary, 'Fridge');
+  assert.deepStrictEqual(K.validate(JSON.parse(JSON.stringify(v2))).lastPhoto, v2.lastPhoto, 'stable');
+});
+
+t('toddler portions: eggs cooked through, light tuna, low-sodium broth, no cucumber rounds for {child}', () => {
+  assert.ok(!K.RECIPES.some((r) => /soft scrambled/i.test(r.babyNote)), 'no soft-scrambled egg for {child}');
+  for (const r of K.RECIPES) {
+    if (r.ingredients.some((i) => /cucumber/.test(i.name))) assert.ok(/strips|dice/.test(r.babyNote), r.id + ': how to cut her cucumber');
+    if (r.ingredients.some((i) => /tuna/.test(i.name))) assert.ok(r.ingredients.some((i) => /light tuna/.test(i.name)), r.id + ': light tuna');
+    if (r.ingredients.some((i) => /broth|stock/.test(i.name))) assert.ok(r.ingredients.some((i) => /low-sodium/.test(i.name)), r.id + ': low-sodium broth');
+  }
+});
 console.log(n + ' cook unit tests passed');

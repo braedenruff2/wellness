@@ -178,6 +178,9 @@ t('usesAlarm, darkOn, scheduleDark/lightUp, intervalEvery/ringInterval, roughDay
   Sit.calmAlarm(1234.6, Sit.alarmLabel(pCount, 20));
   Sit.calmAlarm(-5, '');
   assert.deepStrictEqual(calls.alarm, [[1235, 'Counting breaths · 20 min'], [0, '']]);
+  assert.strictEqual(Sit.alarmLabel({ title: 'Quiet timer' }, 100 / 60), 'Quiet timer · 1:40', 'exact time with seconds');
+  assert.strictEqual(Sit.alarmLabel({ title: 'Quiet timer' }, 5 / 60), 'Quiet timer · 0:05');
+  assert.strictEqual(Sit.alarmLabel({ title: 'Quiet timer' }, 3), 'Quiet timer · 3 min');
 });
 
 console.log(n + ' calm-sit unit tests passed');
