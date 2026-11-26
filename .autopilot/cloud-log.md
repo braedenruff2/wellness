@@ -1,5 +1,11 @@
 # Cloud log
 
+## 2026-11-26 00:30-01:00 AST (same run, continued; APK 0.1.20261126.0457, real key, cert 6795e499...)
+- Rotation turn on singing-helper in between (PC folder; see Claude Autopilot logs\singing-helper.md).
+- Done 149, 173 (a11y for the new Calm and Faith controls), 162 (WL.darkScreen in shell.js shared by Calm sits and Faith guided prayers 21:00-05:00 after 20 s, setting darkPray), 163 (storage: a year of daily sits), 166 (whole Quiet sit e2e), 167 (bug: a sit 23:50-00:10 was filed under the next day / cause: dated at finish / fixed: calm.js sessionTime() uses the start unless logging for an earlier day / test: e2e-rough), 170 (shell e2e for darkScreen), 171 (CalmAlarm.allowedHash + Java test), 172 (stage round-trip unit). Added 167-176.
+- Tested: full suite at 2a73c68 (74 suites, none skipped; this APK's code); calm/faith unit in 4 zones; a11y suite after 1c7aa78.
+- Check on the phone: a guided prayer after 9 pm goes dark after 20 s (tap shows the words); Pray now has "Dark screen late at night".
+
 ## 2026-11-25 23:42 - 2026-11-26 00:30 AST (cloud run; PC reachable; APK 0.1.20261126.0422, real key, cert 6795e499...)
 - Cross-reviewed Gemini's ed2262a..c7364ed (validate fix, 138-140, 144 CalmAlarm, #c-recent sit info). bug: CalmAlarm used notification id 7 (Updater's "Wellness updated") and tap request code 8 (TodoAlarm's MainActivity intent, so FLAG_UPDATE_CURRENT could make a to-do reminder open Calm) / cause: copied numbers / fixed: own ids 9 (3ae2994) / test: tests/android-ids.cjs scans every Java file for shared notification ids and MainActivity tap request codes.
 - Done 148+152: Calm sits and the quiet timer go dark after 10 s (black overlay + window brightness 0.01 via new MainActivity.dimScreen; tap/Space/Enter shows the time, dark again 10 s later; pause, end, finish and coming back to the app light it), so the phone never needs locking and the voice keeps going; setting "Dark screen during sits and the quiet timer" (on). "Soft bell during sits" every 5/10 min (WL.softBell; none in the last 30 s).
