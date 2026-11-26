@@ -15,12 +15,27 @@
     return { score: l.score, tooLong: l.tooLong, rough: M.rough(), racing: !!l.racing, flat: l.flat || 0, prefer: pl && pl.prefer && !(M.planFlagged && M.planFlagged('calm')) ? pl.prefer : [] };
   }
   function fit(id, text) { return window.WLMe ? ' ' + WLMe.fitLink('calm', id, text) : ''; }
-  /* pick: a length chosen on the practice's own start screen, for that session only (the saved default stays). */
+  /* pick: a length chosen on the practice's own start screen, for that session only (the saved default stays).
+     pick = { id, m, secs? } where secs (optional) gives exact duration in seconds for custom timer input. */
   var pick = null;
   function mins(p) {
     if (!p.fixed && pick && pick.id === p.id) return pick.m;
     if (p.path) return S.settings.sitMinutes || 20;
     return p.fixed ? p.minutes : (p.kind === 'pacer' || p.kind === 'timer' ? S.settings.minutes : p.minutes);
+  }
+  function totalSecs(p) {
+    if (!p.fixed && pick && pick.id === p.id && pick.secs > 0) return pick.secs;
+    return Math.round(mins(p) * 60);
+  }
+  function fmtTimer(secs) {
+    secs = Math.max(0, Math.ceil(secs));
+    var m = Math.floor(secs / 60), s = secs % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+  function beginLabel(p) {
+    var s = totalSecs(p);
+    if (s % 60 === 0) return '▶ Begin · ' + (s / 60) + ' min';
+    return '▶ Begin · ' + fmtTimer(s);
   }
   /* Lengths offered on the start screen: the list's lengths for breathing and the timer; for a guided practice its
      usual length with a shorter and a longer one (the quiet stretches; the words stay the same). */
@@ -34,10 +49,31 @@
   function roughDay(p) { return Sit.roughDay(S, p); }
   function roughLine(p) { return Sit.roughLine(S, p); }
   function quietChip(p) { return Sit.quietChip(S, p); }
+  function noiseChips(idAttr) {
+    var cur = (S.settings && S.settings.noise) || 'off';
+    var labels = (window.WLNoise && WLNoise.LABELS) || { off: 'Off', brown: 'Warm brown', pink: 'Soft rain', white: 'White noise' };
+    return '<div class="chips" id="' + idAttr + '" role="group" aria-label="Background sound">' + K.NOISE_KINDS.map(function (k) {
+      return '<button class="chip" type="button" data-noise="' + k + '" aria-pressed="' + (cur === k) + '">' + esc(labels[k] || k) + '</button>';
+    }).join('') + '</div>';
+  }
+  function noiseRow(p) {
+    if (!Sit.usesAlarm(p)) return '';
+    return '<div id="c-noise-row" style="text-align:center;margin:4px 0 6px"><div class="meta" style="margin-bottom:4px">Background sound</div>' +
+      noiseChips('c-noise-pick').replace('class="chips"', 'class="chips" style="justify-content:center"') + '</div>';
+  }
+  function exactTimerRow(p) {
+    if (p.fixed || (!p.path && p.kind !== 'timer' && p.kind !== 'pacer')) return '';
+    var withSecs = p.kind === 'timer' || p.kind === 'pacer';
+    return '<div class="row" id="c-exact" style="justify-content:center;gap:6px;margin:2px 0 6px">' +
+      '<label class="meta" for="c-exact-m">Exact timer</label>' +
+      '<input type="number" id="c-exact-m" class="ck-custom-min" min="' + (withSecs ? 0 : 1) + '" max="120" inputmode="numeric" placeholder="min" aria-label="Exact minutes">' +
+      (withSecs ? '<span class="meta">:</span><input type="number" id="c-exact-s" class="ck-custom-min" min="0" max="59" inputmode="numeric" placeholder="sec" aria-label="Exact seconds">' : '<span class="meta">min</span>') +
+      '</div>';
+  }
   function lengthChips(p) {
     var ls = lengths(p); if (!ls.length) return '';
     return '<div class="chips" id="c-len" role="group" aria-label="Length" style="justify-content:center;margin:6px 0">' + ls.map(function (m) {
-      return '<button class="chip" data-len="' + m + '" aria-pressed="' + (mins(p) === m) + '">' + m + ' min</button>'; }).join('') + '</div>';
+      return '<button class="chip" data-len="' + m + '" aria-pressed="' + (mins(p) === m && !(pick && pick.id === p.id && pick.secs && pick.secs % 60 !== 0)) + '">' + m + ' min</button>'; }).join('') + '</div>' + exactTimerRow(p);
   }
 
   /* The top of Calm: what to do today. One short practice a day is the goal; once it's done, say so plainly and
@@ -132,6 +168,7 @@
       '<div class="row" style="margin-top:8px"><span class="grow">Soft bell during sits</span></div><div class="chips" id="c-iv">' + K.INTERVALS.map(function (m) {
       return '<button class="chip" data-iv="' + m + '" aria-pressed="' + ((S.settings.interval || 0) === m) + '">' + (m ? 'Every ' + m + ' min' : 'Off') + '</button>';
     }).join('') + '</div>' +
+      '<div class="row" style="margin-top:8px"><span class="grow">Background sound during sits</span></div>' + noiseChips('c-noise') +
       '<div class="row" style="margin-top:8px"><span class="grow">Calm is mainly for</span></div><div class="chips" id="c-aim-set">' + aimChips() + '</div></div>';
     var helped = window.WLMe && WLMe.calmHelped ? WLMe.calmHelped() : {};
     // a practice that hasn't helped him in 3+ tries goes to the end of the list
@@ -192,12 +229,12 @@
       '<div class="progress"><div id="c-prog"></div></div>' +
       (p.kind === 'pacer' ? '<div class="pacer"><div class="ring"><div class="ball" id="c-ball"></div><div class="ring-min" aria-hidden="true"></div></div><div class="pacer-label" id="c-label">Ready</div></div>'
         : '<div class="line" id="c-line">' + esc(p.blurb || '') + '</div>') +
-      '<div class="meta" id="c-left" style="text-align:center;min-height:1.4em"></div>' +
+      '<div class="meta" id="c-left" style="text-align:center;min-height:1.4em;font-variant-numeric:tabular-nums"></div>' +
       (p.path ? '' : rating('c-before', 'How stressed are you right now?')) +
-      lengthChips(p) + quietChip(p) + Sit.firstSitTip(S, p) + roughLine(p) +
-      '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">▶ Begin · ' + mins(p) + ' min</button></div>' +
+      lengthChips(p) + quietChip(p) + noiseRow(p) + Sit.firstSitTip(S, p) + roughLine(p) +
+      '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">' + beginLabel(p) + '</button></div>' +
       (Sit.darkOn(S, p) && Sit.darkHint(S) ? '<p class="meta" id="c-dark-hint" style="text-align:center">The screen goes dark while you sit, so you needn’t lock the phone. Tap it to see the time.</p>' : '') +
-      '<div id="c-after" hidden>' + (p.path ? Sit.sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button></div></div></div>';
+      '<div id="c-after" hidden>' + (p.path ? Sit.sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button><button class="link" type="button" data-wl-note="#calm/s/' + esc(p.id) + '">💡 Note for autopilot</button></div></div></div>';
   }
 
   function usesAlarm(p) { return Sit.usesAlarm(p); }
@@ -209,6 +246,7 @@
   function stopRun() {
     if (!run) return;
     lightUp();
+    if (window.WLNoise) WLNoise.stop();
     cancelAnimationFrame(run.raf); clearTimeout(run.timer); clearInterval(run.tick);
     if (run.player) run.player.stop();
     WL.speech.stop(); WL.keepAwake(false); calmAlarm(0, '');
@@ -240,24 +278,28 @@
   }
 
   function begin(p) {
-    var total = mins(p) * 60, before = run && run.before;
+    var total = totalSecs(p), before = run && run.before;
     stopRun();
     run = { p: p, start: Date.now(), pausedFor: 0, paused: false, before: before, total: total, iv: 0 };
     var every = Sit.intervalEvery(S, p);
     WL.keepAwake(true); WL.bell();
+    if (usesAlarm(p) && window.WLNoise && S.settings.noise && S.settings.noise !== 'off') WLNoise.start(S.settings.noise);
     if (usesAlarm(p)) calmAlarm(total * 1000, alarmLabel(p));
     var pp = $('#c-pp'); pp.textContent = '⏸ Pause'; pp.dataset.state = 'playing';
     var lc = $('#c-len'); if (lc) lc.hidden = true;
+    var ex = $('#c-exact'); if (ex) ex.hidden = true;
+    var nr = $('#c-noise-row'); if (nr) nr.hidden = true;
     var qr = $('#c-quiet-row'); if (qr) qr.hidden = true;
     var ft = $('#c-first-tip'); if (ft) ft.hidden = true;
     if ($('#c-before')) $('#c-before').hidden = true;
     var progress = function () {
       var e = elapsed();
       $('#c-prog').style.width = Math.min(100, 100 * e / total) + '%';
-      if (p.kind !== 'guided') $('#c-left').textContent = Math.max(0, Math.ceil((total - e) / 60)) + ' min left';
+      if (p.kind !== 'guided' || p.path) $('#c-left').textContent = fmtTimer(total - e) + ' left';
       Sit.ringInterval(run, every, e);
       if (p.kind !== 'guided' && e >= total) finish(!!(usesAlarm(p) && WL.native && WL.native.calmAlarm && e - total > 5));
     };
+    progress();
     run.tick = setInterval(progress, 500);
     scheduleDark();
     if (p.kind === 'pacer') {
@@ -301,7 +343,26 @@
       // a sit length is kept for next time (not the shorter one picked because of a rough night)
       if (p.path && !(roughDay(p) && pick.m <= 10)) { S.settings.sitMinutes = pick.m; save(); }
       $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
-      $('#c-pp').textContent = '▶ Begin · ' + pick.m + ' min';
+      var em = $('#c-exact-m'), es = $('#c-exact-s'); if (em) em.value = ''; if (es) es.value = '';
+      $('#c-pp').textContent = beginLabel(p);
+    }; });
+    function applyExact() {
+      var em = $('#c-exact-m'), es = $('#c-exact-s');
+      var m = em ? Math.max(0, Math.min(120, Math.floor(+em.value || 0))) : 0;
+      var s = es ? Math.max(0, Math.min(59, Math.floor(+es.value || 0))) : 0;
+      var tot = m * 60 + s;
+      if (p.path && m < 1) return;
+      if (tot < 10) return;
+      pick = { id: p.id, m: tot / 60, secs: tot };
+      $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', String(+x.dataset.len * 60 === tot)); });
+      $('#c-pp').textContent = beginLabel(p);
+    }
+    var em = $('#c-exact-m'), es = $('#c-exact-s');
+    if (em) em.oninput = applyExact;
+    if (es) es.oninput = applyExact;
+    $$('#c-noise-pick [data-noise]').forEach(function (b) { b.onclick = function () {
+      S.settings.noise = b.dataset.noise; save();
+      $$('#c-noise-pick [data-noise]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
     }; });
     var qb = $('#c-quiet');
     if (qb) qb.onclick = function () { S.settings.sitQuiet = !S.settings.sitQuiet; save(); qb.setAttribute('aria-pressed', !!S.settings.sitQuiet); };
@@ -329,11 +390,13 @@
       if (!st) return begin(p);
       if (st === 'playing') {
         run.paused = true; run.pausedAt = Date.now(); if (run.player) run.player.pause(); WL.keepAwake(false);
+        if (window.WLNoise) WLNoise.stop();
         if (usesAlarm(p)) calmAlarm(0, '');
         lightUp();
         b.textContent = '▶ Resume'; b.dataset.state = 'paused';
       } else {
         run.pausedFor += Date.now() - run.pausedAt; run.paused = false; if (run.player) run.player.resume(); if (run.frame) run.frame(); WL.keepAwake(true);
+        if (usesAlarm(p) && window.WLNoise && S.settings.noise && S.settings.noise !== 'off') WLNoise.start(S.settings.noise);
         if (usesAlarm(p)) calmAlarm(Math.max(0, run.total * 1000 - elapsed() * 1000), alarmLabel(p));
         scheduleDark();
         b.textContent = '⏸ Pause'; b.dataset.state = 'playing';
@@ -394,6 +457,7 @@
     $('#ctk').onclick = function () { S.settings.tick = !S.settings.tick; save(); route([]); };
     $('#cdk').onclick = function () { S.settings.dark = S.settings.dark === false; save(); route([]); };
     $$('[data-iv]').forEach(function (b) { b.onclick = function () { S.settings.interval = +b.dataset.iv; save(); route([]); }; });
+    $$('#c-noise [data-noise]').forEach(function (b) { b.onclick = function () { S.settings.noise = b.dataset.noise; save(); route([]); }; });
     $$('[data-aim]').forEach(function (b) { b.onclick = function () { S.settings.aim = b.dataset.aim; save(); route([]); }; });
     $$('[data-stage]').forEach(function (b) { b.onclick = function () { K.setStage(S, b.dataset.stage); save(); WL.toast('Your stage: ' + titleOf(K.stageOf(S))); route([]); }; });
   }

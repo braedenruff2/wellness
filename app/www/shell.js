@@ -337,7 +337,12 @@
   function home() {
     homeStamp = makeHomeStamp();
     var h = '<div class="meta ui">' + esc(greeting()) + ' · ' + esc(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>' +
-      '<h1>Today</h1>' + saveFailHtml('wl-savefail') + todayList() + weekCard() + (syncNudge() || backupNudge());
+      '<h1>Today</h1>' +
+      '<div class="chips ui" id="wl-quick" style="margin:0 0 12px">' +
+      '<a class="chip" href="#journal">✎ Journal</a>' +
+      (modules.cook ? '<a class="chip" href="#cook">🍳 Cook</a>' : '') +
+      '<button class="chip" id="wl-note-open" data-wl-note="#home" type="button">💡 Note for autopilot</button></div>' +
+      saveFailHtml('wl-savefail') + todayList() + weekCard() + (syncNudge() || backupNudge());
     order.forEach(function (id) {
       var m = modules[id];
       if (!m.card) return;
@@ -557,6 +562,7 @@
     var stores = {};
     order.forEach(function (id) { (modules[id].storageKeys || []).forEach(function (k) { var v = lsGet(k); if (v != null) stores[k] = v; }); });
     var v = lsGet(SKEY); if (v != null) stores[SKEY] = v;
+    if (window.WLNotes) { var nv = lsGet(WLNotes.KEY); if (nv != null) stores[WLNotes.KEY] = nv; }
     return JSON.stringify({ app: 'wellness', exported: new Date().toISOString(), stores: stores }, null, 1);
   }
   function validateShell(raw) {
@@ -581,16 +587,19 @@
     if (o && o.app === 'faith-companion' && modules.faith && modules.faith.importOld) { modules.faith.importOld(raw); return; }
     if (!o || o.app !== 'wellness' || !o.stores || typeof o.stores !== 'object') throw new Error('This is not a backup from this app.');
     var allowed = {}, skipped = []; allowed[SKEY] = 1;
+    if (window.WLNotes) allowed[WLNotes.KEY] = 1;
     order.forEach(function (id) { (modules[id].storageKeys || []).forEach(function (k) { allowed[k] = 1; }); });
     Object.keys(o.stores).forEach(function (k) {
       if (!allowed[k] || typeof o.stores[k] !== 'string') return;
       if (k === SKEY) { var sv = validateShell(o.stores[k]); if (sv != null) lsSet(k, sv); else skipped.push('Settings'); return; }
+      if (window.WLNotes && k === WLNotes.KEY) { var nv = WL.notes && WL.notes.validateRaw ? WL.notes.validateRaw(o.stores[k]) : null; if (nv != null) lsSet(k, nv); else skipped.push('Autopilot notes'); return; }
       var m = order.map(function (id) { return modules[id]; }).filter(function (m) { return (m.storageKeys || []).indexOf(k) >= 0; })[0];
       var val = o.stores[k];
       if (m && m.validate) val = m.validate(k, val); // each module checks its own data
       if (val != null) lsSet(k, val); else if (m) skipped.push(m.title || m.id || k);
     });
     SH = shellStore.load();
+    if (WL.notes && WL.notes.reload) WL.notes.reload();
     order.forEach(function (id) { if (modules[id].reload) modules[id].reload(); });
     return skipped; // parts whose data in the backup was unreadable (left as they were)
   }
@@ -646,6 +655,7 @@
     var id = parts[0] || 'home';
     var m = modules[id];
     speech.stop(); // nothing keeps talking on a screen that has no Stop button
+    if (window.WLNoise) WLNoise.stop();
     darkScreen.stop(); // nor stays dark (each part also stops it when it leaves)
     if (current && current.leave) try { current.leave(); } catch (e) {}
     document.body.className = '';
@@ -654,6 +664,12 @@
     else {
       view.innerHTML = id === 'settings' ? settingsHtml() : home(); wireShell();
       $$('.home-card').forEach(function (el) { var mm = modules[el.dataset.module]; if (mm && mm.wireCard) try { mm.wireCard(el); } catch (e) {} });
+    }
+    var bar = document.getElementById('wl-bar');
+    if (bar) {
+      bar.innerHTML = '<button class="link" id="wl-bar-note" data-wl-note="1" type="button">💡 Note for autopilot</button>' +
+        (id !== 'journal' ? '<a class="link" href="#journal">✎ Journal</a>' : '') +
+        (modules.cook && id !== 'cook' ? '<a class="link" href="#cook">🍳 Cook</a>' : '');
     }
     var tab = m ? (m.navAs || id) : 'home';
     $$('nav#tabs a').forEach(function (a) {

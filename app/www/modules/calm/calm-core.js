@@ -313,8 +313,8 @@
   }
   function timesDone(state, id) { return state.sessions.filter(function (s) { return s.id === id; }).length; }
 
-  var DAILY_GOALS = [1, 5, 10, 15, 20], SIT_LENGTHS = [10, 15, 20, 30];
-  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10, aim: null, stage: 'count', sitMinutes: 20, dark: true, interval: 0, sitQuiet: false } }; }
+  var DAILY_GOALS = [1, 5, 10, 15, 20], SIT_LENGTHS = [10, 15, 20, 30], NOISE_KINDS = ['off', 'brown', 'pink', 'white'];
+  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10, aim: null, stage: 'count', sitMinutes: 20, dark: true, interval: 0, sitQuiet: false, noise: 'off' } }; }
   /* A quiet sit (settings.sitQuiet): the opening steps up to the main instruction (the first long silence), then
      silence, then the last two closing lines. The silences of the dropped lines go to the main one, so scaleScript
      still fills the sit. Steps are copied; the practice's own list is never changed. */
@@ -568,6 +568,7 @@
     if (typeof st.tick === 'boolean') d.settings.tick = st.tick;
     if (typeof st.dark === 'boolean') d.settings.dark = st.dark;
     if (typeof st.sitQuiet === 'boolean') d.settings.sitQuiet = st.sitQuiet;
+    if (NOISE_KINDS.indexOf(st.noise) >= 0) d.settings.noise = st.noise;
     if (INTERVALS.indexOf(st.interval) >= 0) d.settings.interval = st.interval;
     if (typeof st.rate === 'number' && st.rate >= 0.5 && st.rate <= 1.6) d.settings.rate = st.rate;
     if ([3, 5, 10, 15, 20].indexOf(st.minutes) >= 0) d.settings.minutes = st.minutes;
@@ -596,7 +597,7 @@
     });
   }
 
-  var api = { pathLate: pathLate, quietScript: quietScript, pathWhen: pathWhen, INTERVALS: INTERVALS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
+  var api = { pathLate: pathLate, quietScript: quietScript, pathWhen: pathWhen, INTERVALS: INTERVALS, NOISE_KINDS: NOISE_KINDS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

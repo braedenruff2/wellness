@@ -64,7 +64,7 @@ textarea { min-height: 96px; resize: vertical; line-height: 1.45; }
 .list a, .plain { color: inherit; text-decoration: none; display: block; }
 .tick { color: var(--good); font-family: system-ui, sans-serif; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-.chip { border: 1px solid var(--line); border-radius: 22px; padding: 8px 14px; background: var(--card); min-height: 44px; font-size: .9em; }
+.chip { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--line); border-radius: 22px; padding: 8px 14px; background: var(--card); color: var(--ink); min-height: 44px; font-size: .9em; text-decoration: none; }
 .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .tabs2 { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
 .tabs2 button { flex: 1 1 auto; min-height: 44px; padding: 6px 10px; font-size: .88em; }
@@ -89,7 +89,7 @@ nav#tabs {
 nav#tabs a { flex: 1; text-align: center; padding: 8px 0 10px; color: var(--soft); text-decoration: none; font-size: 13px; min-height: 56px; }
 nav#tabs a .ico { display: block; font-size: 20px; line-height: 1.2; }
 nav#tabs a[aria-current="page"] { color: var(--accent); font-weight: 600; }
-body.in-session nav#tabs { display: none; }
+body.in-session nav#tabs, body.in-session #wl-bar { display: none; }
 body.in-session { padding-bottom: 0; }
 .c-dark { position: fixed; inset: 0; background: #000; z-index: 9999; cursor: pointer; }
 #toast {
@@ -213,3 +213,14 @@ summary { min-height: 44px; box-sizing: border-box; padding: 10px 0; cursor: poi
 .wo-svg .wo-val { fill: var(--ink); font-weight: 600; }
 .wo-svg .wo-ref-lbl { fill: var(--good); font-weight: 600; }
 .wo-ex.wo-selected { border-color: var(--accent); }
+/* Everywhere autopilot-note footer bar & modal dialog */
+.wl-bar { max-width: 640px; margin: 0 auto 12px; padding: 8px 16px 0; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; align-items: center; }
+.wl-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); z-index: 30; display: flex; align-items: flex-end; justify-content: center; padding: 12px; }
+.wl-modal-box { width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto; margin: 0; }
+/* Cooking module */
+.ck-urg { display: inline-block; font-size: .78em; font-weight: 600; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--line); }
+.ck-urg.ck-soon { color: var(--warn); border-color: var(--warn); }
+.ck-urg.ck-ok { color: var(--good); border-color: var(--good); }
+.ck-slot { border-top: 1px solid var(--line); padding: 10px 0; }
+.ck-slot:first-child { border-top: 0; padding-top: 0; }
+.ck-custom-min { width: 5.5em; text-align: center; }

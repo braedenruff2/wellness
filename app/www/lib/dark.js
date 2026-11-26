@@ -10,7 +10,7 @@
   }
 
   var darkSt = { on: false, t: null, id: 'wl-dark', label: '', after: 10000 };
-  var UNDER = ['view', 'tabs', 'logday'];
+  var UNDER = ['view', 'tabs', 'logday', 'wl-bar'];
   function setUnderInert(on) {
     UNDER.forEach(function (id) {
       var el = document.getElementById(id); if (!el) return;
