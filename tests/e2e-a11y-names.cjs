@@ -17,7 +17,7 @@ const { simulate } = require('./lib/year.cjs');
   await page.reload(); await page.waitForSelector('.home-card');
   await t.step('every control on every page has a name TalkBack can read', async () => {
     const bad = [];
-    for (const h of ['#home', '#calm', '#workout', '#workout/history', '#workout/settings', '#tagalog', '#tagalog/words', '#tagalog/review', '#tagalog/settings', '#faith', '#faith/journal', '#faith/pray', '#faith/settings', '#todo', '#coach', '#coach/setup', '#me', '#journal', '#settings', '#link']) {
+    for (const h of ['#home', '#calm', '#workout', '#workout/history', '#workout/settings', '#tagalog', '#tagalog/words', '#tagalog/review', '#tagalog/settings', '#faith', '#faith/journal', '#faith/pray', '#faith/settings', '#todo', '#coach', '#coach/setup', '#me', '#journal', '#cook', '#cook/week', '#cook/log', '#cook/pantry', '#settings', '#link']) {
       await page.goto(base + h); await page.waitForTimeout(60);
       const found = await page.evaluate(() => {
         const nameOf = (e) => {

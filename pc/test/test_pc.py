@@ -51,6 +51,13 @@ elif 'ONE realistic' in p:
     ans = '{"title": "Teething at 3am", "skill": "Crying and comfort", "scenario": "S", "question": "Q"}'
 elif 'Tagalog' in p:
     ans = 'Sure! {"ok": false, "corrected": "Kumain ka na ba?", "meaning": "Have you eaten?", "explain": "e", "tip": "t"} Hope that helps.'
+elif 'Read and inspect the photo at:' in p:
+    import re as _re
+    m = _re.search(r'photo at:\\s*(\\S+)', p)
+    exists = bool(m and os.path.exists(m.group(1)))
+    ans = json.dumps({"summary": "photo-exists=" + str(exists), "items": [{"name": "milk", "qty": 0.5, "unit": "L", "status": "low", "cat": "dairy", "expiresInDays": 3, "amount": "half full"}]})
+elif '7-day meal plan' in p:
+    ans = json.dumps({"note": "Use expiring salmon first.", "days": [{"date": "2026-11-26", "breakfast": {"recipeId": "eggs-toast", "title": "Soft scrambled eggs, spinach & toast"}, "lunch": {"recipeId": "tuna-rice", "title": "10-minute tuna, avocado & cucumber rice bowl"}, "dinner": {"recipeId": "salmon-tray", "title": "20-minute baked salmon, spinach & potatoes"}}]})
 else:
     ans = json.dumps({"headline": "h", "points": [p[p.find('Activity'):p.find('Activity') + 60]], "next": "n"})
 print(json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": ans}))
@@ -492,6 +499,26 @@ plans = open(os.path.join(TMP, "progress", "plans", "weekly.jsonl"), encoding="u
 check("weekly plan kept on the PC", len(plans) == 1 and json.loads(plans[0])["answer"]["parts"]["calm"]["prefer"] == ["body"], plans)
 args = json.load(open(FAKE + ".args"))
 check("weekly plan can't use tools", args[args.index("--tools") + 1] == "", args)
+# Cooking tasks (cook-plan & cook-photo with temp image file + cleanup) and autopilot notes in summary
+st, r = ask("cook-plan", {"weekStart": "2026-11-23", "expiring": [{"name": "salmon", "daysLeft": 1}]})
+check("cook-plan returns 7-day plan", r.get("state") == "done" and "salmon" in r["answer"].get("note", "").lower(), r)
+import base64 as _b64
+_tiny_jpg = _b64.b64encode(b"\xff\xd8\xff\xe0" + b"\x00" * 32 + b"\xff\xd9").decode("ascii")
+st, r = ask("cook-photo", {"imageBase64": _tiny_jpg, "note": "fridge shelf", "pantry": []})
+check("cook-photo writes temp image for Read tool and returns items",
+      r.get("state") == "done" and r["answer"].get("summary") == "photo-exists=True" and len(r["answer"].get("items") or []) == 1, r)
+args = json.load(open(FAKE + ".args"))
+check("cook-photo allows Read tool only", args[args.index("--tools") + 1] == "Read" and args[args.index("--allowedTools") + 1] == "Read", args)
+check("cook-photo cleans up temp image files after job", not any(f.startswith("cook-photo-") for f in os.listdir(W.STATE)))
+st, o, _ = req("POST", "/v1/activity", {"events": [
+    {"id": "note/n1", "at": today + "T15:00:00-04:00", "part": "app", "kind": "autopilot-note", "text": "Add exact timer to Calm", "data": {"where": "#calm", "tag": "Feature"}},
+    {"id": "cook/m1", "at": today + "T18:00:00-04:00", "part": "cook", "kind": "me-meal", "text": "Baked salmon", "data": {"meal": "dinner", "portion": "Large"}},
+    {"id": "cook/c1", "at": today + "T12:00:00-04:00", "part": "cook", "kind": "child-meal", "text": "Soft egg", "data": {"meal": "lunch", "ate": "Most of it"}}
+]}, token=token)
+check("autopilot notes and cook events accepted", st == 200 and o.get("saved") == 3, (st, o))
+_sm2 = W.summarize(7)
+check("summary includes cook counts and autopilot notes section",
+      "his meals: Baked salmon" in _sm2 and "little one: Soft egg" in _sm2 and "Notes he left for the autopilot" in _sm2 and "Add exact timer to Calm" in _sm2, _sm2)
 
 os.environ["WELLNESS_CLAUDE"] = os.path.join(TMP, "no-such-claude")
 st, r = ask("advice", {})

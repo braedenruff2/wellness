@@ -223,4 +223,18 @@ t('workout-done: reports active training minutes (excludes breaks > 90 min, clam
   assert.strictEqual(byDay['bad-1'], null, 'missing start stays null');
   assert.strictEqual(done.find((e) => e.text === 'Day A' && e.data.sets === 2).data.mins, 29);
 });
+t('autopilot notes (wl.notes.v1) and cooking logs (wl.cook.v1) emit activity events with readable descriptions', () => {
+  const N = require('../../../app/www/lib/notes.js');
+  const CK2 = require('../../../app/www/modules/cook/cook-core.js');
+  const ns = N.defaults();
+  N.add(ns, 'Add white noise to sits', '#calm/s/count', 'Feature', at(8, 30));
+  const cs = CK2.defaults();
+  CK2.logMe(cs, { meal: 'dinner', text: 'Baked salmon & spinach', portion: 'Large', tags: ['High protein'] }, at(18, 0));
+  CK2.logChild(cs, { meal: 'lunch', offered: 'Soft egg & banana', ate: 'Most of it', note: 'liked banana' }, at(12, 30));
+  const ev = A.collect({ 'wl.notes.v1': ns, 'wl.cook.v1': cs }, {}, now);
+  assert.deepStrictEqual(ev.map((e) => e.part + '/' + e.kind), ['app/autopilot-note', 'cook/child-meal', 'cook/me-meal']);
+  assert.ok(A.describe(ev[0]).includes('Add white noise to sits') && A.describe(ev[0]).includes('#calm/s/count'), A.describe(ev[0]));
+  assert.ok(A.describe(ev[1]).includes('Soft egg & banana') && A.describe(ev[1]).includes('Most of it'), A.describe(ev[1]));
+  assert.ok(A.describe(ev[2]).includes('Baked salmon & spinach') && A.describe(ev[2]).includes('Large'), A.describe(ev[2]));
+});
 console.log(n + ' activity tests passed');

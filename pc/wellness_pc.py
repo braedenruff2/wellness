@@ -114,7 +114,7 @@ def loudbook_speak(text, sid, speed, engine="natural", timeout=60):
     except (OSError, http.client.HTTPException) as e:
         raise RuntimeError("Loudbook's PC voice isn't running (" + str(e)[:80] + ")")
     finally: c.close()
-PARTS = ("faith", "calm", "workout", "tagalog", "todo", "coach", "checkin", "app")
+PARTS = ("faith", "calm", "workout", "tagalog", "todo", "coach", "cook", "checkin", "app")
 
 
 def path(name):
@@ -532,7 +532,19 @@ def summarize(days=7, today=None):
         elif part == "todo":
             done = [e.get("text", "") for e in es if e["kind"] == "done"]
             if done: extra = "; done: " + ", ".join(t for t in done[-8:] if t)
+        elif part == "cook":
+            me_m = [e.get("text", "") for e in es if e["kind"] == "me-meal"]
+            ch_m = [e.get("text", "") for e in es if e["kind"] == "child-meal"]
+            bits = []
+            if me_m: bits.append("his meals: " + ", ".join(me_m[-5:]))
+            if ch_m: bits.append("little one: " + ", ".join(ch_m[-5:]))
+            if bits: extra = "; " + "; ".join(bits)
         lines.append(f"- {part}: {kinds(es)} on {d} day(s){extra}")
+    notes = [e for e in ev if e["part"] == "app" and e["kind"] == "autopilot-note" and e.get("text")]
+    if notes:
+        lines.append("Notes he left for the autopilot (newest last):")
+        for e in notes[-20:]:
+            lines.append(f"  - {local_day(e['at'])} {e['text']}")
     # an answer he tapped and then un-tapped arrives as an empty one (newest wins on the PC): nothing to say about it
     fb = [e for e in ev if e["kind"] == "not-for-me" or (e["kind"] == "feedback" and (e.get("text") or ((e.get("data") or {}).get("a") or {})))]
     if fb:
@@ -553,7 +565,7 @@ CLAUDE_RESET_DAY = 2   # Wednesday (0=Mon .. 6=Sun), noon local time
 CLAUDE_RESET_HOUR = 12
 GEMINI_RESET_DAY = 0   # Monday, start of day local time
 GEMINI_RESET_HOUR = 0
-GEMINI_TOOLS = {"WebSearch": "google_web_search", "WebFetch": "web_fetch"}
+GEMINI_TOOLS = {"WebSearch": "google_web_search", "WebFetch": "web_fetch", "Read": "read_file"}
 AI_STATE_FILE = "ai_state.json"
 ai_state_lock = threading.Lock()
 
@@ -709,7 +721,7 @@ def tip_notes(inp):
 
 PROMPTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts")
 # the tools each task may use (the rest get none); cloud runs answering queued requests use the same prompts
-TOOLS = {"coach-grade": "WebSearch,WebFetch", "coach-advice": "WebSearch,WebFetch"}
+TOOLS = {"coach-grade": "WebSearch,WebFetch", "coach-advice": "WebSearch,WebFetch", "cook-photo": "Read"}
 # what a prompt says when the phone sent nothing for a field
 DEFAULTS = {"coach-scenario": {"child": "his baby", "age": "about one year old",
                                "skill": "pick the one he needs most from his recent scores"},
@@ -721,10 +733,13 @@ def prompt_values(task, inp):
     """The {{name}} values for pc/prompts/<task>.md. Plain fields go in as text, quoted fields as JSON."""
     d = DEFAULTS.get(task, {})
     v = {k: str(inp.get(k) or d.get(k, "")) for k in ("child", "age", "skill")}
-    v.update({k: j(inp.get(k) or "") for k in ("scenario", "question", "answer", "situation", "task", "expected")})
+    v.update({k: j(inp.get(k) or "") for k in ("scenario", "question", "answer", "situation", "task", "expected", "note")})
     v["recent"] = j(inp.get("recent") or []); v["avoid"] = j(inp.get("avoid") or [])
     v["summary"] = str(inp.get("summary") or "")
     v["phone"] = j({"checkins": inp.get("checkins"), "feedback": inp.get("feedback")})[:20000]
+    v["pantry"] = j(inp.get("pantry") or [])[:12000]
+    v["cookdata"] = j({k: inp.get(k) for k in ("weekStart", "expiring", "pantry", "workout", "childAge", "childSummary", "recentMeals") if k in inp})[:20000]
+    v["photopath"] = str(inp.get("photopath") or "(photo attached in request)")
     v["can"] = can_do(inp); v["tips"] = tip_notes(inp); v["skills"] = j(SKILLS); v["rules"] = read_prompt("rules")
     return v
 
@@ -964,7 +979,8 @@ def parse_answer(text):
     return {"text": text.strip()[:MAX_TEXT]}
 
 
-TASKS = ("coach-scenario", "coach-grade", "coach-advice", "tagalog-check", "advice", "weekly-plan")
+TASKS = ("coach-scenario", "coach-grade", "coach-advice", "tagalog-check", "advice", "weekly-plan", "cook-plan", "cook-photo")
+MAX_PHOTO_B64 = 750_000
 
 
 class Jobs:
@@ -977,30 +993,48 @@ class Jobs:
     def start(cls, task, inp):
         if task not in TASKS: raise ValueError("unknown task")
         if not isinstance(inp, dict): raise ValueError("input must be an object")
-        inp = {k: (v[:MAX_TEXT] if isinstance(v, str) else v) for k, v in list(inp.items())[:20]}
+        photo_b64 = inp.get("imageBase64") if task == "cook-photo" and isinstance(inp.get("imageBase64"), str) else None
+        inp = {k: (v[:MAX_TEXT] if isinstance(v, str) else v) for k, v in list(inp.items())[:20] if k != "imageBase64"}
         if task in ("advice", "weekly-plan"): inp["summary"] = summarize(14)
-        prompt, tools = prompt_for(task, inp)
         jid = secrets.token_hex(8)
+        photo_path = None
+        if task == "cook-photo":
+            if not photo_b64 or len(photo_b64) > MAX_PHOTO_B64: raise ValueError("photo is missing or too large")
+            try: raw = base64.b64decode(photo_b64, validate=True)
+            except Exception: raise ValueError("photo data is not valid base64")
+            if len(raw) > 550_000: raise ValueError("photo is too large")
+            photo_path = progress("claude-work", f"photo-{jid}.jpg")
+            with open(photo_path, "wb") as f: f.write(raw)
+            inp["photopath"] = photo_path
+        prompt, tools = prompt_for(task, inp)
         with cls.lock:
             old = [k for k, v in cls.jobs.items() if v["state"] != "running" and time.time() - v["t"] > 3600]
             for k in old: del cls.jobs[k]
             if sum(1 for v in cls.jobs.values() if v["state"] == "running") >= 3:
+                if photo_path:
+                    try: os.remove(photo_path)
+                    except OSError: pass
                 raise RuntimeError("Claude is busy with three requests already; try again in a minute")
             cls.jobs[jid] = {"state": "running", "task": task, "t": time.time()}
-        threading.Thread(target=cls._run, args=(jid, task, inp, prompt, tools), daemon=True).start()
+        threading.Thread(target=cls._run, args=(jid, task, inp, prompt, tools, photo_path), daemon=True).start()
         return jid
 
     @classmethod
-    def _run(cls, jid, task, inp, prompt, tools):
-        with cls.run_lock:
-            try:
-                ans, secs, provider = run_ai(prompt, tools)
-                res = {"state": "done", "answer": ans, "secs": secs, "provider": provider}
-                cls.remember(task, inp, ans, provider)
-            except subprocess.TimeoutExpired:
-                res = {"state": "error", "error": "The AI request took too long (over %d s)" % CLAUDE_TIMEOUT}
-            except Exception as e:                                       # noqa: BLE001 (any failure goes to the phone)
-                res = {"state": "error", "error": str(e)[:400]}
+    def _run(cls, jid, task, inp, prompt, tools, photo_path=None):
+        try:
+            with cls.run_lock:
+                try:
+                    ans, secs, provider = run_ai(prompt, tools)
+                    res = {"state": "done", "answer": ans, "secs": secs, "provider": provider}
+                    cls.remember(task, inp, ans, provider)
+                except subprocess.TimeoutExpired:
+                    res = {"state": "error", "error": "The AI request took too long (over %d s)" % CLAUDE_TIMEOUT}
+                except Exception as e:                                       # noqa: BLE001 (any failure goes to the phone)
+                    res = {"state": "error", "error": str(e)[:400]}
+        finally:
+            if photo_path:
+                try: os.remove(photo_path)
+                except OSError: pass
         with cls.lock:
             cls.jobs[jid].update(res); cls.jobs[jid]["t"] = time.time()
         who = f" ({res['provider']})" if "provider" in res else ""

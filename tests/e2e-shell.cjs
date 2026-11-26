@@ -9,7 +9,7 @@ const W = require('./lib/web.cjs');
   await t.step('Home has a card for each module and the nav', async () => {
     await page.waitForSelector('.home-card');
     const mods = await page.$$eval('.home-card', (els) => els.map((e) => e.dataset.module));
-    for (const m of ['faith', 'calm', 'workout', 'tagalog', 'todo', 'journal']) assert.ok(mods.includes(m), 'card ' + m + ' in ' + mods);
+    for (const m of ['faith', 'calm', 'workout', 'tagalog', 'todo', 'journal', 'cook']) assert.ok(mods.includes(m), 'card ' + m + ' in ' + mods);
     const tabs = await page.$$eval('nav#tabs a', (els) => els.map((e) => e.dataset.tab));
     assert.deepStrictEqual(tabs, ['home', 'faith', 'calm', 'workout', 'tagalog', 'coach']);
   });
@@ -297,6 +297,37 @@ const W = require('./lib/web.cjs');
     assert.deepStrictEqual(r.afterOff, [['screen', 'screen'], 1], JSON.stringify(r));
     assert.deepStrictEqual(r.afterOffVis, [['screen', 'screen'], 1], JSON.stringify(r));
     assert.deepStrictEqual(r.afterRace, [['screen', 'screen', 'screen'], 2], JSON.stringify(r));
+  });
+  await t.step('everywhere "Note for autopilot" modal + quick Journal/Cook bar & backup round-trip', async () => {
+    await page.goto(base + '#home');
+    await page.waitForSelector('#wl-quick');
+    assert.ok(await page.$('#wl-quick a[href="#journal"]') && await page.$('#wl-quick a[href="#cook"]') && await page.$('#wl-note-open'));
+    await page.click('#wl-note-open');
+    await page.waitForSelector('#wl-note-modal');
+    await page.click('#wl-note-tags [data-ntag="Feature"]');
+    await page.fill('#wl-note-in', 'Add a quick timer preset');
+    await page.click('#wl-note-save');
+    await page.waitForFunction(() => !document.getElementById('wl-note-modal'));
+    const notes = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.notes.v1')).notes);
+    assert.strictEqual(notes.length, 1);
+    assert.strictEqual(notes[0].tag, 'Feature');
+    assert.strictEqual(notes[0].text, 'Add a quick timer preset');
+    // Footer bar on another screen opens modal scoped to that screen; Escape closes it
+    await page.goto(base + '#todo');
+    await page.waitForSelector('#wl-bar-note');
+    await page.click('#wl-bar-note');
+    await page.waitForSelector('#wl-note-modal');
+    assert.ok((await page.textContent('#wl-note-sheet')).includes('#todo'));
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.getElementById('wl-note-modal'));
+    // Backup round-trip keeps wl.notes.v1
+    const kept = await page.evaluate(() => {
+      const txt = WL.backupText();
+      localStorage.removeItem('wl.notes.v1');
+      WL.restoreText(txt);
+      return JSON.parse(localStorage.getItem('wl.notes.v1')).notes[0].text;
+    });
+    assert.strictEqual(kept, 'Add a quick timer preset');
   });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('shell browser');

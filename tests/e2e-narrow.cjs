@@ -77,7 +77,7 @@ const W = require('./lib/web.cjs');
     }, json);
     await page.reload(); await page.waitForSelector('.home-card');
     const bad = [];
-    for (const h of ['#home', '#calm', '#workout', '#workout/history', '#workout/settings', '#tagalog', '#tagalog/words', '#tagalog/review', '#tagalog/settings', '#faith', '#faith/journal', '#faith/pray', '#faith/settings', '#todo', '#coach', '#coach/setup', '#me', '#journal', '#settings', '#link']) {
+    for (const h of ['#home', '#calm', '#workout', '#workout/history', '#workout/settings', '#tagalog', '#tagalog/words', '#tagalog/review', '#tagalog/settings', '#faith', '#faith/journal', '#faith/pray', '#faith/settings', '#todo', '#coach', '#coach/setup', '#me', '#journal', '#cook', '#cook/week', '#cook/log', '#cook/pantry', '#settings', '#link']) {
       await page.goto(base + h); await page.waitForTimeout(60);
       const r = await page.evaluate(() => {
         const over = document.documentElement.scrollWidth - window.innerWidth;

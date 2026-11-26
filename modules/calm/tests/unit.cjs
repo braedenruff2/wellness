@@ -467,4 +467,13 @@ t('pathLate: two late, sleepy, wandering sits in a row -> suggest earlier (or hi
   [[20, 23], [21, 23]].forEach(([d, h]) => { const r = K.record(v, 'follow', 20, null, null, new Date(2026, 10, d, h)); K.rateSit(r, 1, ['Restless']); });
   assert.strictEqual(K.pathLate(v, new Date(2026, 10, 22)), null, 'restless, not sleepy');
 });
+t('ambient noise setting: off by default, valid kinds kept, unknown values reset to off', () => {
+  assert.deepStrictEqual(K.NOISE_KINDS, ['off', 'brown', 'pink', 'white']);
+  assert.strictEqual(K.defaults().settings.noise, 'off');
+  for (const kind of ['brown', 'pink', 'white']) {
+    assert.strictEqual(K.validate({ sessions: [], settings: { noise: kind } }).settings.noise, kind);
+  }
+  assert.strictEqual(K.validate({ sessions: [], settings: { noise: 'ocean' } }).settings.noise, 'off');
+  assert.strictEqual(K.validate({ sessions: [] }).settings.noise, 'off');
+});
 console.log(n + ' calm unit tests passed');

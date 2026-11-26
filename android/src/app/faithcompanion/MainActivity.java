@@ -58,6 +58,7 @@ public class MainActivity extends Activity {
     private volatile boolean destroyed;
     private final List<String[]> pending = new ArrayList<>();
     private ValueCallback<Uri[]> fileCallback;
+    private Uri cameraPhotoUri;
     private boolean ownScreenOnTop; // set when the app opens something over itself; cleared when it comes back
     /** Loudbook's voices (Kokoro, the PC's natural voice) and the Tagalog voice; the phone's own voice when they can't. */
     private Voices voices;
@@ -104,10 +105,40 @@ public class MainActivity extends Activity {
             @Override public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = cb;
-                Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-                i.addCategory(Intent.CATEGORY_OPENABLE);
-                i.setType("*/*");
-                try { startActivityForResult(i, PICK_FILE); } catch (Exception e) { fileCallback = null; cb.onReceiveValue(null); return false; }
+                cameraPhotoUri = null;
+                boolean wantImage = false;
+                if (p != null && p.getAcceptTypes() != null) {
+                    for (String t : p.getAcceptTypes()) { if (t != null && t.toLowerCase(Locale.US).startsWith("image/")) { wantImage = true; break; } }
+                }
+                Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                pick.addCategory(Intent.CATEGORY_OPENABLE);
+                pick.setType(wantImage ? "image/*" : "*/*");
+                Intent launch = pick;
+                if (wantImage) {
+                    try {
+                        ContentValues cv = new ContentValues();
+                        cv.put(MediaStore.Images.Media.DISPLAY_NAME, "wellness-fridge-" + System.currentTimeMillis() + ".jpg");
+                        cv.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                        Uri camUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, cv);
+                        if (camUri != null) {
+                            Intent cam = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                            cam.putExtra(MediaStore.EXTRA_OUTPUT, camUri);
+                            if (cam.resolveActivity(getPackageManager()) != null) {
+                                cameraPhotoUri = camUri;
+                                Intent chooser = Intent.createChooser(pick, "Choose or take a photo");
+                                chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{cam});
+                                launch = chooser;
+                            } else {
+                                getContentResolver().delete(camUri, null, null);
+                            }
+                        }
+                    } catch (Exception ignored) { cameraPhotoUri = null; }
+                }
+                try { ownScreenOnTop = true; startActivityForResult(launch, PICK_FILE); } catch (Exception e) {
+                    ownScreenOnTop = false;
+                    if (cameraPhotoUri != null) { try { getContentResolver().delete(cameraPhotoUri, null, null); } catch (Exception ignored) { } cameraPhotoUri = null; }
+                    fileCallback = null; cb.onReceiveValue(null); return false;
+                }
                 return true;
             }
         });
@@ -269,7 +300,14 @@ public class MainActivity extends Activity {
 
     @Override protected void onActivityResult(int req, int res, Intent data) {
         if (req == PICK_FILE && fileCallback != null) {
+            ownScreenOnTop = false;
             Uri u = res == RESULT_OK && data != null ? data.getData() : null;
+            if (u == null && res == RESULT_OK && cameraPhotoUri != null) {
+                u = cameraPhotoUri;
+            } else if (cameraPhotoUri != null) {
+                try { getContentResolver().delete(cameraPhotoUri, null, null); } catch (Exception ignored) { }
+            }
+            cameraPhotoUri = null;
             fileCallback.onReceiveValue(u == null ? null : new Uri[]{u});
             fileCallback = null;
             return;

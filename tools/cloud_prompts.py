@@ -20,7 +20,14 @@ def main():
         try:
             if task not in W.TASKS: raise ValueError("unknown task " + str(task))
             if not isinstance(inp, dict): raise ValueError("input must be an object")
-            inp = {k: (v[:W.MAX_TEXT] if isinstance(v, str) else v) for k, v in list(inp.items())[:20]}
+            photo_b64 = inp.get("imageBase64") if task == "cook-photo" and isinstance(inp.get("imageBase64"), str) else None
+            inp = {k: (v[:W.MAX_TEXT] if isinstance(v, str) else v) for k, v in list(inp.items())[:20] if k != "imageBase64"}
+            if task == "cook-photo" and photo_b64:
+                import base64
+                raw = base64.b64decode(photo_b64)
+                pfile = os.path.join(work, str(r["id"]) + ".jpg")
+                with open(pfile, "wb") as pf: pf.write(raw)
+                inp["photopath"] = pfile
             if task in ("advice", "weekly-plan"): inp["summary"] = W.summarize(14)
             prompt, tools = W.prompt_for(task, inp)
             out[r["id"]] = {"task": task, "prompt": prompt, "tools": tools}

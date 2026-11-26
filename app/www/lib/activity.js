@@ -183,6 +183,41 @@
     });
   };
 
+  /* Autopilot notes (wl.notes.v1): ideas, bugs, and requests left from anywhere in the app for the next autopilot run. */
+  X['wl.notes.v1'] = function (s, o, out) {
+    (s.notes || []).forEach(function (n) {
+      if (!n || !okDate(n.at) || !n.text) return;
+      out.push({
+        id: 'app/note/' + n.id,
+        at: n.at,
+        part: 'app',
+        kind: 'autopilot-note',
+        text: cut((n.tag ? '[' + n.tag + '] ' : '') + (n.where ? '(' + n.where + ') ' : '') + n.text, 1200),
+        data: { where: n.where || '', tag: n.tag || 'Idea' }
+      });
+    });
+  };
+
+  /* Cooking & family food log (wl.cook.v1): his meals, {child}'s offered-vs-ate logs, and expiring fridge snapshot. */
+  X['wl.cook.v1'] = function (s, o, out) {
+    (s.logs || []).forEach(function (l) {
+      if (!l || !okDate(l.at)) return;
+      if (l.who === 'child') {
+        out.push({
+          id: 'cook/log/' + l.id, at: l.at, part: 'cook', kind: 'child-meal',
+          text: cut('Offered: ' + (l.offered || '') + ' -> ' + (l.ate || '') + (l.note ? ' (' + l.note + ')' : ''), 400),
+          data: { meal: l.meal, ate: l.ate }
+        });
+      } else {
+        out.push({
+          id: 'cook/log/' + l.id, at: l.at, part: 'cook', kind: 'me-meal',
+          text: cut((l.text || '') + (l.portion ? ' (' + l.portion + ')' : ''), 400),
+          data: { meal: l.meal, portion: l.portion, tags: l.tags || [] }
+        });
+      }
+    });
+  };
+
   /* All events from the saved data ({storageKey: parsed state}), oldest first, last MAX_DAYS days only. */
   function collect(states, opts, now) {
     now = now || new Date(); opts = Object.assign({}, opts || {}, { now: now });
@@ -238,6 +273,9 @@
       case 'coach/advice': return 'Parenting: asked about ' + cut(e.text, 60);
       case 'checkin/checkin': return 'Check-in: ' + Object.keys(d).map(function (k) { return k + ' ' + d[k]; }).join(', ') + (e.text ? ' — ' + cut(e.text, 60) : '');
       case 'coach/graded': return 'Parenting: ' + cut(e.text, 60) + ' — ' + (d.score != null ? d.score + '/10' : '');
+      case 'app/autopilot-note': return 'Note for autopilot: ' + cut(e.text, 80);
+      case 'cook/me-meal': return 'Cooking (me): ' + cut(e.text, 80);
+      case 'cook/child-meal': return 'Cooking (little one): ' + cut(e.text, 80);
     }
     if (e.kind === 'feedback' || e.kind === 'not-for-me') return e.part + (e.kind === 'feedback' ? ' answers: ' : ' — not for me: ') + cut(JSON.stringify((d || {}).a || {}).replace(/[{}"\[\]]/g, '').replace(/,/g, ', '), 80);
     if (e.part === 'faith') return 'Faith: wrote in the journal (' + e.kind + ')' + (e.text ? ': ' + cut(e.text, 60) : '');
