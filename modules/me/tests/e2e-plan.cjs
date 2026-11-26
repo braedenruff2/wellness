@@ -48,6 +48,19 @@ const FAKE = `
     await page.goto(base + '#me');
     assert.ok(/When do you feel best/.test(await page.textContent('#view')));
   });
+  await t.step('making a plan from #me/checkin (via Home Check-in change link) redraws the page when it arrives', async () => {
+    await page.evaluate(() => {
+      const m = JSON.parse(localStorage.getItem('wl.me.v1'));
+      m.plan = null; delete m.planTried;
+      localStorage.setItem('wl.me.v1', JSON.stringify(m));
+      window.WL.modules.me.reload();
+    });
+    await page.goto(base + '#me/checkin'); await page.waitForSelector('#me-plan');
+    await page.click('#me-plan');
+    await page.clock.runFor(4000);
+    const txt = await page.textContent('#view');
+    assert.ok(/Rest is the priority/.test(txt) && /When do you feel best/.test(txt), txt);
+  });
   await t.step('no errors', async () => { await t.noOverflow(['#home', '#calm', '#me']); assert.deepStrictEqual(t.errors, []); });
   await t.close('me plan browser');
 })().catch((e) => { console.error(e); process.exit(1); });

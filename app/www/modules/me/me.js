@@ -248,7 +248,7 @@
     if (v) view = v;
     view.innerHTML = page();
     var n = $('#me-ck-note'); if (n) n.oninput = n.onchange = function () { K.checkinNote(S, today(), n.value, new Date()); save(); };
-    var pb = $('#me-plan'); if (pb) pb.onclick = function () { makePlan(function () { if (location.hash === '#me') route([]); }); route([]); };
+    var pb = $('#me-plan'); if (pb) pb.onclick = function () { makePlan(function () { if (/^#me(\/|$)/.test(location.hash)) route([]); }); route([]); };
     // #me/checkin (Home's "Check-in ✓ · change"): straight to today's answers
     var ck = parts && parts[0] === 'checkin' && $('#me-checkin-card');
     if (ck && ck.scrollIntoView) try { ck.scrollIntoView({ block: 'start' }); } catch (e) {}

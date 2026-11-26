@@ -332,8 +332,17 @@ t('a word still missed in a review repeat counts toward Hard words; no box or du
   T.againMiss(s, 'tubig'); T.againMiss(s, 'tubig'); T.againMiss(s, 'nope');
   assert.deepStrictEqual([s.cards.tubig.box, s.cards.tubig.due, s.cards.tubig.wrong], [3, '2026-12-02', 0], 'schedule untouched');
   assert.deepStrictEqual(T.weakWords(s), ['tubig', 'salamat'], '2 misses in 6 tries beats 1 in 4');
-  const v = T.validate(JSON.parse(JSON.stringify(s)));
+  const v = T.validate(Object.assign({}, JSON.parse(JSON.stringify(s)), {
+    cards: Object.assign({}, JSON.parse(JSON.stringify(s)).cards, {
+      ghost: null,
+      badDue: { en: 'broken', due: '2026-02-30', againMiss: 3 },
+      infMiss: { en: 'water', due: '2026-12-02', againMiss: Infinity }
+    })
+  }));
   assert.strictEqual(v.cards.tubig.againMiss, 2);
   assert.strictEqual(v.cards.salamat.againMiss, undefined);
+  assert.strictEqual(v.cards.ghost, undefined, 'null card dropped without throwing');
+  assert.strictEqual(v.cards.badDue, undefined, 'invalid card with againMiss dropped without throwing');
+  assert.strictEqual(v.cards.infMiss.againMiss, undefined, 'non-finite againMiss ignored');
 });
 console.log(n + ' tagalog unit tests passed');

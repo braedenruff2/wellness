@@ -303,9 +303,10 @@
     Object.keys(s.done || {}).forEach(function (k) { if (/^\d{4}-\d\d-\d\d\/\d+$/.test(k) && WLD.isDate(k.slice(0, 10)) && !isNaN(new Date(s.done[k]).getTime())) d.done[k] = new Date(s.done[k]).toISOString(); });
     Object.keys(s.cards).forEach(function (k) {
       var c = s.cards[k];
-      if (c && typeof c.en === 'string' && WLD.isDate(c.due) && k.length < 120)
+      if (c && typeof c.en === 'string' && WLD.isDate(c.due) && k.length < 120) {
         d.cards[k] = { en: c.en, box: Math.max(0, Math.min(INTERVALS.length - 1, +c.box || 1)), due: c.due, seen: +c.seen || 0, right: +c.right || 0, wrong: +c.wrong || 0, from: String(c.from || '') };
-        if (+c.againMiss > 0) d.cards[k].againMiss = Math.min(999, Math.floor(+c.againMiss));
+        if (isFinite(+c.againMiss) && +c.againMiss > 0) d.cards[k].againMiss = Math.min(999, Math.floor(+c.againMiss));
+      }
     });
     (Array.isArray(s.answers) ? s.answers : []).slice(-2000).forEach(function (a) {
       if (!a || isNaN(new Date(a.at).getTime())) return; // a damaged entry is dropped, not the whole Tagalog backup
