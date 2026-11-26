@@ -289,6 +289,36 @@ def local_day(at):
         return str(at)[:10]
 
 
+def local_hour(at):
+    """The PC's local hour of an event time (None when it can't be read)."""
+    try:
+        t = datetime.datetime.fromisoformat(str(at).replace("Z", "+00:00"))
+        return (t.astimezone() if t.tzinfo else t).hour
+    except (ValueError, OverflowError, OSError):
+        return None
+
+
+SIT_PARTS = (("morning", "in the morning"), ("afternoon", "in the afternoon"), ("evening", "in the evening"), ("late", "late at night"))
+
+
+def sit_times(sits):
+    """Which time of day his meditation-path sits go best, the same rule as CalmCore.pathWhen in the app: 4+ rated
+    sits, a part of the day with 2+ sits (1+ mostly steady) beating another with 2+ by a third or more. sits: (hour, focus)."""
+    g = [[0, 0] for _ in SIT_PARTS]
+    n = 0
+    for h, f in sits:
+        if h is None or f not in (1, 2, 3): continue
+        k = 0 if 5 <= h < 12 else 1 if 12 <= h < 18 else 2 if 18 <= h < 22 else 3
+        g[k][0] += 1; g[k][1] += 1 if f == 3 else 0; n += 1
+    ok = [(i, c, st, st / c) for i, (c, st) in enumerate(g) if c >= 2]
+    if n < 4 or len(ok) < 2: return ""
+    best = sorted(ok, key=lambda x: (-x[3], -x[1]))[0]
+    worst = sorted(ok, key=lambda x: (x[3], -x[1]))[0]
+    if best[0] == worst[0] or best[2] < 1 or best[3] - worst[3] < 1 / 3 - 1e-9: return ""
+    return (f"steadiest sits {SIT_PARTS[best[0]][1]} ({best[2]} of {best[1]} mostly steady; "
+            f"{SIT_PARTS[worst[0]][1]} {worst[2]} of {worst[1]})")
+
+
 def read_day(day):
     out = []
     try:
@@ -458,6 +488,9 @@ def summarize(days=7, today=None):
                     for h in x.get("hind") or []:
                         if h != "Nothing much": hd[h] = hd.get(h, 0) + 1
                 if hd: extra += "; got in the way: " + ", ".join(f"{k} {n}" for k, n in hd.items())
+                tw = sit_times([(local_hour(e["at"]), e["data"].get("focus")) for e in es if e["kind"] == "session" and isinstance(e.get("data"), dict)
+                                and e["data"].get("practice") in ("count", "follow", "note", "change", "open")])
+                if tw: extra += "; " + tw
             if aim_txt: extra += "; " + aim_txt
         elif part == "workout":
             # his weekly target: the last one sent (sorted() is stable, so on the same day the later one wins)

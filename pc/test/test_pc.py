@@ -337,6 +337,12 @@ req("POST", "/v1/activity", {"events": [sit(1, 6, "count", 3, ["Nothing much"]),
 cline = [l for l in W.summarize(7).splitlines() if l.startswith("- calm:")][0]
 check("summary: meditation-path sits per stage, attention, obstacles", "meditation-path sits: count 2, follow 1" in cline
       and "attention mostly steady in 2 of 3 rated sits (1 mostly lost in thought)" in cline and "got in the way: Sleepy 2, Restless 1" in cline, cline)
+check("summary: no time-of-day line with all sits in the morning", "steadiest sits" not in cline, cline)
+req("POST", "/v1/activity", {"events": [sit(4, 23, "follow", 1, ["Sleepy"]), sit(5, 22, "follow", 1, [])]}, token=token)
+cline2 = [l for l in W.summarize(7).splitlines() if l.startswith("- calm:")][0]
+check("summary: the time of day his sits go best", "steadiest sits in the morning (2 of 3 mostly steady; late at night 0 of 2)" in cline2, cline2)
+check("sit_times: like CalmCore.pathWhen", W.sit_times([(6, 3), (7, 3), (9, 2), (23, 1), (0, 1)]).startswith("steadiest sits in the morning")
+      and W.sit_times([(6, 3), (7, 1), (23, 3), (22, 1)]) == "" and W.sit_times([(6, 3), (7, 3), (8, 3), (9, 3)]) == "" and W.sit_times([(None, 3)]) == "")
 check("summary: Calm aim (the newest wins)", "he uses Calm to train the mind (the meditation path, now at stage follow)" in cline, cline)
 check("prompts: the weekly plan follows his meditation path", "put his current stage's id in calm.prefer" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", "weekly-plan.md"), encoding="utf-8").read())
 check("summary: workout sets", "Push-ups: 18, 17" in summ, summ)
