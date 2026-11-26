@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-26 17:05-17:25 AST (run2, continued; APK 0.1.20261126.2051, real key, cert 6795e499...)
+- Done 247 (tests/e2e-a11y-names.cjs: every control on 20 pages has a name TalkBack reads; none missing), 248 (lessons check on a bad connection: old lessons kept; the message now says plainly "does this Wi-Fi need a sign-in?" / "no internet?" / HTTP n; a non-index answer is refused; e2e-fetchbad), 250 (cloud-answer: a year of data keeps the weekly-plan prompt ~4.6 KB). 252 existed. Added 247-252.
+- Tested: full suite after rebase (87 suites, none skipped; this APK's code).
+- Check on the phone: Tagalog > Settings > Check for new lessons on a café Wi-Fi shows the plain message.
+
 ## 2026-11-26 16:35-17:05 AST (run2, continued; APK 0.1.20261126.2041, real key, cert 6795e499...)
 - bug: after "Restore from Drive" (or a backup file) while a sync write was on its way, Drive kept the old data for up to 30 min / cause: nothing synced after a restore; the in-flight write carried the old snapshot / fixed: shell.js syncAfterRestore() runs a sync right after any restore (queued behind an in-flight write) / test: e2e-sync +2 (fails without the fix).
 - Done 240, 241 (e2e-narrow: 20 pages at 320 px / 1.3 with a year of data), 242 (e2e-perf also times history, Faith journal, Pray now). 243 and 245 existed.
