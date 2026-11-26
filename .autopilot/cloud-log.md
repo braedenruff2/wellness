@@ -1,5 +1,11 @@
 # Cloud log
 
+## 2026-11-26 13:20-14:35 AST (same run, continued; APK 0.1.20261126.1834, real key, cert 6795e499...)
+- Done 217 (Home's Calm card asks "What do you want from Calm?" until answered; a done day keeps the done card), 218 (the live session clock leaves out breaks over 90 min: WorkoutCore.activeTime; history has no length, so only the clock), 215 (weeklySummary hints carry `about`, HINT_ABOUT), 216 (no false hints across every bundled pack), 219 (Your words: "Slips to watch"), 220 (a11y), 221 (practice tie-break), 213 (rough-day 10-min sit also in Home's today list). Added 215-222 (222 dropped: exists).
+- Independent review (subagent) of today's diff: bug: a doubled letter ("sallamat", "kumainn", "umagaa") got the verb-form hint / cause: redup accepted any doubled letter / fixed: one-letter copies only a vowel at the root start, CV copies only at the root start or after -um- / test: unit. Also "after kailangan" now found with the linker (kailangang). Its second finding (session clock vs "Log for an earlier day") can't happen: the clock is hidden in that mode; e2e-break pins it.
+- Tested: full suite at 308cb2a (80 suites, none skipped; this APK's code).
+- Check on the phone: Home's Calm card shows the "What do you want from Calm?" chips.
+
 ## 2026-11-26 12:37-13:20 AST (new run; APK 0.1.20261126.1716, real key, cert 6795e499...)
 - Done 209 (Your words: "missed again once / N×"). Tagalog typed answers: a dropped prefix hyphen before a vowel is right ("magaral" = "mag-aral", "pagibig"; a doubled word like "araw-araw" keeps its break); the verb with an extra or missing repeated syllable gets "Almost: after gusto the verb stays plain: mag-aral..." (TagalogCore.aspectHint, hint kind 'aspect', "Verb form" under Watch for next time).
 - Also wrote 195/206/207 without claiming them; Gemini had claimed and shipped them meanwhile, so mine were dropped in the rebase (theirs kept). Lesson: claim every task first.
