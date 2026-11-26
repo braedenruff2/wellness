@@ -598,6 +598,65 @@ const W = require('./lib/web.cjs');
       const o = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); assert.ok(o <= 2, 'sit questions overflow ' + o);
     });
   }
+  // Task 138: newest 25 Nov cards (#me-working-home, #me-working, #wo-pain, #fc-read-open, #tl-hard-link, #c-recent-avg)
+  for (const [ts, theme] of [[1, 'light'], [1.3, 'light'], [1, 'dark'], [1, 'night']]) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step('25 Nov cards at ' + ts + 'x ' + theme + ': #me-working-home, #me-working, #wo-pain, #fc-read-open, #tl-hard-link, #c-recent-avg', async () => {
+      await look(ts, theme); await seed();
+      const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
+      await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
+      await page.evaluate(() => {
+        const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+        me.skipped['2026-11-23'] = 1;
+        me.feedback.push(
+          { id: 'workout/after/p1', at: new Date(2026, 10, 19, 18, 0).toISOString(), part: 'workout', about: 'p1', kind: 'after', a: { hard: 'Just right', pain: 'A little' } },
+          { id: 'workout/after/p2', at: new Date(2026, 10, 21, 18, 0).toISOString(), part: 'workout', about: 'p2', kind: 'after', a: { hard: 'Hard', pain: 'A little' } },
+          { id: 'faith/after/day:1@late1', at: new Date(2026, 10, 21, 22, 30).toISOString(), part: 'faith', about: 'day:1@late1', kind: 'after', a: { felt: 'Hard to focus' } },
+          { id: 'faith/after/day:1@late2', at: new Date(2026, 10, 22, 22, 15).toISOString(), part: 'faith', about: 'day:1@late2', kind: 'after', a: { felt: 'Hard to focus' } }
+        );
+        localStorage.setItem('wl.me.v1', JSON.stringify(me));
+        const fc = JSON.parse(localStorage.getItem('fc.v1'));
+        fc.done = { 1: '2026-11-22' };
+        localStorage.setItem('fc.v1', JSON.stringify(fc));
+        const tl = JSON.parse(localStorage.getItem('wl.tagalog.v1'));
+        const card = (en) => ({ en, box: 1, due: '2026-11-17', seen: 1, right: 0, wrong: 1, from: '2026-11-11/1' });
+        tl.cards = { salamat: card('thank you'), tubig: card('water'), 'kain na': card('let’s eat') };
+        localStorage.setItem('wl.tagalog.v1', JSON.stringify(tl));
+        if (window.WL && WL.modules) Object.keys(WL.modules).forEach((k) => { if (WL.modules[k].reload) WL.modules[k].reload(); });
+      });
+      await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#me-working-home');
+      assert.deepStrictEqual(await small('.home-card[data-module="me"] a, .home-card[data-module="me"] button'), []);
+      assert.deepStrictEqual(await bad('.home-card[data-module="me"]'), [], theme + ' #me-working-home');
+      await t.noOverflow(['#home']);
+      await page.goto(base + '#me'); await page.waitForSelector('#me-working');
+      assert.deepStrictEqual(await bad('#me-working'), [], theme + ' #me-working');
+      await t.noOverflow(['#me']);
+      await page.goto(base + '#workout'); await page.waitForSelector('#wo-pain');
+      assert.deepStrictEqual(await small('#wo-pain button'), []);
+      assert.deepStrictEqual(await bad('#view'), [], theme + ' #wo-pain');
+      await t.noOverflow(['#workout']);
+      await page.clock.setSystemTime(new Date(2026, 10, 23, 22, 30));
+      await page.goto(base + '#faith/today'); await page.waitForSelector('#fc-read-open[open]');
+      assert.deepStrictEqual(await small('#fc-read-open summary'), []);
+      assert.deepStrictEqual(await bad('#fc-read-open'), [], theme + ' #fc-read-open');
+      await t.noOverflow(['#faith/today']);
+      await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
+      await page.goto(base + '#calm'); await page.waitForSelector('#c-recent');
+      await page.click('#c-recent summary'); await page.waitForSelector('#c-recent-avg');
+      assert.deepStrictEqual(await small('#c-recent summary'), []);
+      assert.deepStrictEqual(await bad('#c-recent'), [], theme + ' #c-recent-avg');
+      const co = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(co <= 2, '#calm #c-recent-avg overflow ' + co);
+      await page.goto(base + '#tagalog/review'); await page.reload(); await page.waitForSelector('#tl-show');
+      for (let n = 0; n < 3; n++) { await page.click('#tl-show'); await page.clock.runFor(450); await page.click('#tl-no'); }
+      await page.waitForSelector('#tl-hard-link');
+      assert.deepStrictEqual(await small('#tl-hard-link a, #tl-missed button'), []);
+      assert.deepStrictEqual(await bad('#tl-hard-link'), [], theme + ' #tl-hard-link');
+      assert.deepStrictEqual(await bad('#tl-card'), [], theme + ' #tl-card recap');
+      const to = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(to <= 2, '#tagalog/review #tl-hard-link overflow ' + to);
+    });
+  }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y of new UI');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
