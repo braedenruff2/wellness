@@ -159,7 +159,10 @@
     }).join(' · ') + '</p>' : '';
     return '<details class="card ui" id="c-recent"><summary>Recent sessions (' + items.length + ')</summary>' + avgLine + '<ul class="me-g">' + items.map(function (s) {
       var d = s.date ? (function () { var p = s.date.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); })() : '';
-      var rating = s.before && s.after ? ' · stress ' + s.before + '→' + s.after : s.after ? ' · stress now ' + s.after : '';
+      var focusLbl = s.focus >= 1 && s.focus <= 3 ? K.FOCUS[s.focus - 1] : '';
+      var hindLbl = Array.isArray(s.hind) ? s.hind.filter(function (h) { return h && h !== 'Nothing much'; }).join(', ') : '';
+      var sitInfo = focusLbl || hindLbl ? ' · ' + (focusLbl || '') + (hindLbl ? (focusLbl ? ' (' + hindLbl + ')' : hindLbl) : '') : '';
+      var rating = s.before && s.after ? ' · stress ' + s.before + '→' + s.after : s.after ? ' · stress now ' + s.after : sitInfo;
       return '<li><b>' + esc(titleOf(s.id)) + '</b> <span class="meta">' + esc(d) + ' · ' + Math.max(1, Math.round(s.mins || 0)) + ' min' + esc(rating) + '</span></li>';
     }).join('') + '</ul></details>';
   }

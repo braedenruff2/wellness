@@ -65,6 +65,8 @@ const Wb = require('../../../tests/lib/web.cjs');
   await t.step('the path card: status, the tip from the last sit; today is done so Calm suggests the usual practices', async () => {
     assert.ok(/1 sit at this stage \(\d+ min\); attention mostly steady in 1 of the last 1\./.test(await page.textContent('#c-path-status')));
     assert.ok(/sleepy/i.test(await page.textContent('#c-path-tip')));
+    await page.click('#c-recent summary');
+    assert.ok(/Mostly steady \(Sleepy\)/.test(await page.textContent('#c-recent')), await page.textContent('#c-recent'));
     assert.ok(!/Counting breaths/.test(await page.textContent('#c-today h3')), 'one sit a day');
     assert.ok(!(await page.$('#c-path-ready')));
   });
