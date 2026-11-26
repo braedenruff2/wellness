@@ -308,14 +308,22 @@
   /* Mixed practice from finished lessons (any time, e.g. while waiting for Wednesday's new week): the exercises he
      got wrong most often first, then the ones he hasn't answered for longest. [{pack, lesson, ex}], at most n. */
   function practiceSet(state, packs, n) {
-    var last = {}, wrong = {}, slip = {};
+    var last = {}, wrong = {}, slip = {}, slipAt = {};
     state.answers.forEach(function (a) {
       var k = a.pack + '/' + a.day + '/' + a.prompt;
       var ms = Date.parse(a.at);
       if (!isNaN(ms) && (last[k] == null || ms > last[k])) last[k] = ms;
       if (!a.ok) wrong[k] = (wrong[k] || 0) + 1;
-      // a near miss with a specific rule (verb form, linker): worth practising first among equally missed ones
-      if (!a.ok && (a.hint === 'aspect' || a.hint === 'linker')) slip[k] = 1; else if (a.ok) delete slip[k];
+      // a near miss with a specific rule (verb form, linker): worth practising first among equally missed ones,
+      // tracked by timestamp so an earlier-day miss logged after newer mastery never resurrects the slip flag
+      var isRuleSlip = !a.ok && (a.hint === 'aspect' || a.hint === 'linker');
+      if (isRuleSlip || a.ok) {
+        var t = isNaN(ms) ? -Infinity : ms;
+        if (slipAt[k] == null || t >= slipAt[k]) {
+          slipAt[k] = t;
+          if (isRuleSlip) slip[k] = 1; else delete slip[k];
+        }
+      }
     });
     var pool = [];
     (packs || []).forEach(function (p) {

@@ -395,6 +395,12 @@ t('practiceSet: among equally missed exercises, a verb-form or linker slip comes
   assert.deepStrictEqual(T.practiceSet(st, [pk], 3).map((x) => x.ex.prompt), ['B', 'A', 'C']);
   T.recordAnswer(st, pk, l, l.exercises[1], true, new Date(2026, 10, 25, 21), 'gusto kong mag-aral ng tagalog');
   assert.deepStrictEqual(T.practiceSet(st, [pk], 3).map((x) => x.ex.prompt), ['A', 'C', 'B'], 'got it right since: no longer first (and answered most recently)');
+  // an earlier-day slip logged AFTER a newer right answer (or mixed timezone offsets) must not override newer mastery
+  const st2 = T.defaults(); st2.done['2026-11-25/1'] = '2026-11-25T20:00:00Z';
+  T.recordAnswer(st2, pk, l, l.exercises[0], false, new Date(2026, 10, 25, 19, 0), 'hindi ko alam'); // 1 plain miss (oldest)
+  st2.answers.push({ at: '2026-11-25T20:00:00-04:00', pack: pk.id, day: 1, ok: true, prompt: 'B', type: 'type' }); // Nov 26 00:00Z: newer mastery
+  st2.answers.push({ at: '2026-11-25T23:00:00Z', pack: pk.id, day: 1, ok: false, prompt: 'B', type: 'type', hint: 'aspect' }); // Nov 25 23:00Z: older slip logged later
+  assert.deepStrictEqual(T.practiceSet(st2, [pk], 3).map((x) => x.ex.prompt), ['A', 'B', 'C'], 'older slip appended after newer right answer does not outrank older plain miss');
 });
 t('exampleFor: a lesson sentence that uses the word (whole words; never the word alone)', () => {
   const packs = [{ lessons: [{ dialogue: [{ tl: 'Opo.', en: 'Yes.' }, { tl: 'Gutom na ba siya?', en: 'Is she hungry already?' }], grammar: { examples: [{ tl: 'Kumakain ako ngayon.', en: 'I\'m eating now.' }] } }] }];
