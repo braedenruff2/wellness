@@ -43,6 +43,16 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.$('#tl-repeat'), null, 'all got: no more repeats');
     assert.ok(/1 of 1 this time/.test(await page.textContent('#tl-again-done')));
   });
+  await t.step('Your words shows how often a word was still missed on another go (task 209)', async () => {
+    await page.goto(base + '#tagalog/words'); await page.waitForSelector('#tl-hard');
+    const rows = await page.$$eval('#tl-hard li, #tl-all li', (lis) => lis.map((li) => li.textContent));
+    const marked = rows.filter((r) => /missed again once/.test(r));
+    assert.strictEqual(marked.length, 1, rows.join(' | '));
+    assert.ok(!rows.some((r) => /missed again \d/.test(r)), 'once, not "1×"');
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.tagalog.v1')); s.cards.salamat.againMiss = 3; localStorage.setItem('wl.tagalog.v1', JSON.stringify(s)); });
+    await page.reload(); await page.waitForSelector('#tl-hard');
+    assert.ok(/salamat[\s\S]*missed again 3×/.test(await page.textContent('#tl-hard')), await page.textContent('#tl-hard'));
+  });
   await t.step('keys still work in the repeat (Space shows, 2 = got it)', async () => {
     await seed(); await page.goto(base + '#tagalog/review'); await page.reload(); await page.waitForSelector('#tl-show');
     for (let n = 0; n < 3; n++) { await reveal(); await page.click('#tl-no'); }
