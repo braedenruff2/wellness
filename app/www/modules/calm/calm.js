@@ -410,7 +410,12 @@
   function route(parts, v) {
     if (v) view = v;
     leave();
-    if (parts && parts[0] === 's' && practice(parts[1])) { var p = practice(parts[1]); view.innerHTML = sessionHtml(p); wireSession(p); return; }
+    if (parts && parts[0] === 's' && practice(parts[1])) {
+      var p = practice(parts[1]);
+      // #calm/s/<id>/<minutes>: a length picked elsewhere (Home on a rough day) for this one session
+      if (parts[2] && lengths(p).indexOf(+parts[2]) >= 0) pick = { id: p.id, m: +parts[2] };
+      view.innerHTML = sessionHtml(p); wireSession(p); return;
+    }
     view.innerHTML = list();
     $$('[data-goal]').forEach(function (b) { b.onclick = function () { S.settings.dailyGoal = +b.dataset.goal; save(); route([]); }; });
     $$('[data-min]').forEach(function (b) { b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route([]); }; });
@@ -426,8 +431,11 @@
     var t = K.today(S), sug = practice(K.suggest(S, null, sopts()));
     if (t.done) return '<div class="meta ui">Calm</div><h3>✓ Done for today</h3><p class="meta ui">' + esc(titleOf(t.ids[0])) + (t.count > 1 ? ' and ' + (t.count - 1) + ' more' : '') + ' · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min. Today’s goal is done.</p>' +
       '<div class="row ui"><a class="btn" href="#calm">Calm</a></div>';
-    return '<div class="meta ui">' + (t.any ? 'Calm · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min today' : 'Calm · today’s practice (goal ' + t.goal + ' min)') + '</div><h3>' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3><p class="meta ui">' + esc(K.advice(S)) + '</p>' +
-      '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + '">Begin</a><a class="btn" href="#calm">All practices</a></div>';
+    // a sit on a rough day (short night, broken night, low energy): 10 minutes, for that sit only
+    var short = sug.path && window.WLMe && WLMe.rough && WLMe.rough() && mins(sug) > 10 && lengths(sug).indexOf(10) >= 0;
+    return '<div class="meta ui">' + (t.any ? 'Calm · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min today' : 'Calm · today’s practice (goal ' + t.goal + ' min)') + '</div><h3>' + esc(sug.title) + ' · ' + (short ? 10 : mins(sug)) + ' min</h3>' +
+      (short ? '<p class="meta ui" id="c-card-rough">Short night: a 10-minute sit counts just as much today.</p>' : '<p class="meta ui">' + esc(K.advice(S)) + '</p>') +
+      '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + (short ? '/10' : '') + '">Begin</a><a class="btn" href="#calm">All practices</a></div>';
   }
 
   WL.register({

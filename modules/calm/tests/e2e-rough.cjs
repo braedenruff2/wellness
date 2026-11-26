@@ -121,6 +121,28 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(e.date, '2026-11-27', JSON.stringify(e));
   });
 
+  await t.step('Home on a rough day: the Calm card offers the sit at 10 min, for that sit only', async () => {
+    await page.clock.setSystemTime(new Date(2026, 10, 28, 8, 0));
+    await page.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem('wl.calm.v1')); Object.assign(c.settings, { aim: 'train', sitMinutes: 20 }); localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+      const me = JSON.parse(localStorage.getItem('wl.me.v1')); me.checkins['2026-11-28'] = { sleep: '4–5 h', wakes: '2', energy: 'OK', mood: 'OK', day: 'OK' }; localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#calm'); await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#c-card-rough');
+    const card = page.locator('.home-card[data-module="calm"]');
+    assert.ok(/· 10 min/.test(await card.locator('h3').textContent()));
+    assert.ok((await card.locator('a.btn.primary').getAttribute('href')).endsWith('/10'));
+    await card.locator('a.btn.primary').click();
+    await page.waitForSelector('#c-pp');
+    assert.ok(/Begin · 10 min/.test(await page.textContent('#c-pp')));
+    assert.strictEqual(await page.getAttribute('[data-len="10"]', 'aria-pressed'), 'true');
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).settings.sitMinutes), 20, 'his length stays 20');
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-pp');
+    assert.ok(/Begin · 20 min/.test(await page.textContent('#c-pp')), 'opened another way: his usual 20');
+    await page.evaluate(() => { const me = JSON.parse(localStorage.getItem('wl.me.v1')); delete me.checkins['2026-11-28']; localStorage.setItem('wl.me.v1', JSON.stringify(me)); });
+    await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('.home-card[data-module="calm"]');
+    assert.strictEqual(await page.$('#c-card-rough'), null, 'no check-in: as usual');
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('calm rough day');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
