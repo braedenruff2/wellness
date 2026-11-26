@@ -126,7 +126,7 @@
     var wk = K.working(S, new Date(), calmState());
     if (wk.length) h += '<p class="meta ui" id="me-working-home">What’s working: ' + esc(wk[0]) + '</p>';
     h += planHtml();
-    h += '<div class="row ui"><a class="btn" href="#me">About you</a>' + (c ? '<span class="meta grow" style="text-align:right">Check-in ✓</span>' : '') + '</div>';
+    h += '<div class="row ui"><a class="btn" href="#me">About you</a>' + (c ? '<span class="grow"></span><a class="link" id="me-ci-change" href="#me/checkin">Check-in ✓ · change</a>' : '') + '</div>';
     return h;
   }
 
@@ -190,7 +190,7 @@
   function page() {
     var h = '<h1>About you</h1><p class="meta ui">What you tell the app here shapes its suggestions and the weekly plan Claude writes on your PC. ' +
       'It stays on your phone and in your progress folder on the PC. Everything is optional.</p>';
-    h += '<div class="card ui"><h3>Today’s check-in</h3>' + checkinHtml(true) + '</div>';
+    h += '<div class="card ui" id="me-checkin-card"><h3>Today’s check-in</h3>' + checkinHtml(true) + '</div>';
     var g = K.guidance(S, new Date(), 6);
     if (g.length) h += '<div class="card ui"><h3>For you</h3><ul class="me-g">' + g.map(function (x) { return '<li>' + esc(x.text) + '</li>'; }).join('') + '</ul></div>';
     var wk = K.working(S, new Date(), calmState());
@@ -249,6 +249,9 @@
     view.innerHTML = page();
     var n = $('#me-ck-note'); if (n) n.oninput = n.onchange = function () { K.checkinNote(S, today(), n.value, new Date()); save(); };
     var pb = $('#me-plan'); if (pb) pb.onclick = function () { makePlan(function () { if (location.hash === '#me') route([]); }); route([]); };
+    // #me/checkin (Home's "Check-in ✓ · change"): straight to today's answers
+    var ck = parts && parts[0] === 'checkin' && $('#me-checkin-card');
+    if (ck && ck.scrollIntoView) try { ck.scrollIntoView({ block: 'start' }); } catch (e) {}
   }
 
   // The weekly plan makes itself when one is due and the PC link answers (at most one answered try a day; the button

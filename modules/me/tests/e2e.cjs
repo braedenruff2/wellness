@@ -146,6 +146,19 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('.home-card[data-module="me"]');
     const wh = await page.textContent('#me-working-home'); assert.ok(wh.includes('What’s working: Calm:') && wh.includes('Body scan helped'), wh);
   });
+  await t.step('Home: "Check-in ✓ · change" opens today\'s answers on About you, and a change is kept', async () => {
+    const today = await page.evaluate(() => WLDates.iso(new Date()));
+    await page.evaluate((today) => {
+      const m = JSON.parse(localStorage.getItem('wl.me.v1')); m.checkins[today] = { sleep: '5–6 h', wakes: '1', energy: 'OK', mood: 'OK', day: 'Good' };
+      delete (m.skipped || {})[today]; localStorage.setItem('wl.me.v1', JSON.stringify(m));
+    }, today);
+    await page.goto(base + '#calm'); await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#me-ci-change');
+    await page.click('#me-ci-change');
+    await page.waitForSelector('#me-checkin-card');
+    assert.strictEqual(await page.evaluate(() => location.hash), '#me/checkin');
+    await page.click('#me-checkin-card [data-me-ck][data-k="sleep"][data-v="7 h+"]');
+    assert.strictEqual((await me()).checkins[today].sleep, '7 h+');
+  });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#home', '#me', '#calm', '#workout', '#coach']);
     assert.deepStrictEqual(t.errors, []);
