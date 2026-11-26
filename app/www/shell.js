@@ -203,52 +203,8 @@
     if (document.hidden) wakeSentinel = null;
     else if (wakeWant && (!wakeSentinel || wakeSentinel.released !== false)) requestWake(true);
   });
-  /* Screen brightness right down (a dark screen during a sit) or back to the phone's own setting. */
-  function dimScreen(on) { if (native && native.dimScreen) try { native.dimScreen(!!on); } catch (e) {} }
-  /* A dark screen during a long practice (Calm sits, late-night prayers): after a while a black cover goes over the
-     page and the brightness drops right down; a tap, Space or Enter, or coming back to the app lights it, and it
-     goes dark again after the same wait. The page keeps running underneath (voice, bells, timers).
-     start({id, label, after}) arms it (again), light() shows the page and re-arms, stop() ends it. */
-  var darkSt = { on: false, t: null, id: 'wl-dark', label: '', after: 10000 };
-  function darkEl() { return document.getElementById(darkSt.id); }
-  function darkArm() {
-    clearTimeout(darkSt.t);
-    if (!darkSt.on) return;
-    darkSt.t = setTimeout(function () {
-      if (!darkSt.on || darkEl()) return;
-      var d = document.createElement('div');
-      d.id = darkSt.id; d.className = 'c-dark wl-dark'; d.tabIndex = 0; d.setAttribute('role', 'button');
-      d.setAttribute('aria-label', darkSt.label || 'Dark screen. Tap to show the page.');
-      d.onclick = function () { darkLight(); };
-      document.body.appendChild(d); dimScreen(true);
-      // a screen reader: the page under the cover is out of reach, and the cover has focus, so a double-tap lights
-      // the screen instead of pressing whatever was focused underneath (Pause)
-      var v = document.getElementById('view'); if (v) { v.setAttribute('inert', ''); v.setAttribute('aria-hidden', 'true'); }
-      try { d.focus(); } catch (e) {}
-    }, typeof darkSt.after === 'function' ? darkSt.after() : darkSt.after); // after: ms, or a function asked each time
-  }
-  function darkUncover() {
-    clearTimeout(darkSt.t);
-    var d = darkEl();
-    if (d) {
-      d.parentNode.removeChild(d); dimScreen(false);
-      var v = document.getElementById('view'); if (v) { v.removeAttribute('inert'); v.removeAttribute('aria-hidden'); }
-    }
-  }
-  function darkLight() { darkUncover(); darkArm(); }
-  function darkStart(o) {
-    o = o || {};
-    if (darkSt.on && darkSt.id !== (o.id || 'wl-dark')) darkUncover();
-    darkSt.on = true; darkSt.id = o.id || 'wl-dark'; darkSt.label = o.label || ''; darkSt.after = o.after || 10000;
-    darkLight();
-  }
-  function darkStop() { darkSt.on = false; darkUncover(); }
-  document.addEventListener('keydown', function (ev) {
-    if (!darkEl() || !(ev.key === ' ' || ev.code === 'Space' || ev.key === 'Enter')) return;
-    ev.preventDefault(); ev.stopPropagation(); darkLight(); // a key only lights the screen (it doesn't also pause)
-  }, true);
-  document.addEventListener('visibilitychange', function () { if (!document.hidden && darkEl()) darkLight(); });
-  var darkScreen = { start: darkStart, light: darkLight, stop: darkStop, isDark: function () { return !!darkEl(); } };
+  /* Screen brightness & dark-screen cover live in lib/dark.js (loaded before shell.js). */
+  var dimScreen = window.WLDark.dimScreen, darkScreen = window.WLDark.darkScreen;
 
   /* ---- modules and routing ---- */
   function register(m) { modules[m.id] = m; order.push(m.id); }
@@ -681,7 +637,7 @@
     var id = parts[0] || 'home';
     var m = modules[id];
     speech.stop(); // nothing keeps talking on a screen that has no Stop button
-    darkStop(); // nor stays dark (each part also stops it when it leaves)
+    darkScreen.stop(); // nor stays dark (each part also stops it when it leaves)
     if (current && current.leave) try { current.leave(); } catch (e) {}
     document.body.className = '';
     current = m || null;
@@ -736,8 +692,6 @@
     order.forEach(function (id) { if (modules[id].saveNow) modules[id].saveNow(); });
     if (WL.driveSync) WL.driveSync.autoSync();
   };
-  // Android's Back: with a dark screen up it only lights the screen (true); otherwise Android goes back as usual
-  window.FCBack = function () { if (darkEl()) { darkLight(); return true; } return false; };
   window.FCPauseSession = function () { if (current && current.pause) current.pause(); };
 
   window.WL = {
