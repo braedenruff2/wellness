@@ -164,7 +164,7 @@ public class MainActivity extends Activity {
     /** The screen a notification asks for (only these, never a hash from elsewhere). */
     private static String openHash(Intent i) {
         String h = i == null ? null : i.getStringExtra("openHash");
-        return "#workout".equals(h) || "#todo".equals(h) ? h : null;
+        return "#workout".equals(h) || "#todo".equals(h) || "#calm".equals(h) ? h : null;
     }
 
     private void done(String id) {
@@ -215,6 +215,8 @@ public class MainActivity extends Activity {
         ownScreenOnTop = false;
         RestAlarm.appVisible = true;
         RestAlarm.cancelShown(this);
+        CalmAlarm.appVisible = true;
+        CalmAlarm.cancelShown(this);
         shown = new java.lang.ref.WeakReference<>(this);
         if (web != null) web.evaluateJavascript("window.FCTodoTicked&&FCTodoTicked()", null);
         Updater.check(getApplicationContext(), pcLink(), false, updateListener);
@@ -232,6 +234,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onPause() {
         RestAlarm.appVisible = false;
+        CalmAlarm.appVisible = false;
         if (shown.get() == this) shown = new java.lang.ref.WeakReference<>(null);
         if (web != null) web.evaluateJavascript("window.FCSaveNow&&FCSaveNow()", null);
         super.onPause();
@@ -567,6 +570,17 @@ public class MainActivity extends Activity {
                     && !getSharedPreferences("asked", MODE_PRIVATE).getBoolean("notif", false)) {
                 getSharedPreferences("asked", MODE_PRIVATE).edit().putBoolean("notif", true).apply();
                 runOnUiThread(() -> requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 4));
+            }
+        }
+
+        /** End-of-session bell for Calm meditation sits and the Quiet timer when the screen locks (ms from now; 0 cancels). */
+        @JavascriptInterface public void calmAlarm(double ms, String label) {
+            CalmAlarm.set(getApplicationContext(), (long) ms, label);
+            if (ms > 0 && Build.VERSION.SDK_INT >= 33
+                    && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                    && !getSharedPreferences("asked", MODE_PRIVATE).getBoolean("notif-calm", false)) {
+                getSharedPreferences("asked", MODE_PRIVATE).edit().putBoolean("notif-calm", true).apply();
+                runOnUiThread(() -> requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 6));
             }
         }
 

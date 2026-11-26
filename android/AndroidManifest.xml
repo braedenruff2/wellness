@@ -31,6 +31,7 @@
             </intent-filter>
         </activity>
         <receiver android:name=".RestAlarm" android:exported="false" />
+        <receiver android:name=".CalmAlarm" android:exported="false" />
         <receiver android:name=".Updater$Result" android:exported="false" />
         <receiver android:name=".Updater$Replaced" android:exported="false">
             <intent-filter>

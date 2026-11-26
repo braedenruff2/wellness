@@ -77,7 +77,7 @@ reads anything they can't (before the downloads, or if something fails).
 - **Faith** (`modules/faith`): the 120-day guided path (WEB Scripture), guided prayer read aloud, 11 Pray-now practices,
   journal / awe moments / prayer list, look-backs, "walk it again", daily reminder. Its own README: modules/faith/README.md.
 - **Calm** (`modules/calm`): one-minute reset, slow and box breathing with a breathing circle, body scan, 5-4-3-2-1
-  grounding, mindful feed, kindness practice, sleep wind-down, back to sleep after a night wake (suggested 0-5 am), mindful walk, "Before you pick her up" (30 s, for crying moments), washing-up mindfulness (any chore), breathing with her asleep on you (contact naps), quiet timer; stress before/after; minutes per week.
+  grounding, mindful feed, kindness practice, sleep wind-down, back to sleep after a night wake (suggested 0-5 am), mindful walk, "Before you pick her up" (30 s, for crying moments), washing-up mindfulness (any chore), breathing with her asleep on you (contact naps), quiet timer, and the 5-stage meditation path (10–30 min sits); stress before/after; minutes per week. During sessions, Android keeps the screen awake (`FLAG_KEEP_SCREEN_ON`) so voice cues keep playing (turn the phone face down without locking); if you do lock the screen during a meditation-path sit or the quiet timer, an exact alarm (`CalmAlarm`) chimes when your time is up.
 - **Move** (`modules/workout`): his Google Sheet routine, ported and improved: 3 full-body days A/B/C that rotate
   (each muscle 2-3x a week; a skipped day never leaves a gap), supersets with transition and rest timer (beep +
   vibrate), "last time" numbers and progression ("ready for harder" with the 10 lb pair; "go up to N lb" once set to

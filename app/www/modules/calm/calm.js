@@ -190,11 +190,19 @@
       return '<button class="chip" data-h="' + esc(x) + '" aria-pressed="false">' + esc(x) + '</button>'; }).join('') + '</div></div>';
   }
 
+  function usesAlarm(p) { return !!(p && (p.path || p.kind === 'timer')); }
+  function alarmLabel(p) { return p.title + ' · ' + mins(p) + ' min'; }
+  /* Android end-of-session bell when the phone locks during a sit or Quiet timer (the page's own bell rings on screen). */
+  function calmAlarm(ms, label) {
+    var n = WL.native;
+    if (n && n.calmAlarm) try { n.calmAlarm(ms > 0 ? Math.round(ms) : 0, label || ''); } catch (e) {}
+  }
+
   function stopRun() {
     if (!run) return;
     cancelAnimationFrame(run.raf); clearTimeout(run.timer); clearInterval(run.tick);
     if (run.player) run.player.stop();
-    WL.speech.stop(); WL.keepAwake(false);
+    WL.speech.stop(); WL.keepAwake(false); calmAlarm(0, '');
     run = null;
   }
 
@@ -207,10 +215,10 @@
     return Math.min(e, cap) / 60;
   }
 
-  function finish() {
+  function finish(silent) {
     if (!run) return;
-    var p = run.p, m = loggedMins(), before = run.before;
-    stopRun(); WL.bell();
+    var p = run.p, m = silent && run.total ? Math.min(loggedMins(), run.total / 60) : loggedMins(), before = run.before;
+    stopRun(); if (!silent) WL.bell();
     var rec = K.record(S, p.id, m, before, null, WL.logNow ? WL.logNow() : null); save(); // saved straight away; "Done" only adds the after rating
     run = { p: p, done: true, mins: m, before: before, rec: rec };
     $('#c-pp').hidden = true; if ($('#c-before')) $('#c-before').hidden = true; $('#c-after').hidden = false;
@@ -226,6 +234,7 @@
     stopRun();
     run = { p: p, start: Date.now(), pausedFor: 0, paused: false, before: before, total: total };
     WL.keepAwake(true); WL.bell();
+    if (usesAlarm(p)) calmAlarm(total * 1000, alarmLabel(p));
     var pp = $('#c-pp'); pp.textContent = '⏸ Pause'; pp.dataset.state = 'playing';
     var lc = $('#c-len'); if (lc) lc.hidden = true;
     if ($('#c-before')) $('#c-before').hidden = true;
@@ -233,7 +242,7 @@
       var e = elapsed();
       $('#c-prog').style.width = Math.min(100, 100 * e / total) + '%';
       if (p.kind !== 'guided') $('#c-left').textContent = Math.max(0, Math.ceil((total - e) / 60)) + ' min left';
-      if (p.kind !== 'guided' && e >= total) finish();
+      if (p.kind !== 'guided' && e >= total) finish(!!(usesAlarm(p) && WL.native && WL.native.calmAlarm && e - total > 5));
     };
     run.tick = setInterval(progress, 500);
     if (p.kind === 'pacer') {
@@ -300,9 +309,11 @@
       if (!st) return begin(p);
       if (st === 'playing') {
         run.paused = true; run.pausedAt = Date.now(); if (run.player) run.player.pause(); WL.keepAwake(false);
+        if (usesAlarm(p)) calmAlarm(0, '');
         b.textContent = '▶ Resume'; b.dataset.state = 'paused';
       } else {
         run.pausedFor += Date.now() - run.pausedAt; run.paused = false; if (run.player) run.player.resume(); if (run.frame) run.frame(); WL.keepAwake(true);
+        if (usesAlarm(p)) calmAlarm(Math.max(0, run.total * 1000 - elapsed() * 1000), alarmLabel(p));
         b.textContent = '⏸ Pause'; b.dataset.state = 'playing';
       }
     };
@@ -336,6 +347,13 @@
     pick = null;
     saveEarly(); stopRun();
   }
+  /* Returning after the screen was locked: if a sit or Quiet timer already passed its end, finish cleanly without a duplicate bell. */
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && run && !run.done && !run.paused && usesAlarm(run.p)) {
+      var e = elapsed();
+      if (e >= run.total) finish(!!(WL.native && WL.native.calmAlarm && e - run.total > 5));
+    }
+  });
 
   function route(parts, v) {
     if (v) view = v;
