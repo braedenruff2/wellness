@@ -311,6 +311,23 @@ t('aspectHint: the verb with or without its repeated syllable gets "Almost" and 
   T.recordAnswer(st, { id: '2026-11-25' }, { day: 1 }, g, false, new Date(2026, 10, 25, 20), 'gusto kong magaaral ng tagalog');
   assert.strictEqual(T.validate(st).answers[0].hint, 'aspect', 'kept by validate');
 });
+t('every bundled pack: accepted answers are right and get no hint; another exercise\'s answer never gets the verb-form hint', () => {
+  const fs = require('fs'), path = require('path'), dir = path.join(__dirname, '..', 'packs');
+  const bad = [];
+  for (const f of fs.readdirSync(dir).filter((x) => /^\d{4}-\d\d-\d\d\.json$/.test(x))) {
+    const p = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    const all = p.lessons.flatMap((l) => l.exercises).filter((e) => e.answer);
+    for (const ex of all.filter((e) => e.type === 'type')) {
+      for (const a of [ex.answer].concat(ex.accept || [])) {
+        if (!T.check(ex, a)) bad.push(f + ' not right: ' + a);
+        const h = T.aspectHint(ex, a) || T.linkerHint(ex, a) || T.orderHint(ex, a);
+        if (h) bad.push(f + ' hint on an accepted answer: ' + a + ' -> ' + h);
+      }
+      for (const o of all) if (o !== ex && !T.check(ex, o.answer) && T.aspectHint(ex, o.answer)) bad.push(f + ' verb-form hint between "' + ex.answer + '" and "' + o.answer + '"');
+    }
+  }
+  assert.deepStrictEqual(bad, []);
+});
 t('exampleFor: a lesson sentence that uses the word (whole words; never the word alone)', () => {
   const packs = [{ lessons: [{ dialogue: [{ tl: 'Opo.', en: 'Yes.' }, { tl: 'Gutom na ba siya?', en: 'Is she hungry already?' }], grammar: { examples: [{ tl: 'Kumakain ako ngayon.', en: 'I\'m eating now.' }] } }] }];
   assert.deepStrictEqual(T.exampleFor(packs, 'ngayon'), { tl: 'Kumakain ako ngayon.', en: 'I\'m eating now.' });
