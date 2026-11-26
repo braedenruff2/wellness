@@ -500,11 +500,28 @@
         '<p class="meta ui">Finished ' + esc(W.PROGRAM[fin.day].title) + '. Next: ' + esc(plan.title) + '.</p><div class="row ui"><a class="btn" href="#workout">Open</a></div>';
     }
     return '<div class="meta ui">Workout</div><div class="row"><h3 class="grow">' + (open ? 'In progress: ' : 'Next: ') + esc(plan.title) + '</h3>' + weekDots() + '</div>' +
-      '<p class="meta ui">' + esc(W.coach(S, now())) + '</p><div class="row ui"><a class="btn primary" href="#workout">' + (open ? 'Carry on' : 'Start') + '</a></div>';
+      '<p class="meta ui">' + esc(W.coach(S, now())) + '</p><div class="row ui"><a class="btn primary" href="#workout">' + (open ? 'Carry on' : 'Start') + '</a>' + roughRest(open) + '</div>';
+  }
+  /* A rough night (today's check-in: very short sleep or low energy): one tap makes today a rest day ("Tired"),
+     never a missed workout. Not once he has said "Not for me" to it, nor with a workout under way or a rest logged. */
+  function roughRest(open) {
+    var M = window.WLMe, c = M && M.state && M.state().checkins && M.state().checkins[W.iso(now())];
+    if (open || !c || !(c.sleep === 'Under 4 h' || c.energy === 'Low') || W.restOn(S, W.iso(now()))) return '';
+    if (M.state().feedback.some(function (f) { return f && f.part === 'workout' && f.kind === 'notfit' && f.about === 'roughrest'; })) return '';
+    return '<button class="btn" id="wo-rough-rest" data-rough-rest="1">Rest today (tired)</button>' + (M.fitLink ? ' ' + M.fitLink('workout', 'roughrest', 'Rest today (tired)') : '');
+  }
+  function wireCard(el) {
+    el.addEventListener('click', function (e) {
+      if (!e.target.closest('[data-rough-rest]')) return;
+      W.logRest(S, W.iso(now()), 'Tired', new Date()); save();
+      el.innerHTML = card(); if (WL.refreshToday) WL.refreshToday();
+      WL.toast('Rest day kept: tired. Not a missed workout.');
+    });
   }
 
   WL.register({
     id: 'workout', title: 'Workout', short: 'Move', icon: '❁', nav: true,
+    wireCard: wireCard,
     week: function () {
       var d = new Date(), n = W.weekStats(S, d).thisWeek, r = W.restThisWeek(S, d).length;
       var t = n ? n + ' workout' + (n === 1 ? '' : 's') : '';
