@@ -104,6 +104,8 @@
       h += '<p class="meta" id="c-path-status">' + (ps.sits ? ps.sits + ' sit' + (ps.sits === 1 ? '' : 's') + ' at this stage (' + ps.mins + ' min)' + (ps.rated ? '; attention mostly steady in ' + ps.steady + ' of the last ' + ps.rated : '') + '.' : 'No sits at this stage yet.') + '</p>';
       if (ps.tip) h += '<p class="meta" id="c-path-tip">' + esc(ps.tip) + '</p>';
       if (ps.when) h += '<p class="meta" id="c-path-when">' + esc(ps.when.text) + '</p>';
+      if (ps.late && !(window.WLMe && WLMe.state().feedback.some(function (f) { return f && f.part === 'calm' && f.kind === 'notfit' && f.about === 'path:late'; })))
+        h += '<p class="meta" id="c-path-late">' + esc(ps.late) + fit('path:late', ps.late) + '</p>';
       if (ps.back) h += '<div class="row" id="c-path-back" style="gap:4px 8px"><span class="meta">Your mind has wandered a lot in recent sits at this stage. That’s normal; going back a step for a while often helps.</span><button class="chip" data-stage="' + ps.prev + '">Back to ' + esc(practice(ps.prev).title) + '</button></div>';
       if (ps.ready) h += '<div class="row" id="c-path-ready" style="gap:4px 8px"><span class="meta">Your attention has been steady lately. Ready for the next stage?</span><button class="chip" data-stage="' + ps.next + '">Move on to ' + esc(nx.title) + '</button></div>';
       else if (nx) h += '<p class="meta">The next stage (' + esc(nx.title) + ') is offered after ' + K.READY_SITS + ' sits here with your attention mostly steady in 3 of the last 5. There’s no hurry; you can also choose any stage below.</p>';

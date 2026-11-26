@@ -445,6 +445,19 @@
     return { best: PARTS[best.i][0], worst: PARTS[worst.i][0], bestIn: PARTS[best.i][1],
       text: 'Your steadiest sits have been ' + PARTS[best.i][1] + ' (' + best.steady + ' of ' + best.n + ' mostly steady; ' + PARTS[worst.i][1] + ' ' + worst.steady + ' of ' + worst.n + ').' };
   }
+  /* His last two path sits were late (22:00-05:00), mostly lost in thought, and sleepy: suggest an earlier sit (or
+     the part of the day his sits go best). Text or null. */
+  function pathLate(state, now) {
+    var to = now ? iso(now) : null;
+    var sits = (state.sessions || []).filter(function (s) { return s && PATH.indexOf(s.id) >= 0 && s.focus >= 1 && (!to || !s.date || s.date <= to) && !isNaN(Date.parse(s.at)); })
+      .sort(function (a, b) { return sessionMs(a) - sessionMs(b); }).slice(-2);
+    if (sits.length < 2 || !sits.every(function (s) {
+      var h = new Date(Date.parse(s.at)).getHours();
+      return (h >= 22 || h < 5) && s.focus === 1 && Array.isArray(s.hind) && s.hind.indexOf('Sleepy') >= 0;
+    })) return null;
+    var w = pathWhen(state, now);
+    return 'Your last two late sits were sleepy and wandering. ' + (w && w.best !== 'late' ? 'Your steadiest sits have been ' + w.bestIn + ': try one then.' : 'If you can, try one earlier in the day, even 10 minutes.');
+  }
   function pathStatus(state, now) {
     var to = now ? iso(now) : null, id = stageOf(state), i = PATH.indexOf(id);
     var all = state.sessions.filter(function (s) { return PATH.indexOf(s.id) >= 0 && (!to || !s.date || s.date <= to); })
@@ -459,7 +472,7 @@
       rated: rated.length, steady: steady, lost: lost, ready: i < PATH.length - 1 && sits.length >= READY_SITS && steady >= 3,
       // a later stage that keeps slipping (3 of the last 5 rated "Mostly lost in thought"): offer the stage before, gently
       back: i > 0 && lost >= 3,
-      next: i < PATH.length - 1 ? PATH[i + 1] : null, prev: i > 0 ? PATH[i - 1] : null, total: all.length, tip: tip, when: pathWhen(state, now) };
+      next: i < PATH.length - 1 ? PATH[i + 1] : null, prev: i > 0 ? PATH[i - 1] : null, total: all.length, tip: tip, when: pathWhen(state, now), late: pathLate(state, now) };
   }
   /* Meditation-path sits in the 7 days up to now (same window as stats()). */
   function pathWeek(state, now) {
@@ -583,7 +596,7 @@
     });
   }
 
-  var api = { quietScript: quietScript, pathWhen: pathWhen, INTERVALS: INTERVALS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
+  var api = { pathLate: pathLate, quietScript: quietScript, pathWhen: pathWhen, INTERVALS: INTERVALS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

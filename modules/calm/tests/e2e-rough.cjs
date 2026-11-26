@@ -180,6 +180,25 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(/Quiet timer[^]*Nov 28/.test(await page.textContent('#c-recent')), await page.textContent('#c-recent'));
   });
 
+  await t.step('two late sleepy sits: the path card suggests his steadier time; "Not for me" hides it', async () => {
+    await page.clock.setSystemTime(new Date(2026, 11, 3, 12, 0));
+    await page.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.settings.aim = 'train'; c.settings.stage = 'count';
+      const add = (d, h, f, hind) => c.sessions.push({ id: 'count', date: '2026-12-0' + d, at: new Date(2026, 11, d, h, 10).toISOString(), mins: 20, focus: f, hind });
+      add(1, 23, 1, ['Sleepy']); add(2, 23, 1, ['Sleepy']);
+      localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-path');
+    assert.ok(/last two late sits were sleepy/.test(await page.textContent('#c-path-late')), await page.textContent('#c-path'));
+    await page.evaluate(() => {
+      const m = JSON.parse(localStorage.getItem('wl.me.v1'));
+      m.feedback.push({ id: 'calm/notfit/path:late/1', at: new Date().toISOString(), part: 'calm', about: 'path:late', kind: 'notfit', a: {} });
+      localStorage.setItem('wl.me.v1', JSON.stringify(m));
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-path');
+    assert.strictEqual(await page.$('#c-path-late'), null);
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('calm rough day');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

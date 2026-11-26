@@ -448,4 +448,23 @@ t('path across DST changes (8 Mar / 1 Nov 2026) and sits saved with other UTC of
   assert.deepStrictEqual([st.sits, st.steady, st.lost], [3, 2, 1]);
   assert.deepStrictEqual(K.pathWeek(v, new Date(2026, 10, 22, 23)).mins, K.pathWeek(v, new Date(2026, 10, 22, 23)).sits * 20);
 });
+t('pathLate: two late, sleepy, wandering sits in a row -> suggest earlier (or his best time); otherwise nothing', () => {
+  const s = K.defaults();
+  const sit = (d, h, f, hind) => { const r = K.record(s, 'count', 20, null, null, new Date(2026, 10, d, h, 15)); K.rateSit(r, f, hind); };
+  sit(20, 7, 3, []); sit(21, 7, 3, []); // two good mornings
+  sit(22, 23, 1, ['Sleepy']);
+  assert.strictEqual(K.pathLate(s, new Date(2026, 10, 23, 12)), null, 'one late sleepy sit');
+  sit(23, 23, 1, ['Sleepy', 'Restless']);
+  const l = K.pathLate(s, new Date(2026, 10, 24, 12));
+  assert.ok(/steadiest sits have been in the morning/.test(l), l);
+  assert.strictEqual(K.pathStatus(s, new Date(2026, 10, 24, 12)).late, l);
+  sit(24, 7, 2, []);
+  assert.strictEqual(K.pathLate(s, new Date(2026, 10, 25, 12)), null, 'the latest sit was in the morning');
+  const u = K.defaults();
+  [[20, 0], [21, 1]].forEach(([d, h]) => { const r = K.record(u, 'follow', 20, null, null, new Date(2026, 10, d, h)); K.rateSit(r, 1, ['Sleepy']); });
+  assert.ok(/earlier in the day/.test(K.pathLate(u, new Date(2026, 10, 21, 12))), 'no best time known: earlier in the day');
+  const v = K.defaults();
+  [[20, 23], [21, 23]].forEach(([d, h]) => { const r = K.record(v, 'follow', 20, null, null, new Date(2026, 10, d, h)); K.rateSit(r, 1, ['Restless']); });
+  assert.strictEqual(K.pathLate(v, new Date(2026, 10, 22)), null, 'restless, not sleepy');
+});
 console.log(n + ' calm unit tests passed');
