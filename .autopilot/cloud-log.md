@@ -1,5 +1,12 @@
 # Cloud log
 
+## 2026-11-25 19:40-20:10 AST (cloud run; PC reachable; APK 0.1.20261126.0005, real key, cert 6795e499...)
+- Cross-reviewed Gemini's 05fb17c..3efdf32 (tasks 99-101, 123, 124, 134, 136, 137): sound, nothing to fix.
+- Done 141: Calm meditation path. #calm asks once what Calm is for (feeling calmer / training the mind; switch in the Calm settings card). With "train": a path card (stage N of 5, sits and steadiness, a tip from the last sit's obstacle, "Move on" after 6+ sits with 3 of the last 5 "Mostly steady", any stage selectable) and the stage sit leads the today card and Home once a day from 05:00. Sits: count, follow, note, change, open; 10/15/20/30 min (remembered, default 20); no stress ratings; afterwards "How steady was your attention?" + "What got in the way?" saved on the session (no "Did it help?"). Activity sends focus/hind and a daily calm/aim; pc summary + weekly-plan prompt use them. Link's log lists each part's daily setting once (it kept only one target overall).
+- bug: a new local name in pc summarize (`per`) shadowed the per-part events dict, blanking every later part / cause: my first version / fixed before commit / test: test_pc summary checks.
+- Tested: full suite, 68 suites, none skipped (at 7e4ab0c + the e2e-length selector fix); calm unit in 4 zones; e2e-path; a11y (1.0/1.3, light/dark/night).
+- Check on the phone: Calm shows "What do you want from Calm?"; pick "Training my mind": Counting breaths 20 min leads; after a sit, the attention and "got in the way" chips save.
+
 ## 2026-11-25 17:00-17:15 AST (same run, continued as run2; APK 0.1.20261125.1912, real key)
 - Done 120+122 (hint kind kept with wrong answers; lesson end "Watch for next time"; weekly summary hints), 126 (a11y for #tl-watch and #c-how), 128 (weekly plan prompt uses Calm "helped"), 129 (Calm list: never-helped practice last), 130 (#me "What's working"). 127 dropped (covered). Added 126-134.
 - Tested: full suite (67 suites, none skipped) at a63c7c7 and at da7893c (this APK's code).
