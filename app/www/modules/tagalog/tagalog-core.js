@@ -131,6 +131,12 @@
         var diff = [];
         for (var k = 0; k < cw.length; k++) if (cw[k] !== gw[k]) diff.push(k);
         if (diff.length === 1 && cw[diff[0]] === gw[diff[0]] + 'ng' && gw[diff[0]].length >= 2) return 'Almost: add the linker -ng (' + cw[diff[0]] + '): ' + show;
+        // an extra -ng on a short word that needs none: "Hindi akong pagod" for "Hindi ako pagod"
+        if (diff.length === 1 && gw[diff[0]] === cw[diff[0]] + 'ng' && PRON.indexOf(cw[diff[0]]) >= 0) {
+          var w0 = cw[diff[0]], prev = cw.slice(0, diff[0]).filter(function (w) { return ['pa', 'na', 'po'].indexOf(w) < 0; }).pop();
+          return 'Almost: no linker here (' + w0 + ', not ' + w0 + 'ng' + (prev === 'hindi' || prev === 'di' ? ', after hindi' : '') +
+            '). The -ng only links a describing word like palagi or gusto to what follows (palagi siyang masaya): ' + show;
+        }
       }
       // na between two words
       if (cw.length === gw.length + 1) {

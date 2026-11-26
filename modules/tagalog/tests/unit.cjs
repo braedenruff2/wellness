@@ -280,6 +280,27 @@ t('linkerHint: a missing -ng or na linker gets "Almost" with the answer; anythin
   assert.strictEqual(T.linkerHint(k, 'palagi naglalaro kami'), '', 'order, not linker');
   assert.strictEqual(T.linkerHint({ type: 'build', answer: 'Palagi kaming naglalaro.', words: [] }, 'palagi kami naglalaro'), '', 'type exercises only');
 });
+t('linkerHint: an extra -ng on a short word ("Hindi akong pagod") gets "no linker here"; real -ng words and right answers get nothing', () => {
+  const h = { type: 'type', prompt: "I'm not tired.", answer: 'Hindi ako pagod.', accept: ['hindi ako pagod', 'hindi po ako pagod', 'di ako pagod'] };
+  const m = T.linkerHint(h, 'Hindi akong pagod');
+  assert.ok(/^Almost: no linker here \(ako, not akong, after hindi\)/.test(m), m);
+  assert.ok(/palagi siyang masaya\): Hindi ako pagod\.$/.test(m), m);
+  assert.strictEqual(T.hintKind(h, 'Hindi akong pagod'), 'linker');
+  assert.strictEqual(T.linkerHint(h, 'Hindi ako pagod'), '', 'right');
+  assert.strictEqual(T.linkerHint(h, 'Hindi po akong pagod').indexOf('after hindi') > 0, true, 'po between: still after hindi');
+  const s = { type: 'type', prompt: "She hasn't slept yet.", answer: 'Hindi pa siya natutulog.', accept: ['hindi pa siya natutulog', 'hindi pa siya tulog'] };
+  assert.ok(/siya, not siyang, after hindi/.test(T.linkerHint(s, 'Hindi pa siyang tulog')), 'matches the accepted "tulog" form');
+  // the word really takes -ng here: no "extra" hint (and the missing-linker hint still works)
+  const k = { type: 'type', prompt: 'p', answer: 'Palagi kaming naglalaro.' };
+  assert.strictEqual(T.linkerHint(k, 'Palagi kaming naglalaro'), '');
+  assert.ok(/add the linker -ng/.test(T.linkerHint(k, 'palagi kami naglalaro')));
+  // not a short word: no hint ("bahayng" is just wrong)
+  const b = { type: 'type', prompt: 'p', answer: 'Malaki ang bahay.' };
+  assert.strictEqual(T.linkerHint(b, 'malaki ang bahayng'), '');
+  // not after hindi: the hint leaves out "after hindi"
+  const d = { type: 'type', prompt: 'p', answer: 'Pagod ako ngayon.' };
+  assert.ok(/^Almost: no linker here \(ako, not akong\)\./.test(T.linkerHint(d, 'pagod akong ngayon')));
+});
 t('check: a dropped hyphen is forgiven ("magaral" for "mag-aral"), a changed verb form is not', () => {
   const g = { type: 'type', prompt: 'I want to study Tagalog.', answer: 'Gusto kong mag-aral ng Tagalog.', accept: ['gusto kong mag aral ng tagalog'] };
   assert.strictEqual(T.check(g, 'gusto kong magaral ng tagalog'), true);
