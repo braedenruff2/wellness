@@ -313,6 +313,14 @@ t('aspectHint: the verb with or without its repeated syllable gets "Almost" and 
   assert.strictEqual(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Salamat po.' }, 'salamamat po'), '', 'a syllable typed twice mid-word');
   assert.ok(/nagluluto/.test(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Nagluluto ako.' }, 'nagluto ako')));
   assert.ok(/Aalis/i.test(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Aalis na kami.' }, 'alis na kami')));
+  // -in- verbs (task 224)
+  const ia = (a, g) => T.aspectHint({ type: 'type', prompt: 'p', answer: a }, g);
+  assert.ok(/kinakain, with the repeated/.test(ia('Kinakain niya ang mangga.', 'kinain niya ang mangga')));
+  assert.ok(/kinain, without the repeated/.test(ia('Kinain niya ang mangga.', 'kinakain niya ang mangga')));
+  assert.ok(/binabasa/.test(ia('Binabasa ko ang libro.', 'binasa ko ang libro')));
+  assert.ok(/sinusulat/.test(ia('Sinusulat ko ito.', 'sinulat ko ito')));
+  assert.ok(/iniinom/.test(ia('Iniinom niya ang gatas.', 'ininom niya ang gatas')));
+  assert.strictEqual(ia('Kinain niya ang mangga.', 'kinaain niya ang mangga'), '', 'a doubled vowel mid-word is a typo');
   // the linker on the word before: "after kailangan"
   assert.ok(/after kailangan the verb stays plain: mag-aral/.test(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Kailangang mag-aral ng anak ko.' }, 'kailangang mag-aaral ng anak ko')));
   assert.ok(/after puwede /.test(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Puwedeng kumain na tayo?' }, 'puwedeng kumakain na tayo')));

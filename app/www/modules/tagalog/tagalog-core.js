@@ -145,7 +145,7 @@
      "gusto kong mag-aral", or "kumain ako ngayon" for "kumakain ako ngayon". One word differs, by a repeated 1-2
      letter syllable only. */
   var MODALS = ['gusto', 'ayaw', 'ayoko', 'kailangan', 'puwede', 'pwede', 'dapat', 'sana'];
-  var VPRE = ['', 'mag', 'nag', 'pag', 'mang', 'nang', 'pang', 'ma', 'na', 'um', 'i', 'ipa', 'ipag', 'pinag', 'ka', 'maka', 'naka', 'makapag', 'nakapag'];
+  var VPRE = ['', 'mag', 'nag', 'pag', 'mang', 'nang', 'pang', 'ma', 'na', 'um', 'in', 'i', 'ipa', 'ipag', 'pinag', 'ka', 'maka', 'naka', 'makapag', 'nakapag'];
   function redup(long, short) {
     if (long.length - short.length < 1 || long.length - short.length > 2) return false;
     var L = long.length - short.length;
@@ -157,8 +157,8 @@
       if (!/^[bcdfghklmnprstvwyz][aeiou]$/.test(ch)) continue;
       // the copied syllable starts the root: at the start or after a prefix (ka-kain, nag-lu-luto, ma-ka-kain)
       if (ch === long.substr(k + L, L) && VPRE.indexOf(before) >= 0) return true;
-      // with -um- it follows the infix's vowel: kuma-ka-in, bumi-bi-li
-      if (/^[bcdfghklmnprstvwyz]um[aeiou]$/.test(before) && before[3] === ch[1]) return true;
+      // with -um- or -in- it follows the infix's vowel: kuma-ka-in, bumi-bi-li, kina-ka-in, sinu-su-lat
+      if (/^[bcdfghklmnprstvwyz](um|in)[aeiou]$/.test(before) && before[3] === ch[1]) return true;
     }
     return false;
   }
