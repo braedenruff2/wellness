@@ -552,4 +552,18 @@ t('Task 139: mixed timezone offsets and earlier-day bounds in calmLikes, calmHel
   const res = K.forPlan(fp, now);
   assert.deepStrictEqual(res.feedback.map((x) => x.about), ['c', 'a'], 'forPlan keeps in14 and Nov 24 in chronological order');
 });
+t('guidance "lowenergy": energy Low on the last 3 check-ins (not 2, not with a gap); hidden by Not for me', () => {
+  const s = K.defaults(), now = new Date(2026, 10, 26, 12);
+  const ci = (d, energy) => { s.checkins['2026-11-' + d] = { sleep: '5–6 h', wakes: '1', energy, mood: 'OK', day: 'OK' }; };
+  ci(24, 'Low'); ci(25, 'Low');
+  assert.ok(!K.guidance(s, now, 9).some((g) => g.key === 'lowenergy'), 'two days');
+  ci(26, 'Low');
+  const g = K.guidance(s, now, 9).find((x) => x.key === 'lowenergy');
+  assert.ok(g && /Rest today \(tired\)/.test(g.text) && /10-minute sit/.test(g.text), JSON.stringify(g));
+  ci(25, 'OK');
+  assert.ok(!K.guidance(s, now, 9).some((x) => x.key === 'lowenergy'), 'one OK in between');
+  ci(25, 'Low');
+  K.notFit(s, 'home', 'guide:lowenergy', 'Low energy three check-ins running', ['Not true for me'], '', new Date(2026, 10, 26, 11));
+  assert.ok(!K.guidance(s, now, 9).some((x) => x.key === 'lowenergy'), 'Not for me hides it');
+});
 console.log(n + ' me unit tests passed');

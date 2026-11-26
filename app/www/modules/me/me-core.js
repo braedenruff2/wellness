@@ -271,6 +271,9 @@
     }
     var r5 = recentCheckins(state, now, 5), broken = r5.filter(function (c) { return c.wakes === '2' || c.wakes === '3+'; }).length;
     if (broken >= 3 && !out.some(function (g) { return g.key === 'shortsleep'; })) out.push({ key: 'brokennights', part: 'home', text: 'Broken nights on ' + broken + ' of the last ' + r5.length + ' check-ins. On these days a nap beats a workout, and Calm’s “Back to sleep” helps after a night feed.' });
+    // low energy three check-ins running: point to the two easy ways out the app has (a rest day, a short sit)
+    var r3 = recentCheckins(state, now, 3);
+    if (r3.length === 3 && r3.every(function (c) { return c.energy === 'Low'; })) out.push({ key: 'lowenergy', part: 'home', text: 'Low energy three check-ins running. On Home, Move has “Rest today (tired)” after a short night, and Calm a 10-minute sit; both count. If it goes on, mention it to your doctor.' });
     // his last bedtime wind-down didn't help because his mind was racing: the next evening, write it down first
     var wd = byTime(state.feedback.filter(function (x) { return x && x.part === 'calm' && x.kind === 'after' && /^(sleep|night)@/.test(String(x.about)) && inRange(x, null, nowMs); })).slice(-1)[0];
     if (wd && now.getHours() >= 17 && Array.isArray(wd.a.block) && wd.a.block.indexOf('Mind racing') >= 0) {
