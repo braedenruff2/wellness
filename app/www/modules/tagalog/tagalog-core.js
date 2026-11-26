@@ -228,6 +228,8 @@
     }
     return out;
   }
+  /* The short label shown with a slip (Watch for next time, Slips to watch). */
+  var HINT_LABEL = { order: 'Word order', pronoun: 'Short words go second', linker: 'Linker', aspect: 'Verb form' };
   /* One line per kind for whoever writes next week's lessons from the weekly summary (the PC lesson job, a cloud run). */
   var HINT_ABOUT = {
     order: 'ang/ng word order: the doer (ang) comes after the verb and its object',
@@ -408,7 +410,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, slips: slips, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, HINT_LABEL: HINT_LABEL, slips: slips, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, againMiss: againMiss, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;

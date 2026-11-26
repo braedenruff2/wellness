@@ -139,7 +139,7 @@
     });
   }
 
-  var SLIP_LABEL = { order: 'Word order', pronoun: 'Short words go second', linker: 'Linker', aspect: 'Verb form' };
+  var SLIP_LABEL = T.HINT_LABEL;
   /* The specific slips from this lesson (word order, short words, linkers, verb forms): once more with the right sentence. */
   function watchHtml(notes) {
     if (!notes || !notes.length) return '';
