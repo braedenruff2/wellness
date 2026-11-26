@@ -354,8 +354,8 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 240. [any] Drive sync race: right after "Restore from Drive", the next autoSync must not write the phone's pre-restore data over the Drive file (write only after the restore has been applied); e2e with the fake bridge.
 241. [any] e2e-narrow: every top-level page (#calm, #workout, #workout/history, #tagalog, #tagalog/words, #faith, #faith/pray, #todo, #coach, #me, #journal, #settings, #link) at 320 px and text 1.3 with a year of data: no horizontal overflow, no button cut off.
 242. [any] Perf: #workout/history, #me (14-day trends) and #faith/journal with a year of data at CPU 4x under 300 ms each (tests/e2e-perf.cjs); fix the slowest if over.
-243. [any] Tagalog review "Go through these again" when every answer was right: no empty second round, the button isn't offered; e2e.
+243. (dropped 26 Nov, Claude run2: exists: e2e-repeat "nothing missed: no button" and "all got: no more repeats") Tagalog review "Go through these again" when every answer was right: no empty second round, the button isn't offered; e2e.
 244. [any] tests/lib/year.cjs: add a year of to-dos (repeats ticked weekly) and Parenting tips/feedback so storage-size and the backup round trip cover every store; keep both tests passing.
-245. [any] Home after midnight (00:30) with yesterday's items unfinished: today's list is today's (not yesterday's), and "Log for an earlier day" still offers yesterday; e2e with the fake clock in Halifax time.
+245. (dropped 26 Nov, Claude run2: covered by tests/e2e-midnight-dst.cjs (midnight resets today() in every module) and e2e-logday (last 7 days offered)) Home after midnight (00:30) with yesterday's items unfinished: today's list is today's (not yesterday's), and "Log for an earlier day" still offers yesterday; e2e with the fake clock in Halifax time.
 246. (done 26 Nov, Claude run2: tests/e2e-backup-old.cjs; no fix needed) Settings > Backup: a backup file from an older app version (missing newer fields: no walkDark, no restRemoved, no againMiss) restores without "unreadable" parts; e2e with a trimmed fixture.
 
