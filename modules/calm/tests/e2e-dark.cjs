@@ -130,6 +130,39 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#c-save');
   });
 
+  await t.step('soft bells: time paused across a 5-min mark is not counted; a screen-off jump rings one bell, not several', async () => {
+    const oscs = () => page.evaluate(() => window.__oscs);
+    await page.goto(base + '#calm/s/timer');
+    await page.waitForSelector('#c-len');
+    await page.click('[data-len="10"]');
+    await page.click('#c-pp');
+    const o1 = await oscs();
+    await page.clock.runFor(4 * 60000);
+    await page.click('#c-pp'); // pause at 4 min (setting off: no dark screen to tap first)
+    await page.clock.runFor(3 * 60000);
+    assert.strictEqual(await oscs(), o1, 'no bell while paused, though 7 min have passed');
+    await page.click('#c-pp'); // resume
+    await page.clock.runFor(50000);
+    assert.strictEqual(await oscs(), o1, 'still 4:50 of sitting');
+    await page.clock.runFor(15000);
+    assert.strictEqual(await oscs() - o1, 1, 'the bell at 5 min of sitting');
+    await page.click('#c-end'); await page.waitForSelector('#c-today');
+
+    await page.goto(base + '#calm/s/count');
+    await page.waitForSelector('#c-len');
+    await page.click('[data-len="30"]');
+    await page.click('#c-pp');
+    await page.clock.runFor(2000);
+    const o2 = await oscs();
+    await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); });
+    const nowMs = await page.evaluate(() => Date.now());
+    await page.clock.setSystemTime(nowMs + 17 * 60000);
+    await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); });
+    await page.clock.runFor(1000);
+    assert.strictEqual(await oscs() - o2, 1, 'one bell for the 15-min mark (the 5 and 10 passed while away)');
+    await page.click('#c-end'); await page.waitForSelector('#c-today');
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('calm dark screen');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
