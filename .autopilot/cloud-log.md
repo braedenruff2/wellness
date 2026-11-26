@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-26 03:00-12:20 AST (same run, continued; APK 0.1.20261126.1617, real key, cert 6795e499...)
+- Done 197, 203-205 (e2e: keyboard focus under the dark cover, bell tones, leaving a dark sit for another screen; Faith settings has the late-night dark-screen choice), 198 (Home: "Check-in ✓ · change" -> #me/checkin), 210 (three low-energy check-ins -> guidance key lowenergy), 208 (two late, sleepy, wandering sits -> #c-path-late suggests his steadier time). Added 203-211.
+- Tested: full suite at 594ab93 (77 suites, none skipped; this APK's code).
+- Check on the phone: Home after the check-in shows "Check-in ✓ · change".
+
 ## 2026-11-26 02:45-02:55 AST (same run, continued; APK 0.1.20261126.0654, real key, cert 6795e499...)
 - Done 199 (a word still missed when going through the misses again counts toward Hard words via card.againMiss; no box/due change; kept by validate), 201 (Settings > Backup: "Which parts use it" breakdown). Added 203-206.
 - Tested: full suite at f53caa5 (77 suites, none skipped; this APK's code).
