@@ -36,6 +36,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(awake[awake.length - 1], true);
 
     await page.clock.fastForward(2 * 60000);
+    if (await page.$('#c-dark')) await page.click('#c-dark'); // the screen went dark during the sit (e2e-dark.cjs): a tap shows it
     await page.click('#c-pp'); // Pause
     alarms = await page.evaluate(() => window.__calmAlarms);
     awake = await page.evaluate(() => window.__awake);

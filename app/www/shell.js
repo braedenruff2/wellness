@@ -158,7 +158,19 @@
       o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 0.3);
     } catch (e) {}
   }
+  /* One soft bell (interval bells during a sit): quieter and shorter than the start/end bell. */
+  function softBell() {
+    try {
+      var ctx = getAudio(), t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'sine'; o.frequency.value = 528;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.07, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 2.5);
+      o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 2.6);
+    } catch (e) {}
+  }
   function keepAwake(on) { if (native && native.keepAwake) try { native.keepAwake(!!on); } catch (e) {} }
+  /* Screen brightness right down (a dark screen during a sit) or back to the phone's own setting. */
+  function dimScreen(on) { if (native && native.dimScreen) try { native.dimScreen(!!on); } catch (e) {} }
 
   /* ---- modules and routing ---- */
   function register(m) { modules[m.id] = m; order.push(m.id); }
@@ -618,7 +630,7 @@
 
   window.WL = {
     register: register, start: start, route: route, logNow: logNow, logDay: getLogDay, setLogDay: setLogDay, store: store, $: $, $$: $$, esc: esc, toast: toast, isoDate: isoDate,
-    speech: speech, bell: bell, tick: tick, keepAwake: keepAwake, wordsSeconds: wordsSeconds, applyLook: applyLook, themeNow: themeNow,
+    speech: speech, bell: bell, softBell: softBell, tick: tick, keepAwake: keepAwake, dimScreen: dimScreen, wordsSeconds: wordsSeconds, applyLook: applyLook, themeNow: themeNow,
     refreshToday: refreshToday, saveFile: saveFile, native: native, modules: modules, backupText: backupText, restoreText: restoreText
   };
 })();

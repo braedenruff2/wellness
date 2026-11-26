@@ -1,7 +1,8 @@
 /* Calm (meditation) logic, no DOM. Short, practical practices for a tired parent: paced breathing, body scan,
    grounding, kindness, sleep. Christian contemplative prayer stays in the Faith module (linked from here).
    Storage 'wl.calm.v1': { sessions:[{date, at, id, mins, before, after, focus?, hind?}],
-     settings:{voice, rate, minutes, tick, dailyGoal, aim: null|'calm'|'train', stage: a PATH id, sitMinutes} }
+     settings:{voice, rate, minutes, tick, dailyGoal, aim: null|'calm'|'train', stage: a PATH id, sitMinutes,
+     dark: screen goes dark during sits and the quiet timer, interval: soft bell every N min during them (0 = off)} }
    aim 'train' = he meditates to train the mind (the meditation path), not only for stress: Calm leads with his stage. */
 (function (root) {
   'use strict';
@@ -313,7 +314,13 @@
   function timesDone(state, id) { return state.sessions.filter(function (s) { return s.id === id; }).length; }
 
   var DAILY_GOALS = [1, 5, 10, 15, 20], SIT_LENGTHS = [10, 15, 20, 30];
-  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10, aim: null, stage: 'count', sitMinutes: 20 } }; }
+  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10, aim: null, stage: 'count', sitMinutes: 20, dark: true, interval: 0 } }; }
+  var INTERVALS = [0, 5, 10];
+  /* Interval bells during a sit: the bell number due at e seconds (0 = none yet); none in the last 30 s, the end bell comes then. */
+  function intervalBell(every, e, total) {
+    if (!every || !(e > 0) || !(total > 0) || e > total - 30) return 0;
+    return Math.floor(e / (every * 60));
+  }
   function goalOf(state) { var g = state && state.settings && state.settings.dailyGoal; return DAILY_GOALS.indexOf(g) >= 0 ? g : 10; }
   var iso = WLD.iso;
 
@@ -515,6 +522,8 @@
     var st = s.settings || {};
     if (typeof st.voice === 'boolean') d.settings.voice = st.voice;
     if (typeof st.tick === 'boolean') d.settings.tick = st.tick;
+    if (typeof st.dark === 'boolean') d.settings.dark = st.dark;
+    if (INTERVALS.indexOf(st.interval) >= 0) d.settings.interval = st.interval;
     if (typeof st.rate === 'number' && st.rate >= 0.5 && st.rate <= 1.6) d.settings.rate = st.rate;
     if ([3, 5, 10, 15, 20].indexOf(st.minutes) >= 0) d.settings.minutes = st.minutes;
     if (DAILY_GOALS.indexOf(st.dailyGoal) >= 0) d.settings.dailyGoal = st.dailyGoal;
@@ -542,7 +551,7 @@
     });
   }
 
-  var api = { PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
+  var api = { INTERVALS: INTERVALS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

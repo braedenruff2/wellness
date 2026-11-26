@@ -349,4 +349,23 @@ t('meditation path: "back" after 3 of the last 5 rated sits mostly lost (never a
   assert.deepStrictEqual(K.pathWeek(s, new Date(2026, 10, 9, 22)), { sits: 7, mins: 140 }, '3..9 Nov, sits only (not the slow breathing)');
   assert.deepStrictEqual(K.pathWeek(s, new Date(2026, 10, 20, 12)), { sits: 0, mins: 0 });
 });
+t('sit settings: dark screen on by default, interval bells 0/5/10 kept, junk dropped', () => {
+  assert.strictEqual(K.defaults().settings.dark, true);
+  assert.strictEqual(K.defaults().settings.interval, 0);
+  const v = K.validate({ sessions: [], settings: { dark: false, interval: 10 } });
+  assert.deepStrictEqual([v.settings.dark, v.settings.interval], [false, 10]);
+  const j = K.validate({ sessions: [], settings: { dark: 'no', interval: 7 } });
+  assert.deepStrictEqual([j.settings.dark, j.settings.interval], [true, 0]);
+  assert.strictEqual(K.validate({ sessions: [], settings: {} }).settings.dark, true, 'older saves keep the default');
+});
+t('interval bell number: none at the start, one per interval, none in the last 30 s or off', () => {
+  assert.strictEqual(K.intervalBell(5, 0, 1200), 0);
+  assert.strictEqual(K.intervalBell(5, 299, 1200), 0);
+  assert.strictEqual(K.intervalBell(5, 300, 1200), 1);
+  assert.strictEqual(K.intervalBell(5, 901, 1200), 3);
+  assert.strictEqual(K.intervalBell(5, 1175, 1200), 0, 'the end bell is close: none');
+  assert.strictEqual(K.intervalBell(10, 600, 600), 0, 'a 10-min sit with 10-min bells: only the end bell');
+  assert.strictEqual(K.intervalBell(0, 600, 1200), 0, 'off');
+  assert.strictEqual(K.intervalBell(5, NaN, 1200), 0);
+});
 console.log(n + ' calm unit tests passed');

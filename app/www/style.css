@@ -91,6 +91,7 @@ nav#tabs a .ico { display: block; font-size: 20px; line-height: 1.2; }
 nav#tabs a[aria-current="page"] { color: var(--accent); font-weight: 600; }
 body.in-session nav#tabs { display: none; }
 body.in-session { padding-bottom: 0; }
+.c-dark { position: fixed; inset: 0; background: #000; z-index: 9999; cursor: pointer; }
 #toast {
   position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--ink); color: var(--bg);
   padding: 10px 16px; border-radius: 20px; font: 14px system-ui, sans-serif; opacity: 0; pointer-events: none;

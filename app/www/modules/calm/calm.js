@@ -121,6 +121,10 @@
       return '<button class="chip" data-min="' + m + '" aria-pressed="' + (S.settings.minutes === m) + '">' + m + ' min</button>';
     }).join('') + '</div><div class="row" style="margin-top:8px"><span class="grow">Voice guidance</span><button class="chip" id="cv" aria-pressed="' + S.settings.voice + '">' + (S.settings.voice ? 'On' : 'Off') + '</button></div>' +
       '<div class="row" style="margin-top:8px"><span class="grow">Soft tick when breathing changes</span><button class="chip" id="ctk" aria-pressed="' + !!S.settings.tick + '">' + (S.settings.tick ? 'On' : 'Off') + '</button></div>' +
+      '<div class="row" style="margin-top:8px"><span class="grow">Dark screen during sits and the quiet timer</span><button class="chip" id="cdk" aria-pressed="' + (S.settings.dark !== false) + '">' + (S.settings.dark !== false ? 'On' : 'Off') + '</button></div>' +
+      '<div class="row" style="margin-top:8px"><span class="grow">Soft bell during sits</span></div><div class="chips" id="c-iv">' + K.INTERVALS.map(function (m) {
+      return '<button class="chip" data-iv="' + m + '" aria-pressed="' + ((S.settings.interval || 0) === m) + '">' + (m ? 'Every ' + m + ' min' : 'Off') + '</button>';
+    }).join('') + '</div>' +
       '<div class="row" style="margin-top:8px"><span class="grow">Calm is mainly for</span></div><div class="chips" id="c-aim-set">' + aimChips() + '</div></div>';
     var helped = window.WLMe && WLMe.calmHelped ? WLMe.calmHelped() : {};
     // a practice that hasn't helped him in 3+ tries goes to the end of the list
@@ -183,6 +187,7 @@
       (p.path ? '' : rating('c-before', 'How stressed are you right now?')) +
       lengthChips(p) +
       '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">▶ Begin · ' + mins(p) + ' min</button></div>' +
+      (darkOn(p) ? '<p class="meta" id="c-dark-hint" style="text-align:center">The screen goes dark while you sit, so you needn’t lock the phone. Tap it to see the time.</p>' : '') +
       '<div id="c-after" hidden>' + (p.path ? sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button></div></div></div>';
   }
   /* After a sit on the path: how steady attention was, and what got in the way (optional; kept on the session). */
@@ -201,8 +206,31 @@
     if (n && n.calmAlarm) try { n.calmAlarm(ms > 0 ? Math.round(ms) : 0, label || ''); } catch (e) {}
   }
 
+  /* A dark screen during sits and the quiet timer (setting, on by default): the app stays awake, so the voice,
+     interval bells and end bell keep working, without a lit screen in a dark room. Tap shows the time again. */
+  var DARK_AFTER = 10000;
+  function darkOn(p) { return usesAlarm(p) && S.settings.dark !== false; }
+  function scheduleDark() {
+    if (!run || run.done || run.paused || !darkOn(run.p)) return;
+    clearTimeout(run.darkT);
+    run.darkT = setTimeout(function () {
+      if (!run || run.done || run.paused || document.getElementById('c-dark')) return;
+      var d = document.createElement('div');
+      d.id = 'c-dark'; d.className = 'c-dark'; d.tabIndex = 0; d.setAttribute('role', 'button');
+      d.setAttribute('aria-label', 'Dark screen for your sit. Tap to show the time.');
+      d.onclick = function () { lightUp(); scheduleDark(); };
+      document.body.appendChild(d); WL.dimScreen(true);
+    }, DARK_AFTER);
+  }
+  function lightUp() {
+    if (run) clearTimeout(run.darkT);
+    var d = document.getElementById('c-dark');
+    if (d) { d.parentNode.removeChild(d); WL.dimScreen(false); }
+  }
+
   function stopRun() {
     if (!run) return;
+    lightUp();
     cancelAnimationFrame(run.raf); clearTimeout(run.timer); clearInterval(run.tick);
     if (run.player) run.player.stop();
     WL.speech.stop(); WL.keepAwake(false); calmAlarm(0, '');
@@ -235,7 +263,8 @@
   function begin(p) {
     var total = mins(p) * 60, before = run && run.before;
     stopRun();
-    run = { p: p, start: Date.now(), pausedFor: 0, paused: false, before: before, total: total };
+    run = { p: p, start: Date.now(), pausedFor: 0, paused: false, before: before, total: total, iv: 0 };
+    var every = usesAlarm(p) ? S.settings.interval || 0 : 0;
     WL.keepAwake(true); WL.bell();
     if (usesAlarm(p)) calmAlarm(total * 1000, alarmLabel(p));
     var pp = $('#c-pp'); pp.textContent = '⏸ Pause'; pp.dataset.state = 'playing';
@@ -245,9 +274,12 @@
       var e = elapsed();
       $('#c-prog').style.width = Math.min(100, 100 * e / total) + '%';
       if (p.kind !== 'guided') $('#c-left').textContent = Math.max(0, Math.ceil((total - e) / 60)) + ' min left';
+      var k = every && !run.paused ? K.intervalBell(every, e, total) : 0;
+      if (k > run.iv) { run.iv = k; WL.softBell(); }
       if (p.kind !== 'guided' && e >= total) finish(!!(usesAlarm(p) && WL.native && WL.native.calmAlarm && e - total > 5));
     };
     run.tick = setInterval(progress, 500);
+    scheduleDark();
     if (p.kind === 'pacer') {
       var lastPhase = -1;
       var frame = function () {
@@ -313,10 +345,12 @@
       if (st === 'playing') {
         run.paused = true; run.pausedAt = Date.now(); if (run.player) run.player.pause(); WL.keepAwake(false);
         if (usesAlarm(p)) calmAlarm(0, '');
+        lightUp();
         b.textContent = '▶ Resume'; b.dataset.state = 'paused';
       } else {
         run.pausedFor += Date.now() - run.pausedAt; run.paused = false; if (run.player) run.player.resume(); if (run.frame) run.frame(); WL.keepAwake(true);
         if (usesAlarm(p)) calmAlarm(Math.max(0, run.total * 1000 - elapsed() * 1000), alarmLabel(p));
+        scheduleDark();
         b.textContent = '⏸ Pause'; b.dataset.state = 'playing';
       }
     };
@@ -327,6 +361,9 @@
     $('#c-end').onclick = function () { saveEarly(); stopRun(); location.hash = '#calm'; };
     var pp = $('#c-pp');
     keyHandler = function (ev) {
+      if (document.getElementById('c-dark') && (ev.key === ' ' || ev.code === 'Space' || ev.key === 'Enter')) { // dark screen: a key only lights it
+        ev.preventDefault(); lightUp(); scheduleDark(); return;
+      }
       if (ev.key !== ' ' && ev.code !== 'Space') return;
       var tag = ev.target && ev.target.tagName;
       if (/^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(tag || '') || (ev.target && ev.target.isContentEditable)) return;
@@ -367,6 +404,8 @@
     $$('[data-min]').forEach(function (b) { b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route([]); }; });
     $('#cv').onclick = function () { S.settings.voice = !S.settings.voice; save(); route([]); };
     $('#ctk').onclick = function () { S.settings.tick = !S.settings.tick; save(); route([]); };
+    $('#cdk').onclick = function () { S.settings.dark = S.settings.dark === false; save(); route([]); };
+    $$('[data-iv]').forEach(function (b) { b.onclick = function () { S.settings.interval = +b.dataset.iv; save(); route([]); }; });
     $$('[data-aim]').forEach(function (b) { b.onclick = function () { S.settings.aim = b.dataset.aim; save(); route([]); }; });
     $$('[data-stage]').forEach(function (b) { b.onclick = function () { K.setStage(S, b.dataset.stage); save(); WL.toast('Your stage: ' + titleOf(K.stageOf(S))); route([]); }; });
   }

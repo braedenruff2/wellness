@@ -401,6 +401,16 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** A dark screen during a Calm sit: brightness right down while the page shows black (true), or the phone's own (false). */
+        @JavascriptInterface public void dimScreen(boolean on) {
+            runOnUiThread(() -> {
+                Window w = getWindow();
+                WindowManager.LayoutParams lp = w.getAttributes();
+                lp.screenBrightness = on ? 0.01f : WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
+                w.setAttributes(lp);
+            });
+        }
+
         @JavascriptInterface public void setDark(boolean dark) {
             runOnUiThread(() -> {
                 if (destroyed) return;
