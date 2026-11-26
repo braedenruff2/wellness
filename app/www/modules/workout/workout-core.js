@@ -176,6 +176,18 @@
     return null;
   }
 
+  /* How long he has actually been training in a session: from the start through each set to now (or its end), leaving
+     out any gap over 90 minutes (he did half, then the rest hours later). {secs, broke: true when a gap was left out}. */
+  var GAP_MS = 90 * 60e3;
+  function activeTime(s, now) {
+    var pts = [Date.parse(s.start)].concat((s.sets || []).map(function (x) { return Date.parse(x.at); }));
+    pts.push(s.end ? Date.parse(s.end) : (now || new Date()).getTime());
+    pts = pts.filter(function (x) { return !isNaN(x); }).sort(function (a, b) { return a - b; });
+    var ms = 0, broke = false;
+    for (var i = 1; i < pts.length; i++) { var d = pts[i] - pts[i - 1]; if (d > GAP_MS) broke = true; else ms += d; }
+    return { secs: Math.round(ms / 1000), broke: broke };
+  }
+
   /* An unfinished session from an earlier day is closed at its last set (so it never swallows a later workout). */
   function closeStale(state, now) {
     var day = iso(now || new Date()), open = openSession(state, now);
@@ -652,7 +664,7 @@
     return d;
   }
 
-  var api = { fourWeeks: fourWeeks, SORE_LEVELS: SORE_LEVELS, askSore: askSore, setSore: setSore, soreOn: soreOn, targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
+  var api = { fourWeeks: fourWeeks, SORE_LEVELS: SORE_LEVELS, askSore: askSore, setSore: setSore, soreOn: soreOn, targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, activeTime: activeTime, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
     last: last, bestSet: bestSet, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     AGE_NORMS: AGE_NORMS, cleanAge: cleanAge, ageBracket: ageBracket, benchmark: benchmark, weeklyTrend: weeklyTrend, exerciseSeries: exerciseSeries,

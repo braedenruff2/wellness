@@ -137,7 +137,8 @@
   function clock() {
     clearInterval(clockTimer);
     var open = W.openSession(S, now()), el = $('#sessclock'); if (!open || !el) return;
-    var t = function () { var e = $('#sessclock'); if (e) e.textContent = 'Session ' + fmt((Date.now() - new Date(open.start).getTime()) / 1000); };
+    // active time only: a break of over 90 min (half now, the rest tonight) isn't counted
+    var t = function () { var e = $('#sessclock'); if (!e) return; var a = W.activeTime(open, new Date()); e.textContent = 'Session ' + fmt(a.secs) + (a.broke ? ' (not counting the break)' : ''); };
     t(); clockTimer = setInterval(t, 1000);
   }
 

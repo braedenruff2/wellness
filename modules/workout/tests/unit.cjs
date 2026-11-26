@@ -577,4 +577,22 @@ t('the day after a "Tired" rest day (e.g. from Home after a short night): as pla
   W.logRest(s, '2026-11-23', 'Busy day', at(23, 9));
   assert.ok(!/Rested yesterday/.test(W.coach(s, at(23, 10))), 'resting again today: the rest line');
 });
+t('activeTime: a session split by a long break counts only the training (start, sets, now), not the break', () => {
+  const at = (h, m) => new Date(2026, 10, 23, h, m).toISOString();
+  const s = { start: at(14, 56), end: null, sets: [at(14, 57), at(15, 20), at(15, 45), at(20, 43), at(20, 48), at(21, 40)].map((x) => ({ at: x })) };
+  // 14:56 -> 15:45 = 49 min; the 4 h 58 min break left out; 20:43 -> 21:40 = 57 min; then 5 min to now
+  let a = W.activeTime(s, new Date(2026, 10, 23, 21, 45));
+  assert.strictEqual(a.secs, (49 + 57 + 5) * 60); assert.strictEqual(a.broke, true);
+  // no break: plain wall time
+  a = W.activeTime({ start: at(9, 0), sets: [{ at: at(9, 10) }, { at: at(9, 40) }] }, new Date(2026, 10, 23, 9, 50));
+  assert.deepStrictEqual(a, { secs: 50 * 60, broke: false });
+  // a finished session uses its end, not now; past midnight still counts (23:30 -> 00:20)
+  a = W.activeTime({ start: at(23, 30), end: new Date(2026, 10, 24, 0, 20).toISOString(), sets: [{ at: at(23, 50) }] }, new Date(2026, 10, 25));
+  assert.deepStrictEqual(a, { secs: 50 * 60, broke: false });
+  // exactly 90 min between sets still counts; sets out of order or a damaged time are fine
+  a = W.activeTime({ start: at(10, 0), sets: [{ at: at(11, 30) }, { at: 'x' }, { at: at(11, 0) }] }, new Date(2026, 10, 23, 11, 30));
+  assert.deepStrictEqual(a, { secs: 90 * 60, broke: false });
+  // just started, no sets yet
+  assert.deepStrictEqual(W.activeTime({ start: at(8, 0), sets: [] }, new Date(2026, 10, 23, 8, 1)), { secs: 60, broke: false });
+});
 console.log(n + ' workout unit tests passed');
