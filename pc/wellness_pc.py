@@ -581,6 +581,7 @@ def find_gemini():
     if found: return found
     home = os.path.expanduser("~")
     for p in (os.path.join(os.environ.get("APPDATA", ""), "npm", "gemini.cmd"),
+              os.path.join(home, "Desktop", "Loudbook", "tools", "node", "gemini.cmd"),
               os.path.join(home, ".local", "bin", "gemini.exe"),
               os.path.join(home, ".local", "bin", "gemini"),
               os.path.join(home, ".npm-global", "bin", "gemini")):

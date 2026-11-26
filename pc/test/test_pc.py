@@ -604,6 +604,20 @@ finally:
 
 # Clean up Gemini state/env for remaining tests
 W.write_json(W.AI_STATE_FILE, {})
+# find_gemini checks Desktop/Loudbook/tools/node/gemini.cmd when PATH has no gemini
+_fake_home = os.path.join(TMP, "fake-home")
+_lb_gem = os.path.join(_fake_home, "Desktop", "Loudbook", "tools", "node", "gemini.cmd")
+os.makedirs(os.path.dirname(_lb_gem), exist_ok=True)
+open(_lb_gem, "w", encoding="utf-8").write("@echo off\n")
+_old_wg, _old_which, _old_exp = os.environ.pop("WELLNESS_GEMINI", None), W.shutil.which, W.os.path.expanduser
+try:
+    W.shutil.which = lambda _name: None
+    W.os.path.expanduser = lambda p: _fake_home if p == "~" else _old_exp(p)
+    _found_lb = W.find_gemini()
+    check("find_gemini locates Desktop/Loudbook/tools/node/gemini.cmd", _found_lb == _lb_gem, _found_lb)
+finally:
+    W.shutil.which, W.os.path.expanduser = _old_which, _old_exp
+    if _old_wg is not None: os.environ["WELLNESS_GEMINI"] = _old_wg
 os.environ["WELLNESS_GEMINI"] = os.path.join(TMP, "no-such-gemini")
 
 # an updated wellness_pc.py restarts the running server (exit 3 -> start-pc.cmd starts the new code)
