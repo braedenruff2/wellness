@@ -123,6 +123,22 @@ const QUEUED_CLOUD = 'This will be answered by the next cloud run (within about 
     await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.coach.v1')); s.current = null; localStorage.setItem('wl.coach.v1', JSON.stringify(s)); });
     await page.reload();
   });
+  await t.step('a late cloud scenario never replaces the one he is on now (asked earlier, he got a newer one meanwhile)', async () => {
+    const q = await page.evaluate(() => WL.pc.queue('coach-scenario', { child: 'Test', age: 'about one' }));
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      s.current = { id: 'now1', at: new Date().toISOString(), title: 'The one he is on', skill: 'Connection', scenario: 'She brings you a book.', question: 'What do you do?', age: 'about one', answer: 'half-written answer' };
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s)); WL.modules.coach.reload();
+    });
+    await cloudAnswers({ [q.id]: { task: 'coach-scenario', answer: { title: 'Late arrival', skill: 'Safety', scenario: 'Old request.', question: 'What do you do?' } } });
+    await page.waitForFunction((id) => !WL.pc.queued('coach-scenario').some((x) => x.id === id), q.id);
+    const c = await coach();
+    assert.strictEqual(c.current.title, 'The one he is on');
+    assert.strictEqual(c.current.answer, 'half-written answer', 'his half-written answer kept');
+    assert.ok(!JSON.stringify(c).includes('Late arrival'));
+    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.coach.v1')); s.current = null; localStorage.setItem('wl.coach.v1', JSON.stringify(s)); WL.modules.coach.reload(); });
+    await page.reload();
+  });
   await t.step('parenting cloud answers do not steal focus or wipe search while typing in #co-real, #co-answer, or #co-hist-search', async () => {
     await page.goto(base + '#coach');
     // 1. Typing in #co-real when a cloud coach-scenario arrives
