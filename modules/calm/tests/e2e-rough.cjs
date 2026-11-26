@@ -143,6 +143,18 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.$('#c-card-rough'), null, 'no check-in: as usual');
   });
 
+  await t.step('#calm/s/<id>/<minutes>: only a real length for that practice counts', async () => {
+    for (const [hash, want] of [['#calm/s/count/7', 20], ['#calm/s/count/abc', 20], ['#calm/s/count/9999', 20], ['#calm/s/count/30', 30], ['#calm/s/timer/15', 15]]) {
+      await page.goto(base + '#calm'); await page.goto(base + hash); await page.waitForSelector('#c-pp');
+      assert.ok(new RegExp('Begin · ' + want + ' min').test(await page.textContent('#c-pp')), hash + ': ' + await page.textContent('#c-pp'));
+    }
+    for (const hash of ['#calm/s/sigh/10', '#calm/s/pickup/10']) {
+      await page.goto(base + '#calm'); await page.goto(base + hash); await page.waitForSelector('#c-pp');
+      assert.strictEqual(await page.$('#c-len'), null, hash + ': fixed length, no chips');
+      assert.ok(!/· 10 min/.test(await page.textContent('#c-pp')), hash + ': its own length: ' + await page.textContent('#c-pp'));
+    }
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('calm rough day');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

@@ -177,6 +177,13 @@ const W = require('./lib/web.cjs');
     assert.ok(/about 7\d% /.test(txt) && /getting full/.test(txt), txt);
     await page.evaluate(() => localStorage.removeItem('wl.test.big'));
   });
+  await t.step('blocked storage: Settings still opens, without the space line, and no errors', async () => {
+    await page.goto(base + '#home');
+    await page.evaluate(() => { window.__key = Storage.prototype.key; Storage.prototype.key = function () { throw new Error('blocked'); }; });
+    await page.goto(base + '#settings'); await page.waitForSelector('#wl-export');
+    assert.strictEqual(await page.$('#wl-space'), null);
+    await page.evaluate(() => { Storage.prototype.key = window.__key; });
+  });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('shell browser');
 })().catch((e) => { console.error(e); process.exit(1); });
