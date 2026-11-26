@@ -41,12 +41,25 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await dark(), false, 'gone after End');
   });
 
+  await t.step('a Pray now practice at 11:30 pm goes dark too', async () => {
+    await page.clock.setSystemTime(new Date(2026, 10, 22, 23, 30));
+    await page.goto(base + '#faith/pray'); await page.goto(base + '#faith/session/p/night'); await page.reload(); await page.waitForSelector('#pp');
+    await page.click('#pp');
+    await page.clock.runFor(21000);
+    assert.strictEqual(await dark(), true);
+    await page.click('#fc-dark'); await page.click('#end');
+  });
+
   await t.step('daytime: never dark', async () => {
     await page.clock.setSystemTime(new Date(2026, 10, 23, 14, 0));
     await page.goto(base + '#faith/today'); await page.goto(base + '#faith/session/day/1'); await page.reload(); await page.waitForSelector('#pp');
     await page.click('#pp');
     await page.clock.runFor(30000);
     assert.strictEqual(await dark(), false);
+    await page.click('#end');
+    await page.goto(base + '#faith/pray'); await page.goto(base + '#faith/session/p/night'); await page.waitForSelector('#pp');
+    await page.click('#pp'); await page.clock.runFor(30000);
+    assert.strictEqual(await dark(), false, 'a practice in the daytime: no');
     await page.click('#end');
   });
 

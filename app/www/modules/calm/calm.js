@@ -113,7 +113,7 @@
         (S.settings.aim === 'train' && !here ? '<button class="link" data-stage="' + id + '">Make this my stage</button>' : '') + '</li>';
     }).join('') + '</ul>';
     h += '<details><summary>Why this order</summary><p>Many contemplative traditions teach meditation as a training of the mind, not only a way to relax. First comes steadiness: one simple object (counting, then the breath itself). Then insight: seeing clearly what is happening as it happens (noting what pulls you away, watching sensations and thoughts change and pass). Then open awareness without a focus. Researchers describe the same two broad families, focused attention and open monitoring, and find they train somewhat different skills.</p>' +
-      '<p>The skill is noticing that you’ve wandered and coming back, kindly. Sleepiness and restlessness are the two classic obstacles; after each sit you can say which came up, and the next sit gives a tip. Progress isn’t a straight line: going back a stage is normal. Daily and unhurried beats long and rare.</p></details>';
+      '<p>The skill is noticing that you’ve wandered and coming back, kindly. Sleepiness and restlessness are the two classic obstacles; after each sit you can say which came up, and the next sit gives a tip. Progress isn’t a straight line: going back a stage is normal. Daily and unhurried beats long and rare.</p><p id="c-why-quiet">Used to long silent sits? Turn on “Quiet sit” on the sit screen: just the opening words, silence, and the close.</p></details>';
     return h + '</details>';
   }
 
