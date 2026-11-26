@@ -7,11 +7,17 @@ const FC = require('../../app/www/modules/faith/core.js');
 const CA = require('../../app/www/modules/calm/calm-core.js');
 const WK = require('../../app/www/modules/workout/workout-core.js');
 const ME = require('../../app/www/modules/me/me-core.js');
+const TD = require('../../app/www/modules/todo/todo-core.js');
+const CK = require('../../app/www/modules/cook/cook-core.js');
+const NT = require('../../app/www/lib/notes.js');
 const words = (n) => Array.from({ length: n }, (_, i) => 'word' + (i % 50)).join(' ');
 function simulate(days) {
   const tg = TG.defaults(), co = CO.defaults(), fc = FC.defaults ? FC.defaults() : { journal: [], sessions: [] }, ca = CA.defaults(), wk = WK.defaults(), me = ME.defaults();
   if (!Array.isArray(fc.journal)) fc.journal = [];
+  const td = TD.defaults(), ck = CK.defaults(), nt = NT.defaults();
   co.child = { name: '{child}', birth: '2025-01-15' };
+  const start = new Date(2026, 10, 18, 8, 0);
+  const bins = TD.add(td, 'bins every thursday at 7pm', null, start), rent = TD.add(td, 'rent every month', { due: '2026-11-30' }, start);
   const pack = { id: '2026-11-18' };
   for (let d = 0; d < days; d++) {
     const at = (h, m) => new Date(2026, 10, 18 + d, h, m || 0);
@@ -28,7 +34,20 @@ function simulate(days) {
     else WK.logRest(wk, WK.iso(at(9)), 'Busy day', at(9));
     ['calm', 'faith', 'tagalog', 'workout'].forEach((p) => { const q = ME.questions(p)[0]; ME.answer(me, p, p + '@' + d, q.k, q.opts[1], at(22)); });
     ME.CHECKIN.forEach((q) => ME.checkin(me, WK.iso(at(8)), q.k, q.opts[1], at(8)));
+    // to-dos: a few one-offs a day (most ticked), the weekly bins ticked each Thursday, rent each month
+    for (let i = 0; i < 3; i++) { const x = TD.add(td, 'errand ' + d + '-' + i + ' ' + words(4), null, at(7, i)); if (i < 2) TD.complete(td, x.id, at(17, i)); }
+    if (at(19).getDay() === 4) TD.complete(td, bins.id, at(19, 30));
+    if (rent.due === WK.iso(at(9))) TD.complete(td, rent.id, at(9, 30));
+    // Parenting: his answer on each graded scenario's "This week, try" tip, and now and then "Not for me"
+    const hid = co.history[co.history.length - 1].id;
+    ME.answer(me, 'coach', 'tip:' + hid, 'tried', ['It worked', 'Sort of', 'Didn’t work'][d % 3], at(21, 30));
+    if (d % 10 === 0) ME.notFit(me, 'coach', 'tip:' + hid, words(25), ['I know this already'], words(20), at(21, 31));
+    // Cooking: meals logged for him and {child}, the fridge topped up weekly, a plan slot marked
+    ['breakfast', 'lunch', 'dinner'].forEach((m, i) => { CK.logMe(ck, { text: words(6), meal: m, portion: 'Regular', tags: ['Veggies'] }, at(8 + 5 * i)); CK.logChild(ck, { offered: words(5), meal: m, ate: 'Most of it', note: words(4) }, at(8 + 5 * i, 10)); });
+    if (d % 7 === 0) ['chicken', 'milk', 'spinach', 'rice'].forEach((n) => CK.addPantryItem(ck, { name: n, qty: 2, unit: 'pcs' }, at(12)));
+    CK.markSlot(ck, WK.iso(at(18)), 'dinner', 'made', '', at(19));
+    if (d % 3 === 0) NT.add(nt, 'note ' + d + ' ' + words(30), '#home', 'Idea', at(22, 10));
   }
-  return { 'wl.tagalog.v1': tg, 'wl.coach.v1': co, 'fc.v1': fc, 'wl.calm.v1': ca, 'wl.workout.v1': wk, 'wl.me.v1': me };
+  return { 'wl.tagalog.v1': tg, 'wl.coach.v1': co, 'fc.v1': fc, 'wl.calm.v1': ca, 'wl.workout.v1': wk, 'wl.me.v1': me, 'wl.todo.v1': td, 'wl.cook.v1': ck, 'wl.notes.v1': nt };
 }
 module.exports = { simulate };

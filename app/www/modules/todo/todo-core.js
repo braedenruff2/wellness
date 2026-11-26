@@ -156,7 +156,7 @@
     now = now || new Date();
     var t = find(state, taskId); if (!t) return null;
     if (t.repeat) {
-      state.tasks.push({ id: id(now), text: t.text, due: t.due, done: now.toISOString(), created: t.created, repeat: null, fromRepeat: t.id });
+      state.tasks.push({ id: id(now), text: t.text, due: t.due, done: now.toISOString(), created: t.created, repeat: null, fromRepeat: t.id, at: null }); // same shape as validate() gives back
       t.due = nextDue(t, day || iso(now));
       return t;
     }

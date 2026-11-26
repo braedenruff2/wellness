@@ -8,11 +8,11 @@ const { simulate } = require('./lib/year.cjs');
 (async () => {
   const DAYS = 365;
   const stores = simulate(DAYS);
-  stores['wl.todo.v1'] = { tasks: [
+  stores['wl.todo.v1'].tasks.push(...[
     { id: 't1', text: 'Bins', due: '2027-11-18', repeat: 'weekly', at: '19:00', done: null, created: '2027-01-01T10:00:00.000Z' },
     { id: 't2', text: 'Rent', due: '2027-11-30', repeat: 'monthly', mday: 31, at: null, done: null, created: '2027-01-01T10:00:00.000Z' },
     { id: 't3', text: 'Done one', due: '2027-11-10', repeat: null, at: null, done: '2027-11-10T10:00:00.000Z', created: '2027-01-01T10:00:00.000Z', fromRepeat: 't1' }
-  ] };
+  ]); // on top of a year of to-dos from simulate(): a month-end repeat and an old done copy
   const end = new Date(2026, 10, 18 + DAYS - 1, 18, 0);
   const t = await W.open({ time: end });
   const { page, base, ctx } = t;
@@ -49,6 +49,8 @@ const { simulate } = require('./lib/year.cjs');
       try { assert.deepStrictEqual(b, a); } catch (e) {
         const keys = b && a && typeof a === 'object' ? Object.keys(a).filter((x) => JSON.stringify(a[x]) !== JSON.stringify(b[x])) : ['(whole)'];
         differ.push(k + ' [' + keys.slice(0, 6).join(', ') + ']');
+        // say where: the first array item (or value) that differs
+        keys.slice(0, 2).forEach((x) => { const A = a[x], B = b && b[x]; if (Array.isArray(A) && Array.isArray(B)) { const i = A.findIndex((v, j) => !require("util").isDeepStrictEqual(v, B[j])); console.log('   ' + k + '.' + x + ' (' + A.length + ' / ' + B.length + ') #' + i + ': ' + JSON.stringify(A[i]) + ' -> ' + JSON.stringify(B[i])); } });
       }
     }
     assert.deepStrictEqual(differ, [], 'parts that came back different');

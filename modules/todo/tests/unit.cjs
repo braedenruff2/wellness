@@ -379,4 +379,13 @@ t('times at the day boundary: "tonight at 12" is midnight, "at midnight" is the 
   assert.deepStrictEqual(q('x at 13pm'), { text: 'x at 13pm', due: null, repeat: null, at: null });
   assert.deepStrictEqual(q('midnight snack'), { text: 'midnight snack', due: null, repeat: null, at: null }, 'only "at midnight" at the end');
 });
+t('a ticked repeat (and its done copy) comes back from validate exactly as the phone keeps it (backup / Drive restore)', () => {
+  const s = T.defaults(), now = new Date(2026, 10, 19, 19, 30);
+  const bins = T.add(s, 'bins every thursday at 7pm', null, new Date(2026, 10, 18, 8, 0));
+  T.complete(s, bins.id, now);
+  const plain = T.add(s, 'call the bank', null, now); T.complete(s, plain.id, now);
+  assert.strictEqual(s.tasks.length, 3);
+  const back = JSON.parse(JSON.stringify(T.validate(JSON.parse(JSON.stringify(s)))));
+  assert.deepStrictEqual(back, JSON.parse(JSON.stringify(s)));
+});
 console.log(n + ' to-do unit tests passed');
