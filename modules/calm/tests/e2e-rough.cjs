@@ -97,6 +97,30 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(s.mins >= 8.5 && s.mins <= 10.6, 'a quiet sit still lasts about its length (the fake voice speaks in 50 ms): ' + s.mins);
   });
 
+  await t.step('a sit from 11:50 pm to 12:10 am counts for the evening it began', async () => {
+    await page.clock.setSystemTime(new Date(2026, 10, 26, 23, 50));
+    await page.goto(base + '#calm'); await page.reload();
+    await page.goto(base + '#calm/s/timer'); await page.waitForSelector('#c-len');
+    await page.click('[data-len="20"]');
+    await page.click('#c-pp');
+    for (let i = 0; i < 25; i++) { await page.clock.runFor(60000); if (await page.isVisible('#c-after')) break; }
+    await page.waitForSelector('#c-after:not([hidden])');
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions.slice(-1)[0]);
+    assert.strictEqual(s.id, 'timer');
+    assert.strictEqual(s.date, '2026-11-26', 'dated the evening it began: ' + JSON.stringify(s));
+    assert.strictEqual(new Date(s.at).getHours(), 23);
+    await page.click('#c-save');
+    // ended early after midnight (End): the same
+    await page.goto(base + '#calm/s/timer'); await page.waitForSelector('#c-len');
+    await page.clock.setSystemTime(new Date(2026, 10, 27, 23, 59));
+    await page.click('#c-pp');
+    await page.clock.runFor(3 * 60000);
+    await page.click('#c-dark'); // the screen went dark
+    await page.click('#c-end'); await page.waitForSelector('#c-today');
+    const e = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions.slice(-1)[0]);
+    assert.strictEqual(e.date, '2026-11-27', JSON.stringify(e));
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('calm rough day');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

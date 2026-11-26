@@ -247,11 +247,18 @@
     return Math.min(e, cap) / 60;
   }
 
+  /* When to file a session: now (or the earlier day he's logging for); a sit that began before midnight and ended
+     after it belongs to the evening it began (a late sit shouldn't count as tomorrow's practice). */
+  function sessionTime(started) {
+    var when = WL.logNow ? WL.logNow() : new Date(), now = Date.now();
+    if (started && Math.abs(when.getTime() - now) < 60000 && K.iso(new Date(started)) !== K.iso(when) && now - started < 6 * 3600000) return new Date(started);
+    return when;
+  }
   function finish(silent) {
     if (!run) return;
-    var p = run.p, m = silent && run.total ? Math.min(loggedMins(), run.total / 60) : loggedMins(), before = run.before;
+    var p = run.p, m = silent && run.total ? Math.min(loggedMins(), run.total / 60) : loggedMins(), before = run.before, started = run.start;
     stopRun(); if (!silent) WL.bell();
-    var rec = K.record(S, p.id, m, before, null, WL.logNow ? WL.logNow() : null); save(); // saved straight away; "Done" only adds the after rating
+    var rec = K.record(S, p.id, m, before, null, sessionTime(started)); save(); // saved straight away; "Done" only adds the after rating
     run = { p: p, done: true, mins: m, before: before, rec: rec };
     $('#c-pp').hidden = true; if ($('#c-before')) $('#c-before').hidden = true; $('#c-after').hidden = false;
     if (window.WLMe && !p.path) $('#c-after').insertAdjacentHTML('afterbegin', WLMe.askHtml('calm', p.id + '@' + rec.at));
@@ -382,7 +389,7 @@
   function saveEarly() {
     if (run && !run.done && run.start && elapsed() >= 30) {
       var m = loggedMins();
-      K.record(S, run.p.id, m, run.before, null, WL.logNow ? WL.logNow() : null); save();
+      K.record(S, run.p.id, m, run.before, null, sessionTime(run.start)); save();
       WL.toast('Saved ' + Math.max(1, Math.round(m)) + ' min');
     }
   }
