@@ -347,7 +347,7 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 233. [any] Perf e2e: Home first render with a year of data in every store under 300 ms (Playwright, after one warm load; report the time); find and fix the slowest card if it isn't.
 234. (done 26 Nov, Claude run2: e2e-a11y-new; no fix needed) a11y: Tagalog #tagalog/slips (Practise these run screen) and its finish screen at 1.0/1.3, light/dark/night: 44 px, contrast, no overflow (tests/e2e-a11y-new.cjs).
 235. (done 26 Nov, Claude run2: already skipped by construction (slipItems needs the exercise); unit pins it; e2e-slips has the none-left page) Tagalog #tagalog/slips: an exercise whose pack was replaced (same id, prompt changed) is skipped, not shown broken; when none are left the page says so; unit for slipSet + e2e.
-236. [any] Workout: undo a rest day logged by mistake (Move > the rest-day line > Undo) restores the planned workout on Home; e2e (if Undo doesn't exist, add it).
+236. (done 26 Nov, Claude run2: Undo exists (#wo-rest-undo); e2e-rest now checks Home after Undo, also for Home's "Rest today (tired)") Workout: undo a rest day logged by mistake (Move > the rest-day line > Undo) restores the planned workout on Home; e2e (if Undo doesn't exist, add it).
 237. [any] Faith: after day 120, "Walk the path again" starts round 2 at day 1 and keeps round-1 journal entries findable by day; e2e with seeded progress.
 238. (done 26 Nov, Claude run2: nextDue already keeps the rhythm; unit pins weekly/biweekly/monthly 31st/weekdays/DST) To-do: a repeating task completed late (due Mon, done Wed) schedules the next one from its own rhythm (next Mon), not from Wed; unit across month ends and DST.
 

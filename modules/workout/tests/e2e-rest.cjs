@@ -37,6 +37,32 @@ const Wb = require('../../../tests/lib/web.cjs');
     const st = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')));
     assert.ok(!st.rest || !st.rest['2026-11-22']); assert.strictEqual(st.restRemoved.length, 1);
   });
+  await t.step('after Undo, Home plans the workout again (today list and card)', async () => {
+    await page.goto(base + '#home'); await page.waitForSelector('.today-list');
+    const li = await page.textContent('.today-list');
+    assert.ok(!/rest day/.test(li) && /Move/.test(li), li);
+    const card = await page.textContent('.home-card[data-module="workout"]');
+    assert.ok(/Next: /.test(card) && !/Done for today/.test(card), card);
+    assert.strictEqual(await page.getAttribute('.home-card[data-module="workout"] a.primary', 'href'), '#workout');
+  });
+  await t.step('Home\'s "Rest today (tired)" by mistake: Undo on Move takes it back too', async () => {
+    await page.evaluate(() => {
+      const m = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[],"checkins":{}}');
+      m.feedback = m.feedback || []; m.checkins = m.checkins || {};
+      m.checkins['2026-11-22'] = { at: '2026-11-22T12:00:00.000Z', sleep: 'Under 4 h', energy: 'Low' };
+      localStorage.setItem('wl.me.v1', JSON.stringify(m));
+    });
+    await page.reload(); await page.waitForSelector('#wo-rough-rest');
+    await page.click('#wo-rough-rest');
+    assert.ok(/rest day \(tired\)/.test(await page.textContent('.today-list')));
+    await page.goto(base + '#workout'); await page.click('#wo-rest-undo');
+    await page.goto(base + '#home'); await page.waitForSelector('#wo-rough-rest');
+    assert.ok(!/rest day/.test(await page.textContent('.today-list')), 'planned again');
+    const st = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')));
+    assert.ok(!st.rest || !st.rest['2026-11-22']);
+    await page.evaluate(() => { const m = JSON.parse(localStorage.getItem('wl.me.v1')); delete m.checkins['2026-11-22']; localStorage.setItem('wl.me.v1', JSON.stringify(m)); });
+    await page.goto(base + '#workout'); await page.reload();
+  });
   await t.step('the next day after "Sore": two sets of each', async () => {
     await page.click('#wo-rest summary'); await page.click('[data-rest="Sore"]');
     await page.clock.setSystemTime(new Date(2026, 10, 23, 9, 0)); await page.reload();
