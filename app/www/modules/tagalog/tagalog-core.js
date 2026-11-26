@@ -53,11 +53,20 @@
     if (s.normalize) s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     return s.replace(/[’‘`´']/g, "'").replace(/[-‐‑–—_/]/g, ' ').replace(/[.,!?;:"“”…()¿¡]/g, '').replace(/\s+/g, ' ').trim();
   }
+  /* norm(), but the hyphen after a prefix before a vowel just goes ("magaral" for "mag-aral", "pagibig" for
+     "pag-ibig": a common way to type it). A doubled word keeps its break ("araw-araw" is not "arawaraw"). */
+  function normJoin(s) {
+    return norm(String(s || '').replace(/(^|[^A-Za-zÀ-ÿ])([A-Za-z]{1,6})[-‐‑]([aeiouAEIOU][A-Za-zÀ-ÿ]*)/g, function (m, pre, a, b) {
+      return b.toLowerCase().indexOf(a.toLowerCase()) === 0 ? m : pre + a + b;
+    }));
+  }
   function check(ex, given) {
     var g = norm(given);
     if (!g) return false;
     var ok = [ex.answer].concat(ex.accept || []).map(norm);
     if (ok.indexOf(g) >= 0 || ok.indexOf(g.replace(/\bho\b/g, 'po')) >= 0) return true;
+    var gj = normJoin(given).replace(/\bho\b/g, 'po');
+    if ([ex.answer].concat(ex.accept || []).some(function (a) { return /[-‐‑]/.test(a) && normJoin(a).replace(/\bho\b/g, 'po') === gj; })) return true;
     // a missing "po"/"ho" only where the lesson marks it optional (poOptional), never by default
     return !!ex.poOptional && ok.map(noPo).indexOf(noPo(g)) >= 0;
   }
@@ -67,7 +76,8 @@
   function altOf(ex, given) {
     if (!ex || ex.type !== 'type' || !check(ex, given)) return '';
     var g = normHo(given), a = normHo(ex.answer);
-    return g === a || noPo(g) === noPo(a) ? '' : ex.answer;
+    var gj = normJoin(given).replace(/\bho\b/g, 'po'), aj = normJoin(ex.answer).replace(/\bho\b/g, 'po');
+    return g === a || noPo(g) === noPo(a) || gj === aj || noPo(gj) === noPo(aj) ? '' : ex.answer;
   }
   function normHo(s) { return norm(s).replace(/\bho\b/g, 'po'); }
   function sortedWords(s) { return s ? s.split(' ').sort().join(' ') : ''; }
@@ -131,6 +141,44 @@
     return '';
   }
 
+  /* Right except the verb's repeated syllable (Tagalog's "is doing / will do" form): "gusto kong mag-aaral" for
+     "gusto kong mag-aral", or "kumain ako ngayon" for "kumakain ako ngayon". One word differs, by a repeated 1-2
+     letter syllable only. */
+  var MODALS = ['gusto', 'ayaw', 'ayoko', 'kailangan', 'puwede', 'pwede', 'dapat', 'sana'];
+  function redup(long, short) {
+    if (long.length - short.length < 1 || long.length - short.length > 2) return false;
+    var L = long.length - short.length;
+    for (var k = 0; k + L <= long.length; k++) {
+      if (long.slice(0, k) + long.slice(k + L) !== short) continue;
+      var ch = long.substr(k, L);
+      if (ch === long.substr(k + L, L)) return true; // ka-kain, nag-lu-luto, mag-a-aral
+      // with -um- the copied syllable follows the infix's vowel: kuma-ka-in, bumi-bi-li (same vowel just before it)
+      if (L === 2 && /^[bcdfghklmnprstvwyz][aeiou]$/.test(ch) && k > 0 && long[k - 1] === ch[1]) return true;
+    }
+    return false;
+  }
+  function aspectHint(ex, given) {
+    if (!ex || !ex.answer || ex.type !== 'type' || check(ex, given)) return '';
+    var gw = normJoin(given).replace(/\bho\b/g, 'po').split(' ').filter(Boolean);
+    if (gw.length < 2) return '';
+    var cands = [ex.answer].concat(ex.accept || []);
+    for (var i = 0; i < cands.length; i++) {
+      var cw = normJoin(cands[i]).replace(/\bho\b/g, 'po').split(' '), show = i === 0 ? ex.answer : cands[i];
+      if (cw.length !== gw.length) continue;
+      var diff = [];
+      for (var k = 0; k < cw.length; k++) if (cw[k] !== gw[k]) diff.push(k);
+      if (diff.length !== 1) continue;
+      var d = diff[0], c = cw[d], g = gw[d], raw = cands[i].replace(/[.,!?;:"“”…()¿¡]/g, '').trim().split(/\s+/), word = (raw.length === cw.length ? raw[d] : c).toLowerCase();
+      if (c.length < 4) continue;
+      if (redup(g, c)) {
+        var trig = cw.slice(0, d).map(function (w) { return w.replace(/ng$/, ''); }).filter(function (w) { return MODALS.indexOf(w) >= 0; })[0];
+        return 'Almost: ' + (trig ? 'after ' + trig + ' the verb stays plain: ' : 'the verb here is ') + word + ', without the repeated syllable (that means "is doing" or "will do"): ' + show;
+      }
+      if (redup(c, g)) return 'Almost: the verb here is ' + word + ', with the repeated syllable (it is happening, or will): ' + show;
+    }
+    return '';
+  }
+
   /* A sentence from the lessons (dialogue line or grammar example) that uses this word, for a word he keeps missing:
      {tl, en} or null. Whole words only; never the word on its own. */
   function exampleFor(packs, tl) {
@@ -155,9 +203,9 @@
   function hintKind(ex, given) {
     var o = orderHint(ex, given);
     if (o) return /short words like/.test(o) ? 'pronoun' : 'order';
-    return linkerHint(ex, given) ? 'linker' : '';
+    return linkerHint(ex, given) ? 'linker' : aspectHint(ex, given) ? 'aspect' : '';
   }
-  var HINT_KINDS = ['order', 'pronoun', 'linker'];
+  var HINT_KINDS = ['order', 'pronoun', 'linker', 'aspect'];
 
   function allPacks(state, bundled) {
     var m = {};
@@ -329,7 +377,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, hintKind: hintKind, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, againMiss: againMiss, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;

@@ -139,10 +139,10 @@
     });
   }
 
-  /* The specific slips from this lesson (word order, short words, linkers): once more with the right sentence. */
+  /* The specific slips from this lesson (word order, short words, linkers, verb forms): once more with the right sentence. */
   function watchHtml(notes) {
     if (!notes || !notes.length) return '';
-    var label = { order: 'Word order', pronoun: 'Short words go second', linker: 'Linker' };
+    var label = { order: 'Word order', pronoun: 'Short words go second', linker: 'Linker', aspect: 'Verb form' };
     return '<div class="card ui" id="tl-watch"><h3>Watch for next time</h3><ul class="list">' + notes.map(function (x) {
       return '<li class="row"><span class="grow"><span class="meta">' + esc(label[x.kind] || '') + '</span><br><b lang="tl">' + esc(x.answer) + '</b></span>' + hear(x.answer) + '</li>';
     }).join('') + '</ul></div>';
@@ -176,11 +176,11 @@
         if (ok) right++;
         T.recordAnswer(S, pk, l, ex, ok, logNow(), given); save();
         var askable = !ok && ex.type === 'type' && String(given || '').trim() && WL.pc && (WL.pc.canAsk ? WL.pc.canAsk() : WL.pc.ready());
-        var hint = !ok && T.orderHint ? T.orderHint(ex, given) : '', link = !ok && !hint && T.linkerHint ? T.linkerHint(ex, given) : '';
+        var hint = !ok && T.orderHint ? T.orderHint(ex, given) : '', link = !ok && !hint && T.linkerHint ? T.linkerHint(ex, given) : '', asp = !ok && !hint && !link && T.aspectHint ? T.aspectHint(ex, given) : '';
         var hk = !ok && T.hintKind ? T.hintKind(ex, given) : '';
         if (hk && !notes.some(function (x) { return x.answer === ex.answer; })) notes.push({ kind: hk, answer: ex.answer });
-        $('#tl-fb').innerHTML = '<p class="' + (ok ? 'ok' : 'no') + '"' + (hint ? ' id="tl-order"' : link ? ' id="tl-linker"' : '') + '>' +
-          (ok ? '✓ Right!' : hint ? '✗ ' + esc(hint) : link ? '✗ ' + esc(link) : '✗ Answer: <b>' + esc(ex.answer) + '</b>') + '</p>' +
+        $('#tl-fb').innerHTML = '<p class="' + (ok ? 'ok' : 'no') + '"' + (hint ? ' id="tl-order"' : link ? ' id="tl-linker"' : asp ? ' id="tl-aspect"' : '') + '>' +
+          (ok ? '✓ Right!' : hint ? '✗ ' + esc(hint) : link ? '✗ ' + esc(link) : asp ? '✗ ' + esc(asp) : '✗ Answer: <b>' + esc(ex.answer) + '</b>') + '</p>' +
           (ok && T.missedPo(ex, given) ? '<p class="meta" id="tl-po">With an elder, add “po”: <b>' + esc(ex.answer) + '</b></p>' :
             ok && T.altOf && T.altOf(ex, given) ? '<p class="meta" id="tl-alt">The lesson’s version: <b>' + esc(ex.answer) + '</b></p>' : '') +
           '<div class="row"><button class="primary" id="tl-next">Next</button>' + (askable ? '<button id="tl-ask">Ask Claude about my answer</button>' : '') + '</div><div id="tl-claude" aria-live="polite"></div>';

@@ -280,6 +280,37 @@ t('linkerHint: a missing -ng or na linker gets "Almost" with the answer; anythin
   assert.strictEqual(T.linkerHint(k, 'palagi naglalaro kami'), '', 'order, not linker');
   assert.strictEqual(T.linkerHint({ type: 'build', answer: 'Palagi kaming naglalaro.', words: [] }, 'palagi kami naglalaro'), '', 'type exercises only');
 });
+t('check: a dropped hyphen is forgiven ("magaral" for "mag-aral"), a changed verb form is not', () => {
+  const g = { type: 'type', prompt: 'I want to study Tagalog.', answer: 'Gusto kong mag-aral ng Tagalog.', accept: ['gusto kong mag aral ng tagalog'] };
+  assert.strictEqual(T.check(g, 'gusto kong magaral ng tagalog'), true);
+  assert.strictEqual(T.check(g, 'Gusto kong mag aral ng Tagalog'), true);
+  assert.strictEqual(T.check(g, 'gusto kong magaaral ng tagalog'), false, 'mag-aaral is another form');
+  assert.strictEqual(T.check({ type: 'type', prompt: 'p', answer: 'Araw-araw.' }, 'arawaraw'), false, 'a doubled word keeps its break');
+  assert.strictEqual(T.check({ type: 'type', prompt: 'p', answer: 'Mahal ko ang pag-ibig.' }, 'mahal ko ang pagibig'), true);
+  assert.strictEqual(T.check({ type: 'type', prompt: 'p', answer: 'Apat na buwan akong naka-leave.' }, 'apat na buwan akong nakaleave'), false, 'only before a vowel');
+  assert.strictEqual(T.check({ type: 'type', prompt: 'p', answer: 'Salamat po.' }, 'salamatpo'), false, 'only a hyphen may go, not a space');
+  assert.strictEqual(T.altOf(g, 'gusto kong magaral ng tagalog'), '', 'the lesson\'s own words: no "lesson\'s version" note');
+});
+t('aspectHint: the verb with or without its repeated syllable gets "Almost" and the right form; anything else nothing', () => {
+  const g = { type: 'type', prompt: 'I want to study Tagalog.', answer: 'Gusto kong mag-aral ng Tagalog.', accept: ['gusto kong mag aral ng tagalog'] };
+  assert.strictEqual(T.aspectHint(g, 'gusto kong magaaral ng tagalog'), 'Almost: after gusto the verb stays plain: mag-aral, without the repeated syllable (that means "is doing" or "will do"): Gusto kong mag-aral ng Tagalog.');
+  assert.ok(/after gusto .*mag-aral/.test(T.aspectHint(g, 'gusto kong mag-aaral ng tagalog')));
+  const b = { type: 'type', prompt: 'p', answer: 'Kailangan kong bumili ng gatas.' };
+  assert.ok(/after kailangan the verb stays plain: bumili,/.test(T.aspectHint(b, 'kailangan kong bumibili ng gatas')));
+  const k = { type: 'type', prompt: 'p', answer: 'Kumakain ako ngayon.' };
+  assert.strictEqual(T.aspectHint(k, 'kumain ako ngayon'), 'Almost: the verb here is kumakain, with the repeated syllable (it is happening, or will): Kumakain ako ngayon.');
+  assert.ok(/nagluluto/.test(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Nagluluto si Mama.' }, 'nagluto si mama')));
+  assert.strictEqual(T.aspectHint(k, 'Kumakain ako ngayon'), '', 'right');
+  assert.strictEqual(T.aspectHint(k, 'umiinom ako ngayon'), '', 'another verb');
+  assert.strictEqual(T.aspectHint(k, 'kumakain na ako'), '', 'other words');
+  assert.strictEqual(T.aspectHint(k, 'kumain ako'), '', 'two words differ (one missing)');
+  assert.strictEqual(T.aspectHint({ type: 'build', answer: 'Kumakain ako ngayon.', words: [] }, 'kumain ako ngayon'), '', 'type exercises only');
+  assert.strictEqual(T.hintKind(g, 'gusto kong magaaral ng tagalog'), 'aspect');
+  assert.strictEqual(T.hintKind(g, 'gusto ko mag-aral ng tagalog'), 'linker', 'a linker slip stays a linker hint');
+  const st = T.defaults();
+  T.recordAnswer(st, { id: '2026-11-25' }, { day: 1 }, g, false, new Date(2026, 10, 25, 20), 'gusto kong magaaral ng tagalog');
+  assert.strictEqual(T.validate(st).answers[0].hint, 'aspect', 'kept by validate');
+});
 t('exampleFor: a lesson sentence that uses the word (whole words; never the word alone)', () => {
   const packs = [{ lessons: [{ dialogue: [{ tl: 'Opo.', en: 'Yes.' }, { tl: 'Gutom na ba siya?', en: 'Is she hungry already?' }], grammar: { examples: [{ tl: 'Kumakain ako ngayon.', en: 'I\'m eating now.' }] } }] }];
   assert.deepStrictEqual(T.exampleFor(packs, 'ngayon'), { tl: 'Kumakain ako ngayon.', en: 'I\'m eating now.' });

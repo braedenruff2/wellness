@@ -150,6 +150,28 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.ok(st.answers.some((a) => a.hint === 'linker' && /study Tagalog/.test(a.prompt)), 'the hint kind is kept with the answer');
     await page.evaluate((raw) => { localStorage.setItem('wl.tagalog.v1', raw); window.WL.modules.tagalog.reload(); }, saved);
   });
+  await t.step('the verb with a repeated syllable ("gusto kong magaaral") says Almost: the plain form; "magaral" is right', async () => {
+    const saved = await page.evaluate(() => localStorage.getItem('wl.tagalog.v1'));
+    await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/l/2026-11-25/1');
+    await page.click('#tl-ex .opt'); await page.click('#tl-next'); // mc
+    await page.click('#tl-check'); await page.click('#tl-next'); // build, left empty
+    await page.fill('#tl-in', 'gusto kong magaaral ng tagalog'); await page.click('#tl-check');
+    const fb = await page.textContent('#tl-aspect');
+    assert.ok(/Almost: after gusto the verb stays plain: mag-aral, .*Gusto kong mag-aral ng Tagalog\./.test(fb), fb);
+    for (let k = 0; k < 12 && !(await page.$('#tl-watch')); k++) {
+      if (await page.$('#tl-next')) { await page.click('#tl-next'); continue; }
+      if (await page.$('#tl-ex .opt:not(.word)')) await page.click('#tl-ex .opt:not(.word)');
+      else if (await page.$('#tl-in')) { await page.fill('#tl-in', 'x'); await page.click('#tl-check'); }
+      else await page.click('#tl-check');
+    }
+    assert.ok((await page.textContent('#tl-watch')).includes('Verb form'));
+    await page.click('#tl-again');
+    await page.click('#tl-ex .opt'); await page.click('#tl-next');
+    await page.click('#tl-check'); await page.click('#tl-next');
+    await page.fill('#tl-in', 'gusto kong magaral ng tagalog'); await page.click('#tl-check');
+    assert.ok((await page.textContent('#tl-fb')).includes('Right'), 'a dropped hyphen is fine');
+    await page.evaluate((raw) => { localStorage.setItem('wl.tagalog.v1', raw); window.WL.modules.tagalog.reload(); }, saved);
+  });
   await t.step('next day: lesson 2 is next and the words are due for review', async () => {
     await page.clock.runFor(86400e3);
     await page.goto(base + '#tagalog');
