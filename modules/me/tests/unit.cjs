@@ -434,6 +434,10 @@ t('working: plain lines from his own answers (30 days); nothing under 3 answers'
   assert.deepStrictEqual(K.working(n, now, calm), ['Meditation: attention mostly steady in 0 of 3 sits. Early days: noticing you wandered and coming back is the practice.']);
   calm.sessions.push({ id: 'follow', at: D(25, 7).toISOString(), focus: 3 });
   assert.deepStrictEqual(K.working(n, now, calm), ['Meditation: attention mostly steady in 1 of 4 sits.']);
+  // with the time of day his sits go best (CalmCore.pathWhen), on the same line
+  const cw = { settings: { aim: 'train' }, sessions: [[20, 6, 3], [21, 7, 3], [22, 8, 2], [20, 23, 1], [21, 23, 1]].map(([d, h, f]) =>
+    ({ id: 'count', date: C.iso(D(d, h)), at: D(d, h).toISOString(), mins: 20, focus: f })) };
+  assert.deepStrictEqual(K.working(n, now, cw), ['Meditation: attention mostly steady in 2 of 5 sits. Your steadiest sits have been in the morning (2 of 3 mostly steady; late at night 0 of 2).']);
   calm.settings.aim = 'calm';
   assert.deepStrictEqual(K.working(n, now, calm)[0].slice(0, 5), 'Calm:', 'aim calm: as before');
 });

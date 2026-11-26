@@ -222,6 +222,8 @@
     if (train) {
       if (sits.length) out.push('Meditation: attention mostly steady in ' + sits.filter(function (x) { return x.focus === 3; }).length + ' of ' + sits.length + ' sits' +
         (sits.length >= 3 && !sits.some(function (x) { return x.focus === 3; }) ? '. Early days: noticing you wandered and coming back is the practice.' : '.'));
+      var when = sits.length && CC && CC.pathWhen ? CC.pathWhen(calm, now) : null; // the time of day his sits go best
+      if (when) out[out.length - 1] += ' ' + when.text;
     } else if (good.length) out.push('Calm: ' + good.slice(0, 3).map(function (k) { return title(k) + ' helped ' + by[k].yes + ' of ' + by[k].n; }).join('; ') + '.');
     else if (calmN >= 3) out.push('Calm: none of the practices has helped much yet (' + calmN + ' answers). Try a different kind, or a walk.');
     var jr = wo.filter(function (x) { return x.a.hard === 'Just right'; }).length;
