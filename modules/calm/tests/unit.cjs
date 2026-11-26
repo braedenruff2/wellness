@@ -322,6 +322,15 @@ t('validate keeps aim, stage, sit length and sit answers; drops junk', () => {
   assert.deepStrictEqual([v.settings.aim, v.settings.stage, v.settings.sitMinutes], ['train', 'change', 30]);
   const w = K.validate({ sessions: [], settings: { aim: 'zen', stage: 'x', sitMinutes: 7 } });
   assert.deepStrictEqual([w.settings.aim, w.settings.stage, w.settings.sitMinutes], [null, 'count', 20]);
+  // null/invalid sessions neither crash validate nor overwrite the previous valid path sit's focus/hind
+  const bad = K.validate({ sessions: [
+    null,
+    { id: 'count', date: '2026-11-20', at: '2026-11-20T01:00:00.000Z', mins: 20, focus: 3, hind: ['Nothing much'] },
+    { id: 'count', date: '2026-02-30', at: '2026-02-30T01:00:00.000Z', mins: 20, focus: 1, hind: ['Sleepy'] },
+    undefined
+  ] });
+  assert.strictEqual(bad.sessions.length, 1);
+  assert.deepStrictEqual([bad.sessions[0].focus, bad.sessions[0].hind], [3, ['Nothing much']]);
 });
 t('meditation path: "back" after 3 of the last 5 rated sits mostly lost (never at stage 1); pathWeek counts 7 days', () => {
   const s = K.defaults();
