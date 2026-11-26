@@ -378,6 +378,35 @@ const FAKE_DRIVE = `
     assert.ok((await page.textContent('#view')).includes('restored from Drive'));
   });
 
+  await t.step('restore while a sync write is on its way: Drive ends up with the restored data, not the old', async () => {
+    const backup = (text) => JSON.stringify({ app: 'wellness', exported: '2026-11-21T09:00:00Z', stores: { 'wl.todo.v1': JSON.stringify({ tasks: [{ id: 'r1', text, due: '2026-11-21', done: null, repeat: null, at: null, created: '2026-11-21T09:00:00.000Z' }] }) }, requests: [], acked: [] });
+    await page.goto(base + '#settings');
+    await page.evaluate(() => { if (!window.__drive.configured) window.FCAndroid.syncPick(); });
+    await page.waitForSelector('#wl-sync-now');
+    await page.evaluate((b) => {
+      window.confirm = () => true;
+      localStorage.setItem('wl.todo.v1', JSON.stringify({ tasks: [{ id: 'o1', text: 'old phone task', due: '2026-11-21', done: null, repeat: null, at: null, created: '2026-11-20T09:00:00.000Z' }] }));
+      WL.modules.todo.reload();
+      window.__drive.holdWrite = true; window.__drive.restoreContent = b;
+    }, backup('restored mid-write'));
+    await page.click('#wl-sync-now');
+    await page.waitForFunction(() => !!window.__drive.releaseWrite);
+    const held = await page.evaluate(() => window.__drive.writes);
+    await page.click('#wl-sync-restore');
+    await page.waitForFunction(() => (localStorage.getItem('wl.todo.v1') || '').includes('restored mid-write'));
+    await page.evaluate(() => window.__drive.releaseWrite());
+    await page.waitForFunction((h) => window.__drive.writes > h && window.__drive.content.includes('restored mid-write'), held, { timeout: 5000 });
+    const c = await page.evaluate(() => window.__drive.content);
+    assert.ok(!c.includes('old phone task'), 'the old data was written last');
+  });
+  await t.step('restore from a backup file with Drive sync on: Drive gets the restored data at once', async () => {
+    const w0 = await page.evaluate(() => window.__drive.writes);
+    const fs = require('fs'), os = require('os'), path = require('path');
+    const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'wl-r-')), 'wellness-backup.json');
+    fs.writeFileSync(f, JSON.stringify({ app: 'wellness', exported: '2026-11-21T09:30:00Z', stores: { 'wl.todo.v1': JSON.stringify({ tasks: [{ id: 'f1', text: 'from the backup file', due: '2026-11-21', done: null, repeat: null, at: null, created: '2026-11-21T09:00:00.000Z' }] }) } }));
+    await page.goto(base + '#settings'); await page.setInputFiles('#wl-import', f);
+    await page.waitForFunction((w) => window.__drive.writes > w && window.__drive.content.includes('from the backup file'), w0, { timeout: 5000 });
+  });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('drive sync browser');
 })().catch((e) => { console.error(e); process.exit(1); });

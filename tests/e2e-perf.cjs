@@ -52,7 +52,7 @@ const { simulate } = require('./lib/year.cjs');
   });
   await t.step('each part opens in under 500 ms', async () => {
     const times = {};
-    for (const h of ['#calm', '#workout', '#tagalog', '#tagalog/words', '#faith', '#todo', '#coach', '#me', '#journal', '#settings']) {
+    for (const h of ['#calm', '#workout', '#workout/history', '#tagalog', '#tagalog/words', '#faith', '#faith/journal', '#faith/pray', '#todo', '#coach', '#me', '#journal', '#settings']) {
       times[h] = await page.evaluate((h) => {
         history.replaceState(null, '', '#home'); window.dispatchEvent(new HashChangeEvent('hashchange'));
         history.replaceState(null, '', h);

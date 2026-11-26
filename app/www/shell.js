@@ -502,6 +502,12 @@
     h += '<p style="margin:8px 0 0"><button class="link" id="wl-sync-forget">Turn off Drive sync</button></p></div>';
     return h;
   }
+  /* After a restore, Drive's sync file gets the restored data straight away (not up to 30 min later), and a write that
+     was already on its way with the old data is followed by this one. */
+  function syncAfterRestore() {
+    var ds = window.WL && WL.driveSync;
+    try { if (ds && ds.status().configured) ds.sync({ auto: false }).catch(function () {}); } catch (e) {}
+  }
   function handleDriveRestore(ok, text, name) {
     if (!ok) { toast(text || 'Could not read that Google Drive file'); return; }
     try {
@@ -513,6 +519,7 @@
         var bad = restoreText(text) || []; applyLook();
         toast(bad.length ? 'Backup restored, except ' + bad.join(', ') + ' (unreadable there; kept as it was)' : 'Backup restored from Google Drive');
         route();
+        syncAfterRestore();
       }
     } catch (e) { toast((e && e.message) || 'Could not read that file'); }
   }
@@ -623,7 +630,7 @@
         try {
           if (!window.confirm || window.confirm('Replace what is on this phone with the backup from that file?')) {
             var bad = restoreText(String(r.result)) || []; applyLook();
-            toast(bad.length ? 'Backup restored, except ' + bad.join(', ') + ' (unreadable there; kept as it was)' : 'Backup restored'); route();
+            toast(bad.length ? 'Backup restored, except ' + bad.join(', ') + ' (unreadable there; kept as it was)' : 'Backup restored'); route(); syncAfterRestore();
           }
         } catch (e) { toast(e.message || 'Could not read that file'); }
       };
