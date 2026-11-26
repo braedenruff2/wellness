@@ -77,13 +77,28 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#end');
   });
 
-  await t.step('Faith settings has the same choice', async () => {
+  await t.step('Faith settings has the same choice and updates late-night sessions', async () => {
     await page.goto(base + '#faith/settings'); await page.waitForSelector('[data-set="darkPray"]');
     assert.strictEqual(await page.getAttribute('[data-set="darkPray"][data-val="false"]', 'aria-pressed'), 'true', 'Off from Pray now shows here');
     await page.click('[data-set="darkPray"][data-val="true"]');
     await page.waitForSelector('[data-set="darkPray"][data-val="true"][aria-pressed="true"]');
     await page.goto(base + '#faith/pray'); await page.waitForSelector('#dark-toggle');
     assert.strictEqual(await page.getAttribute('#dark-toggle', 'aria-pressed'), 'true', 'and back on in Pray now');
+    // verify turning it on from #faith/settings actually enables late-night dark screen on #faith/session/day/1
+    await page.goto(base + '#faith/session/day/1'); await page.waitForSelector('#pp');
+    await page.click('#pp');
+    await page.clock.runFor(21000);
+    assert.strictEqual(await dark(), true, 'dark screen active after enabling in Faith settings');
+    await page.click('#fc-dark'); await page.click('#end');
+    // and turning it off from #faith/settings disables late-night dark screen on #faith/session/day/1
+    await page.goto(base + '#faith/settings'); await page.waitForSelector('[data-set="darkPray"][data-val="false"]');
+    await page.click('[data-set="darkPray"][data-val="false"]');
+    await page.waitForSelector('[data-set="darkPray"][data-val="false"][aria-pressed="true"]');
+    await page.goto(base + '#faith/session/day/1'); await page.waitForSelector('#pp');
+    await page.click('#pp');
+    await page.clock.runFor(30000);
+    assert.strictEqual(await dark(), false, 'no dark screen after disabling in Faith settings');
+    await page.click('#end');
   });
 
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
