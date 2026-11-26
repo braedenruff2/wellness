@@ -347,6 +347,23 @@ t('quickParse: date, repeat and reminder time combine cleanly in any order', () 
   const s = T.defaults(), r = T.add(s, 'pay rent every month dec 1', null, wed);
   assert.strictEqual(r.mday, 1, 'monthly mday uses explicit start date');
 });
+t('a repeating task done late keeps its own rhythm (due Mon, done Wed -> next Mon), across month ends and DST', () => {
+  const s = T.defaults ? T.defaults() : { tasks: [] };
+  const at = (y, m, d, h) => new Date(y, m, d, h || 10);
+  const w = T.add(s, 'bins', { due: '2026-11-23', repeat: 'weekly' }, at(2026, 10, 20));
+  T.complete(s, w.id, at(2026, 10, 25)); assert.strictEqual(w.due, '2026-11-30', 'weekly: the next Monday, not next Wednesday');
+  const b = T.add(s, 'filters', { due: '2026-11-23', repeat: 'biweekly' }, at(2026, 10, 20));
+  T.complete(s, b.id, at(2026, 10, 25)); assert.strictEqual(b.due, '2026-12-07', 'every 2 weeks: from its Monday');
+  const m = T.add(s, 'rent', { due: '2027-01-31', repeat: 'monthly' }, at(2027, 0, 20));
+  T.complete(s, m.id, at(2027, 1, 3)); assert.strictEqual(m.due, '2027-02-28', 'the 31st, done 3 days late: Feb 28');
+  T.complete(s, m.id, at(2027, 1, 28)); assert.strictEqual(m.due, '2027-03-31', 'then back to the 31st');
+  const d = T.add(s, 'call', { due: '2026-10-26', repeat: 'weekly' }, at(2026, 9, 20));
+  T.complete(s, d.id, at(2026, 9, 28)); assert.strictEqual(d.due, '2026-11-02', 'across the end of daylight time (1 Nov)');
+  const k = T.add(s, 'water plants', { due: '2026-11-23', repeat: 'weekdays' }, at(2026, 10, 20));
+  T.complete(s, k.id, at(2026, 10, 27)); assert.strictEqual(k.due, '2026-11-30', 'weekdays done late on a Friday: Monday');
+  const w2 = T.add(s, 'bins2', { due: '2026-11-23', repeat: 'weekly' }, at(2026, 10, 20));
+  T.complete(s, w2.id, at(2026, 10, 30, 8)); assert.strictEqual(w2.due, '2026-12-07', 'done a week late on its own day: the one after');
+});
 t('times at the day boundary: "tonight at 12" is midnight, "at midnight" is the night after the day named', () => {
   const late = new Date(2026, 10, 26, 22, 30), q = (x) => T.quickParse(x, late);
   assert.deepStrictEqual(q('call mom tonight at 12'), { text: 'call mom', due: '2026-11-27', repeat: null, at: '00:00' }, 'not noon today (gone)');

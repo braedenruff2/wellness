@@ -349,5 +349,5 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 235. (done 26 Nov, Claude run2: already skipped by construction (slipItems needs the exercise); unit pins it; e2e-slips has the none-left page) Tagalog #tagalog/slips: an exercise whose pack was replaced (same id, prompt changed) is skipped, not shown broken; when none are left the page says so; unit for slipSet + e2e.
 236. [any] Workout: undo a rest day logged by mistake (Move > the rest-day line > Undo) restores the planned workout on Home; e2e (if Undo doesn't exist, add it).
 237. [any] Faith: after day 120, "Walk the path again" starts round 2 at day 1 and keeps round-1 journal entries findable by day; e2e with seeded progress.
-238. [any] To-do: a repeating task completed late (due Mon, done Wed) schedules the next one from its own rhythm (next Mon), not from Wed; unit across month ends and DST.
+238. (done 26 Nov, Claude run2: nextDue already keeps the rhythm; unit pins weekly/biweekly/monthly 31st/weekdays/DST) To-do: a repeating task completed late (due Mon, done Wed) schedules the next one from its own rhythm (next Mon), not from Wed; unit across month ends and DST.
 
