@@ -13,19 +13,21 @@
 
   /* "call mum tomorrow", "bins fri", "pay bill 12/3", "stretch every day": pulls a date / repeat off the end. */
   var DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-  /* "at 3pm", "3:30pm", "at 15:30", "at noon", "at 7" (1-6 without am/pm means afternoon): {at: 'HH:MM', rest}. */
-  var TIME_RE = /\s+(?:at\s+(noon|midday)|(?:at\s+)?(\d{1,2})(?:[:.](\d\d))?\s*([ap])\.?m\.?|at\s+(\d{1,2})(?:[:.](\d\d))?)$/i;
+  /* "at 3pm", "3:30pm", "at 15:30", "at noon", "at midnight", "at 7" (1-6 without am/pm means afternoon): {at: 'HH:MM', rest}. */
+  var TIME_RE = /\s+(?:at\s+(noon|midday|midnight)|(?:at\s+)?(\d{1,2})(?:[:.](\d\d))?\s*([ap])\.?m\.?|at\s+(\d{1,2})(?:[:.](\d\d))?)$/i;
   function pad(x) { return (x < 10 ? '0' : '') + x; }
   function takeTime(t) {
     var m = TIME_RE.exec(t); if (!m) return null;
     var h, mi;
-    if (m[1]) { h = 12; mi = 0; }
+    if (m[1]) { h = /^midnight$/i.test(m[1]) ? 0 : 12; mi = 0; }
     else if (m[2]) { h = +m[2]; mi = +(m[3] || 0); if (h < 1 || h > 12) return null; h = h % 12 + (m[4].toLowerCase() === 'p' ? 12 : 0); }
     else { h = +m[5]; mi = +(m[6] || 0); if (h > 23) return null; if (m[5].length === 1 && h >= 1 && h <= 6) h += 12; } // "at 2" / "at 2:30" = afternoon; "at 02:30" = night
     if (mi > 59) return null;
     var rest = t.slice(0, m.index);
     if (/^\s*at\s*$/i.test(rest)) return null;
-    return { at: pad(h) + ':' + pad(mi), rest: rest, bare: !!m[5] && m[5].charAt(0) !== '0' && h < 12 };  // bare: "at 7" (no am/pm)
+    return { at: pad(h) + ':' + pad(mi), rest: rest, bare: !!m[5] && m[5].charAt(0) !== '0' && h < 12,  // bare: "at 7" (no am/pm)
+      // the night after the day named: "at midnight", and "tonight at 12" (no am/pm)
+      night: !!m[1] && h === 0, twelve: !!m[5] && h === 12 };
   }
   /* Weekday names: only real spellings ("fri", "friday"), so "call friend" or "the wedding" stay plain text. */
   var WD = '(sun(?:day)?|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?)';
@@ -93,16 +95,18 @@
   }
   function quickParse(text, now) {
     now = now || new Date();
-    var t = String(text || '').trim(), today = iso(now), due = null, dueExplicit = false, repeat = null, at = null, r, tm, bare = false, evening = false;
+    var t = String(text || '').trim(), today = iso(now), due = null, dueExplicit = false, repeat = null, at = null, r, tm, bare = false, evening = false, night = false, twelve = false;
     // peel time, repeat and date off the end in any order (e.g. "rent every month on dec 1 at 9am", "take pills tomorrow at 8am every day")
     for (var pass = 0; pass < 3; pass++) {
       var changed = false;
-      if (!at && (tm = takeTime(t))) { at = tm.at; bare = tm.bare; t = tm.rest; changed = true; }
+      if (!at && (tm = takeTime(t))) { at = tm.at; bare = tm.bare; night = tm.night; twelve = tm.twelve; t = tm.rest; changed = true; }
       if (!repeat && (r = takeRepeat(t, now, today))) { repeat = r.repeat; if (!dueExplicit) due = r.due; t = r.rest; changed = true; }
       if (!dueExplicit && (r = takeDay(t, now, today))) { due = r.due; dueExplicit = true; evening = !!r.evening; t = r.rest; changed = true; }
       if (!changed) break;
     }
     if (at && bare && evening) at = pad(+at.slice(0, 2) % 12 + 12) + at.slice(2);   // "tonight at 7" = 19:00
+    if (at && twelve && evening) { at = '00' + at.slice(2); night = true; }          // "tonight at 12" = midnight, not noon
+    if (night && due && !repeat) due = addDays(due, 1);                              // "fri at midnight": the night after Friday
     if (at && !due) { due = today; if (!repeat && at <= hm(now)) due = addDays(today, 1); }  // "3pm" already gone: tomorrow
     if (!t.trim()) return { text: String(text || '').trim(), due: null, repeat: null, at: null };
     return { text: t.trim(), due: due, repeat: repeat, at: at };

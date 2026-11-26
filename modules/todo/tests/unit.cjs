@@ -347,4 +347,19 @@ t('quickParse: date, repeat and reminder time combine cleanly in any order', () 
   const s = T.defaults(), r = T.add(s, 'pay rent every month dec 1', null, wed);
   assert.strictEqual(r.mday, 1, 'monthly mday uses explicit start date');
 });
+t('times at the day boundary: "tonight at 12" is midnight, "at midnight" is the night after the day named', () => {
+  const late = new Date(2026, 10, 26, 22, 30), q = (x) => T.quickParse(x, late);
+  assert.deepStrictEqual(q('call mom tonight at 12'), { text: 'call mom', due: '2026-11-27', repeat: null, at: '00:00' }, 'not noon today (gone)');
+  assert.deepStrictEqual(q('call mom tonight at 12:30'), { text: 'call mom', due: '2026-11-27', repeat: null, at: '00:30' });
+  assert.deepStrictEqual(q('x at midnight'), { text: 'x', due: '2026-11-27', repeat: null, at: '00:00' });
+  assert.deepStrictEqual(q('x fri at midnight'), { text: 'x', due: '2026-11-28', repeat: null, at: '00:00' }, 'Friday night');
+  assert.deepStrictEqual(q('x tonight at midnight'), { text: 'x', due: '2026-11-27', repeat: null, at: '00:00' });
+  assert.deepStrictEqual(q('x today at 12'), { text: 'x', due: '2026-11-26', repeat: null, at: '12:00' }, '"today at 12" stays noon');
+  assert.deepStrictEqual(q('meds at 12pm'), { text: 'meds', due: '2026-11-27', repeat: null, at: '12:00' });
+  assert.deepStrictEqual(q('bins tomorrow at 12am'), { text: 'bins', due: '2026-11-27', repeat: null, at: '00:00' });
+  assert.deepStrictEqual(q('pay bill at 11:59pm'), { text: 'pay bill', due: '2026-11-26', repeat: null, at: '23:59' });
+  assert.deepStrictEqual(q('x at 24:00'), { text: 'x at 24:00', due: null, repeat: null, at: null }, 'not a time');
+  assert.deepStrictEqual(q('x at 13pm'), { text: 'x at 13pm', due: null, repeat: null, at: null });
+  assert.deepStrictEqual(q('midnight snack'), { text: 'midnight snack', due: null, repeat: null, at: null }, 'only "at midnight" at the end');
+});
 console.log(n + ' to-do unit tests passed');
