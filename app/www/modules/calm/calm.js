@@ -398,6 +398,8 @@
     $$('[data-stage]').forEach(function (b) { b.onclick = function () { K.setStage(S, b.dataset.stage); save(); WL.toast('Your stage: ' + titleOf(K.stageOf(S))); route([]); }; });
   }
 
+  /* A path sit on a rough day (short or broken night, low energy): offered at 10 minutes, for that sit only. */
+  function roughSit(p) { return !!(p && p.path && window.WLMe && WLMe.rough && WLMe.rough() && mins(p) > 10 && lengths(p).indexOf(10) >= 0); }
   function card() {
     var t = K.today(S), sug = practice(K.suggest(S, null, sopts()));
     // not answered yet: the same one-tap question as on Calm (he may never open the Calm tab first); after the done card
@@ -406,7 +408,7 @@
     if (t.done) return '<div class="meta ui">Calm</div><h3>✓ Done for today</h3><p class="meta ui">' + esc(titleOf(t.ids[0])) + (t.count > 1 ? ' and ' + (t.count - 1) + ' more' : '') + ' · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min. Today’s goal is done.</p>' +
       '<div class="row ui"><a class="btn" href="#calm">Calm</a></div>';
     // a sit on a rough day (short night, broken night, low energy): 10 minutes, for that sit only
-    var short = sug.path && window.WLMe && WLMe.rough && WLMe.rough() && mins(sug) > 10 && lengths(sug).indexOf(10) >= 0;
+    var short = roughSit(sug);
     return '<div class="meta ui">' + (t.any ? 'Calm · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min today' : 'Calm · today’s practice (goal ' + t.goal + ' min)') + '</div><h3>' + esc(sug.title) + ' · ' + (short ? 10 : mins(sug)) + ' min</h3>' +
       (short ? '<p class="meta ui" id="c-card-rough">Short night: a 10-minute sit counts just as much today.</p>' : '<p class="meta ui">' + esc(K.advice(S)) + '</p>') +
       '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + (short ? '/10' : '') + '">Begin</a><a class="btn" href="#calm">All practices</a></div>';
@@ -439,7 +441,10 @@
           return { label: 'Calm: sat ' + Math.max(1, Math.round(m)) + ' min (' + titleOf(last.id) + ')', done: true, href: '#calm' };
         }
         var sp = practice(K.suggest(S, null, sopts()));
-        if (sp && sp.path && !t.done) return { label: 'Calm: ' + mins(sp) + '-min sit, ' + sp.title.toLowerCase(), done: false, href: '#calm/s/' + sp.id };
+        if (sp && sp.path && !t.done) {
+          var rough = roughSit(sp); // same as the Calm card: on a rough day, 10 minutes for this sit
+          return { label: 'Calm: ' + (rough ? 10 : mins(sp)) + '-min sit, ' + sp.title.toLowerCase(), done: false, href: '#calm/s/' + sp.id + (rough ? '/10' : '') };
+        }
       }
       if (t.done) return { label: 'Calm: done (' + Math.max(1, t.mins) + ' min)', done: true, href: '#calm' };
       if (t.any) return { label: 'Calm: ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min today', done: false, href: '#calm' };

@@ -136,6 +136,8 @@ const Wb = require('../../../tests/lib/web.cjs');
     const card = page.locator('.home-card[data-module="calm"]');
     assert.ok(/· 10 min/.test(await card.locator('h3').textContent()));
     assert.ok((await card.locator('a.btn.primary').getAttribute('href')).endsWith('/10'));
+    const today = await page.$$eval('#wl-today a', (as) => as.filter((a) => /Calm/.test(a.textContent)).map((a) => [a.textContent, a.getAttribute('href')]));
+    assert.ok(today.length === 1 && /Calm: 10-min sit, counting breaths/.test(today[0][0]) && today[0][1] === '#calm/s/count/10', 'the today list says the same: ' + JSON.stringify(today));
     await card.locator('a.btn.primary').click();
     await page.waitForSelector('#c-pp');
     assert.ok(/Begin · 10 min/.test(await page.textContent('#c-pp')));
@@ -148,6 +150,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.evaluate(() => { const me = JSON.parse(localStorage.getItem('wl.me.v1')); delete me.checkins['2026-11-28']; localStorage.setItem('wl.me.v1', JSON.stringify(me)); });
     await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('.home-card[data-module="calm"]');
     assert.strictEqual(await page.$('#c-card-rough'), null, 'no check-in: as usual');
+    assert.ok(/Calm: 20-min sit, counting breaths/.test(await page.textContent('#wl-today')), 'today list: his usual 20');
   });
 
   await t.step('#calm/s/<id>/<minutes>: only a real length for that practice counts', async () => {
