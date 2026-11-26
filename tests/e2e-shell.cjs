@@ -192,6 +192,8 @@ const W = require('./lib/web.cjs');
     await page.goto(base + '#home'); await page.goto(base + '#settings'); await page.waitForSelector('#wl-space');
     const txt = await page.textContent('#wl-space');
     assert.ok(/about 7\d% /.test(txt) && /getting full/.test(txt), txt);
+    const parts = await page.$$eval('#wl-space-parts li', (l) => l.map((x) => x.textContent));
+    assert.ok(parts.length >= 2 && /^App: \d+%$/.test(parts[0]), 'largest first (the test store): ' + parts.join(' | '));
     await page.evaluate(() => localStorage.removeItem('wl.test.big'));
   });
   await t.step('blocked storage: Settings still opens, without the space line, and no errors', async () => {

@@ -361,16 +361,33 @@
 
   /* How much of the phone's storage for the app (about 5 million characters in a WebView) the saved parts use. */
   var SPACE = 5000000;
-  function spaceUsed() {
-    var n = 0;
-    try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (/^(wl|fc)\./.test(k)) n += k.length + (localStorage.getItem(k) || '').length; } } catch (e) { return null; }
-    return n;
+  function spaceUsed() { var b = spaceByKey(); return b && b.total; }
+  /* {total, keys: {key: chars}} for the app's own stores, or null when storage can't be read. */
+  function spaceByKey() {
+    var n = 0, keys = {};
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (/^(wl|fc)\./.test(k)) { var m = k.length + (localStorage.getItem(k) || '').length; keys[k] = m; n += m; }
+      }
+    } catch (e) { return null; }
+    return { total: n, keys: keys };
+  }
+  /* Which part a store belongs to (its module's storageKeys; Faith is fc.*), for the breakdown. */
+  function partOfKey(k) {
+    for (var id in modules) if (modules[id].storageKeys && modules[id].storageKeys.indexOf(k) >= 0) return modules[id].title;
+    if (/^fc\./.test(k)) return 'Faith';
+    return 'App';
   }
   function spaceHtml() {
-    var n = spaceUsed(); if (n == null) return '';
-    var pc = Math.max(n > 0 ? 1 : 0, Math.round(100 * n / SPACE));
+    var b = spaceByKey(); if (!b) return '';
+    var n = b.total, pc = Math.max(n > 0 ? 1 : 0, Math.round(100 * n / SPACE)), by = {};
+    Object.keys(b.keys).forEach(function (k) { var p = partOfKey(k); by[p] = (by[p] || 0) + b.keys[k]; });
+    var parts = Object.keys(by).filter(function (p) { return by[p] > 0; }).sort(function (x, y) { return by[y] - by[x]; });
     return '<p class="meta" id="wl-space">Saved on this phone: about ' + pc + '% of the space the app has.' +
-      (pc >= 70 ? ' <b>It’s getting full: save a backup now, and tell Claude so older history can be trimmed.</b>' : '') + '</p>';
+      (pc >= 70 ? ' <b>It’s getting full: save a backup now, and tell Claude so older history can be trimmed.</b>' : '') + '</p>' +
+      (parts.length > 1 ? '<details class="meta" id="wl-space-parts"><summary>Which parts use it</summary><ul>' + parts.map(function (p) {
+        return '<li>' + esc(p) + ': ' + (100 * by[p] / n < 1 ? 'under 1' : Math.round(100 * by[p] / n)) + '%</li>'; }).join('') + '</ul></details>' : '');
   }
   function settingsHtml() {
     var L = look();
