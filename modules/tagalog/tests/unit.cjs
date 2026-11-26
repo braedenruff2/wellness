@@ -344,6 +344,20 @@ t('slips: last 14 days of hinted answers, newest first, one per exercise, with t
   assert.strictEqual(T.slips(st, [pk], new Date(2026, 10, 26, 12), 1).length, 1, 'at most n');
   assert.deepStrictEqual(T.slips(T.defaults(), [pk], new Date()), []);
 });
+t('practiceSet: among equally missed exercises, a verb-form or linker slip comes first (until answered right)', () => {
+  const pk = { id: '2026-11-25', lessons: [{ day: 1, exercises: [
+    { type: 'type', prompt: 'A', answer: 'Kumakain ako ngayon.' },
+    { type: 'type', prompt: 'B', answer: 'Gusto kong mag-aral ng Tagalog.' },
+    { type: 'type', prompt: 'C', answer: 'Bakit siya umiiyak?' }] }] };
+  const st = T.defaults(), l = pk.lessons[0]; st.done['2026-11-25/1'] = '2026-11-25T20:00:00Z';
+  T.recordAnswer(st, pk, l, l.exercises[0], false, new Date(2026, 10, 25, 20, 1), 'hindi ko alam'); // plain miss, oldest
+  T.recordAnswer(st, pk, l, l.exercises[1], false, new Date(2026, 10, 25, 20, 2), 'gusto kong magaaral ng tagalog'); // verb form
+  T.recordAnswer(st, pk, l, l.exercises[2], false, new Date(2026, 10, 25, 20, 3), 'bakit umiiyak siya'); // pronoun: not a rule slip
+  assert.strictEqual(st.answers[1].hint, 'aspect');
+  assert.deepStrictEqual(T.practiceSet(st, [pk], 3).map((x) => x.ex.prompt), ['B', 'A', 'C']);
+  T.recordAnswer(st, pk, l, l.exercises[1], true, new Date(2026, 10, 25, 21), 'gusto kong mag-aral ng tagalog');
+  assert.deepStrictEqual(T.practiceSet(st, [pk], 3).map((x) => x.ex.prompt), ['A', 'C', 'B'], 'got it right since: no longer first (and answered most recently)');
+});
 t('exampleFor: a lesson sentence that uses the word (whole words; never the word alone)', () => {
   const packs = [{ lessons: [{ dialogue: [{ tl: 'Opo.', en: 'Yes.' }, { tl: 'Gutom na ba siya?', en: 'Is she hungry already?' }], grammar: { examples: [{ tl: 'Kumakain ako ngayon.', en: 'I\'m eating now.' }] } }] }];
   assert.deepStrictEqual(T.exampleFor(packs, 'ngayon'), { tl: 'Kumakain ako ngayon.', en: 'I\'m eating now.' });

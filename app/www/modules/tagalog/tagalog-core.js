@@ -292,12 +292,14 @@
   /* Mixed practice from finished lessons (any time, e.g. while waiting for Wednesday's new week): the exercises he
      got wrong most often first, then the ones he hasn't answered for longest. [{pack, lesson, ex}], at most n. */
   function practiceSet(state, packs, n) {
-    var last = {}, wrong = {};
+    var last = {}, wrong = {}, slip = {};
     state.answers.forEach(function (a) {
       var k = a.pack + '/' + a.day + '/' + a.prompt;
       var ms = Date.parse(a.at);
       if (!isNaN(ms) && (last[k] == null || ms > last[k])) last[k] = ms;
       if (!a.ok) wrong[k] = (wrong[k] || 0) + 1;
+      // a near miss with a specific rule (verb form, linker): worth practising first among equally missed ones
+      if (!a.ok && (a.hint === 'aspect' || a.hint === 'linker')) slip[k] = 1; else if (a.ok) delete slip[k];
     });
     var pool = [];
     (packs || []).forEach(function (p) {
@@ -305,11 +307,11 @@
         if (!state.done[p.id + '/' + l.day]) return;
         (l.exercises || []).forEach(function (ex) {
           var k = p.id + '/' + l.day + '/' + String(ex.prompt || ex.say || '').slice(0, 120);
-          pool.push({ pack: p, lesson: l, ex: ex, wrong: wrong[k] || 0, last: last[k] == null ? -Infinity : last[k], order: pool.length });
+          pool.push({ pack: p, lesson: l, ex: ex, wrong: wrong[k] || 0, slip: slip[k] || 0, last: last[k] == null ? -Infinity : last[k], order: pool.length });
         });
       });
     });
-    pool.sort(function (a, b) { return b.wrong - a.wrong || (a.last < b.last ? -1 : a.last > b.last ? 1 : a.order - b.order); });
+    pool.sort(function (a, b) { return b.wrong - a.wrong || b.slip - a.slip || (a.last < b.last ? -1 : a.last > b.last ? 1 : a.order - b.order); });
     return pool.slice(0, n || 8).map(function (x) { return { pack: x.pack, lesson: x.lesson, ex: x.ex }; });
   }
 
