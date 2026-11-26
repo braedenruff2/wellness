@@ -39,6 +39,7 @@ on `Sheet1!A1:D<n>` (it prunes acked rows and blanks old ones). No PROBLEM lines
 - No paid services, API keys, accounts or required network for core use.
 
 ## Tasks (cloud-first move, 21 Nov; do these first, in order)
+NOTE 26 Nov 18:50 UTC: two Claude runs active again: the run that started 16:37 UTC goes top-down; run2 takes open tasks from the BOTTOM and marks claims `| run2`.
 NOTE 25 Nov 18:55 UTC: two Claude runs are active again. The run that pushed APK 0.1.20261125.1850 takes open tasks from the BOTTOM and marks claims `| run2`; the other goes top-down.
 NOTE 23 Nov 18:55 UTC: two Claude runs are active at once (an earlier one still going + a new one). The second run takes tasks from the BOTTOM of the open list and marks its claims `| run2`; the first keeps going top-down. A `run2` claim is the other run's: leave it.
 Two agents work here: read .autopilot/agents.md first (who can do what, claims, push rules). Tasks are [any] (claim first); [drive] ones need the private Drive folder.
