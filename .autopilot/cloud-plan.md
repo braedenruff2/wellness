@@ -342,3 +342,12 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 228. (done 26 Nov, Claude run2: modules/tagalog/tests/perf.cjs; ~1 ms each, no fix needed) Perf unit: TagalogCore.slips and practiceSet with 2000 answers and 4 packs run in under 20 ms each (node, after a warm-up); guards the Your words page on an old phone.
 229. (done 26 Nov, Claude: TagalogCore.HINT_LABEL; unit) Code health: hint labels (Word order / Short words go second / Linker / Verb form) live in TagalogCore (HINT_LABEL next to HINT_ABOUT) and tagalog.js uses them for Watch for next time and Slips to watch; unit that every HINT_KINDS entry has a label and an about line.
 230. (done 26 Nov, Claude run2: tests/e2e-narrow.cjs, 3 themes; no fix needed) e2e: Home at a 320 px wide viewport, text size 1.3, every card present (Calm aim chips, Move rough-day rest, Tagalog, Faith, To-do, About you): no horizontal overflow, no clipped buttons (tests/e2e-a11y-new.cjs or a new tests/e2e-narrow.cjs).
+231. [any] e2e: a whole "Training my mind" path sit at 20 min with Quiet sit on (fake clock): only the opening and closing voice lines are spoken, the dark screen comes after 10 s, the soft bell (if set) rings at 5/10/15 min, and the attention/obstacle questions follow; saved session has mins 20 and the stage.
+232. [any] Backup round trip: a year of data in every store (tests/storage-size.cjs shape) exported with "Save a backup" and restored with #wl-import on a fresh page gives identical localStorage for every wl.* / fc.* key; e2e.
+233. [any] Perf e2e: Home first render with a year of data in every store under 300 ms (Playwright, after one warm load; report the time); find and fix the slowest card if it isn't.
+234. [any] a11y: Tagalog #tagalog/slips (Practise these run screen) and its finish screen at 1.0/1.3, light/dark/night: 44 px, contrast, no overflow (tests/e2e-a11y-new.cjs).
+235. [any] Tagalog #tagalog/slips: an exercise whose pack was replaced (same id, prompt changed) is skipped, not shown broken; when none are left the page says so; unit for slipSet + e2e.
+236. [any] Workout: undo a rest day logged by mistake (Move > the rest-day line > Undo) restores the planned workout on Home; e2e (if Undo doesn't exist, add it).
+237. [any] Faith: after day 120, "Walk the path again" starts round 2 at day 1 and keeps round-1 journal entries findable by day; e2e with seeded progress.
+238. [any] To-do: a repeating task completed late (due Mon, done Wed) schedules the next one from its own rhythm (next Mon), not from Wed; unit across month ends and DST.
+
