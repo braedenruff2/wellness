@@ -397,6 +397,8 @@
   }
   /* Returning after the screen was locked: if a sit or Quiet timer already passed its end, finish cleanly without a duplicate bell. */
   document.addEventListener('visibilitychange', function () {
+    // back in the app (or the screen unlocked) mid-sit: show the time first, dark again 10 s later
+    if (!document.hidden && document.getElementById('c-dark')) { lightUp(); scheduleDark(); }
     if (!document.hidden && run && !run.done && !run.paused && usesAlarm(run.p)) {
       var e = elapsed();
       if (e >= run.total) finish(!!(WL.native && WL.native.calmAlarm && e - run.total > 5));
