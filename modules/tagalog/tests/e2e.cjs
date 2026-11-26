@@ -76,6 +76,22 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     for (let i = 0; i < 5; i++) await page.clock.runFor(1000);
     assert.strictEqual(await page.evaluate(() => window.__spoken.length), n, 'stopped');
   });
+  await t.step('Listen while walking: the screen goes dark after 15 s (tap shows the lesson); stopping ends it', async () => {
+    const dark = () => page.evaluate(() => !!document.getElementById('tl-dark'));
+    await page.click('#tl-walk');
+    for (let i = 0; i < 10; i++) await page.clock.runFor(1000);
+    assert.strictEqual(await dark(), false, 'not at 10 s');
+    for (let i = 0; i < 6; i++) await page.clock.runFor(1000);
+    assert.strictEqual(await dark(), true, 'dark after 15 s');
+    assert.ok(/Tap to show the lesson/.test(await page.getAttribute('#tl-dark', 'aria-label')));
+    await page.click('#tl-dark');
+    assert.strictEqual(await dark(), false);
+    assert.strictEqual(await page.getAttribute('#tl-walk', 'aria-pressed'), 'true', 'still listening');
+    await page.click('#tl-walk'); // stop
+    for (let i = 0; i < 20; i++) await page.clock.runFor(1000);
+    assert.strictEqual(await dark(), false, 'stopped: never dark again');
+    // (leaving the lesson ends it too: every Tagalog route and leave() calls stopAudio -> walkScreen(false))
+  });
   await t.step('a wrong answer shows the right one; returning to #tagalog today stays on Done for today', async () => {
     await page.click('#tl-again');
     await page.click('#tl-ex [data-o="no"]');

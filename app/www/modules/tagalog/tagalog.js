@@ -13,6 +13,18 @@
       wkBtn.setAttribute('aria-pressed', 'false');
       wkBtn.textContent = '🎧 Listen while walking';
     }
+    walkScreen(false);
+  }
+  /* Listening while walking: the screen stays on (so the voice doesn't stop when it would lock) and goes dark
+     after 15 s (WL.darkScreen), so the phone can sit in a pocket; a tap shows the lesson. */
+  var walking = false;
+  function walkScreen(on) {
+    if (on === walking) return;
+    walking = on;
+    WL.keepAwake(on);
+    if (!WL.darkScreen) return;
+    if (on) WL.darkScreen.start({ id: 'tl-dark', label: 'Dark screen while you listen. Tap to show the lesson.', after: 15000 });
+    else WL.darkScreen.stop();
   }
   function stopAudio() { stopPlayback(); WL.speech.stop(); if (window.TagalogReview) TagalogReview.clearKey(); }
   /* Lessons say {child}; the phone fills in her name from Parenting setup, or "Baby" (lib/personal.js). */
@@ -317,14 +329,14 @@
         var wk = $('#tl-walk'); if (wk) wk.onclick = function () {
           if (wk.getAttribute('aria-pressed') === 'true') { wk.setAttribute('aria-pressed', 'false'); wk.textContent = '🎧 Listen while walking'; stopAudio(); return; }
           stopAudio();
-          wk.setAttribute('aria-pressed', 'true'); wk.textContent = '■ Stop listening';
+          wk.setAttribute('aria-pressed', 'true'); wk.textContent = '■ Stop listening'; walkScreen(true);
           var tok = playTok, here = location.hash, rate = S.settings.slow ? 0.8 : 1, seq = [];
           f.lesson.words.forEach(function (w) { seq.push([w.tl, 'fil-PH', 900], [w.en, '', 900], [w.tl, 'fil-PH', 2500]); });
           (f.lesson.dialogue || []).forEach(function (d) { seq.push([d.tl, 'fil-PH', 1500]); });
           var k = 0;
           (function next() {
             if (tok !== playTok || location.hash !== here || wk.getAttribute('aria-pressed') !== 'true') return;
-            if (k >= seq.length) { wk.setAttribute('aria-pressed', 'false'); wk.textContent = '🎧 Listen again'; return; }
+            if (k >= seq.length) { wk.setAttribute('aria-pressed', 'false'); wk.textContent = '🎧 Listen again'; walkScreen(false); return; }
             var it = seq[k++];
             WL.speech.speak(it[0], function () { if (tok === playTok) playTimer = setTimeout(next, it[2]); }, it[1] ? { lang: it[1], rate: rate } : { rate: 1 });
           })();
