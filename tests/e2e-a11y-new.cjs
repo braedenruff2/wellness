@@ -675,6 +675,24 @@ const W = require('./lib/web.cjs');
       assert.ok(to <= 2, '#tagalog/review #tl-hard-link overflow ' + to);
     });
   }
+  // Task 173: Faith Pray now "Dark screen late at night" and the late-night dark cover
+  for (const [ts, theme] of [[1, 'light'], [1.3, 'light'], [1, 'dark'], [1, 'night']]) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step('faith dark screen at ' + ts + 'x ' + theme + ': #dark-toggle, #fc-dark', async () => {
+      await look(ts, theme); await seed();
+      const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
+      await page.clock.setSystemTime(new Date(2026, 10, 24, 22, 30));
+      await page.goto(base + '#home'); await page.goto(base + '#faith/pray'); await page.reload(); await page.waitForSelector('#dark-toggle');
+      assert.deepStrictEqual(await small('#dark-toggle, #voice-toggle'), []);
+      assert.deepStrictEqual(await bad('.card:has(#dark-toggle)'), [], theme + ' Pray now settings');
+      await t.noOverflow(['#faith/pray']);
+      await page.goto(base + '#faith/session/day/1'); await page.waitForSelector('#pp');
+      await page.click('#pp'); await page.clock.runFor(21000);
+      assert.strictEqual(await page.getAttribute('#fc-dark', 'role'), 'button');
+      assert.ok(/Tap to see the words/.test(await page.getAttribute('#fc-dark', 'aria-label')));
+      await page.click('#fc-dark'); await page.click('#end');
+    });
+  }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y of new UI');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
