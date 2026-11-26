@@ -10,6 +10,14 @@
   }
 
   var darkSt = { on: false, t: null, id: 'wl-dark', label: '', after: 10000 };
+  var UNDER = ['view', 'tabs', 'logday'];
+  function setUnderInert(on) {
+    UNDER.forEach(function (id) {
+      var el = document.getElementById(id); if (!el) return;
+      if (on) { el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true'); }
+      else { el.removeAttribute('inert'); el.removeAttribute('aria-hidden'); }
+    });
+  }
   function darkEl() { return document.getElementById(darkSt.id); }
   function darkArm() {
     clearTimeout(darkSt.t);
@@ -21,9 +29,9 @@
       d.setAttribute('aria-label', darkSt.label || 'Dark screen. Tap to show the page.');
       d.onclick = function () { darkLight(); };
       document.body.appendChild(d); dimScreen(true);
-      // a screen reader: the page under the cover is out of reach, and the cover has focus, so a double-tap lights
-      // the screen instead of pressing whatever was focused underneath (Pause)
-      var v = document.getElementById('view'); if (v) { v.setAttribute('inert', ''); v.setAttribute('aria-hidden', 'true'); }
+      // a screen reader or keyboard: everything under the cover (main view, bottom tabs, earlier-day banner) is out of
+      // reach and the cover has focus, so a double-tap or Enter lights the screen instead of pressing underneath
+      setUnderInert(true);
       try { d.focus(); } catch (e) {}
     }, typeof darkSt.after === 'function' ? darkSt.after() : darkSt.after); // after: ms, or a function asked each time
   }
@@ -32,7 +40,7 @@
     var d = darkEl();
     if (d) {
       d.parentNode.removeChild(d); dimScreen(false);
-      var v = document.getElementById('view'); if (v) { v.removeAttribute('inert'); v.removeAttribute('aria-hidden'); }
+      setUnderInert(false);
     }
   }
   function darkLight() { darkUncover(); darkArm(); }

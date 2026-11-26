@@ -223,15 +223,25 @@ const W = require('./lib/web.cjs');
     assert.strictEqual(r.softOsc, 1); assert.ok(r.softPeak <= 0.08, 'quiet: ' + r.softPeak); assert.ok(r.softStop <= 2.6, 'short: ' + r.softStop);
     assert.strictEqual(r.bellOsc, 3);
   });
-  await t.step('keyboard with the dark cover up: focus stays on the cover; Enter lights it', async () => {
+  await t.step('keyboard with the dark cover up: focus stays on the cover; nav tabs and logday banner are inert; Enter lights it', async () => {
     await page.goto(base + '#home'); await page.waitForSelector('#wl-today');
     await page.evaluate(() => window.WL.darkScreen.start({ id: 'tab-dark', after: 10 }));
     await page.clock.runFor(50);
     for (let i = 0; i < 3; i++) await page.keyboard.press('Tab');
-    const inView = await page.evaluate(() => !!(document.activeElement && document.getElementById('view').contains(document.activeElement)));
-    assert.strictEqual(inView, false, 'Tab never reaches the page under the cover');
+    const under = await page.evaluate(() => {
+      const ae = document.activeElement;
+      const ids = ['view', 'tabs', 'logday'];
+      return {
+        inUnder: ids.some((id) => { const el = document.getElementById(id); return !!(ae && el && el.contains(ae)); }),
+        inert: ids.map((id) => document.getElementById(id).hasAttribute('inert')),
+        hidden: ids.map((id) => document.getElementById(id).getAttribute('aria-hidden'))
+      };
+    });
+    assert.deepStrictEqual(under, { inUnder: false, inert: [true, true, true], hidden: ['true', 'true', 'true'] }, JSON.stringify(under));
     await page.focus('#tab-dark'); await page.keyboard.press('Enter');
     assert.strictEqual(await page.$('#tab-dark'), null, 'Enter lights it');
+    const restored = await page.evaluate(() => ['view', 'tabs', 'logday'].map((id) => [document.getElementById(id).hasAttribute('inert'), document.getElementById(id).hasAttribute('aria-hidden')]));
+    assert.deepStrictEqual(restored, [[false, false], [false, false], [false, false]], 'restored on uncover');
     await page.evaluate(() => window.WL.darkScreen.stop());
   });
   await t.step('WL.keepAwake in browser uses navigator.wakeLock, releases on false, re-requests on visibilitychange', async () => {
