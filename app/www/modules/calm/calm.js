@@ -37,6 +37,10 @@
     if (!p.path || !window.WLMe || !WLMe.rough || !WLMe.rough() || mins(p) <= 10) return '';
     return '<p class="meta" id="c-rough" style="text-align:center;margin:0 0 6px">Short night: a 10-minute sit counts just as much today.</p>';
   }
+  function quietChip(p) {
+    if (!p.path) return '';
+    return '<div class="row" id="c-quiet-row" style="justify-content:center;margin:0 0 6px;gap:6px"><button class="chip" id="c-quiet" aria-pressed="' + !!S.settings.sitQuiet + '">Quiet sit: only the opening and the close</button></div>';
+  }
   function lengthChips(p) {
     var ls = lengths(p); if (!ls.length) return '';
     return '<div class="chips" id="c-len" role="group" aria-label="Length" style="justify-content:center;margin:6px 0">' + ls.map(function (m) {
@@ -192,7 +196,7 @@
         : '<div class="line" id="c-line">' + esc(p.blurb || '') + '</div>') +
       '<div class="meta" id="c-left" style="text-align:center;min-height:1.4em"></div>' +
       (p.path ? '' : rating('c-before', 'How stressed are you right now?')) +
-      lengthChips(p) + roughLine(p) +
+      lengthChips(p) + quietChip(p) + roughLine(p) +
       '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">▶ Begin · ' + mins(p) + ' min</button></div>' +
       (darkOn(p) ? '<p class="meta" id="c-dark-hint" style="text-align:center">The screen goes dark while you sit, so you needn’t lock the phone. Tap it to see the time.</p>' : '') +
       '<div id="c-after" hidden>' + (p.path ? sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button></div></div></div>';
@@ -276,6 +280,7 @@
     if (usesAlarm(p)) calmAlarm(total * 1000, alarmLabel(p));
     var pp = $('#c-pp'); pp.textContent = '⏸ Pause'; pp.dataset.state = 'playing';
     var lc = $('#c-len'); if (lc) lc.hidden = true;
+    var qr = $('#c-quiet-row'); if (qr) qr.hidden = true;
     if ($('#c-before')) $('#c-before').hidden = true;
     var progress = function () {
       var e = elapsed();
@@ -304,7 +309,9 @@
       frame();
     } else if (p.kind === 'guided') {
       // a different wording each time through (counted before this session is saved)
-      var steps = G.scaleScript(K.scriptFor(p, K.timesDone(S, p.id)), mins(p), S.settings.rate);
+      var sc = K.scriptFor(p, K.timesDone(S, p.id));
+      if (p.path && S.settings.sitQuiet) sc = K.quietScript(sc); // a quiet sit: the opening, silence, the close
+      var steps = G.scaleScript(sc, mins(p), S.settings.rate);
       run.player = new G.Player(steps, {
         speak: function (t, done) { WL.speech.speak(t, done, { voice: S.settings.voice, rate: S.settings.rate }); },
         stopSpeech: function () { WL.speech.stop(); },
@@ -328,6 +335,8 @@
       $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
       $('#c-pp').textContent = '▶ Begin · ' + pick.m + ' min';
     }; });
+    var qb = $('#c-quiet');
+    if (qb) qb.onclick = function () { S.settings.sitQuiet = !S.settings.sitQuiet; save(); qb.setAttribute('aria-pressed', !!S.settings.sitQuiet); };
     $$('#c-before [data-r]').forEach(function (b) { b.onclick = function () { run = run || { p: p }; run.before = +b.dataset.r; $$('#c-before [data-r]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
     var after = null, hind = [];
     $$('#c-focus [data-f]').forEach(function (b) { b.onclick = function () {

@@ -63,6 +63,30 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual((await page.textContent('#c-path-when')).trim(), 'Your steadiest sits have been in the morning (2 of 3 mostly steady; late at night 0 of 2).');
   });
 
+  await t.step('Quiet sit: remembered, and the voice gives only the opening and the close', async () => {
+    const spoken = async (on) => {
+      await page.goto(base + '#calm'); await page.reload();
+      await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-quiet');
+      if ((await page.getAttribute('#c-quiet', 'aria-pressed')) !== String(on)) await page.click('#c-quiet');
+      assert.strictEqual(await page.getAttribute('#c-quiet', 'aria-pressed'), String(on));
+      await page.click('[data-len="10"]');
+      await page.evaluate(() => { window.__spoken = []; });
+      await page.click('#c-pp');
+      assert.ok(await page.isHidden('#c-quiet-row'), 'the choice hides once begun');
+      for (let i = 0; i < 70; i++) await page.clock.runFor(10000);
+      await page.waitForSelector('#c-after:not([hidden])');
+      const n = await page.evaluate(() => window.__spoken.length);
+      await page.click('#c-save');
+      return n;
+    };
+    const full = await spoken(false), quiet = await spoken(true);
+    assert.ok(full >= 8, 'guided: every line (' + full + ')');
+    assert.ok(quiet >= 4 && quiet <= 5, 'quiet: opening and close only (' + quiet + ')');
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).settings.sitQuiet), true, 'kept');
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions.slice(-1)[0]);
+    assert.ok(s.mins >= 8.5 && s.mins <= 10.6, 'a quiet sit still lasts about its length (the fake voice speaks in 50 ms): ' + s.mins);
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('calm rough day');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

@@ -393,4 +393,23 @@ t('pathWhen: steadiest time of day from 4+ rated sits in 30 days, by local hour;
   [6, 7, 23, 22].forEach((h, i) => { const r = K.record(x, 'slow', 5, 3, 2, new Date(2026, 10, 10 + i, h)); r.focus = 3; });
   assert.strictEqual(K.pathWhen(x, new Date(2026, 10, 20)), null);
 });
+t('quietScript: opening lines up to the main instruction, one long silence, the two closing lines; same quiet time; nothing changed in place', () => {
+  const G = require('../../../app/www/lib/guided.js');
+  for (const id of K.PATH) {
+    const p = K.PRACTICES.find((x) => x.id === id), full = K.scriptFor(p, 0), before = JSON.stringify(p.steps);
+    const q = K.quietScript(full);
+    assert.ok(q.length >= 4 && q.length < full.length, id + ' ' + q.length);
+    assert.strictEqual(q[q.length - 1].say, full[full.length - 1].say, id + ': ends with the closing line');
+    assert.strictEqual(q[0].say, full[0].say);
+    const sum = (a) => a.reduce((t, x) => t + (x.wait || 0), 0);
+    assert.strictEqual(sum(q), sum(full), id + ': same silence in total');
+    assert.ok(q.some((x) => x.wait >= 300), id + ': one long silence');
+    assert.strictEqual(JSON.stringify(p.steps), before, 'practice untouched');
+    const len = G.scriptLength(G.scaleScript(q, 20, 0.9), 0.9);
+    assert.ok(Math.abs(len - 1200) < 60, id + ': still fills 20 min (' + len + ' s)');
+  }
+  assert.deepStrictEqual(K.quietScript([{ say: 'a', wait: 5 }, { say: 'b', wait: 0 }]).map((x) => x.say), ['a', 'b'], 'short scripts kept');
+  assert.strictEqual(K.validate({ sessions: [], settings: { sitQuiet: true } }).settings.sitQuiet, true);
+  assert.strictEqual(K.validate({ sessions: [], settings: { sitQuiet: 'y' } }).settings.sitQuiet, false);
+});
 console.log(n + ' calm unit tests passed');

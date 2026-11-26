@@ -2,7 +2,7 @@
    grounding, kindness, sleep. Christian contemplative prayer stays in the Faith module (linked from here).
    Storage 'wl.calm.v1': { sessions:[{date, at, id, mins, before, after, focus?, hind?}],
      settings:{voice, rate, minutes, tick, dailyGoal, aim: null|'calm'|'train', stage: a PATH id, sitMinutes,
-     dark: screen goes dark during sits and the quiet timer, interval: soft bell every N min during them (0 = off)} }
+     dark: screen goes dark during sits and the quiet timer, interval: soft bell every N min during them (0 = off), sitQuiet: path sits with only the opening and closing lines} }
    aim 'train' = he meditates to train the mind (the meditation path), not only for stress: Calm leads with his stage. */
 (function (root) {
   'use strict';
@@ -314,7 +314,18 @@
   function timesDone(state, id) { return state.sessions.filter(function (s) { return s.id === id; }).length; }
 
   var DAILY_GOALS = [1, 5, 10, 15, 20], SIT_LENGTHS = [10, 15, 20, 30];
-  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10, aim: null, stage: 'count', sitMinutes: 20, dark: true, interval: 0 } }; }
+  function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10, aim: null, stage: 'count', sitMinutes: 20, dark: true, interval: 0, sitQuiet: false } }; }
+  /* A quiet sit (settings.sitQuiet): the opening steps up to the main instruction (the first long silence), then
+     silence, then the last two closing lines. The silences of the dropped lines go to the main one, so scaleScript
+     still fills the sit. Steps are copied; the practice's own list is never changed. */
+  function quietScript(steps) {
+    var k = -1, cp = function (x) { return { say: x.say, wait: x.wait || 0, kind: x.kind }; };
+    steps.some(function (x, i) { if ((x.wait || 0) >= 60) { k = i; return true; } return false; });
+    if (k < 0 || steps.length - 2 <= k + 1) return steps.map(cp);
+    var extra = steps.slice(k + 1, steps.length - 2).reduce(function (a, x) { return a + (x.wait || 0); }, 0);
+    var out = steps.slice(0, k + 1).map(cp); out[k].wait += extra;
+    return out.concat(steps.slice(-2).map(cp));
+  }
   var INTERVALS = [0, 5, 10];
   /* Interval bells during a sit: the bell number due at e seconds (0 = none yet); none in the last 30 s, the end bell comes then. */
   function intervalBell(every, e, total) {
@@ -543,6 +554,7 @@
     if (typeof st.voice === 'boolean') d.settings.voice = st.voice;
     if (typeof st.tick === 'boolean') d.settings.tick = st.tick;
     if (typeof st.dark === 'boolean') d.settings.dark = st.dark;
+    if (typeof st.sitQuiet === 'boolean') d.settings.sitQuiet = st.sitQuiet;
     if (INTERVALS.indexOf(st.interval) >= 0) d.settings.interval = st.interval;
     if (typeof st.rate === 'number' && st.rate >= 0.5 && st.rate <= 1.6) d.settings.rate = st.rate;
     if ([3, 5, 10, 15, 20].indexOf(st.minutes) >= 0) d.settings.minutes = st.minutes;
@@ -571,7 +583,7 @@
     });
   }
 
-  var api = { pathWhen: pathWhen, INTERVALS: INTERVALS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
+  var api = { quietScript: quietScript, pathWhen: pathWhen, INTERVALS: INTERVALS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);
