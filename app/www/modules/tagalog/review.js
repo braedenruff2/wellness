@@ -23,7 +23,8 @@
   function run(ctx, hard) {
     var T = root.TagalogCore, WL = root.WL, esc = WL.esc, $ = WL.$, S = ctx.state();
     // hard: the words he missed most (Your words > Practise these), shown like a review but not rescheduled
-    var due = hard ? T.weakWords(S, 10) : T.dueCards(S), i = 0, el = $('#tl-card'), missed = []; if (!el) return;
+    var due = hard ? T.weakWords(S, 10) : T.dueCards(S), i = 0, el = $('#tl-card'), missed = [], again = 0; if (!el) return;
+    // again: going through the missed ones once more (round 1, 2...): extra practice that changes no box or due date
     clearKey();
     reviewKey = function (ev) {
       if (!el.isConnected) { clearKey(); return; }
@@ -42,23 +43,28 @@
         if (yes) { ev.preventDefault(); yes.click(); }
       }
     };
+    var keyFn = reviewKey;
     document.addEventListener('keydown', reviewKey);
     function show() {
       if (i >= due.length) {
         clearKey();
         // the words he said "Not yet" to, once more with their sound (they come back tomorrow anyway)
         var miss = missed.filter(function (k, j) { return missed.indexOf(k) === j && S.cards[k]; });
-        el.innerHTML = (hard ? '<p class="ui"><b>Done.</b> ' + (due.length - missed.length) + ' of ' + due.length + ' got. They come back in reviews as usual.</p>' : '<p class="ui"><b>All done.</b> See you tomorrow.</p>') +
+        el.innerHTML = (again ? '<p class="ui" id="tl-again-done"><b>Done.</b> ' + (due.length - miss.length) + ' of ' + due.length + ' this time. They come back tomorrow as planned.</p>'
+          : hard ? '<p class="ui"><b>Done.</b> ' + (due.length - missed.length) + ' of ' + due.length + ' got. They come back in reviews as usual.</p>' : '<p class="ui"><b>All done.</b> See you tomorrow.</p>') +
+          (miss.length ? '<div class="row ui"><button class="primary" id="tl-repeat">Go through ' + (miss.length === 1 ? 'that one' : 'these ' + miss.length) + ' again</button></div>' : '') +
           (!hard && miss.length >= 3 ? '<p class="ui" id="tl-hard-link"><a class="link" href="#tagalog/review/hard">Practise your hard words now</a></p>' : '') + (miss.length ? '<div id="tl-missed"><p class="meta ui">' + (hard ? 'Once more before you go:' : 'Once more before you go (they’re back tomorrow):') + '</p><ul class="list">' +
-          miss.map(function (k) { return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(S.cards[k].en) + '</span></span>' + ctx.hear(k) + '</li>'; }).join('') + '</ul></div>' : '') + (root.WLMe && due.length && !hard ? root.WLMe.askHtml('tagalog', 'review@' + new Date().toISOString().slice(0, 16), 'Quick question (optional): it shapes next week’s lessons', true) : '') + '<a class="btn" href="#tagalog">Back</a>';
+          miss.map(function (k) { return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(S.cards[k].en) + '</span></span>' + ctx.hear(k) + '</li>'; }).join('') + '</ul></div>' : '') + (root.WLMe && due.length && !hard && !again ? root.WLMe.askHtml('tagalog', 'review@' + new Date().toISOString().slice(0, 16), 'Quick question (optional): it shapes next week’s lessons', true) : '') + '<a class="btn" href="#tagalog">Back</a>';
         ctx.wireHear(el);
+        var rp = $('#tl-repeat', el);
+        if (rp) rp.onclick = function () { due = miss.slice(); i = 0; missed = []; again++; reviewKey || document.addEventListener('keydown', reviewKey = keyFn); show(); };
         return;
       }
       var k = due[i], c = S.cards[k], sayIt = T.direction(c) === 'say';
       // a word he has missed twice or more comes back with a sentence from the lessons that uses it
       var exm = (c.wrong || 0) >= 2 && T.exampleFor ? T.exampleFor(ctx.packs(), k) : null;
       var exHtml = exm ? '<p class="meta" id="tl-example"><span lang="tl">' + esc(exm.tl) + '</span> ' + ctx.hear(exm.tl) + '<br>' + esc(exm.en) + '</p>' : '';
-      el.innerHTML = '<div class="meta ui">' + (i + 1) + ' / ' + due.length + (sayIt ? ' · say it in Tagalog' : '') + '</div>' +
+      el.innerHTML = '<div class="meta ui">' + (again ? 'Once more · ' : '') + (i + 1) + ' / ' + due.length + (sayIt ? ' · say it in Tagalog' : '') + '</div>' +
         (sayIt ? '<p class="big">' + esc(c.en) + '</p><div id="tl-ans" hidden><p class="big" lang="tl">' + esc(k) + ' ' + ctx.hear(k) + '</p>' + exHtml + '</div>'
           : '<p class="big" lang="tl">' + esc(k) + ' ' + ctx.hear(k) + '</p><div id="tl-ans" hidden><p>' + esc(c.en) + '</p>' + exHtml + '</div>') +
         '<div class="row ui" id="tl-btns"><button class="primary" id="tl-show">' + (sayIt ? 'Show the Tagalog' : 'Show meaning') + '</button></div>';
@@ -69,8 +75,8 @@
         $('#tl-btns').innerHTML = '<button id="tl-no">Not yet</button><button class="primary" id="tl-yes">Got it</button>';
         // a double-tap on Show would land on "Not yet" (now where Show was): ignore taps for a moment
         var shownAt = Date.now(), late = function () { return Date.now() - shownAt >= 400; };
-        $('#tl-no').onclick = function () { if (!late()) return; if (!hard) { T.review(S, k, false, ctx.logNow()); ctx.save(); } missed.push(k); i++; show(); };
-        $('#tl-yes').onclick = function () { if (!late()) return; if (!hard) { T.review(S, k, true, ctx.logNow()); ctx.save(); } i++; show(); };
+        $('#tl-no').onclick = function () { if (!late()) return; if (!hard && !again) { T.review(S, k, false, ctx.logNow()); ctx.save(); } missed.push(k); i++; show(); };
+        $('#tl-yes').onclick = function () { if (!late()) return; if (!hard && !again) { T.review(S, k, true, ctx.logNow()); ctx.save(); } i++; show(); };
       };
     }
     show();
