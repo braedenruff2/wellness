@@ -47,6 +47,22 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.$('#wo-rough-rest'), null);
   });
 
+  await t.step('two such days in a week: "Your week" says 2 rest days he chose (never missed)', async () => {
+    for (const [d, iso] of [[24, '2026-11-24'], [25, '2026-11-25']]) {
+      await page.clock.setSystemTime(new Date(2026, 10, d, 9, 0));
+      await page.evaluate((iso) => {
+        const me = JSON.parse(localStorage.getItem('wl.me.v1')); me.checkins[iso] = { sleep: 'Under 4 h', wakes: '3+', energy: 'Low', mood: 'OK', day: 'OK' };
+        me.feedback = me.feedback.filter((f) => f.about !== 'roughrest'); localStorage.setItem('wl.me.v1', JSON.stringify(me));
+      }, iso);
+      await home(); await page.waitForSelector('#wo-rough-rest'); await page.click('#wo-rough-rest');
+    }
+    await page.clock.setSystemTime(new Date(2026, 10, 29, 19, 0)); // Sunday evening
+    await home();
+    const wk = await page.evaluate(() => WL.modules.workout.week());
+    assert.ok(/2 rest days you chose/.test(wk), wk);
+    assert.ok(!/miss/i.test(wk), wk);
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('workout rough night');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
