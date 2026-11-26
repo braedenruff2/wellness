@@ -1,5 +1,11 @@
 # Cloud log
 
+## 2026-11-26 16:00-16:45 AST (run2, continued; APK 0.1.20261126.2016, real key, cert 6795e499...)
+- Done 233 (tests/e2e-perf.cjs: a year of data at CPU 4x: Home ~55 ms, every card and page well under budget; tests/lib/year.cjs now shared with storage-size), 232 (tests/e2e-backup-year.cjs: a year's backup restores exactly), 246 (tests/e2e-backup-old.cjs: an older version's backup restores, every part opens). 231/237 existed; 239 dropped. Added 239-246.
+- bug: restoring a backup dropped each Tagalog card's last-review day / cause: validate() didn't copy card.last / fixed: kept when a date / test: unit + e2e-backup-year.
+- bug: restoring a backup added an empty "removed" list to every workout session (the restored file differed from the phone's) / cause: validate() always wrote removed / fixed: only when non-empty / test: unit + e2e-backup-year.
+- Tested: full suite after rebase (85 suites, none skipped; this APK's code).
+
 ## 2026-11-26 15:50-16:00 AST (run2, back from Singing Helper; APK 0.1.20261126.1959, real key, cert 6795e499...)
 - Done 234 (a11y: Slips > Practise these run + finish), 235 (slipSet leaves out exercises a corrected pack no longer has: unit), 236 (e2e: undoing a rest day, also Home's "Rest today (tired)", plans the workout again on Home), 238 (unit: repeating to-dos done late keep their rhythm, also the 31st, weekdays, DST). Added 231-238.
 - Cross-review: Gemini d04e484 (Gemini CLI path) and bb703a1 (Antigravity CLI `agy` with stream-json as the PC backup): read; no bug found in the code; the agy flags themselves can't be checked here.
