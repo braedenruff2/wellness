@@ -187,7 +187,7 @@
       d.setAttribute('aria-label', darkSt.label || 'Dark screen. Tap to show the page.');
       d.onclick = function () { darkLight(); };
       document.body.appendChild(d); dimScreen(true);
-    }, darkSt.after);
+    }, typeof darkSt.after === 'function' ? darkSt.after() : darkSt.after); // after: ms, or a function asked each time
   }
   function darkUncover() { clearTimeout(darkSt.t); var d = darkEl(); if (d) { d.parentNode.removeChild(d); dimScreen(false); } }
   function darkLight() { darkUncover(); darkArm(); }

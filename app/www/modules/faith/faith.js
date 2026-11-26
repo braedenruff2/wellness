@@ -279,10 +279,16 @@
 
   /* Late at night (21:00-05:00) a guided prayer goes dark after 20 s (setting "Dark screen late at night", on):
      no lit phone in a dark room while the voice leads; tap to see the words. */
+  /* Long enough to read along with the line being said (a Scripture reading can be long): its speaking time + 5 s, at least 20 s. */
+  function darkWait() {
+    var st = session && session.steps && session.steps[player && player.i >= 0 ? player.i : (player && player.from) || 0];
+    var sec = st && WL.wordsSeconds ? WL.wordsSeconds(st.say, S.settings.rate) : 0;
+    return Math.max(20000, Math.round((sec + 5) * 1000));
+  }
   function keepAwake(on) {
     WL.keepAwake(on);
     if (!WL.darkScreen) return;
-    if (on && lateNow() && S.settings.darkPray !== false) WL.darkScreen.start({ id: 'fc-dark', label: 'Dark screen while you pray. Tap to see the words.', after: 20000 });
+    if (on && lateNow() && S.settings.darkPray !== false) WL.darkScreen.start({ id: 'fc-dark', label: 'Dark screen while you pray. Tap to see the words.', after: darkWait });
     else WL.darkScreen.stop();
   }
 

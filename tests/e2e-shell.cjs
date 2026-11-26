@@ -150,6 +150,14 @@ const W = require('./lib/web.cjs');
     });
     await page.clock.runFor(100);
     assert.deepStrictEqual(r, { one: 1, switched: 0, afterSwitch: 1, id: 'b-dark', stopped: 0, staysOff: 0 }, JSON.stringify(r));
+    // the wait can be a function, asked each time it arms (Faith: the line being said)
+    const asked = await page.evaluate(async () => {
+      let n = 0; window.WL.darkScreen.start({ id: 'f-dark', after: () => { n++; return 10; } });
+      await new Promise((r) => setTimeout(r, 30)); const d1 = !!document.getElementById('f-dark');
+      window.WL.darkScreen.light(); await new Promise((r) => setTimeout(r, 30));
+      window.WL.darkScreen.stop(); return [d1, n];
+    });
+    assert.deepStrictEqual(asked, [true, 2], 'asked on start and again after a tap');
     // a route change ends it, even if a part forgot to
     await page.evaluate(() => window.WL.darkScreen.start({ id: 'x-dark', after: 10 }));
     await page.clock.runFor(50);
