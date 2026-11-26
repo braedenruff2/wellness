@@ -306,6 +306,16 @@ t('aspectHint: the verb with or without its repeated syllable gets "Almost" and 
   assert.strictEqual(T.aspectHint(k, 'kumain ako'), '', 'two words differ (one missing)');
   assert.strictEqual(T.aspectHint({ type: 'build', answer: 'Kumakain ako ngayon.', words: [] }, 'kumain ako ngayon'), '', 'type exercises only');
   assert.strictEqual(T.hintKind(g, 'gusto kong magaaral ng tagalog'), 'aspect');
+  // a doubled letter from the keyboard is a typo, not a verb form (review 26 Nov)
+  assert.strictEqual(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Salamat po.' }, 'sallamat po'), '');
+  assert.strictEqual(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Kumain ako.' }, 'kumainn ako'), '');
+  assert.strictEqual(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Magandang umaga po.' }, 'magandang umagaa po'), '');
+  assert.strictEqual(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Salamat po.' }, 'salamamat po'), '', 'a syllable typed twice mid-word');
+  assert.ok(/nagluluto/.test(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Nagluluto ako.' }, 'nagluto ako')));
+  assert.ok(/Aalis/i.test(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Aalis na kami.' }, 'alis na kami')));
+  // the linker on the word before: "after kailangan"
+  assert.ok(/after kailangan the verb stays plain: mag-aral/.test(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Kailangang mag-aral ng anak ko.' }, 'kailangang mag-aaral ng anak ko')));
+  assert.ok(/after puwede /.test(T.aspectHint({ type: 'type', prompt: 'p', answer: 'Puwedeng kumain na tayo?' }, 'puwedeng kumakain na tayo')));
   assert.strictEqual(T.hintKind(g, 'gusto ko mag-aral ng tagalog'), 'linker', 'a linker slip stays a linker hint');
   const st = T.defaults();
   T.recordAnswer(st, { id: '2026-11-25' }, { day: 1 }, g, false, new Date(2026, 10, 25, 20), 'gusto kong magaaral ng tagalog');

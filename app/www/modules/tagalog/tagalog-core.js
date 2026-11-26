@@ -145,15 +145,20 @@
      "gusto kong mag-aral", or "kumain ako ngayon" for "kumakain ako ngayon". One word differs, by a repeated 1-2
      letter syllable only. */
   var MODALS = ['gusto', 'ayaw', 'ayoko', 'kailangan', 'puwede', 'pwede', 'dapat', 'sana'];
+  var VPRE = ['', 'mag', 'nag', 'pag', 'mang', 'nang', 'pang', 'ma', 'na', 'um', 'i', 'ipa', 'ipag', 'pinag', 'ka', 'maka', 'naka', 'makapag', 'nakapag'];
   function redup(long, short) {
     if (long.length - short.length < 1 || long.length - short.length > 2) return false;
     var L = long.length - short.length;
     for (var k = 0; k + L <= long.length; k++) {
       if (long.slice(0, k) + long.slice(k + L) !== short) continue;
-      var ch = long.substr(k, L);
-      if (ch === long.substr(k + L, L)) return true; // ka-kain, nag-lu-luto, mag-a-aral
-      // with -um- the copied syllable follows the infix's vowel: kuma-ka-in, bumi-bi-li (same vowel just before it)
-      if (L === 2 && /^[bcdfghklmnprstvwyz][aeiou]$/.test(ch) && k > 0 && long[k - 1] === ch[1]) return true;
+      var ch = long.substr(k, L), before = long.slice(0, k);
+      // one letter: only a vowel at the start of the root (a-alis, mag-a-aral, nag-i-isa), never a doubled typo (sallamat)
+      if (L === 1) { if (/[aeiou]/.test(ch) && ch === long[k + 1] && VPRE.indexOf(before) >= 0) return true; continue; }
+      if (!/^[bcdfghklmnprstvwyz][aeiou]$/.test(ch)) continue;
+      // the copied syllable starts the root: at the start or after a prefix (ka-kain, nag-lu-luto, ma-ka-kain)
+      if (ch === long.substr(k + L, L) && VPRE.indexOf(before) >= 0) return true;
+      // with -um- it follows the infix's vowel: kuma-ka-in, bumi-bi-li
+      if (/^[bcdfghklmnprstvwyz]um[aeiou]$/.test(before) && before[3] === ch[1]) return true;
     }
     return false;
   }
@@ -171,7 +176,8 @@
       var d = diff[0], c = cw[d], g = gw[d], raw = cands[i].replace(/[.,!?;:"“”…()¿¡]/g, '').trim().split(/\s+/), word = (raw.length === cw.length ? raw[d] : c).toLowerCase();
       if (c.length < 4) continue;
       if (redup(g, c)) {
-        var trig = cw.slice(0, d).map(function (w) { return w.replace(/ng$/, ''); }).filter(function (w) { return MODALS.indexOf(w) >= 0; })[0];
+        // the word before may carry its linker: gusto-ng, kailangan-g, puwede-ng
+        var trig = cw.slice(0, d).map(function (w) { return MODALS.indexOf(w) >= 0 ? w : MODALS.indexOf(w.replace(/ng$/, '')) >= 0 ? w.replace(/ng$/, '') : w.replace(/g$/, ''); }).filter(function (w) { return MODALS.indexOf(w) >= 0; })[0];
         return 'Almost: ' + (trig ? 'after ' + trig + ' the verb stays plain: ' : 'the verb here is ') + word + ', without the repeated syllable (that means "is doing" or "will do"): ' + show;
       }
       if (redup(c, g)) return 'Almost: the verb here is ' + word + ', with the repeated syllable (it is happening, or will): ' + show;

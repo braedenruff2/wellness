@@ -33,6 +33,17 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.reload(); await page.waitForSelector('#sessclock');
     assert.ok(/^Session 21:\d\d$/.test(await page.textContent('#sessclock')), await page.textContent('#sessclock'));
   });
+  await t.step('logging for an earlier day: no session clock (its sets carry that day\'s date; review 26 Nov)', async () => {
+    await page.goto(base + '#home'); await page.selectOption('#wl-logday', '2026-11-22');
+    await page.evaluate(() => {
+      const w = JSON.parse(localStorage.getItem('wl.workout.v1'));
+      const at = (h, m) => new Date(2026, 10, 22, h, m).toISOString();
+      w.sessions = [{ id: 'y1', date: '2026-11-22', day: 'A', start: at(20, 30), end: null, sets: [{ i: 0, ex: 'Single Leg RDL', n: 1, val: 20, w: 10, at: at(20, 40) }] }];
+      localStorage.setItem('wl.workout.v1', JSON.stringify(w)); window.WL.modules.workout.reload();
+    });
+    await page.goto(base + '#workout'); await page.waitForSelector('#logday');
+    assert.strictEqual(await page.$('#sessclock'), null);
+  });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('workout break');
 })().catch((e) => { console.error(e); process.exit(1); });
