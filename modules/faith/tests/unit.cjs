@@ -365,6 +365,12 @@ t('practicesThisWeek: counts finished practices since Monday, local time', () =>
   d.sessions.push(null, { kind: 'practice', at: 'nope', id: 'x' }, { kind: 'practice', at: new Date(2026, 10, 3).toISOString() });
   assert.deepStrictEqual(C.practicesThisWeek(d, new Date(2026, 10, 8, 22)), { lectio: 1 });
   assert.deepStrictEqual(C.practicesThisWeek({}, new Date()), {});
+  // spring forward (Sun 14 Mar 2027 in Halifax and the US: a 23-hour day): Sunday night still that week; Monday starts fresh
+  const sp = C.defaults();
+  C.logSession(sp, 'practice', 'examen', 'Examen', 5, new Date(2027, 2, 8, 0, 1));    // Monday 8 Mar just after midnight
+  C.logSession(sp, 'practice', 'examen', 'Examen', 5, new Date(2027, 2, 14, 23, 30)); // the short Sunday, late
+  assert.deepStrictEqual(C.practicesThisWeek(sp, new Date(2027, 2, 14, 23, 45)), { examen: 2 });
+  assert.deepStrictEqual(C.practicesThisWeek(sp, new Date(2027, 2, 15, 0, 10)), {});
 });
 
 t('practice wordings: guiding lines vary, Scripture and the Lord’s Prayer never do, timing kept', () => {
