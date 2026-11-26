@@ -31,6 +31,12 @@
     var a = Math.max(2, Math.round(p.minutes * 0.6)), c = Math.round(p.minutes * 1.5);
     return a < p.minutes ? [a, p.minutes, c] : [p.minutes, c];
   }
+  /* A path sit on a rough day (short sleep, broken night or low energy in today's check-in): a shorter sit is fine.
+     The 10-min chip picks it for this sit only; the saved length stays. */
+  function roughLine(p) {
+    if (!p.path || !window.WLMe || !WLMe.rough || !WLMe.rough() || mins(p) <= 10) return '';
+    return '<p class="meta" id="c-rough" style="text-align:center;margin:0 0 6px">Short night: a 10-minute sit counts just as much today.</p>';
+  }
   function lengthChips(p) {
     var ls = lengths(p); if (!ls.length) return '';
     return '<div class="chips" id="c-len" role="group" aria-label="Length" style="justify-content:center;margin:6px 0">' + ls.map(function (m) {
@@ -92,6 +98,7 @@
     if (open) {
       h += '<p class="meta" id="c-path-status">' + (ps.sits ? ps.sits + ' sit' + (ps.sits === 1 ? '' : 's') + ' at this stage (' + ps.mins + ' min)' + (ps.rated ? '; attention mostly steady in ' + ps.steady + ' of the last ' + ps.rated : '') + '.' : 'No sits at this stage yet.') + '</p>';
       if (ps.tip) h += '<p class="meta" id="c-path-tip">' + esc(ps.tip) + '</p>';
+      if (ps.when) h += '<p class="meta" id="c-path-when">' + esc(ps.when.text) + '</p>';
       if (ps.back) h += '<div class="row" id="c-path-back" style="gap:4px 8px"><span class="meta">Your mind has wandered a lot in recent sits at this stage. That’s normal; going back a step for a while often helps.</span><button class="chip" data-stage="' + ps.prev + '">Back to ' + esc(practice(ps.prev).title) + '</button></div>';
       if (ps.ready) h += '<div class="row" id="c-path-ready" style="gap:4px 8px"><span class="meta">Your attention has been steady lately. Ready for the next stage?</span><button class="chip" data-stage="' + ps.next + '">Move on to ' + esc(nx.title) + '</button></div>';
       else if (nx) h += '<p class="meta">The next stage (' + esc(nx.title) + ') is offered after ' + K.READY_SITS + ' sits here with your attention mostly steady in 3 of the last 5. There’s no hurry; you can also choose any stage below.</p>';
@@ -185,7 +192,7 @@
         : '<div class="line" id="c-line">' + esc(p.blurb || '') + '</div>') +
       '<div class="meta" id="c-left" style="text-align:center;min-height:1.4em"></div>' +
       (p.path ? '' : rating('c-before', 'How stressed are you right now?')) +
-      lengthChips(p) +
+      lengthChips(p) + roughLine(p) +
       '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">▶ Begin · ' + mins(p) + ' min</button></div>' +
       (darkOn(p) ? '<p class="meta" id="c-dark-hint" style="text-align:center">The screen goes dark while you sit, so you needn’t lock the phone. Tap it to see the time.</p>' : '') +
       '<div id="c-after" hidden>' + (p.path ? sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button></div></div></div>';
@@ -316,7 +323,8 @@
   function wireSession(p) {
     $$('#c-len [data-len]').forEach(function (b) { b.onclick = function () {
       pick = { id: p.id, m: +b.dataset.len };
-      if (p.path) { S.settings.sitMinutes = pick.m; save(); } // a sit length is kept for next time
+      // a sit length is kept for next time (not the shorter one picked because of a rough night)
+      if (p.path && !($('#c-rough') && pick.m <= 10)) { S.settings.sitMinutes = pick.m; save(); }
       $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
       $('#c-pp').textContent = '▶ Begin · ' + pick.m + ' min';
     }; });

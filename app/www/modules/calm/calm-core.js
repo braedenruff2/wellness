@@ -414,6 +414,26 @@
   /* Where he is on the meditation path: the stage, its sits (newest last), how steady the last 5 rated ones were, and
      whether to offer the next stage: 6+ sits at this stage and 3 of the last 5 rated "Mostly steady". Never automatic. */
   var READY_SITS = 6;
+  /* Which time of day his sits go best: from 4+ rated path sits in the last 30 days (any stage), by local hour of
+     s.at. A line only when one part of the day (2+ sits, 1+ mostly steady) beats another (2+ sits) by a third or more. */
+  var PARTS = [['morning', 'in the morning'], ['afternoon', 'in the afternoon'], ['evening', 'in the evening'], ['late', 'late at night']];
+  function partOfDay(h) { return h >= 5 && h < 12 ? 0 : h >= 12 && h < 18 ? 1 : h >= 18 && h < 22 ? 2 : 3; }
+  function pathWhen(state, now) {
+    var n = now || new Date(), to = iso(n), from = WLD.addDays(to, -30), g = PARTS.map(function () { return { n: 0, steady: 0 }; }), all = 0;
+    (state.sessions || []).forEach(function (s) {
+      if (!s || PATH.indexOf(s.id) < 0 || !(s.focus >= 1 && s.focus <= 3) || !s.date || s.date < from || s.date > to) return;
+      var t = Date.parse(s.at); if (isNaN(t)) return;
+      var x = g[partOfDay(new Date(t).getHours())]; x.n++; all++; if (s.focus === 3) x.steady++;
+    });
+    if (all < 4) return null;
+    var ok = g.map(function (x, i) { return { i: i, n: x.n, steady: x.steady, share: x.n ? x.steady / x.n : 0 }; }).filter(function (x) { return x.n >= 2; });
+    if (ok.length < 2) return null;
+    var best = ok.slice().sort(function (a, b) { return b.share - a.share || b.n - a.n; })[0];
+    var worst = ok.slice().sort(function (a, b) { return a.share - b.share || b.n - a.n; })[0];
+    if (best.i === worst.i || best.steady < 1 || best.share - worst.share < 1 / 3 - 1e-9) return null;
+    return { best: PARTS[best.i][0], worst: PARTS[worst.i][0],
+      text: 'Your steadiest sits have been ' + PARTS[best.i][1] + ' (' + best.steady + ' of ' + best.n + ' mostly steady; ' + PARTS[worst.i][1] + ' ' + worst.steady + ' of ' + worst.n + ').' };
+  }
   function pathStatus(state, now) {
     var to = now ? iso(now) : null, id = stageOf(state), i = PATH.indexOf(id);
     var all = state.sessions.filter(function (s) { return PATH.indexOf(s.id) >= 0 && (!to || !s.date || s.date <= to); })
@@ -428,7 +448,7 @@
       rated: rated.length, steady: steady, lost: lost, ready: i < PATH.length - 1 && sits.length >= READY_SITS && steady >= 3,
       // a later stage that keeps slipping (3 of the last 5 rated "Mostly lost in thought"): offer the stage before, gently
       back: i > 0 && lost >= 3,
-      next: i < PATH.length - 1 ? PATH[i + 1] : null, prev: i > 0 ? PATH[i - 1] : null, total: all.length, tip: tip };
+      next: i < PATH.length - 1 ? PATH[i + 1] : null, prev: i > 0 ? PATH[i - 1] : null, total: all.length, tip: tip, when: pathWhen(state, now) };
   }
   /* Meditation-path sits in the 7 days up to now (same window as stats()). */
   function pathWeek(state, now) {
@@ -551,7 +571,7 @@
     });
   }
 
-  var api = { INTERVALS: INTERVALS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
+  var api = { pathWhen: pathWhen, INTERVALS: INTERVALS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

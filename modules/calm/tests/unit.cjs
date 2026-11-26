@@ -368,4 +368,29 @@ t('interval bell number: none at the start, one per interval, none in the last 3
   assert.strictEqual(K.intervalBell(0, 600, 1200), 0, 'off');
   assert.strictEqual(K.intervalBell(5, NaN, 1200), 0);
 });
+t('pathWhen: steadiest time of day from 4+ rated sits in 30 days, by local hour; a sit just after midnight is late at night', () => {
+  const s = K.defaults();
+  const sit = (d, h, m, focus, id) => { const r = K.record(s, id || 'count', 20, null, null, new Date(2026, 10, d, h, m)); K.rateSit(r, focus); return r; };
+  sit(20, 6, 30, 3); sit(21, 7, 0, 3);
+  sit(20, 23, 10, 1);
+  assert.strictEqual(K.pathWhen(s, new Date(2026, 10, 22, 12)), null, '3 rated sits: too few');
+  sit(22, 0, 20, 1); // just after midnight: late at night, dated the 22nd
+  sit(22, 9, 0, 2);
+  const w = K.pathWhen(s, new Date(2026, 10, 22, 12));
+  assert.deepStrictEqual([w.best, w.worst], ['morning', 'late'], JSON.stringify(w));
+  assert.strictEqual(w.text, 'Your steadiest sits have been in the morning (2 of 3 mostly steady; late at night 0 of 2).');
+  assert.strictEqual(K.pathStatus(s, new Date(2026, 10, 22, 12)).when.best, 'morning', 'pathStatus carries it');
+  assert.strictEqual(K.pathWhen(s, new Date(2026, 11, 25, 12)), null, 'older than 30 days: none');
+  assert.strictEqual(K.pathWhen(s, new Date(2026, 10, 21, 12)), null, 'sits after "now" are left out');
+  const u = K.defaults(); // no part of the day stands out
+  [[6, 3], [7, 1], [23, 3], [22, 1]].forEach(([h, f], i) => { const r = K.record(u, 'follow', 20, null, null, new Date(2026, 10, 10 + i, h)); K.rateSit(r, f); });
+  assert.strictEqual(K.pathWhen(u, new Date(2026, 10, 20)), null, '1 of 2 vs 1 of 2');
+  const v = K.defaults(); // one part only
+  [6, 7, 8, 9].forEach((h, i) => { const r = K.record(v, 'count', 20, null, null, new Date(2026, 10, 10 + i, h)); K.rateSit(r, 3); });
+  assert.strictEqual(K.pathWhen(v, new Date(2026, 10, 20)), null, 'nothing to compare with');
+  const x = K.defaults(); // unrated sits and other practices don't count
+  [6, 7, 23, 22].forEach((h, i) => K.record(x, 'count', 20, null, null, new Date(2026, 10, 10 + i, h)));
+  [6, 7, 23, 22].forEach((h, i) => { const r = K.record(x, 'slow', 5, 3, 2, new Date(2026, 10, 10 + i, h)); r.focus = 3; });
+  assert.strictEqual(K.pathWhen(x, new Date(2026, 10, 20)), null);
+});
 console.log(n + ' calm unit tests passed');
