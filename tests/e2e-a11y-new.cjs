@@ -581,17 +581,35 @@ const W = require('./lib/web.cjs');
       await page.evaluate(() => {
         const c = JSON.parse(localStorage.getItem('wl.calm.v1'));
         c.settings.aim = 'train'; c.settings.stage = 'count';
+        for (let d = 16; d <= 17; d++) c.sessions.push({ id: 'count', date: '2026-11-' + d, at: new Date(2026, 10, d, 7).toISOString(), mins: 20, focus: 1, hind: ['Sleepy'] }); // #c-path-when
         for (let d = 18; d <= 23; d++) c.sessions.push({ id: 'count', date: '2026-11-' + d, at: new Date(2026, 10, d, 21).toISOString(), mins: 20, focus: 3, hind: d === 23 ? ['Restless'] : ['Nothing much'] });
         localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+        const me = JSON.parse(localStorage.getItem('wl.me.v1')); me.checkins = me.checkins || {};
+        me.checkins['2026-11-25'] = { sleep: '4–5 h', wakes: '2', energy: 'OK', mood: 'OK', day: 'OK' }; // #c-rough on the sit screen
+        localStorage.setItem('wl.me.v1', JSON.stringify(me));
       });
       await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-path-ready'); await page.waitForSelector('#c-path-tip');
       assert.deepStrictEqual(await small('#c-path summary, #c-path [data-stage], #c-stages a, #c-today a.btn'), []);
       assert.deepStrictEqual(await bad('#c-path'), [], theme + ' #c-path');
+      assert.ok(await page.$('#c-path-when'), 'the time-of-day line is there to check');
       assert.deepStrictEqual(await bad('#c-today'), [], theme + ' #c-today (path)');
+      // task 148: the sit settings (dark screen, soft bell)
+      assert.deepStrictEqual(await small('#cdk, #c-iv [data-iv]'), []);
+      assert.deepStrictEqual(await bad('.card:has(#cdk)'), [], theme + ' Calm settings (#cdk, #c-iv)');
       await t.noOverflow(['#calm']);
       await page.goto(base + '#calm/s/open'); await page.waitForSelector('#c-len');
-      assert.deepStrictEqual(await small('#c-len [data-len], #c-pp'), []);
+      assert.deepStrictEqual(await small('#c-len [data-len], #c-pp, #c-quiet'), []);
+      assert.ok(await page.$('#c-rough') && await page.$('#c-dark-hint'), 'rough-day line and dark-screen hint shown');
+      assert.deepStrictEqual(await bad('#c-rough'), [], theme + ' #c-rough');
+      assert.deepStrictEqual(await bad('#c-dark-hint'), [], theme + ' #c-dark-hint');
+      assert.deepStrictEqual(await bad('#c-quiet-row'), [], theme + ' #c-quiet');
       await t.noOverflow(['#calm/s/open']);
+      await page.click('#c-pp');
+      await page.clock.runFor(11000);
+      assert.strictEqual(await page.getAttribute('#c-dark', 'role'), 'button');
+      assert.ok(/Tap to show the time/.test(await page.getAttribute('#c-dark', 'aria-label')));
+      await page.click('#c-dark'); await page.click('#c-end');
+      await page.goto(base + '#calm/s/open'); await page.waitForSelector('#c-len');
       await page.evaluate(() => { document.getElementById('c-after').hidden = false; });
       assert.deepStrictEqual(await small('#c-focus [data-f], #c-hind [data-h], #c-save'), []);
       assert.deepStrictEqual(await bad('#c-after'), [], theme + ' #c-focus/#c-hind');
