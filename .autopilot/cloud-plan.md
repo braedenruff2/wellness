@@ -357,5 +357,5 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 243. [any] Tagalog review "Go through these again" when every answer was right: no empty second round, the button isn't offered; e2e.
 244. [any] tests/lib/year.cjs: add a year of to-dos (repeats ticked weekly) and Parenting tips/feedback so storage-size and the backup round trip cover every store; keep both tests passing.
 245. [any] Home after midnight (00:30) with yesterday's items unfinished: today's list is today's (not yesterday's), and "Log for an earlier day" still offers yesterday; e2e with the fake clock in Halifax time.
-246. [any] Settings > Backup: a backup file from an older app version (missing newer fields: no walkDark, no restRemoved, no againMiss) restores without "unreadable" parts; e2e with a trimmed fixture.
+246. (done 26 Nov, Claude run2: tests/e2e-backup-old.cjs; no fix needed) Settings > Backup: a backup file from an older app version (missing newer fields: no walkDark, no restRemoved, no againMiss) restores without "unreadable" parts; e2e with a trimmed fixture.
 
