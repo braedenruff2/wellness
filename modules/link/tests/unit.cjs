@@ -188,4 +188,39 @@ t('a meditation-path sit carries attention and obstacles (new id when answered l
   c.settings.aim = 'calm';
   assert.deepStrictEqual(A.collect({ 'wl.calm.v1': c }, {}, now).find((e) => e.kind === 'target').data, { aim: 'calm', stage: null });
 });
+t('workout-done: reports active training minutes (excludes breaks > 90 min, clamps inverted clock, null on bad start)', () => {
+  const w = WK.defaults();
+  // Normal 29-min workout
+  WK.logSet(w, 'A', 0, 12, 10, at(9, 0)); WK.logSet(w, 'A', 0, 12, 10, at(9, 10)); WK.endSession(w, at(9, 29));
+  // Split workout with a 5-hour break (10 min morning + 15 min afternoon = 25 min, not 325 min)
+  w.sessions.push({
+    id: 'split-1', date: '2026-11-18', day: 'B',
+    start: new Date(2026, 10, 18, 9, 0).toISOString(),
+    end: new Date(2026, 10, 18, 14, 25).toISOString(),
+    sets: [
+      { i: 0, ex: 'Single Leg RDL', n: 1, val: 10, w: 10, at: new Date(2026, 10, 18, 9, 5).toISOString() },
+      { i: 0, ex: 'Single Leg RDL', n: 2, val: 10, w: 10, at: new Date(2026, 10, 18, 9, 10).toISOString() },
+      { i: 1, ex: 'Pike Pushups', n: 1, val: 8, w: null, at: new Date(2026, 10, 18, 14, 10).toISOString() },
+      { i: 1, ex: 'Pike Pushups', n: 2, val: 8, w: null, at: new Date(2026, 10, 18, 14, 20).toISOString() }
+    ]
+  });
+  // Inverted clock (end before start -> 0) and missing start (-> null)
+  w.sessions.push({
+    id: 'inv-1', date: '2026-11-17', day: 'C',
+    start: new Date(2026, 10, 17, 10, 0).toISOString(),
+    end: new Date(2026, 10, 17, 9, 0).toISOString(),
+    sets: [{ i: 0, ex: 'Split Squats', n: 1, val: 10, w: 10, at: new Date(2026, 10, 17, 9, 30).toISOString() }]
+  });
+  w.sessions.push({
+    id: 'bad-1', date: '2026-11-16', day: 'A',
+    start: '', end: new Date(2026, 10, 16, 10, 0).toISOString(),
+    sets: [{ i: 0, ex: 'Pushups', n: 1, val: 10, w: null, at: new Date(2026, 10, 16, 9, 50).toISOString() }]
+  });
+  const done = A.collect({ 'wl.workout.v1': w }, {}, now).filter((e) => e.kind === 'workout-done');
+  const byDay = Object.fromEntries(done.map((e) => [e.id.split('/')[2], e.data.mins]));
+  assert.strictEqual(byDay['split-1'], 25, '5-hour break excluded: ' + JSON.stringify(byDay));
+  assert.strictEqual(byDay['inv-1'], 0, 'inverted end < start clamped to 0');
+  assert.strictEqual(byDay['bad-1'], null, 'missing start stays null');
+  assert.strictEqual(done.find((e) => e.text === 'Day A' && e.data.sets === 2).data.mins, 29);
+});
 console.log(n + ' activity tests passed');

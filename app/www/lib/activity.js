@@ -68,6 +68,23 @@
     }
   };
 
+  /* Active training minutes for a finished workout: start through each set to end, leaving out breaks over 90 min
+     (matches WorkoutCore.activeTime), or null if start/end are unreadable. */
+  function workoutMins(w) {
+    var s = Date.parse(w.start), e = Date.parse(w.end);
+    if (isNaN(s) || isNaN(e)) return null;
+    if (e <= s) return 0;
+    var pts = [s, e];
+    (w.sets || []).forEach(function (x) {
+      var t = x && Date.parse(x.at);
+      if (!isNaN(t) && t >= s && t <= e) pts.push(t);
+    });
+    pts.sort(function (a, b) { return a - b; });
+    var ms = 0, GAP = 90 * 60e3;
+    for (var i = 1; i < pts.length; i++) { var d = pts[i] - pts[i - 1]; if (d <= GAP) ms += d; }
+    return Math.round(ms / 60000);
+  }
+
   /* Move (wl.workout.v1): every set (exercise, set number, reps or seconds, weight) and each finished workout. */
   X['wl.workout.v1'] = function (s, o, out) {
     (s.sessions || []).forEach(function (w) {
@@ -81,9 +98,9 @@
         if (r && okDate(r.at)) out.push({ id: 'workout/' + w.id + '/' + r.at + '/' + r.i + '/x', at: r.at, part: 'workout', kind: 'set-removed' });
       });
       if (okDate(w.end) && (w.sets || []).length) {
-        var mins = Math.round((new Date(w.end) - new Date(w.start)) / 60000);
+        var mins = workoutMins(w);
         // the end time is in the id: "Carry on" then Finish again sends the new end, and the PC keeps the newest
-        out.push({ id: 'workout/end/' + w.id + '/e' + Date.parse(w.end), at: w.end, part: 'workout', kind: 'workout-done', text: 'Day ' + w.day, data: { day: w.day, sets: w.sets.length, mins: isNaN(mins) ? null : mins } });
+        out.push({ id: 'workout/end/' + w.id + '/e' + Date.parse(w.end), at: w.end, part: 'workout', kind: 'workout-done', text: 'Day ' + w.day, data: { day: w.day, sets: w.sets.length, mins: mins } });
       }
     });
     // "sore from last time?" before a workout (changed: a newer /e<ms> id, the PC keeps the newest)
