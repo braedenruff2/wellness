@@ -85,6 +85,21 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#c-stages [data-stage="count"]'); await page.waitForSelector('#c-path[open]');
     assert.strictEqual((await calm()).settings.stage, 'count');
   });
+  await t.step('a later stage that keeps slipping offers "Back to" the stage before; the week line names the sits', async () => {
+    await page.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem('wl.calm.v1'));
+      c.settings.stage = 'follow';
+      for (let d = 23; d <= 25; d++) c.sessions.push({ id: 'follow', date: '2026-11-' + d, at: new Date(2026, 10, d, 21, 30).toISOString(), mins: 20, focus: 1 });
+      localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+    });
+    await page.reload(); await page.waitForSelector('#c-path-back');
+    assert.ok(/going back a step/.test(await page.textContent('#c-path-back')));
+    const wk = await page.evaluate(() => WL.modules.calm.week());
+    assert.ok(/sits on the meditation path \(stage 2: Following the breath\)/.test(wk), wk);
+    await page.click('#c-path-back [data-stage="count"]'); await page.waitForSelector('#c-path[open]');
+    assert.strictEqual((await calm()).settings.stage, 'count');
+    assert.ok(!(await page.$('#c-path-back')));
+  });
   await t.step('no overflow at 1.0, no errors', async () => {
     await t.noOverflow(['#calm', '#calm/s/count', '#calm/s/open']);
     assert.deepStrictEqual(t.errors, []);

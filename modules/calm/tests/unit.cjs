@@ -323,4 +323,21 @@ t('validate keeps aim, stage, sit length and sit answers; drops junk', () => {
   const w = K.validate({ sessions: [], settings: { aim: 'zen', stage: 'x', sitMinutes: 7 } });
   assert.deepStrictEqual([w.settings.aim, w.settings.stage, w.settings.sitMinutes], [null, 'count', 20]);
 });
+t('meditation path: "back" after 3 of the last 5 rated sits mostly lost (never at stage 1); pathWeek counts 7 days', () => {
+  const s = K.defaults();
+  const sit = (id, d, focus) => K.rateSit(K.record(s, id, 20, null, null, new Date(2026, 10, d, 21)), focus);
+  sit('count', 1, 1); sit('count', 2, 1); sit('count', 3, 1);
+  assert.strictEqual(K.pathStatus(s).back, false, 'nowhere to go back to from stage 1');
+  K.setStage(s, 'follow');
+  sit('follow', 4, 1); sit('follow', 5, 3); sit('follow', 6, 1);
+  assert.strictEqual(K.pathStatus(s).back, false, '2 of 3');
+  sit('follow', 7, 1);
+  let st = K.pathStatus(s);
+  assert.deepStrictEqual([st.lost, st.back, st.prev], [3, true, 'count']);
+  sit('follow', 8, 3); sit('follow', 9, 3);
+  assert.strictEqual(K.pathStatus(s).back, false, 'last 5: 3, 1, 1, 3, 3');
+  K.record(s, 'slow', 5, 3, 2, new Date(2026, 10, 9, 8));
+  assert.deepStrictEqual(K.pathWeek(s, new Date(2026, 10, 9, 22)), { sits: 7, mins: 140 }, '3..9 Nov, sits only (not the slow breathing)');
+  assert.deepStrictEqual(K.pathWeek(s, new Date(2026, 10, 20, 12)), { sits: 0, mins: 0 });
+});
 console.log(n + ' calm unit tests passed');

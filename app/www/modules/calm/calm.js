@@ -92,6 +92,7 @@
     if (open) {
       h += '<p class="meta" id="c-path-status">' + (ps.sits ? ps.sits + ' sit' + (ps.sits === 1 ? '' : 's') + ' at this stage (' + ps.mins + ' min)' + (ps.rated ? '; attention mostly steady in ' + ps.steady + ' of the last ' + ps.rated : '') + '.' : 'No sits at this stage yet.') + '</p>';
       if (ps.tip) h += '<p class="meta" id="c-path-tip">' + esc(ps.tip) + '</p>';
+      if (ps.back) h += '<div class="row" id="c-path-back" style="gap:4px 8px"><span class="meta">Your mind has wandered a lot in recent sits at this stage. That’s normal; going back a step for a while often helps.</span><button class="chip" data-stage="' + ps.prev + '">Back to ' + esc(practice(ps.prev).title) + '</button></div>';
       if (ps.ready) h += '<div class="row" id="c-path-ready" style="gap:4px 8px"><span class="meta">Your attention has been steady lately. Ready for the next stage?</span><button class="chip" data-stage="' + ps.next + '">Move on to ' + esc(nx.title) + '</button></div>';
       else if (nx) h += '<p class="meta">The next stage (' + esc(nx.title) + ') is offered after ' + K.READY_SITS + ' sits here with your attention mostly steady in 3 of the last 5. There’s no hurry; you can also choose any stage below.</p>';
     }
@@ -360,7 +361,11 @@
   WL.register({
     id: 'calm', title: 'Calm', short: 'Calm', icon: '○', nav: true, storageKeys: [store.key],
     route: route, leave: leave, card: card,
-    week: function () { var st = K.stats(S); return st.weekDays ? st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') + ' of calm (' + st.weekMins + ' min)' : ''; },
+    week: function () {
+      var st = K.stats(S); if (!st.weekDays) return '';
+      var w = K.pathWeek(S), sits = w.sits ? '; ' + w.sits + ' sit' + (w.sits === 1 ? '' : 's') + ' on the meditation path' + (S.settings.aim === 'train' ? ' (stage ' + K.pathStatus(S).n + ': ' + titleOf(K.stageOf(S)) + ')' : '') : '';
+      return st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') + ' of calm (' + st.weekMins + ' min)' + sits;
+    },
     today: function () {
       var t = K.today(S);
       if (t.done) return { label: 'Calm: done (' + Math.max(1, t.mins) + ' min)', done: true, href: '#calm' };

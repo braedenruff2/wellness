@@ -416,9 +416,19 @@
     var steady = rated.filter(function (s) { return s.focus === 3; }).length;
     var lastSit = all[all.length - 1] || null, hind = lastSit && Array.isArray(lastSit.hind) ? lastSit.hind : [];
     var tip = null; hind.some(function (h) { return HIND_TIP[h] ? (tip = HIND_TIP[h]) : false; });
+    var lost = rated.filter(function (s) { return s.focus === 1; }).length;
     return { stage: id, n: i + 1, of: PATH.length, sits: sits.length, mins: Math.round(sits.reduce(function (a, s) { return a + (s.mins || 0); }, 0)),
-      rated: rated.length, steady: steady, ready: i < PATH.length - 1 && sits.length >= READY_SITS && steady >= 3,
+      rated: rated.length, steady: steady, lost: lost, ready: i < PATH.length - 1 && sits.length >= READY_SITS && steady >= 3,
+      // a later stage that keeps slipping (3 of the last 5 rated "Mostly lost in thought"): offer the stage before, gently
+      back: i > 0 && lost >= 3,
       next: i < PATH.length - 1 ? PATH[i + 1] : null, prev: i > 0 ? PATH[i - 1] : null, total: all.length, tip: tip };
+  }
+  /* Meditation-path sits in the 7 days up to now (same window as stats()). */
+  function pathWeek(state, now) {
+    now = now || new Date();
+    var to = iso(now), from = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
+    var l = state.sessions.filter(function (s) { return PATH.indexOf(s.id) >= 0 && s.date >= from && s.date <= to; });
+    return { sits: l.length, mins: Math.round(l.reduce(function (a, s) { return a + (s.mins || 0); }, 0)) };
   }
   /* Move to another stage (the next when he's ready, or back a step whenever he likes). */
   function setStage(state, id) { if (PATH.indexOf(id) >= 0) state.settings.stage = id; return stageOf(state); }
@@ -532,7 +542,7 @@
     });
   }
 
-  var api = { PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
+  var api = { PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);
