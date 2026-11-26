@@ -317,3 +317,8 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 204. (done 26 Nov, Claude: e2e-dark; no fix needed) A to-do reminder tapped during a dark Calm sit (openHash "#todo", or any hash change): the sit's minutes so far are saved (saveEarly), the cover is gone and brightness given back; e2e.
 205. (done 26 Nov, Claude: data-set darkPray chips; faith e2e-dark) Faith settings (#faith/settings) lists "Dark screen late at night" too (the same setting as Pray now), so it can be found from Settings; e2e.
 206. [any] Calm: the soft bell and Quiet sit choices are mentioned once on the first path sit's start screen (a one-line tip under the length chips, gone after the first sit); e2e.
+207. [any] a11y: Home's "Check-in ✓ · change" link (#me-ci-change): 44 px tap target at 1.0/1.3 and contrast light/dark/night (tests/e2e-a11y-new.cjs); fix the style if it's small.
+208. [any] Calm path: after two late sits (22:00 or later) in a row rated "Mostly lost in thought" with "Sleepy", the path card adds one line suggesting an earlier time (or the time pathWhen names); CalmCore unit + e2e; not once he has said "Not for me" to it.
+209. [any] Tagalog "Your words" / Hard words: words with againMiss show "missed again N×" next to them; e2e.
+210. [any] me-core guidance: energy Low on the last 3 check-ins -> one gentle line pointing to Move's "Rest today (tired)" and Calm's 10-minute sit (stable key 'lowenergy', hidden by Not for me); unit 4 zones.
+211. [any] Code health: move WL.darkScreen (and FCBack) out of shell.js into app/www/lib/dark.js, loaded before shell.js (index.html; the APK copies app/www); same API; every suite passes.
