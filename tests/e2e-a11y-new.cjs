@@ -715,6 +715,29 @@ const W = require('./lib/web.cjs');
       await t.noOverflow(['#home']);
     });
   }
+  // Task 183: Tagalog review "Go through these again"
+  for (const [ts, theme] of [[1, 'light'], [1.3, 'light'], [1, 'dark'], [1, 'night']]) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step('review repeat at ' + ts + 'x ' + theme + ': #tl-repeat, #tl-again-done', async () => {
+      await look(ts, theme); await seed();
+      const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
+      await page.evaluate(() => {
+        const card = (en) => ({ en, box: 1, due: '2026-11-17', seen: 1, right: 0, wrong: 1, from: '2026-11-11/1' });
+        const s = JSON.parse(localStorage.getItem('wl.tagalog.v1') || '{}');
+        s.cards = { salamat: card('thank you'), tubig: card('water') }; localStorage.setItem('wl.tagalog.v1', JSON.stringify(s));
+      });
+      await page.goto(base + '#home'); await page.goto(base + '#tagalog/review'); await page.reload(); await page.waitForSelector('#tl-show');
+      for (let n = 0; n < 2; n++) { await page.click('#tl-show'); await page.clock.runFor(450); await page.click('#tl-no'); }
+      await page.waitForSelector('#tl-repeat');
+      assert.deepStrictEqual(await small('#tl-repeat'), []);
+      assert.deepStrictEqual(await bad('#tl-card'), [], theme + ' review end');
+      await page.click('#tl-repeat');
+      for (let n = 0; n < 2; n++) { await page.click('#tl-show'); await page.clock.runFor(450); await page.click(n ? '#tl-yes' : '#tl-no'); }
+      await page.waitForSelector('#tl-again-done');
+      assert.deepStrictEqual(await bad('#tl-card'), [], theme + ' #tl-again-done');
+      const o = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); assert.ok(o <= 2, 'overflow ' + o);
+    });
+  }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y of new UI');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

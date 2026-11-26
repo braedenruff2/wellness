@@ -132,7 +132,8 @@
       return '<button class="chip" data-min="' + m + '" aria-pressed="' + (S.settings.minutes === m) + '">' + m + ' min</button>';
     }).join('') + '</div><div class="row" style="margin-top:8px"><span class="grow">Voice guidance</span><button class="chip" id="cv" aria-pressed="' + S.settings.voice + '">' + (S.settings.voice ? 'On' : 'Off') + '</button></div>' +
       '<div class="row" style="margin-top:8px"><span class="grow">Soft tick when breathing changes</span><button class="chip" id="ctk" aria-pressed="' + !!S.settings.tick + '">' + (S.settings.tick ? 'On' : 'Off') + '</button></div>' +
-      '<div class="row" style="margin-top:8px"><span class="grow">Dark screen during sits and the quiet timer</span><button class="chip" id="cdk" aria-pressed="' + (S.settings.dark !== false) + '">' + (S.settings.dark !== false ? 'On' : 'Off') + '</button></div>' +
+      '<h4 class="meta" id="c-sits-h" style="margin:14px 0 0;font-weight:600">Sits and the quiet timer</h4>' +
+      '<div class="row" style="margin-top:6px"><span class="grow">Dark screen (after 10 s; tap to see the time)</span><button class="chip" id="cdk" aria-pressed="' + (S.settings.dark !== false) + '">' + (S.settings.dark !== false ? 'On' : 'Off') + '</button></div>' +
       '<div class="row" style="margin-top:8px"><span class="grow">Soft bell during sits</span></div><div class="chips" id="c-iv">' + K.INTERVALS.map(function (m) {
       return '<button class="chip" data-iv="' + m + '" aria-pressed="' + ((S.settings.interval || 0) === m) + '">' + (m ? 'Every ' + m + ' min' : 'Off') + '</button>';
     }).join('') + '</div>' +
