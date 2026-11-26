@@ -647,13 +647,16 @@
     }
     s.sessions.forEach(function (x) {
       if (!x || !isDate(x.date) || !PROGRAM[x.day] || !Array.isArray(x.sets)) return;
-      d.sessions.push({ id: String(x.id || newId()), date: x.date, day: x.day, start: String(x.start || ''), end: x.end ? String(x.end) : null,
+      var ses = { id: String(x.id || newId()), date: x.date, day: x.day, start: String(x.start || ''), end: x.end ? String(x.end) : null,
         sets: x.sets.filter(function (t) { return t && EX[t.ex] && typeof t.val === 'number' && isFinite(t.val) && t.val > 0; }).map(function (t) {
           var o = { i: +t.i || 0, ex: t.ex, n: +t.n || 1, val: t.val, w: typeof t.w === 'number' ? cleanWeight(t.w) : null, at: String(t.at || '') };
           if (typeof t.edited === 'string' && !isNaN(Date.parse(t.edited))) o.edited = t.edited;
           return o;
-        }), removed: (Array.isArray(x.removed) ? x.removed : []).filter(function (r) { return r && typeof r.at === 'string' && !isNaN(Date.parse(r.at)); })
-          .slice(-50).map(function (r) { return { at: r.at, i: +r.i || 0 }; }) });
+        }) };
+      var rm = (Array.isArray(x.removed) ? x.removed : []).filter(function (r) { return r && typeof r.at === 'string' && !isNaN(Date.parse(r.at)); })
+        .slice(-50).map(function (r) { return { at: r.at, i: +r.i || 0 }; });
+      if (rm.length) ses.removed = rm; // as the app keeps it: only when a set was taken back (a restore comes back unchanged)
+      d.sessions.push(ses);
     });
     (Array.isArray(s.history) ? s.history : []).forEach(function (h) {
       if (h && isDate(h.date) && typeof h.ex === 'string' && Array.isArray(h.sets)) {

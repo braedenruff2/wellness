@@ -464,4 +464,12 @@ t('a word still missed in a review repeat counts toward Hard words; no box or du
   assert.strictEqual(v.cards.badDue, undefined, 'invalid card with againMiss dropped without throwing');
   assert.strictEqual(v.cards.infMiss.againMiss, undefined, 'non-finite againMiss ignored');
 });
+t('validate keeps the day a card was last reviewed (card.last); drops a bad one', () => {
+  const s = T.defaults();
+  s.cards.tubig = { en: 'water', box: 2, due: '2026-11-30', seen: 3, right: 2, wrong: 1, from: '2026-11-18/1', last: '2026-11-26' };
+  s.cards.gatas = { en: 'milk', box: 1, due: '2026-11-27', seen: 1, right: 0, wrong: 1, from: '2026-11-18/1', last: 'yesterday' };
+  const v = T.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.cards.tubig.last, '2026-11-26');
+  assert.ok(!('last' in v.cards.gatas));
+});
 console.log(n + ' tagalog unit tests passed');

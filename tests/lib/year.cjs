@@ -16,7 +16,7 @@ function simulate(days) {
   for (let d = 0; d < days; d++) {
     const at = (h, m) => new Date(2026, 10, 18 + d, h, m || 0);
     const lesson = { day: 1 + (d % 7), words: Array.from({ length: 8 }, (_, i) => ({ tl: 'salita ' + d + '-' + i, en: 'word ' + i })) };
-    TG.finishLesson(tg, { id: 'p' + Math.floor(d / 7) }, lesson, at(9));
+    TG.finishLesson(tg, { id: WK.iso(new Date(2026, 10, 18 + 7 * Math.floor(d / 7))) }, lesson, at(9)); // a weekly pack id is its Wednesday's date
     for (let i = 0; i < 25; i++) TG.recordAnswer(tg, pack, lesson, { prompt: 'Translate this sentence please ' + i, type: 'type' }, i % 5 !== 0, at(9, i), 'Umiinom ng gatas ang baby ' + i);
     Object.keys(tg.cards).slice(0, 15).forEach((k, i) => TG.review(tg, k, i % 4 !== 0, at(10, i)));
     CO.setScenario(co, { title: 'A moment ' + d, skill: 'Connection', scenario: words(110), question: words(15) }, at(11));

@@ -394,6 +394,7 @@
       if (c && typeof c.en === 'string' && WLD.isDate(c.due) && k.length < 120) {
         d.cards[k] = { en: c.en, box: Math.max(0, Math.min(INTERVALS.length - 1, +c.box || 1)), due: c.due, seen: +c.seen || 0, right: +c.right || 0, wrong: +c.wrong || 0, from: String(c.from || '') };
         if (isFinite(+c.againMiss) && +c.againMiss > 0) d.cards[k].againMiss = Math.min(999, Math.floor(+c.againMiss));
+        if (WLD.isDate(c.last)) d.cards[k].last = c.last; // the day it was last reviewed (review() sets it)
       }
     });
     (Array.isArray(s.answers) ? s.answers : []).slice(-2000).forEach(function (a) {

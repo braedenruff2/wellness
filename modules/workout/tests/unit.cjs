@@ -595,4 +595,13 @@ t('activeTime: a session split by a long break counts only the training (start, 
   // just started, no sets yet
   assert.deepStrictEqual(W.activeTime({ start: at(8, 0), sets: [] }, new Date(2026, 10, 23, 8, 1)), { secs: 60, broke: false });
 });
+t('validate keeps a session as the app saved it: no empty "removed" added; real ones kept', () => {
+  const s = W.defaults();
+  s.sessions.push({ id: 'a', date: '2026-11-20', day: 'A', start: '2026-11-20T12:00:00.000Z', end: '2026-11-20T12:30:00.000Z', sets: [{ i: 0, ex: 'Pushups', n: 1, val: 10, w: null, at: '2026-11-20T12:05:00.000Z' }] });
+  s.sessions.push({ id: 'b', date: '2026-11-21', day: 'B', start: '2026-11-21T12:00:00.000Z', end: '2026-11-21T12:30:00.000Z', sets: [], removed: [{ at: '2026-11-21T12:05:00.000Z', i: 0 }] });
+  const v = W.validate(JSON.parse(JSON.stringify(s)));
+  assert.ok(!('removed' in v.sessions[0]), 'no empty removed');
+  assert.deepStrictEqual(v.sessions[1].removed, [{ at: '2026-11-21T12:05:00.000Z', i: 0 }]);
+  assert.deepStrictEqual(W.validate(JSON.parse(JSON.stringify(v))), v, 'a restore of a restore is unchanged');
+});
 console.log(n + ' workout unit tests passed');
