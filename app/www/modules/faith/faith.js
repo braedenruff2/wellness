@@ -367,6 +367,7 @@
       '<div style="margin-top:8px">' + chips('rate', [0.75, 0.9, 1, 1.15], st.rate, ['Slower', 'Gentle', 'Normal', 'Faster']) + '</div>' +
       '<div style="margin-top:8px">' + chips('minutes', [2, 5, 10], st.minutes, ['2 min', '5 min', '10 min']) + '</div>' +
       '<div style="margin-top:8px">' + chips('bell', ['true', 'false'], String(st.bell), ['Soft bell', 'No bell']) + '</div>' +
+      '<div style="margin-top:8px"><span class="meta">Late at night (9 pm – 5 am)</span>' + chips('darkPray', ['true', 'false'], String(st.darkPray !== false), ['Dark screen', 'Screen stays lit']) + '</div>' +
       '<div class="row" style="margin-top:10px"><button id="test-voice">Test the voice</button></div></div>' +
       (native && native.setReminder ? reminderHtml() : '') +
       '<div class="card ui"><h3>Your journal</h3><p class="meta">Save everything you wrote (journal, awe moments, thanks) and your prayer list as a text file you can keep or print. It stays on your phone.</p>' +

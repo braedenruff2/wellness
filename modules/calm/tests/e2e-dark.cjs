@@ -195,6 +195,26 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await hint(), false, 'after 3 (a quiet timer counts): gone');
   });
 
+  await t.step('a to-do reminder tapped during a dark sit (another screen): minutes so far saved, cover gone, brightness back', async () => {
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.settings.dark = true; localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
+    await page.goto(base + '#calm'); await page.reload();
+    await page.goto(base + '#calm/s/timer'); await page.waitForSelector('#c-len');
+    await page.click('[data-len="10"]');
+    const n0 = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions.length);
+    await page.click('#c-pp');
+    await page.clock.runFor(3 * 60000);
+    assert.strictEqual(await dark(), true);
+    await page.evaluate(() => { location.hash = '#todo'; }); // what the notification's openHash does
+    await page.waitForSelector('#view');
+    await page.clock.runFor(15000);
+    assert.strictEqual(await dark(), false, 'no cover on the to-do screen');
+    const d = await page.evaluate(() => window.__dim);
+    assert.strictEqual(d[d.length - 1], false, 'brightness given back');
+    const ss = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).sessions);
+    assert.strictEqual(ss.length, n0 + 1, 'the sit so far was saved');
+    assert.ok(Math.abs(ss[ss.length - 1].mins - 3) < 0.2, 'about 3 min: ' + ss[ss.length - 1].mins);
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('calm dark screen');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

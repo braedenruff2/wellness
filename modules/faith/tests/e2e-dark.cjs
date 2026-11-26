@@ -77,6 +77,15 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#end');
   });
 
+  await t.step('Faith settings has the same choice', async () => {
+    await page.goto(base + '#faith/settings'); await page.waitForSelector('[data-set="darkPray"]');
+    assert.strictEqual(await page.getAttribute('[data-set="darkPray"][data-val="false"]', 'aria-pressed'), 'true', 'Off from Pray now shows here');
+    await page.click('[data-set="darkPray"][data-val="true"]');
+    await page.waitForSelector('[data-set="darkPray"][data-val="true"][aria-pressed="true"]');
+    await page.goto(base + '#faith/pray'); await page.waitForSelector('#dark-toggle');
+    assert.strictEqual(await page.getAttribute('#dark-toggle', 'aria-pressed'), 'true', 'and back on in Pray now');
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('faith dark screen');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
