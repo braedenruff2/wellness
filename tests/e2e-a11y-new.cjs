@@ -737,6 +737,26 @@ const W = require('./lib/web.cjs');
       const o = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth); assert.ok(o <= 2, 'overflow ' + o);
     });
   }
+  // Task 145: the path's "Back to <stage>" offer
+  for (const [ts, theme] of [[1, 'light'], [1.3, 'light'], [1, 'dark'], [1, 'night']]) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step('path "back" offer at ' + ts + 'x ' + theme + ': #c-path-back', async () => {
+      await look(ts, theme); await seed();
+      const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
+      await page.clock.setSystemTime(new Date(2026, 10, 25, 19, 0));
+      await page.evaluate(() => {
+        const c = JSON.parse(localStorage.getItem('wl.calm.v1') || '{"sessions":[],"settings":{}}');
+        c.settings = Object.assign(c.settings || {}, { aim: 'train', stage: 'follow' });
+        c.sessions = (c.sessions || []).filter((x) => x.id !== 'follow');
+        for (let d = 21; d <= 24; d++) c.sessions.push({ id: 'follow', date: '2026-11-' + d, at: new Date(2026, 10, d, 21).toISOString(), mins: 20, focus: 1, hind: ['Sleepy'] });
+        localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+      });
+      await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-path-back');
+      assert.deepStrictEqual(await small('#c-path-back [data-stage]'), []);
+      assert.deepStrictEqual(await bad('#c-path-back'), [], theme + ' #c-path-back');
+      await t.noOverflow(['#calm']);
+    });
+  }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y of new UI');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
