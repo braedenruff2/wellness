@@ -400,6 +400,9 @@
 
   function card() {
     var t = K.today(S), sug = practice(K.suggest(S, null, sopts()));
+    // not answered yet: the same one-tap question as on Calm (he may never open the Calm tab first); after the done card
+    if (!S.settings.aim && !t.done) return '<div class="meta ui">Calm</div><h3>What do you want from Calm?</h3><p class="meta ui">Short practices for stress and sleep, or meditation as a daily training of the mind, step by step.</p>' +
+      '<div class="chips ui" id="c-aim-home">' + aimChips() + '</div><div class="row ui"><a class="btn" href="#calm">Calm</a></div>';
     if (t.done) return '<div class="meta ui">Calm</div><h3>✓ Done for today</h3><p class="meta ui">' + esc(titleOf(t.ids[0])) + (t.count > 1 ? ' and ' + (t.count - 1) + ' more' : '') + ' · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min. Today’s goal is done.</p>' +
       '<div class="row ui"><a class="btn" href="#calm">Calm</a></div>';
     // a sit on a rough day (short night, broken night, low energy): 10 minutes, for that sit only
@@ -409,9 +412,18 @@
       '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + (short ? '/10' : '') + '">Begin</a><a class="btn" href="#calm">All practices</a></div>';
   }
 
+  function wireCard(el) {
+    el.addEventListener('click', function (e) {
+      var b = e.target.closest('#c-aim-home [data-aim]'); if (!b) return;
+      S.settings.aim = b.dataset.aim; save();
+      el.innerHTML = card(); if (WL.refreshToday) WL.refreshToday();
+      WL.toast(b.dataset.aim === 'train' ? 'Calm: the meditation path, one sit a day.' : 'Calm: short practices for stress and sleep.');
+    });
+  }
+
   WL.register({
     id: 'calm', title: 'Calm', short: 'Calm', icon: '○', nav: true, storageKeys: [store.key],
-    route: route, leave: leave, card: card,
+    route: route, leave: leave, card: card, wireCard: wireCard,
     week: function () {
       var st = K.stats(S); if (!st.weekDays) return '';
       var w = K.pathWeek(S), pw = w.sits ? K.pathWhen(S) : null;
