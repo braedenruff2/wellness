@@ -62,5 +62,34 @@ const W = require('./lib/web.cjs');
     assert.strictEqual(over, 0);
     assert.deepStrictEqual(t.errors, []);
   });
+  // Task 241: every page at 320 px, text 1.3, with a year of data in every store (long lists, long words)
+  await t.step('every page at 320 px / 1.3 with a year of data: no sideways scroll, no button cut off', async () => {
+    const { simulate } = require('./lib/year.cjs');
+    const stores = simulate(365);
+    const json = Object.fromEntries(Object.entries(stores).map(([k, v]) => [k, JSON.stringify(v)]));
+    await page.clock.setSystemTime(new Date(2027, 10, 17, 18, 0));
+    await page.goto(base + '#home');
+    await page.evaluate((json) => {
+      localStorage.clear();
+      for (const [k, v] of Object.entries(json)) localStorage.setItem(k, v);
+      localStorage.setItem('wl.shell.v1', JSON.stringify({ theme: 'light', textSize: 1.3, since: '2026-11-18T12:00:00.000Z' }));
+      localStorage.setItem('wl.todo.v1', JSON.stringify({ tasks: [{ id: 'x', text: 'Ring the insurance company about the claim reference number before Friday afternoon', due: '2027-11-17', repeat: 'weekly', at: '16:30', done: null, created: '2027-11-01T12:00:00.000Z' }] }));
+    }, json);
+    await page.reload(); await page.waitForSelector('.home-card');
+    const bad = [];
+    for (const h of ['#home', '#calm', '#workout', '#workout/history', '#workout/settings', '#tagalog', '#tagalog/words', '#tagalog/review', '#tagalog/settings', '#faith', '#faith/journal', '#faith/pray', '#faith/settings', '#todo', '#coach', '#coach/setup', '#me', '#journal', '#settings', '#link']) {
+      await page.goto(base + h); await page.waitForTimeout(60);
+      const r = await page.evaluate(() => {
+        const over = document.documentElement.scrollWidth - window.innerWidth;
+        const cut = Array.from(document.querySelectorAll('#view button, #view a.btn')).filter((e) => e.offsetParent !== null)
+          .filter((e) => { const b = e.getBoundingClientRect(); return b.right > window.innerWidth + 0.5 || e.scrollWidth > e.clientWidth + 1; })
+          .map((e) => (e.id || e.textContent.trim()).slice(0, 30));
+        return { over, cut };
+      });
+      if (r.over > 0 || r.cut.length) bad.push(h + ' ' + JSON.stringify(r));
+    }
+    assert.deepStrictEqual(bad, [], 'pages too wide at 320 px');
+    assert.deepStrictEqual(t.errors, []);
+  });
   await t.close('narrow-screen');
 })().catch((e) => { console.error(e); process.exit(1); });
