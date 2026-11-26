@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-26 01:00-01:10 AST (same run, continued; APK 0.1.20261126.0509, real key, cert 6795e499...)
+- Done 174 (Home's Move card: "Rest today (tired)" after a check-in with sleep under 4 h or energy Low; Not for me hides it), 169 (bug: Tagalog "Listen while walking" had no keepAwake, so the screen locking stopped the voice / fixed: walkScreen() keeps it on and dark after 15 s, off on stop, end or any route / test: tagalog e2e + e2e-walk). Dropped 176. Added 177-179.
+- Tested: full suite at 5b284fc (76 suites, none skipped; this APK's code).
+- Check on the phone: Tagalog lesson > Listen while walking: screen goes black after 15 s and the voice carries on.
+
 ## 2026-11-26 00:30-01:00 AST (same run, continued; APK 0.1.20261126.0457, real key, cert 6795e499...)
 - Rotation turn on singing-helper in between (PC folder; see Claude Autopilot logs\singing-helper.md).
 - Done 149, 173 (a11y for the new Calm and Faith controls), 162 (WL.darkScreen in shell.js shared by Calm sits and Faith guided prayers 21:00-05:00 after 20 s, setting darkPray), 163 (storage: a year of daily sits), 166 (whole Quiet sit e2e), 167 (bug: a sit 23:50-00:10 was filed under the next day / cause: dated at finish / fixed: calm.js sessionTime() uses the start unless logging for an earlier day / test: e2e-rough), 170 (shell e2e for darkScreen), 171 (CalmAlarm.allowedHash + Java test), 172 (stage round-trip unit). Added 167-176.
