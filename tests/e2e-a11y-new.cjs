@@ -776,6 +776,22 @@ const W = require('./lib/web.cjs');
       await t.noOverflow(['#tagalog/words']);
     });
   }
+  // Task 226: Home's Calm aim question (#c-aim-home) until it's answered
+  for (const [ts, theme] of [[1, 'light'], [1.3, 'light'], [1, 'dark'], [1, 'night']]) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step('Calm aim on Home at ' + ts + 'x ' + theme + ': #c-aim-home', async () => {
+      await look(ts, theme); await seed();
+      const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
+      await page.evaluate(() => {
+        const c = JSON.parse(localStorage.getItem('wl.calm.v1') || '{"sessions":[],"settings":{}}');
+        c.settings = c.settings || {}; delete c.settings.aim; c.sessions = []; localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+      });
+      await page.goto(base + '#calm'); await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#c-aim-home');
+      assert.deepStrictEqual(await small('#c-aim-home [data-aim], .home-card[data-module="calm"] a.btn'), []);
+      assert.deepStrictEqual(await bad('.home-card[data-module="calm"]'), [], theme + ' #c-aim-home');
+      await t.noOverflow(['#home']);
+    });
+  }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y of new UI');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
