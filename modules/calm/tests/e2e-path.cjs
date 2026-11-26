@@ -29,7 +29,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.getAttribute('#c-stages li[aria-current="step"] a', 'href'), '#calm/s/count');
     assert.strictEqual((await page.$$('#c-stages [data-stage]')).length, 4, 'any other stage can be chosen');
     await page.goto(base + '#home'); await page.waitForSelector('#wl-today');
-    assert.ok(/Calm: counting breaths \(20 min/.test(await page.textContent('#wl-today')), await page.textContent('#wl-today'));
+    assert.ok(/Calm: 20-min sit, counting breaths/.test(await page.textContent('#wl-today')), await page.textContent('#wl-today'));
   });
   await t.step('a sit: 10-30 min chips (pick kept), no stress rating; afterwards attention + obstacles, saved on the session', async () => {
     await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-len');

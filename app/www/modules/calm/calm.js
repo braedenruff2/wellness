@@ -178,7 +178,9 @@
       var hindLbl = Array.isArray(s.hind) ? s.hind.filter(function (h) { return h && h !== 'Nothing much'; }).join(', ') : '';
       var sitInfo = focusLbl || hindLbl ? ' · ' + (focusLbl || '') + (hindLbl ? (focusLbl ? ' (' + hindLbl + ')' : hindLbl) : '') : '';
       var rating = s.before && s.after ? ' · stress ' + s.before + '→' + s.after : s.after ? ' · stress now ' + s.after : sitInfo;
-      return '<li><b>' + esc(titleOf(s.id)) + '</b> <span class="meta">' + esc(d) + ' · ' + Math.max(1, Math.round(s.mins || 0)) + ' min' + esc(rating) + '</span></li>';
+      // a path sit says when it was (the path card compares times of day)
+      var at = K.PATH.indexOf(s.id) >= 0 && !isNaN(Date.parse(s.at)) ? ' · ' + new Date(Date.parse(s.at)).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
+      return '<li><b>' + esc(titleOf(s.id)) + '</b> <span class="meta">' + esc(d + at) + ' · ' + Math.max(1, Math.round(s.mins || 0)) + ' min' + esc(rating) + '</span></li>';
     }).join('') + '</ul></details>';
   }
 
@@ -447,6 +449,15 @@
     },
     today: function () {
       var t = K.today(S);
+      if (S.settings.aim === 'train') { // training the mind: the sit is the thing, not the daily minutes
+        var td = K.iso(new Date()), sat = S.sessions.filter(function (x) { return x.date === td && K.PATH.indexOf(x.id) >= 0; });
+        if (sat.length) {
+          var m = sat.reduce(function (a, x) { return a + (x.mins || 0); }, 0), last = sat[sat.length - 1];
+          return { label: 'Calm: sat ' + Math.max(1, Math.round(m)) + ' min (' + titleOf(last.id) + ')', done: true, href: '#calm' };
+        }
+        var sp = practice(K.suggest(S, null, sopts()));
+        if (sp && sp.path && !t.done) return { label: 'Calm: ' + mins(sp) + '-min sit, ' + sp.title.toLowerCase(), done: false, href: '#calm/s/' + sp.id };
+      }
       if (t.done) return { label: 'Calm: done (' + Math.max(1, t.mins) + ' min)', done: true, href: '#calm' };
       if (t.any) return { label: 'Calm: ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min today', done: false, href: '#calm' };
       var sug = practice(K.suggest(S, null, sopts()));
