@@ -313,3 +313,7 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 200. (done 26 Nov, Claude: coach(); unit 4 zones) Workout coach(): the day after a "Tired" rest day, the Move line says "Rested yesterday: today's workout as planned, or the lighter version if you're still tired"; unit across Mon/Sun.
 201. (done 26 Nov, Claude: shell.js spaceByKey/partOfKey, #wl-space-parts; e2e-shell) Settings > Backup: under the space line, a <details> with each part’s share (Tagalog, Parenting, Faith, Calm, Workout, About you), largest first; e2e.
 202. (done 26 Nov, Claude: a year = 3.1 M chars; SyncTest 4 MB round-trip; Sync reads up to 16 MB) tests/storage-size.cjs: the backup/sync JSON of a year of use (WL export shape) stays under 4 MB; note the Java Sync write path handles that size in one go (SyncTest with a 4 MB string).
+203. [any] tests/e2e-shell.cjs: WL.softBell makes one quiet oscillator (gain at most 0.08, stopped by 2.6 s) and WL.bell three; stubbed AudioContext.
+204. [any] A to-do reminder tapped during a dark Calm sit (openHash "#todo", or any hash change): the sit's minutes so far are saved (saveEarly), the cover is gone and brightness given back; e2e.
+205. [any] Faith settings (#faith/settings) lists "Dark screen late at night" too (the same setting as Pray now), so it can be found from Settings; e2e.
+206. [any] Calm: the soft bell and Quiet sit choices are mentioned once on the first path sit's start screen (a one-line tip under the length chips, gone after the first sit); e2e.
