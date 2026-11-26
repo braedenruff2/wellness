@@ -1,7 +1,7 @@
 /* Calm module: #calm (list + progress), #calm/s/ID (a session: breathing pacer, guided voice, or quiet timer). */
 (function () {
   'use strict';
-  var K = window.CalmCore, G = window.WLGuided, esc = WL.esc, $ = WL.$, $$ = WL.$$;
+  var K = window.CalmCore, G = window.WLGuided, Sit = window.CalmSit, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   var store = WL.store('wl.calm.v1', K.defaults);
   var S = store.load(), view = null;
   var run = null, keyHandler = null; // {p, start, end, raf, timer, player, paused, pausedAt, before}
@@ -31,17 +31,9 @@
     var a = Math.max(2, Math.round(p.minutes * 0.6)), c = Math.round(p.minutes * 1.5);
     return a < p.minutes ? [a, p.minutes, c] : [p.minutes, c];
   }
-  /* A path sit on a rough day (short sleep, broken night or low energy in today's check-in): a shorter sit is fine.
-     The 10-min chip picks it for this sit only; the saved length stays. */
-  function roughDay(p) { return !!(p.path && window.WLMe && WLMe.rough && WLMe.rough() && (S.settings.sitMinutes || 20) > 10); }
-  function roughLine(p) {
-    if (!roughDay(p)) return '';
-    return '<p class="meta" id="c-rough" style="text-align:center;margin:0 0 6px">Short night: a 10-minute sit counts just as much today.</p>';
-  }
-  function quietChip(p) {
-    if (!p.path) return '';
-    return '<div class="row" id="c-quiet-row" style="justify-content:center;margin:0 0 6px;gap:6px"><button class="chip" id="c-quiet" aria-pressed="' + !!S.settings.sitQuiet + '">Quiet sit: only the opening and the close</button></div>';
-  }
+  function roughDay(p) { return Sit.roughDay(S, p); }
+  function roughLine(p) { return Sit.roughLine(S, p); }
+  function quietChip(p) { return Sit.quietChip(S, p); }
   function lengthChips(p) {
     var ls = lengths(p); if (!ls.length) return '';
     return '<div class="chips" id="c-len" role="group" aria-label="Length" style="justify-content:center;margin:6px 0">' + ls.map(function (m) {
@@ -204,36 +196,15 @@
       (p.path ? '' : rating('c-before', 'How stressed are you right now?')) +
       lengthChips(p) + quietChip(p) + roughLine(p) +
       '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">▶ Begin · ' + mins(p) + ' min</button></div>' +
-      (darkOn(p) && darkHint() ? '<p class="meta" id="c-dark-hint" style="text-align:center">The screen goes dark while you sit, so you needn’t lock the phone. Tap it to see the time.</p>' : '') +
-      '<div id="c-after" hidden>' + (p.path ? sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button></div></div></div>';
-  }
-  /* After a sit on the path: how steady attention was, and what got in the way (optional; kept on the session). */
-  function sitQuestions() {
-    return '<div class="ui rate" id="c-focus"><div class="meta">How steady was your attention?</div><div class="chips">' + K.FOCUS.map(function (f, i) {
-      return '<button class="chip" data-f="' + (i + 1) + '">' + esc(f) + '</button>'; }).join('') + '</div></div>' +
-      '<div class="ui rate" id="c-hind"><div class="meta">What got in the way? (any)</div><div class="chips">' + K.HIND.map(function (x) {
-      return '<button class="chip" data-h="' + esc(x) + '" aria-pressed="false">' + esc(x) + '</button>'; }).join('') + '</div></div>';
+      (Sit.darkOn(S, p) && Sit.darkHint(S) ? '<p class="meta" id="c-dark-hint" style="text-align:center">The screen goes dark while you sit, so you needn’t lock the phone. Tap it to see the time.</p>' : '') +
+      '<div id="c-after" hidden>' + (p.path ? Sit.sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button></div></div></div>';
   }
 
-  function usesAlarm(p) { return !!(p && (p.path || p.kind === 'timer')); }
-  function alarmLabel(p) { return p.title + ' · ' + mins(p) + ' min'; }
-  /* Android end-of-session bell when the phone locks during a sit or Quiet timer (the page's own bell rings on screen). */
-  function calmAlarm(ms, label) {
-    var n = WL.native;
-    if (n && n.calmAlarm) try { n.calmAlarm(ms > 0 ? Math.round(ms) : 0, label || ''); } catch (e) {}
-  }
-
-  /* A dark screen during sits and the quiet timer (setting, on by default): the app stays awake, so the voice,
-     interval bells and end bell keep working, without a lit screen in a dark room. Tap shows the time again. */
-  function darkOn(p) { return usesAlarm(p) && S.settings.dark !== false; }
-  /* The "screen goes dark" hint, for his first 3 sits or quiet timers (after that he knows). */
-  function darkHint() { return S.sessions.filter(function (x) { return x && (K.PATH.indexOf(x.id) >= 0 || x.id === 'timer'); }).length < 3; }
-  /* (the cover itself is WL.darkScreen in shell.js, shared with late-night prayers) */
-  function scheduleDark() {
-    if (!run || run.done || run.paused || !darkOn(run.p)) return;
-    WL.darkScreen.start({ id: 'c-dark', label: 'Dark screen for your sit. Tap to show the time.', after: 10000 });
-  }
-  function lightUp() { WL.darkScreen.stop(); }
+  function usesAlarm(p) { return Sit.usesAlarm(p); }
+  function alarmLabel(p) { return Sit.alarmLabel(p, mins(p)); }
+  function calmAlarm(ms, label) { Sit.calmAlarm(ms, label); }
+  function scheduleDark() { Sit.scheduleDark(S, run); }
+  function lightUp() { Sit.lightUp(); }
 
   function stopRun() {
     if (!run) return;
@@ -253,13 +224,7 @@
     return Math.min(e, cap) / 60;
   }
 
-  /* When to file a session: now (or the earlier day he's logging for); a sit that began before midnight and ended
-     after it belongs to the evening it began (a late sit shouldn't count as tomorrow's practice). */
-  function sessionTime(started) {
-    var when = WL.logNow ? WL.logNow() : new Date(), now = Date.now();
-    if (started && Math.abs(when.getTime() - now) < 60000 && K.iso(new Date(started)) !== K.iso(when) && now - started < 6 * 3600000) return new Date(started);
-    return when;
-  }
+  function sessionTime(started) { return Sit.sessionTime(started); }
   function finish(silent) {
     if (!run) return;
     var p = run.p, m = silent && run.total ? Math.min(loggedMins(), run.total / 60) : loggedMins(), before = run.before, started = run.start;
@@ -278,7 +243,7 @@
     var total = mins(p) * 60, before = run && run.before;
     stopRun();
     run = { p: p, start: Date.now(), pausedFor: 0, paused: false, before: before, total: total, iv: 0 };
-    var every = usesAlarm(p) ? S.settings.interval || 0 : 0;
+    var every = Sit.intervalEvery(S, p);
     WL.keepAwake(true); WL.bell();
     if (usesAlarm(p)) calmAlarm(total * 1000, alarmLabel(p));
     var pp = $('#c-pp'); pp.textContent = '⏸ Pause'; pp.dataset.state = 'playing';
@@ -289,8 +254,7 @@
       var e = elapsed();
       $('#c-prog').style.width = Math.min(100, 100 * e / total) + '%';
       if (p.kind !== 'guided') $('#c-left').textContent = Math.max(0, Math.ceil((total - e) / 60)) + ' min left';
-      var k = every && !run.paused ? K.intervalBell(every, e, total) : 0;
-      if (k > run.iv) { run.iv = k; WL.softBell(); }
+      Sit.ringInterval(run, every, e);
       if (p.kind !== 'guided' && e >= total) finish(!!(usesAlarm(p) && WL.native && WL.native.calmAlarm && e - total > 5));
     };
     run.tick = setInterval(progress, 500);
