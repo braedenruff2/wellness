@@ -283,6 +283,7 @@
     if (!S.source) return Promise.resolve(0);
     var base = S.source.replace(/\/?$/, '/');
     return fetch(base + 'index.json', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (idx) {
+      if (!idx || typeof idx !== 'object' || !Array.isArray(idx.packs)) throw new SyntaxError('not a lessons index');
       var have = {}; packs().forEach(function (p) { have[p.id] = 1; });
       var hashes = idx.hashes && typeof idx.hashes === 'object' ? idx.hashes : {}, hs = S.packHash || (S.packHash = {}), isNew = {};
       // new weeks, and weeks corrected since (their hash changed): downloaded ones, and ones inside the app (TL_PACK_HASH)
@@ -304,7 +305,12 @@
       S.lastCheck = new Date().toISOString(); save();
       if (manual || n) WL.toast(n ? n + ' new week' + (n > 1 ? 's' : '') + ' of lessons' : 'No new lessons yet');
       return n;
-    }).catch(function (e) { if (manual) WL.toast('Couldn’t reach the lessons (' + e.message + ')'); return 0; });
+    }).catch(function (e) {
+      // a Wi-Fi sign-in page or a cut-off download isn't JSON: say so plainly (the old lessons stay; it tries again later)
+      var why = /^HTTP /.test(e.message || '') ? e.message : e instanceof SyntaxError ? 'the answer wasn’t lessons: does this Wi-Fi need a sign-in?' : 'no internet?';
+      if (manual) WL.toast('Couldn’t get new lessons (' + why + '). Your lessons are all still here.');
+      return 0;
+    });
   }
 
   function wireHear(el) {
