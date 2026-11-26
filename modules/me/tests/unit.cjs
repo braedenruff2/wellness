@@ -424,6 +424,18 @@ t('working: plain lines from his own answers (30 days); nothing under 3 answers'
   const n = K.defaults();
   [20, 21, 22].forEach((d) => n.feedback.push({ id: 'c' + d, at: D(d, 21).toISOString(), part: 'calm', about: 'ground@' + d, kind: 'after', a: { helped: 'Not really' } }));
   assert.deepStrictEqual(K.working(n, now), ['Calm: none of the practices has helped much yet (3 answers). Try a different kind, or a walk.']);
+  // he trains the mind (Calm's meditation path): the line is about his sits, not stress relief
+  const calm = { settings: { aim: 'train' }, sessions: [
+    { id: 'count', at: D(22, 21).toISOString(), focus: 1 }, { id: 'count', at: D(23, 21).toISOString(), focus: 2 },
+    { id: 'count', at: D(24, 21).toISOString() }, { id: 'count', at: D(26, 21).toISOString(), focus: 3 } // unrated; after now
+  ] };
+  assert.deepStrictEqual(K.working(n, now, calm), [], '2 rated sits: under 3 answers');
+  calm.sessions.push({ id: 'follow', at: D(25, 6).toISOString(), focus: 1 });
+  assert.deepStrictEqual(K.working(n, now, calm), ['Meditation: attention mostly steady in 0 of 3 sits. Early days: noticing you wandered and coming back is the practice.']);
+  calm.sessions.push({ id: 'follow', at: D(25, 7).toISOString(), focus: 3 });
+  assert.deepStrictEqual(K.working(n, now, calm), ['Meditation: attention mostly steady in 1 of 4 sits.']);
+  calm.settings.aim = 'calm';
+  assert.deepStrictEqual(K.working(n, now, calm)[0].slice(0, 5), 'Calm:', 'aim calm: as before');
 });
 t('painNote: pain after two workouts in 14 days; "None" or older answers don\'t count; "Not for me" hides it for 14 days', () => {
   const s = K.defaults(), now = D(25, 20);

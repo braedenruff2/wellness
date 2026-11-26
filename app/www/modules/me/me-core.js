@@ -184,18 +184,26 @@
   }
   /* "What's working", from his own quick answers (last 30 days): lines in plain words, or [] when there are fewer
      than 3 answers to go on. Calm practices that helped, workouts rated "Just right", Tagalog at "About right". */
-  function working(state, now) {
+  /* calm (optional): Calm's own state (wl.calm.v1). When he chose the meditation path (settings.aim 'train'), Calm's
+     line is about his sits' steadiness (focus 1-3 on the session), not whether a practice eased stress. */
+  function working(state, now, calm) {
     now = now || new Date();
     var since = new Date(now.getTime() - 30 * 864e5).toISOString(), out = [];
-    var by = calmHelped(state, since);
+    var train = !!(calm && calm.settings && calm.settings.aim === 'train');
+    var by = train ? {} : calmHelped(state, since);
     var calmN = Object.keys(by).reduce(function (a, k) { return a + by[k].n; }, 0);
+    var sits = train ? (calm.sessions || []).filter(function (x) { return x && [1, 2, 3].indexOf(x.focus) >= 0 && String(x.at || '') >= since && String(x.at || '') <= now.toISOString(); }) : [];
+    calmN += sits.length;
     var f = state.feedback.filter(function (x) { return x.kind === 'after' && x.at >= since && x.a && typeof x.a === 'object'; });
     var wo = f.filter(function (x) { return x.part === 'workout' && x.a.hard; }),
       tl = f.filter(function (x) { return x.part === 'tagalog' && x.a.level; });
     if (calmN + wo.length + tl.length < 3) return [];
     var CC = typeof CalmCore !== 'undefined' ? CalmCore : root.CalmCore, title = function (id) { var p = CC && CC.PRACTICES.filter(function (q) { return q.id === id; })[0]; return p ? p.title : id; };
     var good = Object.keys(by).filter(function (k) { return by[k].yes > 0; }).sort(function (a, b) { return by[b].yes / by[b].n - by[a].yes / by[a].n; });
-    if (good.length) out.push('Calm: ' + good.slice(0, 3).map(function (k) { return title(k) + ' helped ' + by[k].yes + ' of ' + by[k].n; }).join('; ') + '.');
+    if (train) {
+      if (sits.length) out.push('Meditation: attention mostly steady in ' + sits.filter(function (x) { return x.focus === 3; }).length + ' of ' + sits.length + ' sits' +
+        (sits.length >= 3 && !sits.some(function (x) { return x.focus === 3; }) ? '. Early days: noticing you wandered and coming back is the practice.' : '.'));
+    } else if (good.length) out.push('Calm: ' + good.slice(0, 3).map(function (k) { return title(k) + ' helped ' + by[k].yes + ' of ' + by[k].n; }).join('; ') + '.');
     else if (calmN >= 3) out.push('Calm: none of the practices has helped much yet (' + calmN + ' answers). Try a different kind, or a walk.');
     var jr = wo.filter(function (x) { return x.a.hard === 'Just right'; }).length;
     if (wo.length) out.push('Move: ' + jr + ' of ' + wo.length + ' workouts felt just right' + (wo.some(function (x) { return x.a.pain && x.a.pain !== 'None'; }) ? '; some pain noted' : ', no pain') + '.');

@@ -20,6 +20,10 @@
   }
 
   /* Quick questions after something he did. about: what it was, unique per time (e.g. "body@2026-11-20T14:00"). */
+  /* Calm's saved state (for "What's working" when he trains the mind); null if there's none or it can't be read. */
+  function calmState() {
+    try { var raw = localStorage.getItem('wl.calm.v1'); return raw && window.CalmCore ? CalmCore.validate(JSON.parse(raw)) : null; } catch (e) { return null; }
+  }
   function askHtml(part, about, title, compact) {
     var qs = K.questions(part); if (!qs.length || !about) return '';
     var a = K.answers(S, part, about);
@@ -119,7 +123,7 @@
     var h = '<div class="meta ui">For you</div>';
     if (g.length) h += '<ul class="me-g">' + g.map(function (x) { return '<li>' + esc(x.text) + ' ' + fitLink(x.part, 'guide:' + x.key, x.text) + '</li>'; }).join('') + '</ul>';
     else h += '<p class="meta ui">Thanks for checking in. Answer the quick questions after things you do, and the app learns what fits you.</p>';
-    var wk = K.working(S, new Date());
+    var wk = K.working(S, new Date(), calmState());
     if (wk.length) h += '<p class="meta ui" id="me-working-home">What’s working: ' + esc(wk[0]) + '</p>';
     h += planHtml();
     h += '<div class="row ui"><a class="btn" href="#me">About you</a>' + (c ? '<span class="meta grow" style="text-align:right">Check-in ✓</span>' : '') + '</div>';
@@ -189,7 +193,7 @@
     h += '<div class="card ui"><h3>Today’s check-in</h3>' + checkinHtml(true) + '</div>';
     var g = K.guidance(S, new Date(), 6);
     if (g.length) h += '<div class="card ui"><h3>For you</h3><ul class="me-g">' + g.map(function (x) { return '<li>' + esc(x.text) + '</li>'; }).join('') + '</ul></div>';
-    var wk = K.working(S, new Date());
+    var wk = K.working(S, new Date(), calmState());
     if (wk.length) h += '<div class="card ui" id="me-working"><h3>What’s working</h3><ul class="me-g">' + wk.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul><p class="meta">From your own answers in the last 30 days.</p></div>';
     h += '<div class="card ui"><h3>Weekly plan</h3>';
     if (S.plan) {
