@@ -234,6 +234,57 @@ const W = require('./lib/web.cjs');
     assert.strictEqual(await page.$('#tab-dark'), null, 'Enter lights it');
     await page.evaluate(() => window.WL.darkScreen.stop());
   });
+  await t.step('WL.keepAwake in browser uses navigator.wakeLock, releases on false, re-requests on visibilitychange', async () => {
+    await page.goto(base + '#home'); await page.waitForSelector('#wl-today');
+    const r = await page.evaluate(async () => {
+      const log = { reqs: [], releases: 0 };
+      let deferred = null;
+      const origWL = Object.getOwnPropertyDescriptor(navigator, 'wakeLock');
+      const makeSentinel = () => {
+        const s = { released: false, release() { if (!s.released) { s.released = true; log.releases++; } return Promise.resolve(); } };
+        return s;
+      };
+      Object.defineProperty(navigator, 'wakeLock', {
+        configurable: true,
+        value: {
+          request(kind) {
+            log.reqs.push(kind);
+            if (deferred) return new Promise((res) => { deferred = () => res(makeSentinel()); });
+            return Promise.resolve(makeSentinel());
+          }
+        }
+      });
+      WL.keepAwake(true); await Promise.resolve();
+      WL.keepAwake(true); await Promise.resolve(); // idempotent while already held
+      const afterOn = [log.reqs.slice(), log.releases];
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+      const afterVis = [log.reqs.slice(), log.releases];
+      WL.keepAwake(false); await Promise.resolve();
+      const afterOff = [log.reqs.slice(), log.releases];
+      // visibilitychange after keepAwake(false) must not re-request
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+      const afterOffVis = [log.reqs.slice(), log.releases];
+      // async race: keepAwake(false) before request resolves releases the late sentinel
+      deferred = true;
+      WL.keepAwake(true);
+      WL.keepAwake(false);
+      deferred();
+      await Promise.resolve(); await Promise.resolve();
+      const afterRace = [log.reqs.slice(), log.releases];
+      if (origWL) Object.defineProperty(navigator, 'wakeLock', origWL); else delete navigator.wakeLock;
+      return { afterOn, afterVis, afterOff, afterOffVis, afterRace };
+    });
+    assert.deepStrictEqual(r.afterOn, [['screen'], 0], JSON.stringify(r));
+    assert.deepStrictEqual(r.afterVis, [['screen', 'screen'], 0], JSON.stringify(r));
+    assert.deepStrictEqual(r.afterOff, [['screen', 'screen'], 1], JSON.stringify(r));
+    assert.deepStrictEqual(r.afterOffVis, [['screen', 'screen'], 1], JSON.stringify(r));
+    assert.deepStrictEqual(r.afterRace, [['screen', 'screen', 'screen'], 2], JSON.stringify(r));
+  });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('shell browser');
 })().catch((e) => { console.error(e); process.exit(1); });

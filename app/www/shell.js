@@ -168,7 +168,41 @@
       o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 2.6);
     } catch (e) {}
   }
-  function keepAwake(on) { if (native && native.keepAwake) try { native.keepAwake(!!on); } catch (e) {} }
+  /* Keep the screen awake: Android bridge on the phone, else the browser's Screen Wake Lock API (re-requested after
+     switching tabs while still active, released on keepAwake(false)). */
+  var wakeWant = false, wakeSentinel = null, wakeReq = 0;
+  function releaseWake() {
+    var s = wakeSentinel; wakeSentinel = null;
+    if (s && s.release) try { var p = s.release(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
+  }
+  function requestWake(force) {
+    if (!wakeWant || document.hidden || !(navigator && navigator.wakeLock && navigator.wakeLock.request)) return;
+    if (!force && wakeSentinel && !wakeSentinel.released) return;
+    var tok = ++wakeReq;
+    try {
+      var p = navigator.wakeLock.request('screen');
+      if (p && p.then) p.then(function (s) {
+        if (!s) return;
+        if (!wakeWant || tok !== wakeReq || document.hidden) {
+          if (s.release) try { var r = s.release(); if (r && r.catch) r.catch(function () {}); } catch (e) {}
+          return;
+        }
+        wakeSentinel = s;
+        if (s.addEventListener) try { s.addEventListener('release', function () { if (wakeSentinel === s) wakeSentinel = null; }); } catch (e) {}
+      }, function () {});
+    } catch (e) {}
+  }
+  function keepAwake(on) {
+    if (native && native.keepAwake) { try { native.keepAwake(!!on); } catch (e) {} return; }
+    wakeWant = !!on;
+    if (wakeWant) requestWake(false);
+    else { wakeReq++; releaseWake(); }
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (native && native.keepAwake) return;
+    if (document.hidden) wakeSentinel = null;
+    else if (wakeWant && (!wakeSentinel || wakeSentinel.released !== false)) requestWake(true);
+  });
   /* Screen brightness right down (a dark screen during a sit) or back to the phone's own setting. */
   function dimScreen(on) { if (native && native.dimScreen) try { native.dimScreen(!!on); } catch (e) {} }
   /* A dark screen during a long practice (Calm sits, late-night prayers): after a while a black cover goes over the
