@@ -293,3 +293,6 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 180. (done 26 Nov, Claude: calm card() + #calm/s/<id>/<min> route; e2e-rough) Home’s Calm card on a rough day (WLMe.rough()) with aim 'train': the card says "Short night: a 10-minute sit counts just as much" and its Begin opens the sit with 10 min picked for that sit only (like #c-rough); e2e.
 181. [any] Faith late-night dark screen: wait until the first guided line has been spoken plus 5 s (at least 20 s) before going dark, so a long Scripture reading at the start can be read along; helper + unit + faith e2e-dark update.
 182. (done 26 Nov, Claude: e2e-a11y-new, plus the Calm rough-day card) e2e-a11y-new: Home’s Move card with "Rest today (tired)" (#wo-rough-rest) and its "Not for me?" link: 44 px, no overflow at 1.3, contrast light/dark/night.
+183. [any] a11y for Tagalog review's "Go through these again" (#tl-repeat, #tl-again-done): 44 px, no overflow at 1.3, contrast light/dark/night (tests/e2e-a11y-new.cjs).
+184. [any] Settings "Saved on this phone" (#wl-space): when localStorage access throws (blocked storage), Settings still renders without the line and without errors; e2e (stub Storage.prototype.key to throw).
+185. [any] #calm/s/<id>/<minutes> (task 180): invalid minutes (/7, /abc, /9999) and fixed-length practices (sigh, pickup) ignore the number; an e2e per case.
