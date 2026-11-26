@@ -792,6 +792,47 @@ const W = require('./lib/web.cjs');
       await t.noOverflow(['#home']);
     });
   }
+  // Task 212: newest 26 Nov UI: #c-path-late (+ Not for me), #c-first-tip, Settings #wl-space / #wl-space-parts, #tl-walkdark
+  for (const [ts, theme] of [[1, 'light'], [1.3, 'light'], [1, 'dark'], [1, 'night']]) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step('26 Nov UI at ' + ts + 'x ' + theme + ': #c-path-late, #c-first-tip, #wl-space, #tl-walkdark', async () => {
+      await look(ts, theme); await seed();
+      const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
+      await page.clock.setSystemTime(new Date(2026, 11, 3, 12, 0));
+      await page.evaluate(() => {
+        const c = JSON.parse(localStorage.getItem('wl.calm.v1') || '{"sessions":[],"settings":{}}');
+        c.settings = Object.assign(c.settings || {}, { aim: 'train', stage: 'count' }); c.sessions = [];
+        localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+      });
+      // first sit: the tip on the sit screen
+      await page.goto(base + '#home'); await page.goto(base + '#calm/s/count'); await page.reload(); await page.waitForSelector('#c-first-tip');
+      assert.deepStrictEqual(await bad('.session'), [], theme + ' #c-first-tip');
+      await t.noOverflow(['#calm/s/count']);
+      // two late sleepy sits: the path card's line and its Not for me
+      await page.evaluate(() => {
+        const c = JSON.parse(localStorage.getItem('wl.calm.v1'));
+        for (const d of [1, 2]) c.sessions.push({ id: 'count', date: '2026-12-0' + d, at: new Date(2026, 11, d, 23, 10).toISOString(), mins: 20, focus: 1, hind: ['Sleepy'] });
+        localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+        const m = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[]}'); m.feedback = (m.feedback || []).filter((f) => f.about !== 'path:late'); localStorage.setItem('wl.me.v1', JSON.stringify(m));
+      });
+      await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-path-late');
+      assert.deepStrictEqual(await small('#c-path-late button, #c-path-late a'), []);
+      assert.deepStrictEqual(await bad('#c-path'), [], theme + ' #c-path-late');
+      await t.noOverflow(['#calm']);
+      // Settings > Backup: the space line and its parts
+      await page.goto(base + '#settings'); await page.waitForSelector('#wl-space');
+      await page.evaluate(() => { const d = document.querySelector('#wl-space-parts'); const det = d && d.closest('details'); if (det) det.open = true; });
+      assert.deepStrictEqual(await bad('#wl-space'), [], theme + ' #wl-space');
+      const sp = await contrast('#wl-space-parts'); assert.deepStrictEqual(sp.filter((x) => x.r < min), [], theme + ' #wl-space-parts');
+      assert.deepStrictEqual(await small('#wl-space summary, #wl-space-parts summary'), []);
+      await t.noOverflow(['#settings']);
+      // Tagalog settings: Dark screen while listening
+      await page.goto(base + '#tagalog/settings'); await page.waitForSelector('#tl-walkdark');
+      assert.deepStrictEqual(await small('#tl-walkdark'), []);
+      assert.deepStrictEqual(await bad('#view'), [], theme + ' #tagalog/settings');
+      await t.noOverflow(['#tagalog/settings']);
+    });
+  }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y of new UI');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
