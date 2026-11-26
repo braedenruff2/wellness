@@ -328,6 +328,22 @@ t('every bundled pack: accepted answers are right and get no hint; another exerc
   }
   assert.deepStrictEqual(bad, []);
 });
+t('slips: last 14 days of hinted answers, newest first, one per exercise, with the lesson sentence', () => {
+  const pk = { id: '2026-11-25', lessons: [{ day: 1, exercises: [
+    { type: 'type', prompt: 'I want to study Tagalog.', answer: 'Gusto kong mag-aral ng Tagalog.' },
+    { type: 'type', prompt: 'Why is she crying?', answer: 'Bakit siya umiiyak?' }] }] };
+  const st = T.defaults(), l = pk.lessons[0];
+  T.recordAnswer(st, pk, l, l.exercises[1], false, new Date(2026, 10, 1, 20), 'bakit umiiyak siya'); // too old
+  T.recordAnswer(st, pk, l, l.exercises[0], false, new Date(2026, 10, 25, 20), 'gusto kong magaaral ng tagalog');
+  T.recordAnswer(st, pk, l, l.exercises[1], false, new Date(2026, 10, 25, 20, 5), 'bakit umiiyak siya');
+  T.recordAnswer(st, pk, l, l.exercises[1], false, new Date(2026, 10, 25, 20, 9), 'bakit umiiyak siya');
+  T.recordAnswer(st, pk, l, l.exercises[0], true, new Date(2026, 10, 25, 20, 10), 'gusto kong mag-aral ng tagalog');
+  st.answers.push({ at: new Date(2026, 10, 25, 21).toISOString(), pack: 'gone', day: 1, ok: false, prompt: 'x', hint: 'order' }); // pack no longer there
+  const out = T.slips(st, [pk], new Date(2026, 10, 26, 12));
+  assert.deepStrictEqual(out.map((x) => [x.kind, x.answer, x.given]), [['pronoun', 'Bakit siya umiiyak?', 'bakit umiiyak siya'], ['aspect', 'Gusto kong mag-aral ng Tagalog.', 'gusto kong magaaral ng tagalog']]);
+  assert.strictEqual(T.slips(st, [pk], new Date(2026, 10, 26, 12), 1).length, 1, 'at most n');
+  assert.deepStrictEqual(T.slips(T.defaults(), [pk], new Date()), []);
+});
 t('exampleFor: a lesson sentence that uses the word (whole words; never the word alone)', () => {
   const packs = [{ lessons: [{ dialogue: [{ tl: 'Opo.', en: 'Yes.' }, { tl: 'Gutom na ba siya?', en: 'Is she hungry already?' }], grammar: { examples: [{ tl: 'Kumakain ako ngayon.', en: 'I\'m eating now.' }] } }] }];
   assert.deepStrictEqual(T.exampleFor(packs, 'ngayon'), { tl: 'Kumakain ako ngayon.', en: 'I\'m eating now.' });

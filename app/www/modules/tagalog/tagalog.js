@@ -139,10 +139,11 @@
     });
   }
 
+  var SLIP_LABEL = { order: 'Word order', pronoun: 'Short words go second', linker: 'Linker', aspect: 'Verb form' };
   /* The specific slips from this lesson (word order, short words, linkers, verb forms): once more with the right sentence. */
   function watchHtml(notes) {
     if (!notes || !notes.length) return '';
-    var label = { order: 'Word order', pronoun: 'Short words go second', linker: 'Linker', aspect: 'Verb form' };
+    var label = SLIP_LABEL;
     return '<div class="card ui" id="tl-watch"><h3>Watch for next time</h3><ul class="list">' + notes.map(function (x) {
       return '<li class="row"><span class="grow"><span class="meta">' + esc(label[x.kind] || '') + '</span><br><b lang="tl">' + esc(x.answer) + '</b></span>' + hear(x.answer) + '</li>';
     }).join('') + '</ul></div>';
@@ -233,6 +234,10 @@
     if (keys.length >= 10) h += '<div class="ui" style="margin:8px 0"><label class="sr" for="tl-word-search">Search your words</label><input type="search" id="tl-word-search" placeholder="Search Tagalog or English" autocomplete="off"><span class="meta" id="tl-word-found"></span></div>';
     if (hard.length) h += '<div class="card"><h2>Hard ones</h2><p class="meta ui">Missed most often. Say each one out loud a few times.</p><ul class="list" id="tl-hard">' + hard.map(row).join('') + '</ul>' +
       '<div class="row ui"><a class="btn primary" id="tl-practise-hard" href="#tagalog/review/hard">Practise these</a><span class="meta">Extra practice: your review days stay as they are.</span></div></div>';
+    var sl = T.slips ? T.slips(S, packs(), new Date(), 6) : [];
+    if (sl.length) h += '<div class="card"><h2>Slips to watch</h2><p class="meta ui">From the last two weeks: the lesson’s sentence, to hear and say once more.</p><ul class="list" id="tl-slips">' + sl.map(function (x) {
+      return '<li class="row"><span class="grow"><span class="meta">' + esc(SLIP_LABEL[x.kind] || '') + (x.given ? ' · you wrote “' + esc(x.given) + '”' : '') + '</span><br><b lang="tl">' + esc(x.answer) + '</b></span>' + hear(x.answer) + '</li>';
+    }).join('') + '</ul></div>';
     var rest = keys.filter(function (k) { return hard.indexOf(k) < 0; }).sort(function (a, b) { return a.localeCompare(b); });
     if (rest.length) h += '<div class="card"><h2>All the others</h2><ul class="list" id="tl-all">' + rest.map(row).join('') + '</ul></div>';
     return h;
@@ -243,7 +248,7 @@
     var ws = $('#tl-word-search');
     if (ws) ws.oninput = function () {
       var q = ws.value.trim().toLowerCase(), n = 0;
-      ['#tl-hard', '#tl-all'].forEach(function (sel) {
+      ['#tl-slips', '#tl-hard', '#tl-all'].forEach(function (sel) {
         var ul = $(sel), shown = 0;
         if (!ul) return;
         $$('li', ul).forEach(function (li) {
