@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-26 01:10-01:35 AST (same run, continued; APK 0.1.20261126.0533, real key, cert 6795e499...)
+- Done 178 (every route change ends the dark screen), 177 (Tagalog "Dark screen while listening" setting), 168 (Settings > Backup: "Saved on this phone: about N% of the space", warning from 70%), 175 (Tagalog review ends with "Go through these again" for the missed words: extra rounds, no rescheduling), 180 (rough day: Home's Calm card offers the sit at 10 min via #calm/s/<id>/<min>, his length unchanged), 181 (Faith dark wait follows the current line; WL.darkScreen takes a function), 182 (a11y for the rough-day cards). Added 180-185.
+- Tested: full suite at a06d462 (77 suites, none skipped; this APK's code).
+- Check on the phone: Tagalog review with misses: "Go through these again"; Settings > Backup shows the space line.
+
 ## 2026-11-26 01:00-01:10 AST (same run, continued; APK 0.1.20261126.0509, real key, cert 6795e499...)
 - Done 174 (Home's Move card: "Rest today (tired)" after a check-in with sleep under 4 h or energy Low; Not for me hides it), 169 (bug: Tagalog "Listen while walking" had no keepAwake, so the screen locking stopped the voice / fixed: walkScreen() keeps it on and dark after 15 s, off on stop, end or any route / test: tagalog e2e + e2e-walk). Dropped 176. Added 177-179.
 - Tested: full suite at 5b284fc (76 suites, none skipped; this APK's code).
