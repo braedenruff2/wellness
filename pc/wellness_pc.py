@@ -574,12 +574,24 @@ def find_claude():
     return None
 
 
+def is_agy_exe(exe):
+    """True when exe is the Antigravity CLI (agy / agy.exe / agy.cmd)."""
+    base = os.path.basename(str(exe or "")).lower()
+    return base in ("agy", "agy.exe", "agy.cmd", "agy.bat")
+
+
 def find_gemini():
     env = os.environ.get("WELLNESS_GEMINI")
     if env: return env if os.path.exists(env) else shutil.which(env)
+    home = os.path.expanduser("~")
+    # Prefer Antigravity CLI (agy: supports personal Google accounts), then legacy Gemini CLI.
+    found = shutil.which("agy")
+    if found: return found
+    for p in (os.path.join(LOCAL, "agy", "bin", "agy.exe"),
+              os.path.join(home, ".local", "bin", "agy")):
+        if p and os.path.exists(p): return p
     found = shutil.which("gemini")
     if found: return found
-    home = os.path.expanduser("~")
     for p in (os.path.join(os.environ.get("APPDATA", ""), "npm", "gemini.cmd"),
               os.path.join(home, "Desktop", "Loudbook", "tools", "node", "gemini.cmd"),
               os.path.join(home, ".local", "bin", "gemini.exe"),
@@ -612,7 +624,8 @@ def is_usage_limit(msg):
     return any(k in m for k in (
         "429", "rate limit", "rate_limit", "usage limit", "limit reached", "hit your limit",
         "out of usage", "out of extra usage", "weekly limit", "5-hour limit", "you've reached your",
-        "quota", "resource_exhausted", "resource exhausted", "too many requests", "exhausted your capacity"
+        "quota", "resource_exhausted", "resource exhausted", "too many requests", "exhausted your capacity",
+        "out of credits", "insufficient credits"
     ))
 
 
@@ -789,43 +802,73 @@ def gemini_tools_arg(tools):
 
 
 def explain_gemini_error(msg):
-    """Gemini CLI's error, in words he can act on."""
+    """Antigravity / Gemini CLI's error, in words he can act on."""
     m = str(msg or "").lower()
-    if any(k in m for k in ("401", "403", "unauthenticated", "authenticate", "oauth", "not logged in", "credentials", "sign in", "/login")):
-        return ("Gemini CLI on your PC needs you to sign in again. On the PC, double-click "
+    if any(k in m for k in ("401", "403", "unauthenticated", "authenticate", "authentication", "oauth", "not logged in", "credentials", "sign in", "/login")):
+        return ("Gemini backup (Antigravity CLI) on your PC needs you to sign in again. On the PC, double-click "
                 "\"Sign in to Gemini.bat\" in the wellness folder, then try again.")
     if is_usage_limit(msg):
         return "Your Gemini usage limit is reached for now; it resets on Monday."
     return "Gemini: " + str(msg or "")[:300]
 
 
+def _parse_ndjson_result(out):
+    """Extract the final result envelope from agy --output-format stream-json (or a single JSON envelope)."""
+    try:
+        obj = json.loads(out)
+        if isinstance(obj, dict):
+            return obj.get("result") if obj.get("event") == "result" and isinstance(obj.get("result"), dict) else obj
+    except ValueError:
+        pass
+    last = None
+    for line in out.splitlines():
+        line = line.strip()
+        if not line or not line.startswith("{"): continue
+        try: obj = json.loads(line)
+        except ValueError: continue
+        if not isinstance(obj, dict): continue
+        if obj.get("event") == "result":
+            return obj.get("result") if isinstance(obj.get("result"), dict) else obj
+        last = obj
+    return last
+
+
 def run_gemini(prompt, tools):
-    """Run Gemini CLI (@google/gemini-cli) headless with the prompt on stdin and JSON output."""
+    """Run Antigravity CLI (agy) or legacy Gemini CLI headless with the prompt on stdin and JSON output."""
     exe = find_gemini()
-    if not exe: raise RuntimeError("Gemini CLI isn't on this PC (or not on PATH). Install @google/gemini-cli and sign in once, then try again.")
+    if not exe: raise RuntimeError("Antigravity CLI (agy) isn't on this PC (or not on PATH). Install it and sign in once, then try again.")
     work = progress("claude-work", "README.txt")
     if not os.path.exists(work):
         with open(work, "w", encoding="utf-8") as f:
             f.write("Working folder for the Wellness app's AI requests. Safe to empty.\n")
-    args = [exe, "-p", "Follow the instructions from stdin and return only the requested JSON object.", "--output-format", "json"]
-    gtools = gemini_tools_arg(tools)
-    if gtools: args += ["--allowed-tools", gtools]
+    agy = is_agy_exe(exe)
+    if agy:
+        args = [exe, "--input-format", "stream-json", "--output-format", "stream-json",
+                "--disable-slash-commands", "--print-timeout", f"{CLAUDE_TIMEOUT}s"]
+        stdin_text = json.dumps({"event": "user", "message": {"content": prompt}}, ensure_ascii=False) + "\n"
+    else:
+        args = [exe, "-p", "Follow the instructions from stdin and return only the requested JSON object.", "--output-format", "json"]
+        gtools = gemini_tools_arg(tools)
+        if gtools: args += ["--allowed-tools", gtools]
+        stdin_text = prompt
     t0 = time.time()
-    r = subprocess.run(args, input=prompt, capture_output=True, text=True, encoding="utf-8", errors="replace",
+    r = subprocess.run(args, input=stdin_text, capture_output=True, text=True, encoding="utf-8", errors="replace",
                        cwd=os.path.dirname(work), timeout=CLAUDE_TIMEOUT,
                        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     secs = round(time.time() - t0, 1)
     out = (r.stdout or "").strip()
-    try: env = json.loads(out)
-    except ValueError: env = None
+    env = _parse_ndjson_result(out) if agy else None
+    if not agy:
+        try: env = json.loads(out)
+        except ValueError: env = None
     if isinstance(env, dict):
         if env.get("error"):
             err = env["error"]
             raw = str(err.get("message") if isinstance(err, dict) else err)
             if is_usage_limit(raw): raise UsageLimitError(explain_gemini_error(raw))
             raise RuntimeError(explain_gemini_error(raw))
-        if env.get("is_error"):
-            raw = str(env.get("result") or env.get("response") or "error")
+        if env.get("is_error") or (env.get("status") and env.get("status") != "SUCCESS"):
+            raw = str(env.get("error") or env.get("result") or env.get("response") or env.get("status") or "error")
             if is_usage_limit(raw): raise UsageLimitError(explain_gemini_error(raw))
             raise RuntimeError(explain_gemini_error(raw))
         text = env.get("response") if isinstance(env.get("response"), str) else (env.get("result") if isinstance(env.get("result"), str) else None)

@@ -604,20 +604,70 @@ finally:
 
 # Clean up Gemini state/env for remaining tests
 W.write_json(W.AI_STATE_FILE, {})
-# find_gemini checks Desktop/Loudbook/tools/node/gemini.cmd when PATH has no gemini
+# find_gemini prefers Antigravity CLI (agy) and falls back to Desktop/Loudbook/tools/node/gemini.cmd
 _fake_home = os.path.join(TMP, "fake-home")
+_fake_local = os.path.join(TMP, "fake-local")
 _lb_gem = os.path.join(_fake_home, "Desktop", "Loudbook", "tools", "node", "gemini.cmd")
+_agy_exe = os.path.join(_fake_local, "agy", "bin", "agy.exe")
 os.makedirs(os.path.dirname(_lb_gem), exist_ok=True)
 open(_lb_gem, "w", encoding="utf-8").write("@echo off\n")
-_old_wg, _old_which, _old_exp = os.environ.pop("WELLNESS_GEMINI", None), W.shutil.which, W.os.path.expanduser
+_old_wg, _old_which, _old_exp, _old_local = os.environ.pop("WELLNESS_GEMINI", None), W.shutil.which, W.os.path.expanduser, W.LOCAL
 try:
     W.shutil.which = lambda _name: None
     W.os.path.expanduser = lambda p: _fake_home if p == "~" else _old_exp(p)
+    W.LOCAL = _fake_local
     _found_lb = W.find_gemini()
-    check("find_gemini locates Desktop/Loudbook/tools/node/gemini.cmd", _found_lb == _lb_gem, _found_lb)
+    check("find_gemini locates Desktop/Loudbook/tools/node/gemini.cmd when agy absent", _found_lb == _lb_gem, _found_lb)
+    os.makedirs(os.path.dirname(_agy_exe), exist_ok=True)
+    open(_agy_exe, "w", encoding="utf-8").write("")
+    _found_agy = W.find_gemini()
+    check("find_gemini prefers LOCAL/agy/bin/agy.exe over legacy gemini.cmd", _found_agy == _agy_exe, _found_agy)
 finally:
-    W.shutil.which, W.os.path.expanduser = _old_which, _old_exp
+    W.shutil.which, W.os.path.expanduser, W.LOCAL = _old_which, _old_exp, _old_local
     if _old_wg is not None: os.environ["WELLNESS_GEMINI"] = _old_wg
+
+# Fake Antigravity CLI (agy): stream-json stdin/stdout envelope, auth error, and quota error
+_agy_dir = os.path.join(TMP, "agy-test")
+os.makedirs(_agy_dir, exist_ok=True)
+_agy_py = os.path.join(_agy_dir, "fake_agy.py")
+open(_agy_py, "w", encoding="utf-8").write("""import json, sys
+open(sys.argv[1] + ".args", "w", encoding="utf-8").write(json.dumps(sys.argv[2:]))
+raw = sys.stdin.read().strip()
+msg = json.loads(raw)
+content = msg["message"]["content"]
+print(json.dumps({"event": "init", "conversation_id": "c1"}))
+if "AGY-AUTH" in content:
+    print(json.dumps({"event": "result", "result": {"status": "ERROR", "response": "", "error": "authentication required"}}))
+    sys.exit(1)
+if "AGY-QUOTA" in content:
+    print(json.dumps({"event": "result", "result": {"status": "ERROR", "response": "", "error": "429 out of credits"}}))
+    sys.exit(1)
+print(json.dumps({"event": "result", "result": {"status": "SUCCESS", "response": json.dumps({"headline": "from agy", "seen": content[:20]})}}))
+""")
+if os.name == "nt":
+    _fake_agy = os.path.join(_agy_dir, "agy.cmd")
+    open(_fake_agy, "w", encoding="utf-8").write(f'@echo off\r\n"{sys.executable}" "{_agy_py}" "{_fake_agy}" %*\r\n')
+else:
+    _fake_agy = os.path.join(_agy_dir, "agy")
+    open(_fake_agy, "w", encoding="utf-8").write(f'#!{sys.executable}\nimport os, sys\nos.execv("{sys.executable}", ["{sys.executable}", "{_agy_py}", "{_fake_agy}"] + sys.argv[1:])\n')
+    os.chmod(_fake_agy, 0o755)
+os.environ["WELLNESS_GEMINI"] = _fake_agy
+_agy_ans, _ = W.run_gemini("Hello from wellness prompt", "WebSearch")
+_agy_args = json.load(open(_fake_agy + ".args", encoding="utf-8"))
+check("agy stream-json sends --input-format/--output-format stream-json and parses result",
+      _agy_ans.get("headline") == "from agy" and _agy_ans.get("seen") == "Hello from wellness "
+      and "--input-format" in _agy_args and "stream-json" in _agy_args and "--disable-slash-commands" in _agy_args, (_agy_ans, _agy_args))
+try:
+    W.run_gemini("AGY-AUTH", "")
+    check("agy authentication error tells user to run Sign in to Gemini.bat", False)
+except RuntimeError as e:
+    check("agy authentication error tells user to run Sign in to Gemini.bat", "Sign in to Gemini.bat" in str(e), str(e))
+try:
+    W.run_gemini("AGY-QUOTA", "")
+    check("agy quota error raises UsageLimitError", False)
+except W.UsageLimitError as e:
+    check("agy quota error raises UsageLimitError", "Monday" in str(e), str(e))
+
 os.environ["WELLNESS_GEMINI"] = os.path.join(TMP, "no-such-gemini")
 
 # an updated wellness_pc.py restarts the running server (exit 3 -> start-pc.cmd starts the new code)

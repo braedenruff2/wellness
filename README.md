@@ -44,7 +44,7 @@ Settings > PC link > Find my PC, type the code, Pair. Same home Wi-Fi only.
   Journal and prayer text only if you switch that on. The PC link screen lists exactly what is logged.
 - **Parenting practice** (the 🧸 tab), **advice** (Home) and **Ask Claude about my answer** (Tagalog) run through
   Claude Code on the PC (`claude -p`, signed in as you, your own plan). If Claude's usage is used up, the PC link
-  automatically falls back to **Gemini CLI** (`gemini`, your Google account; run **Sign in to Gemini.bat** once) and
+  automatically falls back to **Antigravity CLI** (`agy`, your Google account; run **Sign in to Gemini.bat** once) and
   keeps using Gemini until Claude resets on Wednesday at noon (Gemini's own usage resets on Monday). Nothing is stored anywhere else.
 - Claude's autopilot reads the log every run (`python pc\wellness_pc.py summary 7`) to choose what to build next.
 - It starts with Windows (log: `%LOCALAPPDATA%\Wellness\pc.log`) and restarts by itself when Claude updates it.
