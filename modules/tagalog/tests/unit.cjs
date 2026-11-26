@@ -12,6 +12,14 @@ t('every pack passes the format check (7 lessons, answers in options, build word
   for (const p of packs) { assert.deepStrictEqual(T.checkPack(p), [], p.id); assert.strictEqual(p.lessons.length, 7, p.id); }
   const bad = JSON.parse(JSON.stringify(packs[0])); bad.lessons[0].exercises[0].answer = 'nope'; bad.lessons[1].exercises[2].words.pop();
   const e = T.checkPack(bad); assert.ok(e.some((x) => /options must include/.test(x)) && e.some((x) => /build words/.test(x)), e.join('\n'));
+  const b2 = JSON.parse(JSON.stringify(packs[0])), l2 = b2.lessons[2];
+  const mc = l2.exercises.find((x) => x.options); mc.options.push(mc.options[0].toUpperCase() + '!');
+  const ty = l2.exercises.find((x) => x.type === 'type'); if (ty) ty.accept = ['ok', ''];
+  l2.words.push(Object.assign({}, l2.words[0]));
+  const e2 = T.checkPack(b2);
+  assert.ok(e2.some((x) => /different from each other/.test(x)), 'same option twice (case and punctuation aside)');
+  assert.ok(!ty || e2.some((x) => /accept must be/.test(x)), 'an empty accepted answer');
+  assert.ok(e2.some((x) => /listed twice/.test(x)), 'a word twice in one lesson');
 });
 t('packs are listed in index.json and bundled (build-packs --check)', () => {
   const idx = JSON.parse(fs.readFileSync(path.join(DIR, 'index.json'), 'utf8'));

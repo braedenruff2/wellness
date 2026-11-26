@@ -26,6 +26,8 @@
       ['title', 'intro'].forEach(function (k) { if (typeof l[k] !== 'string' || !l[k].trim()) e.push(w + k + ' missing'); });
       if (!Array.isArray(l.words) || l.words.length < 3) e.push(w + 'needs 3+ words');
       (l.words || []).forEach(function (x) { if (!x || !x.tl || !x.en) e.push(w + 'word without tl/en'); });
+      var seen = (l.words || []).map(function (x) { return x && norm(x.tl); });
+      if (seen.some(function (t, k) { return t && seen.indexOf(t) !== k; })) e.push(w + 'a word is listed twice');
       (l.dialogue || []).forEach(function (x) { if (!x || !x.tl || !x.en) e.push(w + 'dialogue line without tl/en'); });
       if (!Array.isArray(l.exercises) || l.exercises.length < 3) e.push(w + 'needs 3+ exercises');
       (l.exercises || []).forEach(function (x, j) {
@@ -34,6 +36,8 @@
         if (typeof x.answer !== 'string' || !x.answer) e.push(v + 'answer missing');
         if ((x.type === 'mc' || x.type === 'listen') && (!Array.isArray(x.options) || x.options.indexOf(x.answer) < 0)) e.push(v + 'options must include the answer');
         if (x.type === 'listen' && !x.say) e.push(v + 'listen needs say');
+        if (Array.isArray(x.options)) { var on = x.options.map(norm); if (on.some(function (o, k) { return !o || on.indexOf(o) !== k; })) e.push(v + 'options must be different from each other'); }
+        if (x.accept !== undefined && (!Array.isArray(x.accept) || x.accept.some(function (a) { return typeof a !== 'string' || !a.trim(); }))) e.push(v + 'accept must be a list of answers');
         if (x.type === 'build' && (!Array.isArray(x.words) || norm(x.words.slice().sort().join(' ')) !== norm(x.answer.split(/\s+/).sort().join(' ')))) e.push(v + 'build words must be exactly the answer’s words');
         if (x.type !== 'listen' && !x.prompt) e.push(v + 'prompt missing');
         if (x.poOptional !== undefined && (x.poOptional !== true || x.type !== 'type' || !/\b(po|ho)\b/.test(norm(x.answer)))) e.push(v + 'poOptional: only true, on a type exercise whose answer has po');
