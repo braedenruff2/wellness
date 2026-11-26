@@ -72,13 +72,19 @@ t('day journal: create, edit, empty removes, one per day', () => {
   assert.strictEqual(C.addEntry(s, 'awe', '  '), null);
 });
 
-t('entries and prayers: ids unique, newest first, remove', () => {
-  const s = C.defaults(), when = new Date(2026, 10, 18);
+t('entries and prayers: ids unique, newest first (including earlier-day backfill), remove', () => {
+  const s = C.defaults(), when = new Date(2026, 10, 18, 12);
   const a = C.addEntry(s, 'awe', 'a', null, when), b = C.addEntry(s, 'awe', 'b', null, when);
   assert.notStrictEqual(a.id, b.id); assert.strictEqual(s.journal[0], b);
-  C.removeEntry(s, a.id); assert.deepStrictEqual(s.journal.map((e) => e.text), ['b']);
+  C.addEntry(s, 'journal', 'earlier', null, new Date(2026, 10, 16, 12));
+  C.addEntry(s, 'journal', 'middle', null, new Date(2026, 10, 17, 12));
+  assert.deepStrictEqual(s.journal.map((e) => e.text), ['b', 'a', 'middle', 'earlier'], 'earlier-day entries land in chronological order');
+  C.removeEntry(s, a.id); assert.deepStrictEqual(s.journal.map((e) => e.text), ['b', 'middle', 'earlier']);
   assert.strictEqual(C.addPrayer(s, ''), null);
-  C.addPrayer(s, 'Baby’s sleep'); assert.strictEqual(s.prayers[0].answered, null);
+  C.addPrayer(s, 'Baby’s sleep', new Date(2026, 10, 18, 12));
+  C.addPrayer(s, 'Earlier prayer', new Date(2026, 10, 16, 12));
+  assert.strictEqual(s.prayers[0].answered, null);
+  assert.deepStrictEqual(s.prayers.map((p) => p.text), ['Baby’s sleep', 'Earlier prayer']);
 });
 
 t('lookBack finds an entry from about a week / month ago', () => {

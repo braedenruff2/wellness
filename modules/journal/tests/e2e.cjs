@@ -133,19 +133,24 @@ const W = require('../../../tests/lib/web.cjs');
     assert.ok((await page.textContent('#j-list')).includes('Warm coffee during the morning nap.'));
   });
 
-  await t.step('an entry saved while logging for an earlier day lands on that day; heavy words show the gentle note', async () => {
+  await t.step('an entry saved while logging for an earlier day lands on that day in chronological order; heavy words show the gentle note', async () => {
     await page.goto(base + '#home'); await page.waitForSelector('#wl-logday');
     await page.selectOption('#wl-logday', '2026-11-24');
     await page.goto(base + '#journal'); await page.waitForSelector('#new-entry');
     await page.fill('#new-entry', 'Quiet morning walk with her');
     await page.click('#add-entry');
-    const last = await page.evaluate(() => JSON.parse(localStorage.getItem('fc.v1')).journal[0]); // newest first
-    assert.strictEqual(new Date(last.at).getDate(), 24, 'dated the day he chose: ' + last.at);
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('fc.v1')).journal);
+    const earlier = saved.find((e) => e.text === 'Quiet morning walk with her');
+    assert.ok(earlier, 'earlier-day entry saved');
+    assert.strictEqual(new Date(earlier.at).getDate(), 24, 'dated the day he chose: ' + earlier.at);
+    assert.strictEqual(new Date(saved[0].at).getDate(), 25, 'today entry stays newest first above earlier-day entry');
     assert.strictEqual((await page.textContent('#entry-gentle')).trim(), '', 'no note for an ordinary entry');
     await page.fill('#new-entry', 'Today felt hopeless and heavy');
     await page.click('#add-entry');
     assert.ok(/talking to someone you trust/.test(await page.textContent('#entry-gentle')), 'the gentle note shows');
     await page.goto(base + '#home'); await page.waitForSelector('#wl-logday');
+    const cardText = await page.textContent('.home-card[data-module="journal"]');
+    assert.ok(!cardText.includes('Quiet morning walk with her') && !cardText.includes('hopeless'), 'Home Latest preview stays on today rather than an earlier-day entry: ' + cardText);
     await page.selectOption('#wl-logday', '');
   });
   await t.step('no overflow, no errors', async () => {

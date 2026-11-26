@@ -129,11 +129,24 @@
   var idn = 0;
   function newId(when) { idn++; return (when || new Date()).getTime().toString(36) + '-' + idn; }
 
+  /* Keep journal entries and prayers strictly newest-first by timestamp (ties go ahead of existing items). */
+  function insertNewest(list, item) {
+    var t = Date.parse(item.at), i = 0;
+    if (!isNaN(t)) {
+      while (i < list.length) {
+        var cur = list[i] && Date.parse(list[i].at);
+        if (isNaN(cur) || cur <= t) break;
+        i++;
+      }
+    }
+    list.splice(i, 0, item);
+  }
+
   function addEntry(state, kind, text, day, when) {
     text = String(text == null ? '' : text).trim();
     if (!text) return null;
     var e = { id: newId(when), at: (when || new Date()).toISOString(), day: day || null, kind: kind || 'journal', text: text };
-    state.journal.unshift(e);
+    insertNewest(state.journal, e);
     return e;
   }
 
@@ -192,7 +205,7 @@
     text = String(text == null ? '' : text).trim();
     if (!text) return null;
     var p = { id: newId(when), at: (when || new Date()).toISOString(), text: text, answered: null, note: '' };
-    state.prayers.unshift(p);
+    insertNewest(state.prayers, p);
     return p;
   }
 
