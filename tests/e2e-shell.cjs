@@ -158,6 +158,14 @@ const W = require('./lib/web.cjs');
       window.WL.darkScreen.stop(); return [d1, n];
     });
     assert.deepStrictEqual(asked, [true, 2], 'asked on start and again after a tap');
+    // Android's Back while dark only lights the screen
+    const back = await page.evaluate(async () => {
+      window.WL.darkScreen.start({ id: 'k-dark', after: 10 }); await new Promise((r) => setTimeout(r, 30));
+      const a = window.FCBack(), lit = !document.getElementById('k-dark');
+      window.WL.darkScreen.stop(); const b = window.FCBack();
+      return [a, lit, b];
+    });
+    assert.deepStrictEqual(back, [true, true, false], 'Back: light (handled), then nothing to handle');
     // a route change ends it, even if a part forgot to
     await page.evaluate(() => window.WL.darkScreen.start({ id: 'x-dark', after: 10 }));
     await page.clock.runFor(50);

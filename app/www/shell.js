@@ -674,6 +674,8 @@
     order.forEach(function (id) { if (modules[id].saveNow) modules[id].saveNow(); });
     if (WL.driveSync) WL.driveSync.autoSync();
   };
+  // Android's Back: with a dark screen up it only lights the screen (true); otherwise Android goes back as usual
+  window.FCBack = function () { if (darkEl()) { darkLight(); return true; } return false; };
   window.FCPauseSession = function () { if (current && current.pause) current.pause(); };
 
   window.WL = {

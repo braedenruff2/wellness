@@ -29,6 +29,10 @@ public class CalmAlarmTest {
         eq(CalmAlarm.allowedHash("#calm/s/count"), null, "no deeper hashes");
         eq(CalmAlarm.allowedHash("javascript:alert(1)"), null, "nothing else");
         eq(CalmAlarm.allowedHash(null), null, "none");
+        eq(CalmAlarm.backHandled("true"), true, "the page lit its dark screen");
+        eq(CalmAlarm.backHandled("false"), false, "the page didn't");
+        eq(CalmAlarm.backHandled("null"), false, "no FCBack (older page)");
+        eq(CalmAlarm.backHandled(null), false, "no answer");
         System.out.println("CalmAlarmTest ok");
     }
 }

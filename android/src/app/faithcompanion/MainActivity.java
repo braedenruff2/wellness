@@ -196,8 +196,13 @@ public class MainActivity extends Activity {
         tts.speak(text, TextToSpeech.QUEUE_FLUSH, b, id);
     }
 
+    /** Back asks the page first (window.FCBack: a dark screen only lights up, so a sit or prayer isn't ended). */
     private void goBack() {
-        if (web != null && web.canGoBack()) web.goBack(); else finish();
+        if (web == null) { finish(); return; }
+        web.evaluateJavascript("window.FCBack&&FCBack()", v -> {
+            if (CalmAlarm.backHandled(v)) return;
+            if (web != null && web.canGoBack()) web.goBack(); else finish();
+        });
     }
 
     @SuppressWarnings("deprecation")

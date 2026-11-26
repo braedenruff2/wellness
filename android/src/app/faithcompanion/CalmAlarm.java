@@ -31,6 +31,9 @@ public class CalmAlarm extends BroadcastReceiver {
         return FIRE.equals(action) && !visible;
     }
 
+    /** The page's answer to window.FCBack(): "true" when it handled Back itself (evaluateJavascript gives JSON). */
+    static boolean backHandled(String jsResult) { return "true".equals(jsResult); }
+
     /** The screens a notification may open (only these, never a hash from elsewhere): MainActivity.openHash. */
     static String allowedHash(String h) { return "#workout".equals(h) || "#todo".equals(h) || "#calm".equals(h) ? h : null; }
 
