@@ -363,5 +363,5 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 249. [any] Coach (Parenting): a queued cloud answer for a scenario that arrives after he skipped to a newer scenario doesn't replace the newer one (it lands in history or is dropped); e2e-cloud.
 250. [any] Weekly-plan request size: the {{summary}} built from a year of data (pc/wellness_pc.py summarize and tools/cloud-answer.cjs) stays under 20 KB; tests in pc/test/test_pc.py and tests/cloud-answer.cjs.
 251. [any] Faith Pray now "✓ N× this week" counts reset Monday 00:00 local, also in the DST-change weeks (Mar/Nov, Halifax); unit 4 zones.
-252. [any] App update: a version.json older than or equal to the installed one is never offered (no downgrade, no reinstall loop); Java unit for the comparison + shell e2e status line.
+252. (dropped 26 Nov, Claude run2: exists: Updater.shouldDownload + tests/java UpdaterTest "older than installed: skip") App update: a version.json older than or equal to the installed one is never offered (no downgrade, no reinstall loop); Java unit for the comparison + shell e2e status line.
 
