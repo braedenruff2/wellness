@@ -45,11 +45,21 @@
         tag: TAGS.indexOf(x.tag) >= 0 ? x.tag : 'Idea',
         text: x.text.trim().slice(0, 1200)
       });
+      if (typeof x.read === 'string' && !isNaN(Date.parse(x.read))) d.notes[d.notes.length - 1].read = new Date(x.read).toISOString();
     });
     return d;
   }
 
-  var api = { KEY: KEY, TAGS: TAGS, defaults: defaults, add: add, remove: remove, validate: validate };
+  /* A cloud run's "notes-ack" answer: these notes were read by the autopilot (at = when). Returns how many changed. */
+  function markRead(state, ids, at) {
+    if (!state || !Array.isArray(state.notes) || !Array.isArray(ids)) return 0;
+    var when = typeof at === 'string' && !isNaN(Date.parse(at)) ? new Date(at).toISOString() : new Date().toISOString(), n = 0;
+    state.notes.forEach(function (x) { if (x && !x.read && ids.indexOf(x.id) >= 0) { x.read = when; n++; } });
+    return n;
+  }
+  function unread(state) { return (state && Array.isArray(state.notes) ? state.notes : []).filter(function (x) { return x && !x.read; }); }
+
+  var api = { KEY: KEY, TAGS: TAGS, defaults: defaults, add: add, remove: remove, validate: validate, markRead: markRead, unread: unread };
   root.WLNotes = api;
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
 
@@ -75,7 +85,9 @@
     return '<details id="wl-note-list" style="margin-top:10px"><summary class="meta">Saved notes for autopilot (' + S.notes.length + ')</summary><ul class="list">' +
       S.notes.slice(0, 30).map(function (n) {
         var d = !isNaN(Date.parse(n.at)) ? new Date(n.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+        var rd = n.read && !isNaN(Date.parse(n.read)) ? new Date(n.read).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
         return '<li class="entry"><span class="kind">' + esc(n.tag) + '</span> <span class="when">' + esc(d + (n.where ? ' · ' + n.where : '')) + '</span><p>' + esc(n.text) + '</p>' +
+          '<p class="meta wl-note-state">' + (rd ? '✓ Read by the autopilot (' + esc(rd) + ')' : 'Waiting for the next autopilot run') + '</p>' +
           '<button class="link wl-note-del" type="button" data-id="' + esc(n.id) + '" aria-label="Delete note">Delete</button></li>';
       }).join('') + '</ul></details>';
   }
@@ -149,6 +161,16 @@
     open(b, b.dataset.wlNote && b.dataset.wlNote !== '1' ? b.dataset.wlNote : (location.hash || '#home'));
   });
   window.addEventListener('hashchange', function () { close(); });
+  // a cloud run says which notes it has read (an answers-sheet row, task notes-ack); pc.js loads after this file
+  function hookAck() {
+    if (!WL.pc || !WL.pc.onCloudAnswer) return;
+    WL.pc.onCloudAnswer('notes-ack', function (e, ans) {
+      if (e || !ans || !Array.isArray(ans.ids)) return;
+      S = store.load();
+      if (markRead(S, ans.ids, ans.at)) save(); // an open sheet shows it the next time it opens
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hookAck); else setTimeout(hookAck, 0);
 
   WL.notes = {
     open: open, close: close, reload: reload,

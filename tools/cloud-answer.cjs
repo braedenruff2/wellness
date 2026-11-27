@@ -8,7 +8,10 @@
    2. Answer each prompt as it says (one JSON object) into <work>/answers/<id>.json, or {"error": "..."}.
    3. node tools/cloud-answer.cjs rows <wellness-sync.json> <work> [<sheet-export.csv>]
       Writes <work>/rows.json: the full wellness-answers sheet (header, rows still unacked, new answers, then blank
-      rows over any old ones), ready for Sheets update_values on Sheet1!A1:D<rows.length>. */
+      rows over any old ones), ready for Sheets update_values on Sheet1!A1:D<rows.length>.
+   Notes he left for the autopilot (wl.notes.v1): after reading them,
+      node tools/cloud-answer.cjs ack-notes <wellness-sync.json> <work>
+   adds a notes-ack answer (before step 3) so the phone shows "Read by the autopilot" on each. */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -67,9 +70,22 @@ function prepare(syncFile, work, csvOrNow, maybeNow) {
   return list;
 }
 
+/* The notes not yet read by the autopilot -> <work>/answers/notes-ack-<stamp>.json ({ids, at}); [] when none. */
+function ackNotes(syncFile, work, now) {
+  const st = states(readSync(syncFile)), notes = st['wl.notes.v1'] && Array.isArray(st['wl.notes.v1'].notes) ? st['wl.notes.v1'].notes : [];
+  const ids = notes.filter((n) => n && n.id && !n.read).map((n) => String(n.id));
+  if (!ids.length) return { id: null, ids };
+  const at = (now || new Date()).toISOString(), id = 'notes-ack-' + at.replace(/[^0-9]/g, '').slice(0, 14);
+  fs.mkdirSync(path.join(work, 'answers'), { recursive: true });
+  fs.writeFileSync(path.join(work, 'answers', id + '.json'), JSON.stringify({ ids, at }));
+  return { id, ids };
+}
+
 function rows(syncFile, work, csvFile, now) {
   const sync = readSync(syncFile), acked = new Set(Array.isArray(sync.acked) ? sync.acked : []);
   const tasks = {}; for (const r of Array.isArray(sync.requests) ? sync.requests : []) if (r && r.id) tasks[r.id] = r.task;
+  const dir0 = path.join(work, 'answers');
+  for (const f of fs.existsSync(dir0) ? fs.readdirSync(dir0) : []) if (/^notes-ack-\d+\.json$/.test(f)) tasks[f.slice(0, -5)] = 'notes-ack';
   const old = csvFile && fs.existsSync(csvFile) ? C.parseCsv(fs.readFileSync(csvFile, 'utf8')) : [];
   const oldData = old.filter((r, i) => !(i === 0 && String(r[0]).trim().toLowerCase() === 'id'));
   const dir = path.join(work, 'answers'), fresh = [], problems = [];
@@ -97,7 +113,7 @@ function rows(syncFile, work, csvFile, now) {
   return { rows: out, kept: kept.length, added: fresh.length, dropped: oldData.filter((r) => r[0]).length - kept.length, problems };
 }
 
-module.exports = { prepare, rows, pending, HEADER };
+module.exports = { prepare, rows, ackNotes, pending, HEADER };
 
 if (require.main === module) {
   const [cmd, syncFile, work, csv] = process.argv.slice(2);
@@ -105,6 +121,9 @@ if (require.main === module) {
     const l = prepare(syncFile, work, csv);
     if (!l.length) console.log('No requests waiting.');
     for (const x of l) console.log(x.id + '  ' + x.task + '  ' + (x.error ? 'ERROR ' + x.error : path.join(work, x.prompt)) + (x.tools ? '  (web: ' + x.tools + ')' : ''));
+  } else if (cmd === 'ack-notes' && syncFile && work) {
+    const r = ackNotes(syncFile, work);
+    console.log(r.id ? r.id + ': ' + r.ids.length + ' note(s) marked read' : 'No unread notes.');
   } else if (cmd === 'rows' && syncFile && work) {
     const r = rows(syncFile, work, csv);
     console.log('rows.json: ' + r.rows.length + ' rows (kept ' + r.kept + ', added ' + r.added + ', dropped ' + r.dropped + '); range Sheet1!A1:D' + r.rows.length);

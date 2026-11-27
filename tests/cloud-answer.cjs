@@ -116,4 +116,22 @@ test('a year of heavy use: the advice and weekly-plan prompts stay small (under 
   }
 });
 fs.rmSync(work, { recursive: true, force: true });
+test('ack-notes: the unread autopilot notes become one notes-ack row the phone reads back; none -> no row', () => {
+  const w = fs.mkdtempSync(path.join(os.tmpdir(), 'cloud-notes-'));
+  const s = JSON.parse(JSON.stringify(sync)); s.requests = []; s.acked = [];
+  s.stores['wl.notes.v1'] = JSON.stringify({ notes: [{ id: 'n2', at: '2026-11-21T10:00:00Z', where: '#calm', tag: 'Idea', text: 'b' }, { id: 'n1', at: '2026-11-20T10:00:00Z', where: '#home', tag: 'Bug', text: 'a', read: '2026-11-20T20:00:00Z' }] });
+  const f = path.join(w, 'sync.json'); fs.writeFileSync(f, JSON.stringify(s));
+  const a = T.ackNotes(f, w, now);
+  assert.deepStrictEqual(a.ids, ['n2'], 'only the unread one');
+  assert.ok(/^notes-ack-\d{14}$/.test(a.id), a.id);
+  const r = T.rows(f, w, null, now);
+  assert.deepStrictEqual(r.problems, []);
+  const back = C.rowsToAnswers(r.rows);
+  assert.strictEqual(back[a.id].task, 'notes-ack'); assert.deepStrictEqual(back[a.id].answer.ids, ['n2']);
+  // nothing unread: no file, no row
+  const s2 = JSON.parse(JSON.stringify(s)); s2.stores['wl.notes.v1'] = JSON.stringify({ notes: [] });
+  const w2 = fs.mkdtempSync(path.join(os.tmpdir(), 'cloud-notes-')); const f2 = path.join(w2, 'sync.json'); fs.writeFileSync(f2, JSON.stringify(s2));
+  assert.strictEqual(T.ackNotes(f2, w2, now).id, null);
+  assert.strictEqual(T.rows(f2, w2, null, now).added, 0);
+});
 console.log(n + ' cloud-answer tests passed');

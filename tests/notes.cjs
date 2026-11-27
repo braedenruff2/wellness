@@ -55,4 +55,16 @@ t('validate: keeps valid notes, drops junk, rejects non-object', () => {
   ]);
 });
 
+t('markRead: a cloud run\'s ack marks those notes read (once); validate keeps it; unread lists the rest', () => {
+  const s = N.defaults();
+  const a = N.add(s, 'first', '#home', 'Idea', new Date('2026-11-26T10:00:00Z')), b = N.add(s, 'second', '#calm', 'Bug', new Date('2026-11-26T11:00:00Z'));
+  assert.strictEqual(N.markRead(s, [a.id, 'nope'], '2026-11-27T01:00:00Z'), 1);
+  assert.strictEqual(N.markRead(s, [a.id], '2026-11-28T01:00:00Z'), 0, 'already read');
+  assert.strictEqual(s.notes.find((x) => x.id === a.id).read, '2026-11-27T01:00:00.000Z');
+  assert.deepStrictEqual(N.unread(s).map((x) => x.id), [b.id]);
+  const v = N.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.notes.find((x) => x.id === a.id).read, '2026-11-27T01:00:00.000Z');
+  assert.ok(!('read' in v.notes.find((x) => x.id === b.id)));
+  assert.strictEqual(N.markRead(s, null), 0); assert.strictEqual(N.markRead(null, [a.id]), 0);
+});
 console.log(n + ' notes unit tests passed');
