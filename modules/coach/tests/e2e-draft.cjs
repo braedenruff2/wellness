@@ -59,6 +59,34 @@ const DRAFT = 'She cries every time I put her down in the crib unless she is alr
     assert.strictEqual(await p2.locator('#co-draft-line').count(), 0, 'sent: no line');
     await p2.close();
   });
+  await t.step('a PC job that never finishes: after the time limit the spinner ends with a plain message, the question stays', async () => {
+    const p2 = await page.context().newPage();
+    await p2.clock.install({ time: new Date(2026, 10, 22, 9, 0) });
+    await p2.addInitScript(() => {
+      window.FCAndroid = {
+        pcStatus: () => '{"paired":true,"host":"192.168.1.20","name":"PC"}',
+        pcRequest: (id, op, a) => {
+          const out = op === 'post' ? JSON.stringify({ job: 'job-slow' }) : JSON.stringify({ state: 'running' });
+          Promise.resolve().then(() => window.FCPcDone(id, true, out));
+        }
+      };
+    });
+    await p2.goto(base + '#home');
+    await p2.evaluate((d) => localStorage.setItem('wl.coach.v1', JSON.stringify({ child: { name: 'Mila', birth: '2025-11-24' }, history: [], current: null, pending: null, teach: {}, realDraft: d, autoTried: '2026-11-22' })), DRAFT);
+    await p2.goto(base + '#coach'); await p2.reload();
+    await p2.click('#co-real-go');
+    await p2.clock.runFor(60000);
+    assert.ok((await p2.textContent('#view')).includes('checking current guidance'), 'waiting');
+    await p2.clock.runFor(10 * 60000);
+    const txt = await p2.textContent('#view');
+    assert.ok(!txt.includes('checking current guidance'), 'spinner ended');
+    assert.ok(/taking too long/i.test(txt), 'says why: ' + txt.slice(0, 200));
+    assert.strictEqual(await p2.inputValue('#co-real'), DRAFT, 'his question is still in the box');
+    const s = await p2.evaluate(() => JSON.parse(localStorage.getItem('wl.coach.v1')));
+    assert.strictEqual(s.pending, null, 'no job left');
+    assert.ok(await p2.locator('#co-draft-line, #co-real-saved').count() >= 1, 'saved, not sent yet');
+    await p2.close();
+  });
   await t.step('narrow + no errors', async () => {
     await t.noOverflow(['#home', '#coach', '#coach/real']);
     assert.deepStrictEqual(t.errors, []);
