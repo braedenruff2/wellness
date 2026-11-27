@@ -1,6 +1,6 @@
 # Cloud log
 
-## 2026-11-27 04:42-05:15 AST (new run after the usage reset; APK 0.1.20261127.0908, real key, cert 6795e499...)
+## 2026-11-27 04:42-05:15 AST (new run after the usage reset; APK built after the final suite, real key, cert 6795e499...)
 - Cross-review of Gemini 122f7ae..eb3301e with an independent subagent. Fixed with tests:
   - bug: an automatic Parenting scenario that finished while an advice request was running cleared the advice's saved job and spinner (could be sent twice, lost on restart) / cause: start() set S.pending = null and finish() for any request / fixed: each request clears only its own job and spinner; no auto start while typing on #coach / test: modules/coach/tests/e2e-auto.cjs (fails without the fix) (task 315).
   - bug: a paired PC that never answers (Drive sync off) got an automatic scenario request every 15 min all day / fixed: back off 1 h, 3 h, max 3 a day; manual Generate still works / test: e2e-auto (315).
@@ -9,7 +9,8 @@
   - bug: PC is_usage_limit took "file size limit reached" / tokens / recursion limits for running out of Claude usage (Gemini until the reset) / fixed: NOT_QUOTA_RE unless the message names usage/rate/429/resets / test: test_pc (318).
   - bug: the 600-answer cap dropped old "Not for me" marks (hidden items came back) / fixed: oldest quick answers go first / test: me unit (319).
 - Checked, not a bug: body.hide-bar after leaving an open workout (route() resets body classes).
-- Added tasks 320-324.
+- Done 325: an unsent Parenting question (draft kept as he types) says "Saved on this phone, not sent yet" on #coach, and Home's Parenting card adds "Finish and send" (#coach/real, Get advice focused); e2e-draft.
+- Added tasks 320-325.
 - Tested: full suite at the APK's commit (106+ suites, none skipped).
 - Check on the phone: Settings > Hidden as not for me (only appears once something is marked); Parenting: start typing a real situation, nothing interrupts.
 
