@@ -26,7 +26,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     const st = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')));
     assert.ok(st.sessions[0].mins >= 3 && st.sessions[0].mins < 3.3, st.sessions[0].mins);
     assert.strictEqual(st.settings.minutes, 5, 'the saved default is unchanged');
-    await page.click('#c-save'); await page.waitForSelector('.list');
+    await page.click('#c-save'); await page.waitForSelector('#c-today');
   });
   await t.step('back on the list, the next visit starts at the usual length again', async () => {
     await page.goto(base + '#calm/s/slow'); await page.waitForSelector('#c-len');
@@ -108,10 +108,12 @@ const Wb = require('../../../tests/lib/web.cjs');
       f('ground', 10, 'Not really'); f('ground', 11, 'Not really'); f('ground', 12, 'Not really'); f('body', 10, 'A bit'); f('body', 11, 'Not really');
       localStorage.setItem('wl.me.v1', JSON.stringify(me));
     });
-    await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('.list li');
-    const items = await page.$$eval('.list:not(#c-stages) > li', (ls) => ls.map((l) => l.textContent)); // the practices, not the meditation path's stages
+    await page.goto(base + '#home'); await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-all-open');
+    await page.click('#c-all-open'); await page.waitForSelector('#c-all-list li');
+    const items = await page.$$eval('#c-all-list > li', (ls) => ls.map((l) => l.textContent)); // the practices, not the meditation path's stages
     assert.ok(items[items.length - 1].includes('5-4-3-2-1 grounding') && items[items.length - 1].includes('Hasn’t helped you so far'), items[items.length - 1]);
     assert.ok(items.some((x) => x.includes('Body scan') && x.includes('Helped 1 of 2 times')));
+    await page.click('#c-all-x');
   });
   await t.step('no overflow at 1.0, no errors', async () => { await t.noOverflow(['#calm/s/slow', '#calm/s/body', '#calm/s/shuffle']); assert.deepStrictEqual(t.errors, []); });
   await t.close('calm lengths');
