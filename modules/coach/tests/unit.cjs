@@ -227,8 +227,23 @@ t('teachForAge, setTeach, doneToday, doneInLast, and validate persistence', () =
   K.setTeach(s, 'opencup', '');
   assert.strictEqual(s.teach.opencup, undefined);
   // validate keeps valid teach statuses and drops unknown ids/values
-  const v = K.validate({ child: { birth: '2025-12-15' }, history: [], teach: { opencup: 'doing', backwards: 'done', bad: 'done', spoon: 'maybe' } });
+  const v = K.validate({ child: { birth: '2025-12-15' }, history: [], teach: { opencup: 'doing', backwards: 'done', bad: 'done', spoon: 'maybe' }, teachAt: { opencup: '2026-10-25', backwards: '2026-10-01', bad: '2026-10-01', point: '2026-02-30' }, teachNudged: { opencup: '2026-11-18', backwards: '2026-11-01' } });
   assert.deepStrictEqual(v.teach, { opencup: 'doing', backwards: 'done' });
+  assert.deepStrictEqual(v.teachAt, { opencup: '2026-10-25' }, 'validate keeps teachAt only for valid doing items');
+  assert.deepStrictEqual(v.teachNudged, { opencup: '2026-11-18' }, 'validate keeps teachNudged only for valid doing items');
+  // 3-week gentle nudge on items marked "doing" (once only, DST-safe calendar days)
+  const sn = K.defaults(); sn.child.birth = '2025-12-15';
+  const startDay = new Date(2026, 9, 25, 10, 0); // Oct 25 2026 (crosses Nov 1 DST end)
+  K.setTeach(sn, 'opencup', 'doing', startDay);
+  assert.strictEqual(sn.teachAt.opencup, '2026-10-25');
+  assert.strictEqual(K.teachForAge(sn, new Date(2026, 10, 14, 18, 0)).now.find((x) => x.id === 'opencup').nudge, false, '20 days -> no nudge yet');
+  assert.strictEqual(K.teachForAge(sn, new Date(2026, 10, 15, 8, 0)).now.find((x) => x.id === 'opencup').nudge, true, '21 days across DST -> nudge offered');
+  assert.strictEqual(K.ackTeachNudge(sn, 'opencup', new Date(2026, 10, 15, 9, 0)), true);
+  assert.strictEqual(K.teachForAge(sn, new Date(2026, 11, 10, 9, 0)).now.find((x) => x.id === 'opencup').nudge, false, 'ackTeachNudge silences nudge once acknowledged');
+  assert.strictEqual(sn.teach.opencup, 'doing', 'remains doing after ack');
+  K.setTeach(sn, 'opencup', 'done', new Date(2026, 11, 10, 9, 0));
+  assert.strictEqual(sn.teachAt, undefined, 'marking done cleans up teachAt');
+  assert.strictEqual(sn.teachNudged, undefined, 'marking done cleans up teachNudged');
   // doneToday & doneInLast ignore real-situation advice and count only graded scenarios
   const today = new Date(2026, 10, 20, 15, 0);
   assert.strictEqual(K.doneToday(s, today), false);

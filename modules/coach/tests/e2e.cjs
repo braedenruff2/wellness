@@ -198,6 +198,31 @@ const W = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#coach');
     await page.waitForSelector('#co-teach');
     assert.strictEqual(await page.getAttribute('#co-teach [data-teach-id="opencup"][data-teach-val="doing"]', 'aria-pressed'), 'true', 'teach status persisted');
+    // 3+ weeks marked "doing" -> gentle "Still working on it / Done" nudge once
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      s.teach = Object.assign({}, s.teach, { opencup: 'doing', strawcup: 'doing' });
+      s.teachAt = { opencup: '2026-10-28', strawcup: '2026-10-25' };
+      delete s.teachNudged;
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      WL.modules.coach.reload();
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#coach');
+    await page.waitForSelector('[data-teach-nudge="opencup"]');
+    await page.waitForSelector('[data-teach-nudge="strawcup"]');
+    // "Still working on it" dismisses nudge once while keeping item as doing across reload
+    await page.click('[data-teach-keep="opencup"]');
+    assert.strictEqual(await page.$('[data-teach-nudge="opencup"]'), null, 'nudge dismissed after Still working on it');
+    assert.strictEqual(await page.getAttribute('#co-teach [data-teach-id="opencup"][data-teach-val="doing"]', 'aria-pressed'), 'true');
+    // "Done" marks item done and clears nudge
+    await page.click('[data-teach-done="strawcup"]');
+    assert.strictEqual(await page.$('[data-teach-nudge="strawcup"]'), null, 'nudge gone after Done');
+    assert.strictEqual(await page.getAttribute('#co-teach [data-teach-id="strawcup"][data-teach-val="done"]', 'aria-pressed'), 'true');
+    await page.reload();
+    await page.goto(base + '#coach');
+    await page.waitForSelector('#co-teach');
+    assert.strictEqual(await page.$('[data-teach-nudge="opencup"]'), null, 'dismissed nudge stays gone after reload');
+    assert.strictEqual(await page.getAttribute('#co-teach [data-teach-id="strawcup"][data-teach-val="done"]', 'aria-pressed'), 'true');
     // Home Today list includes Parenting once birthday is set, and marks done after a graded scenario today
     await page.goto(base + '#home');
     await page.waitForSelector('#wl-today');

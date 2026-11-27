@@ -116,7 +116,8 @@ const W = require('./lib/web.cjs');
       result: { score: 8, verdict: 'Steady', good: ['Calm'], improve: [], better: '', why: '', practice: i === 20 ? 'Pause and name the feeling' : '', sources: [] }
     }));
     localStorage.setItem('wl.coach.v1', JSON.stringify({
-      child: { name: 'Baby', birth: '2025-08-01', can: [] }, current: null, history: hist, pending: null, realDraft: '', autoTried: '2026-11-23'
+      child: { name: 'Baby', birth: '2025-08-01', can: [] }, current: null, history: hist, pending: null, realDraft: '', autoTried: '2026-11-23',
+      teach: { spoon: 'doing' }, teachAt: { spoon: '2026-10-25' }
     }));
     localStorage.setItem('wl.me.v1', JSON.stringify({
       checkins: {
@@ -306,7 +307,7 @@ const W = require('./lib/web.cjs');
       await t.noOverflow(['#todo']);
     });
     await t.step('text size ' + ts + ': Parenting #co-can-nudge, #co-cloud, #co-teach, #co-hist-search, #co-hist-more, #co-worked, #coach/setup & #coach/h/:id Back', async () => {
-      await page.goto(base + '#coach'); await page.waitForSelector('#co-can-nudge'); await page.waitForSelector('#co-cloud'); await page.waitForSelector('#co-teach'); await page.waitForSelector('#co-hist-search'); await page.waitForSelector('#co-worked'); await page.waitForSelector('#co-hist-more');
+      await page.goto(base + '#coach'); await page.waitForSelector('#co-can-nudge'); await page.waitForSelector('#co-cloud'); await page.waitForSelector('#co-teach'); await page.waitForSelector('.co-teach-nudge'); await page.waitForSelector('#co-hist-search'); await page.waitForSelector('#co-worked'); await page.waitForSelector('#co-hist-more');
       assert.deepStrictEqual(await small('#co-can-nudge a, #co-cloud a, a[href="#coach/setup"], #co-teach button, #co-teach summary, #co-hist-search, #co-hist-more'), []);
       await t.noOverflow(['#coach']);
       await page.goto(base + '#coach/setup'); await page.waitForSelector('#co-name'); await page.waitForSelector('#co-birth'); await page.waitForSelector('#co-can'); await page.waitForSelector('#co-can-note'); await page.waitForSelector('#co-save');

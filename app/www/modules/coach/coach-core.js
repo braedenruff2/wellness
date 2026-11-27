@@ -116,21 +116,61 @@
     return st.slice().sort(function (a, b) { return a.avg - b.avg || a.n - b.n; })[0].skill;
   }
 
-  function setTeach(state, id, val) {
+  function daysBetween(fromIso, toIso) {
+    var a = parse(fromIso), b = parse(toIso);
+    if (!a || !b) return null;
+    return Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / 864e5);
+  }
+  function pruneMap(state, key) {
+    if (state[key] && !Object.keys(state[key]).length) delete state[key];
+  }
+  function setTeach(state, id, val, now) {
     if (!TEACH_BY[id]) return null;
     if (!state.teach || typeof state.teach !== 'object') state.teach = {};
-    if (val === 'doing' || val === 'done') state.teach[id] = val;
-    else delete state.teach[id];
+    var prev = state.teach[id] || '';
+    if (val === 'doing') {
+      state.teach[id] = 'doing';
+      if (prev !== 'doing') {
+        if (!state.teachAt || typeof state.teachAt !== 'object') state.teachAt = {};
+        state.teachAt[id] = iso(now || new Date());
+        if (state.teachNudged && typeof state.teachNudged === 'object') { delete state.teachNudged[id]; pruneMap(state, 'teachNudged'); }
+      }
+    } else if (val === 'done') {
+      state.teach[id] = 'done';
+      if (state.teachAt && typeof state.teachAt === 'object') { delete state.teachAt[id]; pruneMap(state, 'teachAt'); }
+      if (state.teachNudged && typeof state.teachNudged === 'object') { delete state.teachNudged[id]; pruneMap(state, 'teachNudged'); }
+    } else {
+      delete state.teach[id];
+      if (state.teachAt && typeof state.teachAt === 'object') { delete state.teachAt[id]; pruneMap(state, 'teachAt'); }
+      if (state.teachNudged && typeof state.teachNudged === 'object') { delete state.teachNudged[id]; pruneMap(state, 'teachNudged'); }
+    }
     return state.teach[id] || '';
+  }
+  /* Dismisses the once-only 3-week gentle check-in nudge while keeping the item marked "doing". */
+  function ackTeachNudge(state, id, now) {
+    if (!TEACH_BY[id] || !state || !state.teach || state.teach[id] !== 'doing') return false;
+    if (!state.teachNudged || typeof state.teachNudged !== 'object') state.teachNudged = {};
+    state.teachNudged[id] = iso(now || new Date());
+    return true;
   }
 
   /* Practical skills grouped for her exact age: now (current window), next (starting in the next 4 months),
      and earlier (past window and not yet marked "done", so catching up is gentle and visible). */
   function teachForAge(state, now) {
+    now = now || new Date();
     var m = ageMonths(state.child.birth, now);
     if (m == null || m < 0) return null;
+    var todayIso = iso(now);
     var st = (state && state.teach && typeof state.teach === 'object') ? state.teach : {};
-    var wrap = function (x) { return { id: x.id, from: x.from, to: x.to, title: x.title, how: x.how, status: st[x.id] || '' }; };
+    var atMap = (state && state.teachAt && typeof state.teachAt === 'object') ? state.teachAt : {};
+    var nudgedMap = (state && state.teachNudged && typeof state.teachNudged === 'object') ? state.teachNudged : {};
+    var wrap = function (x) {
+      var status = st[x.id] || '';
+      var since = status === 'doing' && parse(atMap[x.id]) ? atMap[x.id] : '';
+      var days = since ? daysBetween(since, todayIso) : null;
+      var nudge = !!(status === 'doing' && days != null && days >= 21 && !(nudgedMap[x.id] && parse(nudgedMap[x.id])));
+      return { id: x.id, from: x.from, to: x.to, title: x.title, how: x.how, status: status, nudge: nudge };
+    };
     var nowList = [], nextList = [], earlierList = [], doneCount = 0, doingCount = 0;
     TEACH.forEach(function (x) {
       var s = st[x.id] || '';
@@ -351,10 +391,24 @@
         if (TEACH_BY[id] && (v === 'doing' || v === 'done')) d.teach[id] = v;
       });
     }
+    if (s.teachAt && typeof s.teachAt === 'object') {
+      var ta = {};
+      Object.keys(s.teachAt).forEach(function (id) {
+        if (TEACH_BY[id] && d.teach[id] === 'doing' && parse(s.teachAt[id])) ta[id] = s.teachAt[id];
+      });
+      if (Object.keys(ta).length) d.teachAt = ta;
+    }
+    if (s.teachNudged && typeof s.teachNudged === 'object') {
+      var tn = {};
+      Object.keys(s.teachNudged).forEach(function (id) {
+        if (TEACH_BY[id] && d.teach[id] === 'doing' && parse(s.teachNudged[id])) tn[id] = s.teachNudged[id];
+      });
+      if (Object.keys(tn).length) d.teachNudged = tn;
+    }
     return d;
   }
 
-  var api = { SKILLS: SKILLS, CAN: CAN, TEACH: TEACH, iso: iso, toggleCan: toggleCan, setCanNote: setCanNote, canText: canText, setTeach: setTeach, teachForAge: teachForAge, doneToday: doneToday, scenarioDue: scenarioDue, doneInLast: doneInLast, defaults: defaults, ageMonths: ageMonths, ageText: ageText, skillStats: skillStats, suggestSkill: suggestSkill,
+  var api = { SKILLS: SKILLS, CAN: CAN, TEACH: TEACH, iso: iso, toggleCan: toggleCan, setCanNote: setCanNote, canText: canText, setTeach: setTeach, ackTeachNudge: ackTeachNudge, teachForAge: teachForAge, doneToday: doneToday, scenarioDue: scenarioDue, doneInLast: doneInLast, defaults: defaults, ageMonths: ageMonths, ageText: ageText, skillStats: skillStats, suggestSkill: suggestSkill,
     scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, practiseReal: practiseReal, tips: tips, tipNotes: tipNotes, workedTips: workedTips, cleanResult: cleanResult, validate: validate };
   root.CoachCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

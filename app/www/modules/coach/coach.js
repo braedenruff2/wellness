@@ -73,6 +73,9 @@
     return '<li data-teach-item="' + esc(x.id) + '"><div class="row"><b class="grow">' + esc(x.title) + '</b>' +
       (badge ? '<span class="meta">' + esc(badge) + '</span>' : '') + '</div>' +
       '<p class="meta" style="margin:.25em 0 .5em">' + esc(x.how) + '</p>' +
+      (x.nudge ? '<div class="gentle co-teach-nudge" data-teach-nudge="' + esc(x.id) + '" style="margin:.4em 0 .5em"><span>You’ve been practising this for a few weeks — still working on it, or ready to mark it done?</span>' +
+        '<div class="chips" style="margin-top:6px"><button class="chip" type="button" data-teach-keep="' + esc(x.id) + '">Still working on it</button>' +
+        '<button class="chip" type="button" data-teach-done="' + esc(x.id) + '">Done \u2713</button></div></div>' : '') +
       '<div class="chips">' +
       '<button class="chip" data-teach-id="' + esc(x.id) + '" data-teach-val="doing" aria-pressed="' + (x.status === 'doing') + '">Practising</button>' +
       '<button class="chip" data-teach-id="' + esc(x.id) + '" data-teach-val="done" aria-pressed="' + (x.status === 'done') + '">Got it \u2713</button>' +
@@ -103,16 +106,33 @@
   }
   function wireTeach() {
     var wrap = $('#co-teach-wrap'); if (!wrap) return;
+    function redrawTeach() {
+      var openNext = !!($('#co-teach-next') && $('#co-teach-next').open);
+      var openEarlier = !!($('#co-teach-earlier') && $('#co-teach-earlier').open);
+      wrap.innerHTML = teachHtml(openNext, openEarlier);
+      wireTeach();
+    }
     $$('[data-teach-id]', wrap).forEach(function (b) {
       b.onclick = function () {
         var id = b.dataset.teachId, val = b.dataset.teachVal;
         var cur = (S.teach && S.teach[id]) || '';
-        var openNext = !!($('#co-teach-next') && $('#co-teach-next').open);
-        var openEarlier = !!($('#co-teach-earlier') && $('#co-teach-earlier').open);
         K.setTeach(S, id, cur === val ? '' : val);
         save();
-        wrap.innerHTML = teachHtml(openNext, openEarlier);
-        wireTeach();
+        redrawTeach();
+      };
+    });
+    $$('[data-teach-keep]', wrap).forEach(function (b) {
+      b.onclick = function () {
+        K.ackTeachNudge(S, b.dataset.teachKeep);
+        save();
+        redrawTeach();
+      };
+    });
+    $$('[data-teach-done]', wrap).forEach(function (b) {
+      b.onclick = function () {
+        K.setTeach(S, b.dataset.teachDone, 'done');
+        save();
+        redrawTeach();
       };
     });
   }
