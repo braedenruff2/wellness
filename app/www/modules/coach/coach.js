@@ -249,8 +249,16 @@
   }
   function finish() { waiting = null; if (here()) render([]); else refreshCard(); }
 
+  /* One request at a time: while one waits (its spinner may be off screen, e.g. with text in the history search)
+     another tap says so instead of starting a second one. */
+  function busy() {
+    if (!waiting) return false;
+    WL.toast('Claude is still on the last one: it shows here when it’s ready');
+    return true;
+  }
   function newScenario(opts) {
     var auto = !!(opts && opts.auto);
+    if (!auto && busy()) return;
     if (!auto) { S.autoTried = today(); save(); }
     err = null; waiting = { kind: 'scenario', secs: 0 };
     if (here()) { if (!typingHere()) render([]); } else refreshCard();
@@ -263,6 +271,7 @@
   function gradeIt(answer) {
     answer = String(answer || '').trim();
     if (answer.length < 15) { WL.toast('Write a little more: what would you do and say?'); return; }
+    if (busy()) return;
     var c = S.current; c.answer = answer; save();
     err = null; waiting = { kind: 'grade', secs: 0 }; render([]);
     start('coach-grade', withNotes({ child: S.child.name, age: c.age, can: K.canText(S), scenario: c.scenario, question: c.question, answer: answer }), function (a) {
@@ -274,6 +283,7 @@
   function askReal(text) {
     text = String(text || '').trim();
     if (text.length < 20) { WL.toast('Tell Claude a bit more: what happens, when, what you’ve tried'); return; }
+    if (busy()) return;
     err = null; waiting = { kind: 'real', secs: 0 }; render([]);
     start('coach-advice', withNotes({ child: S.child.name, age: K.ageText(S.child.birth), can: K.canText(S), situation: text.slice(0, 3000) }), function (a) {
       var h = K.addReal(S, text, a); S.realDraft = ''; save();

@@ -127,6 +127,40 @@ const CHILD = { child: { name: 'Mila', birth: '2025-11-24' }, history: [], curre
     await p2.close();
   });
 
+  await t.step('one request at a time: Generate with text in the history search, then Get advice: only one goes out', async () => {
+    const p2 = await page.context().newPage();
+    await p2.clock.install({ time: new Date(2026, 10, 22, 9, 0) });
+    await p2.addInitScript(() => {
+      window.__posts = [];
+      window.FCAndroid = {
+        pcStatus: () => '{"paired":true,"host":"192.168.1.20","name":"PC"}',
+        pcRequest: (id, op, a, b) => {
+          let out = '{}';
+          if (op === 'post' && a === '/v1/ask') { window.__posts.push(JSON.parse(b).task); out = JSON.stringify({ job: 'job-x' }); }
+          else if (op === 'get') out = JSON.stringify({ state: 'running' });
+          Promise.resolve().then(() => window.FCPcDone(id, true, out));
+        }
+      };
+    });
+    await p2.goto(base + '#home');
+    await p2.evaluate((s) => {
+      s = JSON.parse(JSON.stringify(s)); s.autoTried = '2026-11-22';
+      for (let i = 0; i < 7; i++) s.history.push({ id: 'h' + i, at: new Date(2026, 10, 10 + i, 9).toISOString(), title: 'Moment ' + i, skill: 'Connection', scenario: 's', question: 'q', age: '12 months', answer: 'a', result: { score: 7, good: [], better: [], why: '' } });
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+    }, CHILD);
+    await p2.goto(base + '#coach'); await p2.reload();
+    await p2.fill('#co-hist-search', 'Moment');
+    await p2.click('#co-new');
+    await p2.clock.runFor(2000);
+    if (await p2.locator('#co-real-go').count()) {
+      await p2.fill('#co-real', 'She cries every time I put her down in the crib unless asleep.');
+      await p2.click('#co-real-go');
+      await p2.clock.runFor(2000);
+    }
+    assert.deepStrictEqual(await p2.evaluate(() => window.__posts), ['coach-scenario'], 'only the first request went out');
+    await p2.close();
+  });
+
   await t.step('no console errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('coach auto browser');
 })().catch((e) => { console.error(e); process.exit(1); });
