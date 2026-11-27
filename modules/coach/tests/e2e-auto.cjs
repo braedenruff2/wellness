@@ -92,6 +92,39 @@ const CHILD = { child: { name: 'Mila', birth: '2025-11-24' }, history: [], curre
     await p2.close();
   });
 
+  await t.step('restart with an advice request still running: no scenario until the advice has come, then the scenario', async () => {
+    const p2 = await page.context().newPage();
+    await p2.clock.install({ time: new Date(2026, 10, 22, 9, 0) });
+    await p2.addInitScript(() => {
+      window.__posts = []; window.__gets = 0; window.__t0 = Date.now();
+      window.FCAndroid = {
+        pcStatus: () => '{"paired":true,"host":"192.168.1.20","name":"PC"}',
+        pcRequest: (id, op, a, b) => {
+          let out = '{}';
+          if (op === 'post' && a === '/v1/ask') { const body = JSON.parse(b); window.__posts.push(body.task); out = JSON.stringify({ job: 'job-' + body.task }); }
+          else if (op === 'get' && a.indexOf('/v1/job') === 0) {
+            window.__gets++;
+            if (a.indexOf('job-adv') >= 0) out = JSON.stringify(Date.now() - window.__t0 < 90000 ? { state: 'running' } : { state: 'done', answer: { summary: 'Advice', steps: ['a'], say: ['b'], why: 'c' } });
+            else out = JSON.stringify({ state: 'done', answer: { title: 'Auto', skill: 'Connection', scenario: 'A quiet morning.', question: 'What do you do?' } });
+          }
+          Promise.resolve().then(() => window.FCPcDone(id, true, out));
+        }
+      };
+    });
+    await p2.goto(base + '#home');
+    await p2.evaluate((s) => { s = JSON.parse(JSON.stringify(s)); s.pending = { job: 'job-adv', task: 'coach-advice', at: Date.now() - 60000, answer: 'She cries every time I put her down in the crib.' }; s.realDraft = s.pending.answer; localStorage.setItem('wl.coach.v1', JSON.stringify(s)); }, CHILD);
+    await p2.reload();
+    await p2.clock.runFor(60000);
+    assert.deepStrictEqual(await p2.evaluate(() => window.__posts), [], 'nothing new asked while the advice is on its way');
+    assert.ok(await p2.evaluate(() => window.__gets) > 0, 'the advice job is being checked');
+    await p2.clock.runFor(60000);
+    const s = await p2.evaluate(() => JSON.parse(localStorage.getItem('wl.coach.v1')));
+    assert.ok(s.history.some((h) => h.kind === 'real') && s.pending === null && s.realDraft === '', 'advice arrived and saved');
+    await p2.clock.runFor(16 * 60000);
+    assert.deepStrictEqual(await p2.evaluate(() => window.__posts), ['coach-scenario'], 'then the day\'s scenario');
+    await p2.close();
+  });
+
   await t.step('no console errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('coach auto browser');
 })().catch((e) => { console.error(e); process.exit(1); });
