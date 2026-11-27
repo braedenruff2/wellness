@@ -826,7 +826,18 @@ def prompt_values(task, inp):
     v["cookdata"] = j({k: inp.get(k) for k in ("weekStart", "expiring", "pantry", "workout", "childAge", "childSummary", "recentMeals") if k in inp})[:20000]
     v["photopath"] = str(inp.get("photopath") or "(photo attached in request)")
     v["can"] = can_do(inp); v["tips"] = tip_notes(inp); v["skills"] = j(SKILLS); v["rules"] = read_prompt("rules")
+    v["practising"] = practising(inp)
     return v
+
+
+def practising(inp):
+    """What he marked "doing" on Parenting's "What to teach now" list (titles), so scenarios now and then practise it."""
+    p = inp.get("practising")
+    if not isinstance(p, list): return ""
+    p = [str(x).strip()[:80] for x in p if isinstance(x, str) and x.strip()][:8]
+    if not p: return ""
+    return (f"What he is working on with her right now (his \"What to teach now\" list): {j(p)}. Now and then set the "
+            "moment around one of these, if it fits the skill. ")
 
 
 def fill(template, values):

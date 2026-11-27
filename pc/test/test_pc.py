@@ -142,6 +142,9 @@ for _t in ("coach-scenario", "coach-grade", "coach-advice"):
     check(_t + ": his tip answers are in the prompt", "She already does this" in _p and "Same bedtime song" in _p
           and "Don't suggest again" in _p and "No answer" not in _p, _p[:900])
     check(_t + ": no tip answers, no tip line", "try this week\" tips" not in W.prompt_for(_t, {"age": "1", "tipNotes": "x"})[0])
+_pp = W.prompt_for("coach-scenario", {"age": "12 months old", "practising": ["Falling asleep in the crib with you nearby", "", 5]})[0]
+check("coach-scenario: what he is working on (teach list) is in the prompt", "Falling asleep in the crib with you nearby" in _pp and "Now and then set the moment" in _pp and "{{practising}}" not in _pp, _pp[:900])
+check("coach-scenario: nothing marked doing, no line", "What he is working on" not in W.prompt_for("coach-scenario", {"age": "1"})[0])
 check("tip notes keep the last 6", W.tip_notes({"tipNotes": [{"tip": "t%d" % i, "tried": "It worked"} for i in range(9)]}).count("It worked") == 6)
 check("tip notes are not sent to the other tasks", "try this week" not in W.prompt_for("advice", {"summary": "S", "tipNotes": _tn})[0])
 check("real-situation prompt carries his words and the age", "car seat" in W.prompt_for("coach-advice", {"situation": "car seat", "age": "11 months old"})[0]
