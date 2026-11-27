@@ -87,6 +87,25 @@ const DRAFT = 'She cries every time I put her down in the crib unless she is alr
     assert.ok(await p2.locator('#co-draft-line, #co-real-saved').count() >= 1, 'saved, not sent yet');
     await p2.close();
   });
+  await t.step('Home Parenting card at its fullest at 320 px / text 1.3: nothing cut off, buttons 44 px', async () => {
+    await page.setViewportSize({ width: 320, height: 760 });
+    await page.evaluate((d) => {
+      localStorage.setItem('wl.shell.v1', JSON.stringify({ theme: 'dark', textSize: 1.3, since: '2026-10-01T12:00:00.000Z' }));
+      const res = { score: 7, verdict: 'Good', good: ['Calm voice'], improve: ['Name the feeling'], better: 'Say it', why: 'Because', practice: 'Try: name what she feels before you act, every time this week.' };
+      localStorage.setItem('wl.coach.v1', JSON.stringify({ child: { name: 'Mila', birth: '2025-11-24' }, current: null, pending: null, teach: {}, realDraft: d, autoTried: '2026-11-22',
+        history: [{ id: 'h1', at: new Date(2026, 10, 21, 9).toISOString(), title: 'A long title for a moment at the window', skill: 'Connection', scenario: 's', question: 'q', age: '12 months', answer: 'a', result: res }] }));
+    }, DRAFT);
+    await page.goto(base + '#coach'); await page.goto(base + '#home'); await page.reload();
+    await page.waitForSelector('.home-card[data-module="coach"] #co-draft-line');
+    const card = '.home-card[data-module="coach"]';
+    const small = await page.$$eval(card + ' a.btn, ' + card + ' button', (els) => els.filter((e) => e.offsetParent).map((e) => ({ t: e.textContent.trim(), h: Math.round(e.getBoundingClientRect().height) })).filter((x) => x.h < 44));
+    assert.deepStrictEqual(small, []);
+    const cut = await page.$$eval(card + ' *', (els) => els.filter((e) => e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).overflowX !== 'visible').map((e) => e.id || e.className));
+    assert.deepStrictEqual(cut, []);
+    await t.noOverflow(['#home']);
+    await page.setViewportSize({ width: 360, height: 760 });
+    await page.evaluate(() => localStorage.removeItem('wl.shell.v1'));
+  });
   await t.step('narrow + no errors', async () => {
     await t.noOverflow(['#home', '#coach', '#coach/real']);
     assert.deepStrictEqual(t.errors, []);
