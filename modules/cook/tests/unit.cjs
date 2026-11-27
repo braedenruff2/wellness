@@ -514,4 +514,14 @@ t('394: custom foods that differ only by symbols, or have non-Latin names, never
   assert.strictEqual(s.customFoods.find((x) => x.name.trim().toLowerCase().replace(/\s+/g, ' ') === 'milk 2%').nutri.kcal, 130);
 });
 
+t('395: every bundled recipe has its own nutrition profile and no profile is orphaned', () => {
+  const ids = K.RECIPES.map((r) => r.id), prof = Object.keys(K.nutri.RECIPE_NUTRI);
+  assert.deepStrictEqual(ids.filter((id) => !K.nutri.RECIPE_NUTRI[id]), [], 'recipes without a profile');
+  assert.deepStrictEqual(prof.filter((id) => ids.indexOf(id) < 0), [], 'profiles matching no recipe');
+  for (const id of prof) { const n = K.nutri.RECIPE_NUTRI[id]; assert.ok(n.kcal >= 100 && n.kcal <= 900 && n.pro > 0, id); }
+  // a made snack logs its own profile, not a guess from the title
+  const snack = K.RECIPES.find((r) => r.id === 'snack-eggs');
+  assert.strictEqual(K.nutri.estimateEntry({ who: 'me', recipeId: 'snack-eggs', text: snack.title, portion: 'Regular' }, [], K.RECIPES).nutri.kcal, K.nutri.RECIPE_NUTRI['snack-eggs'].kcal);
+});
+
 console.log(n + ' cook unit tests passed');
