@@ -600,6 +600,52 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(wordsTxt.includes('talong') && wordsTxt.includes('from Kare-kare'), 'AI dish title shown in Your words: ' + wordsTxt.slice(0, 400));
   });
 
+  await t.step('Food log shows transparent matched breakdown (incl. white brioche), inline Edit numbers override, and Estimate with AI', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => {
+      localStorage.setItem('wl.shell.v1', JSON.stringify({ theme: 'light', textSize: 1 }));
+      WL.applyLook();
+      window.WL.pc = Object.assign({}, window.WL.pc || {}, {
+        canAsk: () => true,
+        ready: () => true,
+        queued: () => [],
+        ask: (task, inp) => {
+          if (task === 'cook-nutri') {
+            return Promise.resolve({
+              kcal: 430, pro: 15, carb: 46, fat: 21, fib: 4, iron: 2.1, ca: 90, vitc: 0, k: 290,
+              breakdown: '2 slices white brioche (240 kcal) + 2 tbsp peanut butter (190 kcal)'
+            });
+          }
+          return Promise.reject(new Error('unexpected ' + task));
+        }
+      });
+    });
+    await page.goto(base + '#cook/log');
+    await page.waitForSelector('#ck-m-text');
+    await page.fill('#ck-m-text', 'peanut butter on toast');
+    await page.click('#ck-m-save');
+    await page.waitForSelector('#ck-log-list .ck-est-why');
+    const firstLi = page.locator('#ck-log-list li').first();
+    const why = await firstLi.locator('.ck-est-why').textContent();
+    assert.ok(/Matched:/.test(why) && /Peanut butter/i.test(why) && /White \/ brioche bread/i.test(why), why);
+
+    // Inline Edit numbers -> updates targets immediately; Use auto-estimate reverts cleanly
+    await firstLi.locator('[data-log-edit]').click();
+    await firstLi.locator('.ck-ed-kcal').fill('480');
+    await firstLi.locator('.ck-ed-pro').fill('18');
+    await firstLi.locator('.ck-ed-save').click();
+    await page.waitForFunction(() => document.querySelector('#ck-log-list li .ck-est-why').textContent.includes('Edited numbers'));
+    assert.ok((await firstLi.textContent()).includes('~480 kcal, 18 g pro'));
+    await firstLi.locator('[data-log-edit]').click();
+    await firstLi.locator('.ck-ed-auto').click();
+    await page.waitForFunction(() => document.querySelector('#ck-log-list li .ck-est-why').textContent.includes('Matched:'));
+
+    // Estimate with AI -> applies breakdown & exact macros
+    await firstLi.locator('[data-log-ai]').click();
+    await page.waitForFunction(() => document.querySelector('#ck-log-list li .ck-est-why').textContent.includes('2 slices white brioche'));
+    assert.ok((await firstLi.textContent()).includes('~430 kcal, 15 g pro'));
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('cook e2e');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

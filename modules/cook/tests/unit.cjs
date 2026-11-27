@@ -554,4 +554,47 @@ t('400: servingTbsp handles unicode fractions & full unit words, and NUM_RE hand
   assert.strictEqual(me('1 tbsp honey glaze', cfs), 60, '1 teaspoon serving scales 3x for 1 tbsp');
 });
 
+t('White / brioche bread default, expanded everyday Western foods, transparent match summary, and updateLogNutri (manual + AI)', () => {
+  const CN = K.nutri, F = CN.FOOD_BY;
+  assert.ok(CN.FOOD_DB.length >= 75, 'expanded everyday food list: ' + CN.FOOD_DB.length);
+  // Default toast/bread is white / brioche (120 kcal/slice), separate from whole-wheat bread (82 kcal/slice)
+  const pbToast = CN.estimateEntry({ who: 'me', text: 'peanut butter on toast', portion: 'Regular' });
+  assert.strictEqual(pbToast.matched, true);
+  assert.strictEqual(Math.round(pbToast.nutri.kcal), F.pb.nutri.kcal + F.toast.nutri.kcal);
+  assert.ok(/White \/ brioche bread/i.test(pbToast.summary) && /Peanut butter/i.test(pbToast.summary), pbToast.summary);
+  const ww = CN.estimateEntry({ who: 'me', text: 'whole wheat bread', portion: 'Regular' });
+  assert.strictEqual(Math.round(ww.nutri.kcal), F.wholegrain.nutri.kcal);
+
+  // Everyday non-Filipino foods match cleanly
+  for (const [txt, minK] of [
+    ['grilled cheese', 300], ['cheeseburger & fries', 700], ['2 slices pizza', 500],
+    ['mac and cheese', 300], ['bagel with cream cheese', 320], ['pancakes and bacon', 300],
+    ['turkey sandwich & grapes', 420], ['chicken nuggets', 200], ['granola bar & latte', 200]
+  ]) {
+    const e = CN.estimateEntry({ who: 'me', text: txt, portion: 'Regular' });
+    assert.ok(e.matched && e.nutri.kcal >= minK, txt + ' -> ' + JSON.stringify(e));
+  }
+
+  // updateLogNutri: exact manual override & AI estimate are NOT re-scaled by portion or child ate; null resets to auto
+  const s = K.defaults();
+  const lm = K.logMe(s, { date: '2026-11-27', meal: 'lunch', text: 'peanut butter on toast', portion: 'Large' }, now);
+  K.updateLogNutri(s, lm.id, { kcal: 420, pro: 16, carb: 44, fat: 20 }, { exact: true, note: 'Edited numbers', source: 'manual' });
+  const estM = CN.estimateEntry(lm);
+  assert.strictEqual(estM.nutri.kcal, 420, 'exact manual override not double-scaled by Large');
+  assert.strictEqual(estM.summary, 'Edited numbers');
+
+  const lc = K.logChild(s, { date: '2026-11-27', meal: 'snack', offered: 'Brioche & PB', ate: 'About half' }, now);
+  K.updateLogNutri(s, lc.id, { kcal: 135, pro: 4, carb: 16, fat: 6 }, { exact: true, note: 'Half slice brioche + thin PB', source: 'ai' });
+  const estC = CN.estimateEntry(lc);
+  assert.strictEqual(estC.nutri.kcal, 135, 'exact AI child estimate kept as-is');
+  assert.ok(/^AI estimate: Half slice brioche/.test(estC.summary), estC.summary);
+
+  const v = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.logs[0].nutriExact, true);
+  assert.strictEqual(v.logs[0].nutriSource, 'ai');
+  assert.strictEqual(v.logs[0].nutriNote, 'Half slice brioche + thin PB');
+  K.updateLogNutri(v, lm.id, null);
+  assert.strictEqual(v.logs.find((x) => x.id === lm.id).nutri, undefined, 'null resets to auto-estimate');
+});
+
 console.log(n + ' cook unit tests passed');

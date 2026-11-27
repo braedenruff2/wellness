@@ -83,7 +83,7 @@
 
     h += mainBars.map(function (b) { return targetBarHtml(b, who); }).join('');
     if (dn.unmatched > 0) {
-      h += '<p class="meta" style="margin:.4em 0 0">' + dn.unmatched + ' logged item' + (dn.unmatched === 1 ? '' : 's') + ' had no built-in estimate — use “+ Pick foods” for closer totals.</p>';
+      h += '<p class="meta" style="margin:.4em 0 0">' + dn.unmatched + ' logged item' + (dn.unmatched === 1 ? '' : 's') + ' had no offline estimate — tap “Edit numbers”, “Estimate with AI”, or “+ Pick foods”.</p>';
     }
     h += '<details id="ck-micro" style="margin-top:6px"><summary class="meta">More nutrients (' + moreBars.map(function (b) { return b.label; }).join(', ') + ')</summary>' +
       moreBars.map(function (b) { return targetBarHtml(b, who); }).join('') + '</details>';
@@ -214,8 +214,8 @@
   }
 
   /* ---- Tab 3: Food log & Cronometer-style targets (#cook/log) ---- */
-  var CHILD_QUICK = ['Scrambled egg', 'Banana', 'Avocado', 'Greek yogurt', 'Oatmeal', 'Chicken & rice'];
-  var ME_QUICK = ['2 eggs & toast', 'Chicken & rice', 'Greek yogurt & berries', 'Protein shake', 'Tinolang manok'];
+  var CHILD_QUICK = ['PB on toast', 'Scrambled egg', 'Banana', 'Avocado', 'Greek yogurt', 'Mac & cheese', 'Chicken & rice'];
+  var ME_QUICK = ['PB on brioche', '2 eggs & toast', 'Chicken & rice', 'Greek yogurt & berries', 'Protein shake', 'Sandwich'];
   function logHtml(S, ctx) {
     var K = root.CookCore, d = ctx.logNow, tIso = K.iso(d);
     var day = (S.plan && S.plan.days && S.plan.days[tIso]) || {};
@@ -269,17 +269,33 @@
       }).join('') + '</div>' +
       '<div class="row" style="margin-top:10px"><button class="primary" id="ck-m-save" type="button">Save my meal</button></div></div>';
 
-    // Recent logs list (with rough kcal / protein estimate when matched)
+    // Recent logs list (transparent breakdown, manual number edit, and optional AI estimate)
     var recent = (S.logs || []).slice(0, 20);
-    h += '<div class="card ui" id="ck-log-list"><h3>Recent meals</h3>' + (recent.length ? '<ul class="list">' + recent.map(function (x) {
+    var canAi = !!(ctx.askable && ctx.askable());
+    var nq = ctx.queuedFor ? ctx.queuedFor('cook-nutri') : [];
+    var WL = root.WL;
+    h += '<div class="card ui" id="ck-log-list"><h3>Recent meals</h3>' +
+      (ctx.nutriErr ? '<p class="no" id="ck-nutri-err" style="margin:0 0 6px">' + esc(ctx.nutriErr) + '</p>' : '') +
+      (nq.length && WL.pc && WL.pc.queuedText ? '<div class="meta" id="ck-nutri-queued" style="margin:0 0 6px">' + esc(WL.pc.queuedText()) + ' ' + (WL.pc.cancelHtml ? WL.pc.cancelHtml(nq[0].id) : '') + '</div>' : '') +
+      (recent.length ? '<ul class="list">' + recent.map(function (x) {
       var who = x.who === 'child' ? cName : 'Me';
       var est = K.nutri ? K.nutri.estimateEntry(x, S.customFoods, K.RECIPES) : null;
       var estTxt = est && est.matched && est.nutri.kcal > 0 ? ' · ~' + Math.round(est.nutri.kcal) + ' kcal, ' + Math.round(est.nutri.pro) + ' g pro' : '';
+      var whyTxt = est && est.summary
+        ? est.summary
+        : 'No offline match yet — tap “Edit numbers”' + (canAi ? ' or “Estimate with AI”' : '') + '.';
       var body = x.who === 'child'
         ? 'Offered: ' + esc(x.offered) + ' · <b>' + esc(x.ate) + '</b>' + (x.note ? ' (' + esc(x.note) + ')' : '')
         : esc(x.text) + ' · ' + esc(x.portion) + (x.tags && x.tags.length ? ' (' + esc(x.tags.join(', ')) + ')' : '');
-      return '<li class="entry"><span class="kind">' + esc(who + ' · ' + (K.MEAL_LABEL[x.meal] || x.meal)) + '</span> <span class="when">' + esc(x.date + estTxt) + '</span>' +
-        '<p>' + body + '</p><button class="link ck-log-del" type="button" data-id="' + esc(x.id) + '" aria-label="Delete meal log">Delete</button></li>';
+      var busyThis = ctx.nutriBusyId === x.id;
+      return '<li class="entry" data-log-id="' + esc(x.id) + '"><span class="kind">' + esc(who + ' · ' + (K.MEAL_LABEL[x.meal] || x.meal)) + '</span> <span class="when">' + esc(x.date + estTxt) + '</span>' +
+        '<p>' + body + '</p>' +
+        '<div class="meta ck-est-why" style="margin-top:2px">' + esc(whyTxt) + '</div>' +
+        '<div class="row" style="margin-top:2px;gap:6px">' +
+        '<button class="link" type="button" data-log-edit="' + esc(x.id) + '">Edit numbers</button>' +
+        (canAi ? '<button class="link" type="button" data-log-ai="' + esc(x.id) + '"' + (ctx.nutriBusyId ? ' disabled' : '') + '>' + (busyThis ? 'Estimating…' : 'Estimate with AI') + '</button>' : '') +
+        '<button class="link ck-log-del" type="button" data-id="' + esc(x.id) + '" aria-label="Delete meal log">Delete</button>' +
+        '</div><div class="ck-log-ed" hidden></div></li>';
     }).join('') + '</ul>' : '<p class="meta">Nothing logged yet.</p>') + '</div>';
     return h;
   }

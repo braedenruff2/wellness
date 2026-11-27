@@ -62,6 +62,8 @@ elif '7-day meal plan' in p:
     ans = json.dumps({"note": "Use expiring salmon first.", "days": [{"date": "2026-11-26", "breakfast": {"recipeId": "eggs-toast", "title": "Soft scrambled eggs, spinach & toast"}, "lunch": {"recipeId": "tuna-rice", "title": "10-minute tuna, avocado & cucumber rice bowl"}, "dinner": {"recipeId": "salmon-tray", "title": "20-minute baked salmon, spinach & potatoes"}}]})
 elif 'wise-reasoning reflection partner' in p:
     ans = json.dumps({"blindSpots": ["Treating fatigue as bad intent"], "otherSide": "Everyone had a long day.", "reframe": "In a year, calm matters most.", "nextStep": "Pause and ask gently."})
+elif 'single logged meal or snack' in p:
+    ans = json.dumps({"kcal": 430, "pro": 15, "carb": 46, "fat": 21, "fib": 4, "iron": 2.1, "ca": 90, "vitc": 0, "k": 290, "breakdown": "2 slices white brioche + 2 tbsp peanut butter"})
 else:
     ans = json.dumps({"headline": "h", "points": [p[p.find('Activity'):p.find('Activity') + 60]], "next": "n"})
 print(json.dumps({"type": "result", "subtype": "success", "is_error": False, "result": ans}))
@@ -518,6 +520,11 @@ check("wisdom-check returns blindSpots and reframe with no tools",
       r.get("state") == "done" and len(r["answer"].get("blindSpots") or []) == 1 and "calm" in r["answer"].get("reframe", "").lower(), r)
 args = json.load(open(FAKE + ".args"))
 check("wisdom-check can't use tools", args[args.index("--tools") + 1] == "", args)
+st, r = ask("cook-nutri", {"who": "adult", "meal": "breakfast", "foodtext": "peanut butter on toast", "portion": "Regular"})
+check("cook-nutri returns kcal and breakdown with no tools",
+      r.get("state") == "done" and r["answer"].get("kcal") == 430 and "brioche" in r["answer"].get("breakdown", "").lower(), r)
+args = json.load(open(FAKE + ".args"))
+check("cook-nutri can't use tools", args[args.index("--tools") + 1] == "", args)
 st, r = ask("cook-plan", {"weekStart": "2026-11-23", "expiring": [{"name": "salmon", "daysLeft": 1}]})
 check("cook-plan returns 7-day plan", r.get("state") == "done" and "salmon" in r["answer"].get("note", "").lower(), r)
 import base64 as _b64

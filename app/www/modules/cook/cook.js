@@ -7,7 +7,7 @@
   var store = WL.store('wl.cook.v1', K.defaults);
   var S = store.load(), view = null, curTab = '', pantryCat = 'all';
   var targetWho = 'me', targetRange = 'day', foodKeyFn = null, foodTrigger = null;
-  var planBusy = false, photoBusy = false, photoErr = '', planErr = '';
+  var planBusy = false, photoBusy = false, photoErr = '', planErr = '', nutriBusyId = '', nutriErr = '', pendingNutriId = '';
 
   function save() { store.save(S); }
   // the food log records on the day picked in "Log for an earlier day"; the meal plan, fridge and shopping list are
@@ -153,6 +153,32 @@
     });
   }
 
+  function askNutriEstimate(log) {
+    if (!log || nutriBusyId || !WL.pc) return;
+    nutriBusyId = log.id; pendingNutriId = log.id; nutriErr = '';
+    render();
+    var inp = {
+      logId: log.id,
+      who: log.who === 'child' ? 'toddler (' + (childAgeText() || 'around 1–2 years old') + ')' : 'adult',
+      meal: log.meal || 'meal',
+      foodtext: log.who === 'child' ? (log.offered || '') : (log.text || ''),
+      portion: log.who === 'child' ? ('Actually ate: ' + (log.ate || 'About half')) : (log.portion || 'Regular'),
+      note: log.note || ''
+    };
+    WL.pc.ask('cook-nutri', inp).then(function (ans) {
+      nutriBusyId = '';
+      var note = ans && typeof ans.breakdown === 'string' ? ans.breakdown : '';
+      var ok = K.updateLogNutri(S, log.id, ans, { exact: true, note: note, source: 'ai' });
+      if (ok) { targetWho = log.who === 'child' ? 'child' : 'me'; save(); WL.toast('Updated nutrition estimate'); }
+      else nutriErr = 'Could not read that nutrition estimate. Try again or edit numbers directly.';
+      if (view && /^#cook/.test(location.hash)) render();
+    }, function (e) {
+      nutriBusyId = '';
+      if (!e.queued) nutriErr = (e && e.message) || 'Could not reach Claude.';
+      if (view && /^#cook/.test(location.hash)) render();
+    });
+  }
+
   // Handle cloud answers arriving later via Drive sync
   if (WL.pc && WL.pc.onCloudAnswer) {
     WL.pc.onCloudAnswer('cook-plan', function (e, ans, meta, info) {
@@ -172,6 +198,16 @@
       } else if (e) photoErr = e;
       if (view && /^#cook/.test(location.hash)) render();
     });
+    WL.pc.onCloudAnswer('cook-nutri', function (e, ans, meta) {
+      if (!e) {
+        var tid = (meta && meta.input && meta.input.logId) || pendingNutriId || (S.logs && S.logs[0] && S.logs[0].id);
+        var note = ans && typeof ans.breakdown === 'string' ? ans.breakdown : '';
+        if (tid && K.updateLogNutri(S, tid, ans, { exact: true, note: note, source: 'ai' })) {
+          nutriErr = ''; save(); WL.toast('Your AI nutrition estimate arrived');
+        } else nutriErr = 'That cloud nutrition reply was incomplete. Try again.';
+      } else nutriErr = e;
+      if (view && /^#cook/.test(location.hash)) render();
+    });
   }
 
   function viewCtx() {
@@ -181,7 +217,8 @@
       wk: curTab === '' ? workoutInfo(rn) : null,
       askable: askable, queuedFor: queuedFor, pantryCat: pantryCat,
       targetWho: targetWho, targetRange: targetRange,
-      planBusy: planBusy, planErr: planErr, photoBusy: photoBusy, photoErr: photoErr
+      planBusy: planBusy, planErr: planErr, photoBusy: photoBusy, photoErr: photoErr,
+      nutriBusyId: nutriBusyId, nutriErr: nutriErr
     };
   }
 
@@ -574,6 +611,51 @@
         if (!K.logMe(S, { date: tIso, meal: mMeal, text: inp.value, portion: mPort, tags: mTags, nutri: mPickedNutri }, d)) { inp.focus(); return; }
         targetWho = 'me'; save(); render(); WL.toast('Saved your meal');
       };
+      $$('[data-log-edit]', view).forEach(function (b) {
+        b.onclick = function () {
+          var id = b.dataset.logEdit;
+          var li = b.closest('li'), ed = li && li.querySelector('.ck-log-ed');
+          var log = (S.logs || []).filter(function (x) { return x && x.id === id; })[0];
+          if (!ed || !log) return;
+          if (!ed.hidden) { ed.hidden = true; ed.innerHTML = ''; return; }
+          var est = K.nutri ? K.nutri.estimateEntry(log, S.customFoods, K.RECIPES) : null;
+          var cur = K.nutri ? K.nutri.roundNutri(est && est.nutri ? est.nutri : {}) : { kcal: 0, pro: 0, carb: 0, fat: 0 };
+          var esc = WL.esc;
+          ed.hidden = false;
+          ed.innerHTML = '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px">' +
+            '<input type="number" min="0" class="ck-ed-kcal" value="' + esc(cur.kcal || '') + '" placeholder="kcal" aria-label="Calories" style="flex:1 1 70px;min-width:0;width:auto;box-sizing:border-box">' +
+            '<input type="number" min="0" class="ck-ed-pro" value="' + esc(cur.pro || '') + '" placeholder="Pro g" aria-label="Protein grams" style="flex:1 1 65px;min-width:0;width:auto;box-sizing:border-box">' +
+            '<input type="number" min="0" class="ck-ed-carb" value="' + esc(cur.carb || '') + '" placeholder="Carb g" aria-label="Carbs grams" style="flex:1 1 65px;min-width:0;width:auto;box-sizing:border-box">' +
+            '<input type="number" min="0" class="ck-ed-fat" value="' + esc(cur.fat || '') + '" placeholder="Fat g" aria-label="Fat grams" style="flex:1 1 65px;min-width:0;width:auto;box-sizing:border-box">' +
+            '</div><div class="row" style="margin-top:6px">' +
+            '<button class="primary ck-ed-save" type="button">Save numbers</button>' +
+            (log.nutri ? '<button class="link ck-ed-auto" type="button">Use auto-estimate</button>' : '') +
+            '<button class="link ck-ed-cancel" type="button">Cancel</button></div>';
+          var kc = ed.querySelector('.ck-ed-kcal'); if (kc) kc.focus();
+          ed.querySelector('.ck-ed-save').onclick = function () {
+            var base = Object.assign({}, est && est.nutri ? est.nutri : {});
+            base.kcal = +(ed.querySelector('.ck-ed-kcal').value || 0);
+            base.pro = +(ed.querySelector('.ck-ed-pro').value || 0);
+            base.carb = +(ed.querySelector('.ck-ed-carb').value || 0);
+            base.fat = +(ed.querySelector('.ck-ed-fat').value || 0);
+            if (!K.updateLogNutri(S, id, base, { exact: true, note: 'Edited numbers', source: 'manual' })) {
+              if (kc) kc.focus(); WL.toast('Enter at least one number above 0'); return;
+            }
+            targetWho = log.who === 'child' ? 'child' : 'me';
+            save(); render(); WL.toast('Saved numbers');
+          };
+          var au = ed.querySelector('.ck-ed-auto');
+          if (au) au.onclick = function () { K.updateLogNutri(S, id, null); save(); render(); WL.toast('Back to auto-estimate'); };
+          ed.querySelector('.ck-ed-cancel').onclick = function () { ed.hidden = true; ed.innerHTML = ''; if (b.focus) try { b.focus(); } catch (e) {} };
+        };
+      });
+      $$('[data-log-ai]', view).forEach(function (b) {
+        b.onclick = function () {
+          var id = b.dataset.logAi;
+          var log = (S.logs || []).filter(function (x) { return x && x.id === id; })[0];
+          if (log) askNutriEstimate(log);
+        };
+      });
       $$('.ck-log-del', view).forEach(function (b) { b.onclick = function () { K.removeLog(S, b.dataset.id); save(); render(); }; });
     } else if (curTab === 'pantry') {
       $$('[data-pquick]', view).forEach(function (b) {

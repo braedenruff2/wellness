@@ -947,8 +947,13 @@ const W = require('./lib/web.cjs');
         if (h === '#cook/log') {
           await page.click('#ck-micro summary');
           await page.click('#ck-tedit summary');
-          assert.deepStrictEqual(await small('#ck-targets button, #ck-targets summary, #ck-c-quick button, #ck-m-quick button'), [], theme + ' #cook/log targets');
+          await page.fill('#ck-m-text', 'peanut butter on toast');
+          await page.click('#ck-m-save');
+          await page.waitForSelector('[data-log-edit]');
+          await page.click('[data-log-edit]');
+          assert.deepStrictEqual(await small('#ck-targets button, #ck-targets summary, #ck-c-quick button, #ck-m-quick button, #ck-log-list button'), [], theme + ' #cook/log targets');
           assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #cook/log expanded');
+          assert.strictEqual(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), 0, theme + ' #cook/log inline edit overflow');
           // Open closable Food Picker modal and verify targets, overflow, and contrast inside modal
           await page.click('#ck-m-pick');
           await page.waitForSelector('#ck-food-modal');

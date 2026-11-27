@@ -1,7 +1,7 @@
 # Prompts for the app's Claude requests
 
 One file per task the phone can ask for (`coach-scenario`, `coach-grade`, `coach-advice`, `tagalog-check`, `advice`,
-`weekly-plan`, `cook-plan`, `cook-photo`, `wisdom-check`), plus `rules.md`, which every prompt includes. The PC link (`pc/wellness_pc.py`, `prompt_for`) reads
+`weekly-plan`, `cook-plan`, `cook-photo`, `cook-nutri`, `wisdom-check`), plus `rules.md`, which every prompt includes. The PC link (`pc/wellness_pc.py`, `prompt_for`) reads
 them, fills each `{{name}}` from the phone's input and runs `claude -p` with it. Cloud runs answer queued requests
 with exactly the same text, so both paths give the same JSON shape.
 

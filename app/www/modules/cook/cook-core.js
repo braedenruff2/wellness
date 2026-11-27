@@ -924,6 +924,16 @@
     if (state.logs.length > 400) state.logs.length = 400;
   }
 
+  function applyLogNutriMeta(rec, data) {
+    if (!CN || !data || !data.nutri) return;
+    var cn = CN.cleanNutri(data.nutri);
+    if (!cn) return;
+    rec.nutri = cn;
+    if (data.nutriExact) rec.nutriExact = true;
+    if (typeof data.nutriNote === 'string' && data.nutriNote.trim()) rec.nutriNote = data.nutriNote.trim().slice(0, 220);
+    if (data.nutriSource === 'ai' || data.nutriSource === 'manual' || data.nutriSource === 'picker') rec.nutriSource = data.nutriSource;
+  }
+
   function logMe(state, data, now) {
     now = now || new Date();
     var text = String(data && data.text || '').trim().slice(0, 300);
@@ -933,7 +943,7 @@
     var tags = (Array.isArray(data.tags) ? data.tags : []).filter(function (t) { return ME_TAGS.indexOf(t) >= 0; }).slice(0, 4);
     var rec = { id: newId('lm', now), at: now.toISOString(), date: isDate(data.date) ? data.date : iso(now), who: 'me', meal: meal, text: text, portion: portion, tags: tags };
     if (data.recipeId && typeof data.recipeId === 'string') rec.recipeId = data.recipeId.slice(0, 60);
-    if (CN && data.nutri) { var cn = CN.cleanNutri(data.nutri); if (cn) rec.nutri = cn; }
+    applyLogNutriMeta(rec, data);
     insertLog(state, rec);
     return rec;
   }
@@ -963,9 +973,31 @@
     var note = String(data.note || '').trim().slice(0, 200);
     var rec = { id: newId('lc', now), at: now.toISOString(), date: isDate(data.date) ? data.date : iso(now), who: 'child', meal: meal, offered: offered, ate: ate, note: note };
     if (data.recipeId && typeof data.recipeId === 'string') rec.recipeId = data.recipeId.slice(0, 60);
-    if (CN && data.nutri) { var cn = CN.cleanNutri(data.nutri); if (cn) rec.nutri = cn; }
+    applyLogNutriMeta(rec, data);
     insertLog(state, rec);
     return rec;
+  }
+
+  /* Update (or clear) explicit nutrition numbers on an existing food log entry (manual edit or AI estimate). */
+  function updateLogNutri(state, id, nutri, opts) {
+    if (!state || !Array.isArray(state.logs) || !id) return null;
+    opts = opts || {};
+    for (var i = 0; i < state.logs.length; i++) {
+      var x = state.logs[i];
+      if (!x || x.id !== id) continue;
+      if (nutri == null) {
+        delete x.nutri; delete x.nutriExact; delete x.nutriNote; delete x.nutriSource;
+        return x;
+      }
+      var cn = CN ? CN.cleanNutri(nutri) : null;
+      if (!cn) return null;
+      x.nutri = cn;
+      if (opts.exact !== false) x.nutriExact = true; else delete x.nutriExact;
+      if (typeof opts.note === 'string' && opts.note.trim()) x.nutriNote = opts.note.trim().slice(0, 220); else delete x.nutriNote;
+      if (opts.source === 'ai' || opts.source === 'manual' || opts.source === 'picker') x.nutriSource = opts.source; else delete x.nutriSource;
+      return x;
+    }
+    return null;
   }
 
   /* Custom user-saved foods (for 1-tap logging of household staples & Mama's dishes). */
@@ -1096,7 +1128,7 @@
           note: typeof x.note === 'string' ? x.note.trim().slice(0, 200) : ''
         };
         if (typeof x.recipeId === 'string' && x.recipeId) cRec.recipeId = x.recipeId.slice(0, 60);
-        if (CN && x.nutri) { var cn1 = CN.cleanNutri(x.nutri); if (cn1) cRec.nutri = cn1; }
+        applyLogNutriMeta(cRec, x);
         d.logs.push(cRec);
       } else if (x.who === 'me' && typeof x.text === 'string' && x.text.trim()) {
         var mRec = {
@@ -1107,7 +1139,7 @@
           tags: (Array.isArray(x.tags) ? x.tags : []).filter(function (t) { return ME_TAGS.indexOf(t) >= 0; }).slice(0, 4)
         };
         if (typeof x.recipeId === 'string' && x.recipeId) mRec.recipeId = x.recipeId.slice(0, 60);
-        if (CN && x.nutri) { var cn2 = CN.cleanNutri(x.nutri); if (cn2) mRec.nutri = cn2; }
+        applyLogNutriMeta(mRec, x);
         d.logs.push(mRec);
       }
     });
@@ -1185,7 +1217,7 @@
     matchExpiring: matchExpiring, deductRecipe: deductRecipe, applyPhotoScan: applyPhotoScan,
     ensureWeekPlan: ensureWeekPlan, markSlot: markSlot, swapSlot: swapSlot, applyAiPlan: applyAiPlan,
     shoppingList: shoppingList, toggleBought: toggleBought,
-    logMe: logMe, logChild: logChild, removeLog: removeLog, dayLogs: dayLogs, childSummary: childSummary,
+    logMe: logMe, logChild: logChild, updateLogNutri: updateLogNutri, removeLog: removeLog, dayLogs: dayLogs, childSummary: childSummary,
     addCustomFood: addCustomFood, removeCustomFood: removeCustomFood, setTargets: setTargets, resetTargets: resetTargets,
     dailyNutrition: dailyNutrition, nutri: CN, slotFood: slotFood, slotLogged: slotLogged,
     sameFood: sameFood, cleanPhotoItems: cleanPhotoItems, validate: validate
