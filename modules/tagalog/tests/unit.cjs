@@ -362,6 +362,15 @@ t('weeklySummary.slipKinds: per kind, slips in the last 14 days and exercises st
   const pkFull = { id: '2026-11-25', lessons: [{ day: 2, exercises: [h, g] }] };
   assert.deepStrictEqual(T.slips(s, [pkFull], cut).map((x) => x.kind), ['extralinker'], 'slips upper-bounded at now');
 });
+t('addWords: words from a recipe join review in box 1, due tomorrow; known words and junk are left alone', () => {
+  const s = T.defaults();
+  s.cards.manok = { en: 'chicken', box: 3, due: '2026-12-01', seen: 4, right: 4, wrong: 0, from: '2026-11-18/2' };
+  const n = T.addWords(s, [{ tl: 'manok', en: 'chicken' }, { tl: 'luya', en: 'ginger' }, null, { tl: ' ', en: 'x' }, { tl: 'sayote', en: 'chayote' }], 'cook/tinola', new Date(2026, 10, 26, 19));
+  assert.strictEqual(n, 2);
+  assert.strictEqual(s.cards.manok.box, 3, 'known word untouched');
+  assert.deepStrictEqual(s.cards.luya, { en: 'ginger', box: 1, due: '2026-11-27', seen: 0, right: 0, wrong: 0, from: 'cook/tinola' });
+  assert.ok(T.validate(JSON.parse(JSON.stringify(s))).cards.sayote, 'kept by validate');
+});
 t('check: a dropped hyphen is forgiven ("magaral" for "mag-aral"), a changed verb form is not', () => {
   const g = { type: 'type', prompt: 'I want to study Tagalog.', answer: 'Gusto kong mag-aral ng Tagalog.', accept: ['gusto kong mag aral ng tagalog'] };
   assert.strictEqual(T.check(g, 'gusto kong magaral ng tagalog'), true);

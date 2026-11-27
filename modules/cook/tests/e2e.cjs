@@ -250,6 +250,21 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('[data-ck-meal="dinner"] [data-tl-say="luya"]');
     assert.deepStrictEqual(await page.evaluate(() => window.__said), [['luya', 'fil-PH']]);
   });
+  await t.step('after "Made it" on a Filipino dish, its Tagalog words can join Tagalog review (once)', async () => {
+    await page.evaluate(() => localStorage.setItem('wl.tagalog.v1', JSON.stringify({ packs: {}, done: { '2026-11-18/1': '2026-11-19T01:00:00.000Z' }, cards: {}, answers: [], source: 'https://example.org/keep-me/', future: { kept: true } })));
+    await page.click('[data-ck-made="dinner"]');
+    await page.waitForSelector('[data-ck-tl-add="tinola"]');
+    assert.ok((await page.textContent('[data-ck-tl-add="tinola"]')).includes('Add 6 Tagalog words'));
+    await page.click('[data-ck-tl-add="tinola"]');
+    await page.waitForSelector('.ck-tl-added');
+    const tl = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).cards);
+    assert.deepStrictEqual(Object.keys(tl).sort(), ['luya', 'malunggay', 'manok', 'patis', 'sabaw', 'sayote']);
+    assert.strictEqual(tl.manok.from, 'cook/tinola'); assert.strictEqual(tl.manok.due, '2026-11-27');
+    const all = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')));
+    assert.deepStrictEqual([all.source, all.future, Object.keys(all.done)], ['https://example.org/keep-me/', { kept: true }, ['2026-11-18/1']], 'nothing else in his Tagalog data changes');
+    await page.goto(base + '#tagalog/words'); await page.waitForTimeout(100);
+    assert.ok((await page.textContent('#view')).includes('sayote'), 'listed in Your words');
+  });
 
   await t.step('#cook/week inline recipe preview expands ingredients, steps & Filipino Tagalog words, hides when Mama cooked, and fits 320 px / 1.3x', async () => {
     await page.setViewportSize({ width: 320, height: 640 });

@@ -359,6 +359,13 @@
   function wire() {
     var d = curTab === 'log' ? now() : realNow(), tIso = K.iso(d);
     $$('[data-tl-say]', view).forEach(function (b) { b.onclick = function () { WL.speech.speak(b.dataset.tlSay, null, { lang: 'fil-PH', rate: 0.8 }); }; });
+    $$('[data-ck-tl-add]', view).forEach(function (b) { b.onclick = function () {
+      var r = K.recipeById(S, b.dataset.ckTlAdd), st = tlState(); if (!r || !st) return;
+      var n = TagalogCore.addWords(st, r.words, 'cook/' + r.id, realNow());
+      try { localStorage.setItem('wl.tagalog.v1', JSON.stringify(st)); } catch (e) { return; }
+      if (WL.modules && WL.modules.tagalog && WL.modules.tagalog.reload) WL.modules.tagalog.reload();
+      render(); WL.toast(n ? n + ' word' + (n === 1 ? '' : 's') + ' added to Tagalog review (from tomorrow)' : 'Already in your review');
+    }; });
     if (curTab === '') {
       $$('[data-use-recipe]', view).forEach(function (b) {
         b.onclick = function () {

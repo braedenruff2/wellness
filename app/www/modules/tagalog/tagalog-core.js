@@ -313,6 +313,20 @@
     });
   }
 
+  /* Words from elsewhere in the app (a Filipino recipe he cooked): new ones join review in box 1, due tomorrow; words
+     he already has are left as they are. Returns how many were added. */
+  function addWords(state, words, from, now) {
+    var t = iso(now || new Date()), n = 0;
+    (Array.isArray(words) ? words : []).forEach(function (w) {
+      if (!w || typeof w.tl !== 'string' || typeof w.en !== 'string' || !w.tl.trim() || !w.en.trim()) return;
+      var k = w.tl.trim().slice(0, 100);
+      if (state.cards[k]) return;
+      state.cards[k] = { en: w.en.trim().slice(0, 100), box: 1, due: addDays(t, 1), seen: 0, right: 0, wrong: 0, from: String(from || '').slice(0, 60) };
+      n++;
+    });
+    return n;
+  }
+
   /* given: what he typed or picked (kept short), so a wrong answer can be looked at later. */
   function recordAnswer(state, pack, lesson, ex, ok, now, given) {
     var a = { at: (now || new Date()).toISOString(), pack: pack.id, day: lesson.day, ok: !!ok, prompt: String(ex.prompt || ex.say || '').slice(0, 120), type: ex.type };
@@ -493,7 +507,7 @@
 
   var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, bubbleWord: bubbleWord, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, HINT_LABEL: HINT_LABEL, slips: slips, slipSet: slipSet, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
-    advice: advice, againMiss: againMiss, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
+    advice: advice, againMiss: againMiss, addWords: addWords, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);
