@@ -7,7 +7,9 @@
   var store = WL.store('wl.coach.v1', K.defaults);
   var S = store.load(), view = null, waiting = null, err = null, pickSkill = '', showAllHist = false;
   function save() { store.save(S); }
+  function today() { return K.iso(new Date()); }
   function here() { return view && /^#coach\/?$/.test(location.hash); }
+  function tipFlagged(id) { return !!(window.WLMe && WLMe.flagged && WLMe.flagged('coach', 'tip:' + id)); }
 
   function setupHtml() {
     return '<div class="card ui"><h3>About your little one</h3><p class="meta">So every scenario fits her exact age. This stays on your phone and goes only to your own PC when you ask for a scenario.</p>' +
@@ -151,7 +153,7 @@
         '</div><div class="row" style="margin-top:10px"><button class="primary" id="co-new"' + (askable() ? '' : ' disabled') + '>New scenario</button></div></div>';
     }
     if (window.WLMe) h += WLMe.planLine('coach');
-    var tips = K.tips(S);
+    var tips = K.tips(S).filter(function (x) { return !tipFlagged(x.id); });
     if (tips.length) h += '<div class="card ui" id="co-tips"><h3>This week, try</h3><ul class="list">' + tips.map(function (x) {
       return '<li style="flex-wrap:wrap"><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.text) + '</a><span class="meta">' + esc(x.skill) + '</span>' +
         (window.WLMe ? '<div style="flex-basis:100%">' + WLMe.askHtml('coach', 'tip:' + x.id, ' ', true) + WLMe.fitLink('coach', 'tip:' + x.id, x.text) + '</div>' : '') + '</li>';
@@ -234,11 +236,16 @@
   }
   function finish() { waiting = null; if (here()) render([]); else refreshCard(); }
 
-  function newScenario() {
+  function newScenario(opts) {
+    var auto = !!(opts && opts.auto);
+    if (!auto) { S.autoTried = today(); save(); }
     err = null; waiting = { kind: 'scenario', secs: 0 };
-    if (here()) render([]); else refreshCard();
-    var input = withNotes(K.scenarioInput(S, pickSkill || null));
-    start('coach-scenario', input, function (a) { K.setScenario(S, a); save(); });
+    if (here()) { if (!typingHere()) render([]); } else refreshCard();
+    var input = withNotes(K.scenarioInput(S, auto ? null : (pickSkill || null)));
+    start('coach-scenario', input, function (a) {
+      K.setScenario(S, a); S.autoTried = today(); save();
+      if (auto) WL.toast('Today’s parenting scenario is ready');
+    }, { auto: auto });
   }
   function gradeIt(answer) {
     answer = String(answer || '').trim();
@@ -262,22 +269,35 @@
     });
   }
   /* Starts a Claude request; its job id is saved so leaving the app and coming back carries on waiting for it. */
-  function start(task, input, onAnswer) {
+  function start(task, input, onAnswer, opts) {
+    var auto = !!(opts && opts.auto);
     var meta = task === 'coach-grade' ? { answer: input.answer, scn: S.current ? JSON.parse(JSON.stringify(S.current)) : null }
       : task === 'coach-advice' ? { answer: input.situation } : null;
     if (!pc.ready() && pc.orQueue) {
       // no PC paired: straight to the cloud queue when Drive sync is on (shown in the queued card), else say why
       var q = pc.orQueue(new Error('Pair the PC link first (Settings › PC link).'), task, input, meta);
-      err = q.queued ? null : q.message; finish(); return;
+      if (auto && q.queued) { S.autoTried = today(); save(); }
+      err = q.queued || auto ? null : q.message;
+      if (here() && typingHere()) { waiting = null; return; }
+      finish(); return;
     }
-    pc.post('/v1/ask', { task: task, input: input }).then(null, function (e) { throw pc.orQueue ? pc.orQueue(e, task, input, meta) : e; }).then(function (r) {
+    var reached = false;
+    pc.post('/v1/ask', { task: task, input: input }).then(function (r) { reached = true; return r; }, function (e) { throw pc.orQueue ? pc.orQueue(e, task, input, meta) : e; }).then(function (r) {
       S.pending = { job: r.job, task: task, at: Date.now(), answer: input.answer || input.situation || '' };
+      if (auto) S.autoTried = today();
       if (task === 'coach-grade' && S.current) S.pending.scn = JSON.parse(JSON.stringify(S.current)); // graded against this one
       save();
       return pc.poll(r.job, Date.now(), tick);
     }).then(function (a) { S.pending = null; onAnswer(a); save(); })
       // an answer Claude sent as prose (onAnswer throws) ends the wait with a message instead of a spinner forever
-      .then(finish, function (e) { S.pending = null; save(); err = e.queued ? null : e.message || String(e); finish(); });
+      .then(function () { if (here() && typingHere()) { waiting = null; return; } finish(); }, function (e) {
+        S.pending = null;
+        if (auto && (e.queued || reached)) S.autoTried = today();
+        save();
+        err = e.queued || auto ? null : e.message || String(e);
+        if (here() && typingHere()) { waiting = null; return; }
+        finish();
+      });
   }
   function typingHere() {
     var ae = document.activeElement, id = ae && ae.id;
@@ -354,7 +374,7 @@
         : '<a class="btn' + (done ? '' : ' primary') + '" href="#coach">Open</a>';
     return '<div class="meta ui">Parenting practice</div><h3>' + title + '</h3>' +
       (last ? '<p class="meta ui">Last: ' + last.result.score + '/10 in ' + esc(last.skill) + ' · ' + st.length + ' skill' + (st.length === 1 ? '' : 's') + ' practised</p>' : '') +
-      (function () { var t = K.tips(S, null, 1)[0]; return t && !S.current ? '<p class="ui" id="co-tip">Try this week: ' + esc(t.text) + '</p>' : ''; })() +
+      (function () { var ts = K.tips(S, null, 5).filter(function (x) { return !tipFlagged(x.id); }); return ts[0] && !S.current ? '<p class="ui" id="co-tip">Try this week: ' + esc(ts[0].text) + '</p>' : ''; })() +
       '<div class="row ui">' + actions + '</div>';
   }
   function wireCard(el) {
@@ -369,6 +389,22 @@
     return { label: 'Parenting: 1 daily scenario (5 min)', done: false, href: '#coach' };
   }
 
+  // Automatically generate today's suggested scenario once a day when setup is done and Claude can answer (PC or cloud).
+  function autoScenario() {
+    if (waiting || document.hidden || !askable() || hasQueuedScenario() || !K.scenarioDue(S, new Date())) return;
+    newScenario({ auto: true });
+  }
+  if (pc.onCancel) pc.onCancel(function (task) {
+    if (task === 'coach-scenario') {
+      S.autoCancelled = today();
+      save();
+      if (!here()) refreshCard();
+    }
+  });
+  document.addEventListener('wl-notfit', function (e) {
+    if (e && e.detail && e.detail.part === 'coach') refreshWorked();
+  });
+
   WL.register({
     id: 'coach', title: 'Parenting', short: 'Parent', icon: '🧸', nav: true, storageKeys: [store.key], settingsLink: '#coach/setup',
     route: function (parts, v) { view = v; resume(); render(parts); },
@@ -379,4 +415,7 @@
     reload: function () { S = store.load(); }
   });
   setTimeout(resume, 1500);
+  setTimeout(autoScenario, 10000);
+  setInterval(autoScenario, 15 * 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(autoScenario, 3000); });
 })();

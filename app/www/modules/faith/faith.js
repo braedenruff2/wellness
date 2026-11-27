@@ -115,17 +115,19 @@
     var h = '<div class="meta ui">Day ' + d.n + (week ? ' \u00b7 Week ' + week.n + ': ' + esc(week.title) : '') + (done ? ' \u00b7 <span class="tick">\u2713 done</span>' : '') + '</div>';
     h += '<h1>' + esc(d.title) + '</h1>';
     h += '<p class="meta ui">' + esc(d.intro) + '</p>';
-    h += '<div class="chips jump ui"><button class="chip" data-jump="pray-card">Pray</button><button class="chip" data-jump="practice">Practice</button><button class="chip" data-jump="write">Write</button></div>';
+    var showThink = !(window.WLMe && WLMe.flagged && WLMe.flagged('faith', 'day:' + d.n + ':think'));
+    var showPractice = !(window.WLMe && WLMe.flagged && WLMe.flagged('faith', 'day:' + d.n + ':practice'));
+    h += '<div class="chips jump ui"><button class="chip" data-jump="pray-card">Pray</button>' + (showPractice ? '<button class="chip" data-jump="practice">Practice</button>' : '') + '<button class="chip" data-jump="write">Write</button></div>';
     h += '<div class="card" id="reading"><h2>Read</h2>' + passageHtml(d) +
       '<div class="row ui"><button id="listen">\u25B6 Listen</button><span class="meta">' + esc(CONTENT.translation) + '</span></div></div>';
     function fit(what, text) { return window.WLMe ? '<div class="ui" style="text-align:right">' + WLMe.fitLink('faith', 'day:' + d.n + ':' + what, text) + '</div>' : ''; }
-    h += '<div class="card" id="reflect"><h2>Think</h2>' + d.reflection.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') + fit('think', d.reflection.join(' ')) + '</div>';
+    if (showThink) h += '<div class="card" id="reflect"><h2>Think</h2>' + d.reflection.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') + fit('think', d.reflection.join(' ')) + '</div>';
     h += '<div class="card" id="pray-card"><h2>Pray</h2><p class="key">' + esc(d.keyVerse) + '</p>' +
       '<a class="btn primary big ui" href="#faith/session/day/' + d.n + '">Guided prayer \u00b7 about ' + (+S.settings.minutes) + ' min</a>' + shortTonight(d) +
       '<details class="ui" style="margin-top:10px"' + (readTonight() ? ' open id="fc-read-open"' : '') + '><summary>Read the prayer instead</summary>' +
       (readTonight() ? '<p class="meta" style="margin:6px 0 0">Focus was hard the last two times this late. Reading it can be easier.</p>' : '') +
       '<p class="verse" style="margin-top:8px">' + esc(d.prayer) + '</p></details></div>';
-    h += '<div class="card" id="practice"><h2>Practice for today</h2><p>' + esc(d.practice) + '</p>' + fit('practice', d.practice) + '</div>';
+    if (showPractice) h += '<div class="card" id="practice"><h2>Practice for today</h2><p>' + esc(d.practice) + '</p>' + fit('practice', d.practice) + '</div>';
     if (d.lookBack) h += lookBackWeek(d);
     h += '<div class="card ui" id="write"><h2>Write (optional)</h2><label for="dj">' + esc(d.journal) + '</label>' +
       '<textarea id="dj" data-day="' + d.n + '" placeholder="A line or two is plenty.">' + esc(C.dayJournal(S, d.n)) + '</textarea>' +

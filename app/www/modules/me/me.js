@@ -32,11 +32,11 @@
       qs.map(function (q) { return chips('data-me-a="1"', q, a[q.k]); }).join('') + '</div>';
   }
 
-  /* "Not for me?" link next to a piece of advice or a practice. shown: the words he saw (kept with his reasons). */
+  /* "Not for me?" link next to a piece of advice or a practice. Once marked, it stays in the backend (S.feedback)
+     but is removed from the UI instead of lingering as "Noted". */
   function fitLink(part, about, shown) {
-    var done = K.flagged(S, part, about);
-    return '<button class="link me-fit" data-me-fit="1" data-part="' + esc(part) + '" data-about="' + esc(about) + '" data-shown="' + esc(String(shown || '').slice(0, 300)) + '">' +
-      (done ? 'Noted: not for you ✓' : 'Not for me?') + '</button>';
+    if (K.flagged(S, part, about)) return '';
+    return '<button class="link me-fit" data-me-fit="1" data-part="' + esc(part) + '" data-about="' + esc(about) + '" data-shown="' + esc(String(shown || '').slice(0, 300)) + '">Not for me?</button>';
   }
 
   var fitKey = null;
@@ -46,6 +46,41 @@
     if (trigger && trigger.isConnected && trigger.focus) try { trigger.focus(); } catch (e) {}
   }
   window.addEventListener('hashchange', function () { closeFitSheet(); });
+
+  /* Immediately remove the marked-down item from the UI while keeping the feedback in S.feedback for backend/plans. */
+  function hideFlaggedUi(btn, part, about) {
+    if (!btn) return;
+    var plan = btn.closest('.me-plan');
+    if (plan) { plan.remove(); return; }
+    var adv = btn.closest('.advice');
+    if (adv) { adv.remove(); return; }
+    var tipLi = btn.closest('#co-tips li');
+    if (tipLi) {
+      var tipsCard = btn.closest('#co-tips');
+      tipLi.remove();
+      if (tipsCard && !tipsCard.querySelector('li')) tipsCard.remove();
+      return;
+    }
+    var direct = btn.closest('#wo-pain, #c-path-late, #reflect, #practice');
+    if (direct) {
+      if (direct.id === 'practice') { var jp = $('[data-jump="practice"]'); if (jp) jp.remove(); }
+      direct.remove();
+      return;
+    }
+    if (btn.closest('.home-card[data-module="me"]')) { redrawCard(); return; }
+    if (btn.closest('.home-card[data-module="workout"]')) {
+      var rr = btn.closest('.home-card').querySelector('#wo-rough-rest');
+      if (rr) rr.remove();
+      btn.remove();
+      return;
+    }
+    if (btn.closest('#c-today')) { WL.route(); return; }
+    if (/^(guide:|coach:|balance$|tip:)/.test(String(about || ''))) {
+      var box = btn.closest('li, .card, p');
+      if (box) { box.remove(); return; }
+    }
+    btn.remove();
+  }
 
   function fitSheet(btn) {
     closeFitSheet();
@@ -63,10 +98,12 @@
     $('#me-send').onclick = function () {
       var rs = $$('#me-sheet [data-r][aria-pressed="true"]').map(function (b) { return b.dataset.r; }), note = $('#me-note').value;
       if (!rs.length && !note.trim()) { WL.toast('Tap a reason or write a few words'); return; }
-      K.notFit(S, btn.dataset.part, btn.dataset.about, btn.dataset.shown, rs, note, now()); save();
-      btn.textContent = 'Noted: not for you ✓';
-      closeFitSheet(btn);
-      WL.toast('Thanks. Your next weekly plan takes this into account.');
+      var part = btn.dataset.part, about = btn.dataset.about;
+      K.notFit(S, part, about, btn.dataset.shown, rs, note, now()); save();
+      closeFitSheet();
+      hideFlaggedUi(btn, part, about);
+      try { document.dispatchEvent(new CustomEvent('wl-notfit', { detail: { part: part, about: about } })); } catch (e) {}
+      WL.toast('Removed. Kept in your history so future plans skip it.');
     };
     fitKey = function (ev) {
       if (!d.isConnected) { closeFitSheet(); return; }
@@ -77,10 +114,17 @@
     if (d.scrollIntoView) try { d.scrollIntoView({ block: 'nearest' }); } catch (e) {}
   }
 
-  /* One click handler for every quick question, check-in chip and "Not for me?" anywhere in the app. */
+  /* One click handler for every quick question, check-in chip, plan dismiss, and "Not for me?" anywhere in the app. */
   document.addEventListener('click', function (e) {
-    var b = e.target.closest && e.target.closest('[data-me-a],[data-me-ck],[data-me-fit]');
+    var b = e.target.closest && e.target.closest('[data-me-a],[data-me-ck],[data-me-fit],[data-me-plan-dismiss]');
     if (!b) return;
+    if (b.dataset.mePlanDismiss) {
+      K.dismissPlan(S, b.dataset.mePlanDismiss); save();
+      var box = b.closest('.me-plan, #me-plan-home');
+      if (box) box.remove();
+      WL.toast('Dismissed for this week');
+      return;
+    }
     if (b.dataset.meFit) { fitSheet(b); return; }
     if (b.dataset.meA) {
       var box = b.closest('.me-ask'), f = K.answer(S, box.dataset.part, box.dataset.about, b.dataset.k, b.dataset.v, now(), new Date());
@@ -108,7 +152,10 @@
   function planHtml() {
     var p = S.plan, due = K.planDue(S, new Date()), pc = WL.pc;
     var h = '';
-    if (p && !due) h += '<p><b>This week:</b> ' + esc(p.headline) + '</p>' + (K.planFor(S, 'home', new Date()) ? '<p class="meta">' + esc(K.planFor(S, 'home', new Date()).focus) + '</p>' : '');
+    if (p && !due && !K.planDismissed(S, 'home') && !K.planFlagged(S, 'home')) {
+      h += '<div id="me-plan-home"><div class="row"><p class="grow" style="margin:0"><b>This week:</b> ' + esc(p.headline) + '</p><button class="link me-plan-dismiss" type="button" data-me-plan-dismiss="home">Dismiss</button></div>' +
+        (K.planFor(S, 'home', new Date()) ? '<p class="meta">' + esc(K.planFor(S, 'home', new Date()).focus) + '</p>' : '') + '</div>';
+    }
     if (due && !planBusy && planQueued()) h += queuedLine();
     else if (due && !planBusy && K.planFailed(S, new Date())) h += '<div class="row" id="me-plan-failed"><span class="grow meta">Couldn’t make your plan this time.' +
       (askable() ? '</span><button id="me-plan">Try again</button></div>' : ' It tries again when your PC answers.</span></div>');
@@ -180,10 +227,11 @@
     if (view && location.hash.indexOf('#me') === 0 && !$('#me-sheet') && !(document.activeElement && document.activeElement.id === 'me-ck-note')) route([], view);
   });
 
-  /* One line of the weekly plan for a part's screen ('' if none). */
+  /* One line of the weekly plan for a part's screen ('' if none, dismissed, or marked not for me). */
   function planLine(part) {
-    var p = K.planFor(S, part, new Date()); if (!p) return '';
-    return '<div class="card ui me-plan"><div class="meta">This week, for you</div><p style="margin:.2em 0">' + esc(p.focus) + '</p>' +
+    var p = K.planFor(S, part, new Date());
+    if (!p || K.planDismissed(S, part) || K.planFlagged(S, part)) return '';
+    return '<div class="card ui me-plan"><div class="row"><div class="meta grow">This week, for you</div><button class="link me-plan-dismiss" type="button" data-me-plan-dismiss="' + esc(part) + '">Dismiss</button></div><p style="margin:.2em 0">' + esc(p.focus) + '</p>' +
       (p.why ? '<p class="meta" style="margin:0">Why: ' + esc(p.why) + '</p>' : '') + '<div style="text-align:right">' + fitLink(part, 'plan:' + (S.plan.at || '').slice(0, 10), p.focus) + '</div></div>';
   }
 
@@ -197,9 +245,10 @@
     if (wk.length) h += '<div class="card ui" id="me-working"><h3>What’s working</h3><ul class="me-g">' + wk.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul><p class="meta">From your own answers in the last 30 days.</p></div>';
     h += '<div class="card ui"><h3>Weekly plan</h3>';
     if (S.plan) {
-      h += '<p>' + esc(S.plan.headline) + '</p><ul class="me-g">' + Object.keys(S.plan.parts).map(function (k) {
+      var planParts = Object.keys(S.plan.parts).filter(function (k) { return !K.planFlagged(S, k); });
+      h += '<p>' + esc(S.plan.headline) + '</p>' + (planParts.length ? '<ul class="me-g">' + planParts.map(function (k) {
         var x = S.plan.parts[k]; return '<li><b>' + esc(label(k)) + ':</b> ' + esc(x.focus) + (x.why ? ' <span class="meta">(' + esc(x.why) + ')</span>' : '') + '</li>';
-      }).join('') + '</ul>' + (S.plan.check ? '<p class="meta">' + esc(S.plan.check) + '</p>' : '') + '<p class="meta">Made ' + esc(new Date(S.plan.at).toLocaleDateString()) + '.</p>';
+      }).join('') + '</ul>' : '') + (S.plan.check ? '<p class="meta">' + esc(S.plan.check) + '</p>' : '') + '<p class="meta">Made ' + esc(new Date(S.plan.at).toLocaleDateString()) + '.</p>';
     } else h += '<p class="meta">No plan yet.</p>';
     var failed = !planBusy && K.planFailed(S, new Date());
     if (!planBusy && planQueued()) { h += queuedLine(); failed = false; }
@@ -234,10 +283,6 @@
     if (shownDays.length) h += '<div class="card ui"><h3>Last 7 check-ins</h3><ul class="me-g">' + shownDays.map(function (d) {
       var c = S.checkins[d]; return '<li><b>' + esc(d) + '</b> ' + esc(K.CHECKIN.map(function (q) { return c[q.k] ? q.q.split(' ')[0] + ': ' + c[q.k] : ''; }).filter(Boolean).join(' · ')) + (c.note ? ' — ' + esc(c.note) : '') + '</li>';
     }).join('') + '</ul></div>';
-    var nf = S.feedback.filter(function (f) { return f.kind === 'notfit'; }).slice(-10).reverse();
-    if (nf.length) h += '<div class="card ui"><h3>Marked “not for me”</h3><ul class="me-g">' + nf.map(function (f) {
-      return '<li>' + esc(label(f.part)) + ': ' + esc(f.shown || f.about) + ' <span class="meta">(' + esc((f.a.reasons || []).join(', ') + (f.note ? (f.a.reasons && f.a.reasons.length ? '; ' : '') + f.note : '')) + ')</span></li>';
-    }).join('') + '</ul></div>';
     var n = S.feedback.filter(function (f) { return f.kind === 'after'; }).length;
     h += '<p class="meta ui">' + n + ' quick answers so far.</p>';
     return h;
@@ -265,7 +310,7 @@
   document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(autoPlan, 5000); });
 
   window.WLMe = {
-    askHtml: askHtml, fitLink: fitLink, planLine: planLine, rough: function () { return K.rough(S, new Date()); },
+    askHtml: askHtml, fitLink: fitLink, flagged: function (part, about) { return K.flagged(S, part, about); }, planLine: planLine, rough: function () { return K.rough(S, new Date()); },
     calmLikes: function () { return K.calmLikes(S, new Date()); }, planFor: function (part) { return K.planFor(S, part, new Date()); }, planFlagged: function (part) { return K.planFlagged(S, part); }, calmHelped: function () { return K.calmHelped(S); }, painNote: function () { return K.painNote(S, new Date()); }, state: function () { return S; }
   };
 

@@ -566,4 +566,24 @@ t('guidance "lowenergy": energy Low on the last 3 check-ins (not 2, not with a g
   K.notFit(s, 'home', 'guide:lowenergy', 'Low energy three check-ins running', ['Not true for me'], '', new Date(2026, 10, 26, 11));
   assert.ok(!K.guidance(s, now, 9).some((x) => x.key === 'lowenergy'), 'Not for me hides it');
 });
+t('dismissPlan & planDismissed: per-part dismissal persists through validate and clears when a newer plan arrives', () => {
+  const s = K.defaults();
+  assert.strictEqual(K.planDismissed(s, 'calm'), false);
+  assert.strictEqual(K.dismissPlan(s, 'calm'), false, 'no plan -> false');
+  s.plan = K.cleanPlan({ headline: 'Easy week', parts: { calm: { focus: 'Short sighs' }, workout: { focus: 'Two sets' }, home: { focus: 'Nap' } } }, D(20));
+  assert.strictEqual(K.dismissPlan(s, 'calm'), true);
+  assert.strictEqual(K.planDismissed(s, 'calm'), true);
+  assert.strictEqual(K.planDismissed(s, 'workout'), false);
+  assert.strictEqual(K.dismissPlan(s, 'home'), true);
+  assert.strictEqual(K.planDismissed(s, 'home'), true);
+  assert.strictEqual(K.dismissPlan(s, 'mars'), false, 'unknown part ignored');
+  const v = K.validate(Object.assign({}, JSON.parse(JSON.stringify(s)), {
+    planDismissed: Object.assign({}, s.planDismissed, { mars: s.plan.at, workout: 'not-a-date' })
+  }));
+  assert.deepStrictEqual(v.planDismissed, { calm: s.plan.at, home: s.plan.at });
+  // Newer plan clears dismissal automatically because plan.at changed
+  v.plan = K.cleanPlan({ headline: 'Next week', parts: { calm: { focus: 'Walks' }, home: { focus: 'Stretch' } } }, D(27));
+  assert.strictEqual(K.planDismissed(v, 'calm'), false);
+  assert.strictEqual(K.planDismissed(v, 'home'), false);
+});
 console.log(n + ' me unit tests passed');

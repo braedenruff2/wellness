@@ -126,7 +126,7 @@
     if (l.grammar) h += '<div class="card"><h2>' + esc(l.grammar.title) + '</h2><p>' + esc(l.grammar.explain) + '</p>' + (l.grammar.examples || []).map(function (x) {
       return '<p class="row"><span class="grow"><b lang="tl">' + esc(x.tl) + '</b><br><span class="meta ui">' + esc(x.en) + '</span></span>' + hear(x.tl) + '</p>';
     }).join('') + '</div>';
-    if (l.culture) h += '<div class="card"><h2>Family tip</h2><p>' + esc(l.culture) + '</p>' + (window.WLMe ? '<div class="ui" style="text-align:right">' + WLMe.fitLink('tagalog', 'tip:' + pk.id + '/' + l.day, l.culture) + '</div>' : '') + '</div>';
+    if (l.culture && !(window.WLMe && WLMe.flagged && WLMe.flagged('tagalog', 'tip:' + pk.id + '/' + l.day))) h += '<div class="card"><h2>Family tip</h2><p>' + esc(l.culture) + '</p>' + (window.WLMe ? '<div class="ui" style="text-align:right">' + WLMe.fitLink('tagalog', 'tip:' + pk.id + '/' + l.day, l.culture) + '</div>' : '') + '</div>';
     h += '<div class="card" id="tl-practice"><h2>Practice</h2><div id="tl-ex"></div></div>';
     return h;
   }
@@ -168,7 +168,10 @@
       else h += '<p><b>' + esc(ex.prompt) + '</b></p>';
       if (ex.type === 'mc' || ex.type === 'listen') h += '<div class="opts ui">' + shuffle(ex.options, i + l.day * 7).map(function (o) { return '<button class="opt" data-o="' + esc(o) + '">' + esc(o) + '</button>'; }).join('') + '</div>';
       if (ex.type === 'type') h += '<div class="row ui"><input type="text" id="tl-in" class="grow" autocomplete="off" autocapitalize="off" spellcheck="false" lang="tl"><button class="primary" id="tl-check">Check</button></div>';
-      if (ex.type === 'build') h += '<div class="built ui" id="tl-built"></div><div class="opts ui">' + shuffle(ex.words, i + 3).map(function (w, k) { return '<button class="opt word" data-k="' + k + '">' + esc(w) + '</button>'; }).join('') + '</div><div class="row ui"><button id="tl-clear">Clear</button><button class="primary" id="tl-check">Check</button></div>';
+      if (ex.type === 'build') {
+        var buildWords = shuffle(ex.words, i + 3).map(T.bubbleWord);
+        h += '<div class="built ui" id="tl-built"></div><div class="opts ui">' + buildWords.map(function (w, k) { return '<button class="opt word" data-k="' + k + '">' + esc(w) + '</button>'; }).join('') + '</div><div class="row ui"><button id="tl-clear">Clear</button><button class="primary" id="tl-check">Check</button></div>';
+      }
       h += '<div id="tl-fb" class="ui" aria-live="polite"></div>';
       box.innerHTML = h;
       if (ex.type === 'listen') { say(ex.say); $('#tl-replay').onclick = function () { say(ex.say); }; }
@@ -210,7 +213,7 @@
       if (ex.type === 'type') { $('#tl-check').onclick = function () { done($('#tl-in').value); }; $('#tl-in').onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); if (!answered) done(this.value); } }; }
       if (ex.type === 'build') {
         var picked = [];
-        var words = shuffle(ex.words, i + 3);
+        var words = shuffle(ex.words, i + 3).map(T.bubbleWord);
         var draw = function () {
           var el = $('#tl-built');
           el.innerHTML = picked.length

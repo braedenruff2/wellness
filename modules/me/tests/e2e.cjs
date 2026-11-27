@@ -49,8 +49,12 @@ const Wb = require('../../../tests/lib/web.cjs');
     const f = (await me()).feedback.find((x) => x.kind === 'notfit');
     assert.deepStrictEqual([f.part, f.about, f.a.reasons, f.note], ['calm', id, ['Too long'], 'shorter please']);
     assert.ok(f.shown.length > 3);
+    assert.notStrictEqual(await page.getAttribute('#c-today [data-me-fit]', 'data-about'), id, 'immediately switches suggestion');
+    assert.strictEqual(await page.locator(`#view a[href="#calm/s/${id}"]`).count(), 0, 'flagged practice removed from Calm list');
+    assert.ok(!/Marked not for you/i.test(await page.textContent('#view')), 'no "Marked not for you" banner left in UI');
     await page.goto(base + '#home'); await page.goto(base + '#calm');
     assert.notStrictEqual(await page.getAttribute('#c-today [data-me-fit]', 'data-about'), id);
+    assert.strictEqual(await page.locator(`#view a[href="#calm/s/${id}"]`).count(), 0, 'stays hidden after reload');
   });
   await t.step('a finished workout asks how hard it was; answers saved', async () => {
     await page.goto(base + '#workout');
@@ -68,7 +72,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#me');
     const txt = await page.textContent('#view');
     assert.ok(!(await page.$('#me-trend')) || (await page.locator('#me-trend .tb').count()) === 56, 'trend: 4 rows of 14 days');
-    assert.ok(/Last 7 check-ins/.test(txt) && /teething/.test(txt) && /not for me/.test(txt) && /PC link/.test(txt), txt);
+    assert.ok(/Last 7 check-ins/.test(txt) && /teething/.test(txt) && !/Marked .not for me./i.test(txt) && /PC link/.test(txt), txt);
     // typing a check-in note saves on input without needing blur/change
     await page.fill('#me-ck-note', 'long afternoon walk');
     assert.strictEqual((await me()).checkins['2026-11-21'].note, 'long afternoon walk');
@@ -107,7 +111,10 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#me-sheet [data-r="Doesn’t fit my situation"]'); await page.click('#me-send');
     const f = (await me()).feedback.filter((x) => x.kind === 'notfit' && x.part === 'faith')[0];
     assert.ok(f && f.about === 'day:1:practice' && f.shown.length > 10, JSON.stringify(f));
-    assert.ok(/Noted/.test(await page.textContent('#practice [data-me-fit]')));
+    assert.strictEqual(await page.$('#practice'), null, 'marked "not for me" practice removed from UI');
+    assert.strictEqual(await page.$('[data-jump="practice"]'), null, 'jump chip removed too');
+    await page.reload();
+    assert.strictEqual(await page.$('#practice'), null, 'stays hidden after reload while kept in backend feedback');
   });
   await t.step('"Not for me?" sheet closes on Escape (restoring focus) and cleans up on navigation', async () => {
     await page.goto(base + '#faith/day/1');

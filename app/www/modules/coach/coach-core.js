@@ -150,6 +150,17 @@
     });
   }
 
+  /* True when today's suggested scenario should auto-generate: child birthday set, no scenario waiting to be answered,
+     none graded today, and not already tried or cancelled today. */
+  function scenarioDue(state, now) {
+    if (!state || !state.child || !parse(state.child.birth)) return false;
+    if (state.current || state.pending) return false;
+    var d = iso(now || new Date());
+    if (doneToday(state, now)) return false;
+    if (state.autoTried === d || state.autoCancelled === d) return false;
+    return true;
+  }
+
   /* Count of graded scenarios in the last N calendar days (including today). */
   function doneInLast(state, days, now) {
     now = now || new Date();
@@ -329,6 +340,8 @@
       if (typeof c.from === 'string') d.current.from = c.from.slice(0, 40);
     }
     if (typeof s.realDraft === 'string') d.realDraft = s.realDraft.slice(0, 3000);
+    if (parse(s.autoTried)) d.autoTried = s.autoTried;
+    if (parse(s.autoCancelled)) d.autoCancelled = s.autoCancelled;
     if (s.teach && typeof s.teach === 'object') {
       Object.keys(s.teach).forEach(function (id) {
         var v = s.teach[id];
@@ -338,7 +351,7 @@
     return d;
   }
 
-  var api = { SKILLS: SKILLS, CAN: CAN, TEACH: TEACH, toggleCan: toggleCan, setCanNote: setCanNote, canText: canText, setTeach: setTeach, teachForAge: teachForAge, doneToday: doneToday, doneInLast: doneInLast, defaults: defaults, ageMonths: ageMonths, ageText: ageText, skillStats: skillStats, suggestSkill: suggestSkill,
+  var api = { SKILLS: SKILLS, CAN: CAN, TEACH: TEACH, iso: iso, toggleCan: toggleCan, setCanNote: setCanNote, canText: canText, setTeach: setTeach, teachForAge: teachForAge, doneToday: doneToday, scenarioDue: scenarioDue, doneInLast: doneInLast, defaults: defaults, ageMonths: ageMonths, ageText: ageText, skillStats: skillStats, suggestSkill: suggestSkill,
     scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, practiseReal: practiseReal, tips: tips, tipNotes: tipNotes, workedTips: workedTips, cleanResult: cleanResult, validate: validate };
   root.CoachCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

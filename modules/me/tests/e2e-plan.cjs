@@ -48,6 +48,26 @@ const FAKE = `
     await page.goto(base + '#me');
     assert.ok(/When do you feel best/.test(await page.textContent('#view')));
   });
+  await t.step('dismissing "This week, for you" hides that part and Home until a newer plan arrives', async () => {
+    await page.goto(base + '#calm');
+    await page.waitForSelector('.me-plan .me-plan-dismiss');
+    await page.click('.me-plan .me-plan-dismiss');
+    assert.strictEqual(await page.$('.me-plan'), null, 'dismissed immediately on #calm');
+    await page.reload();
+    assert.strictEqual(await page.$('.me-plan'), null, 'stays dismissed on #calm after reload');
+    // Workout plan line is unaffected until dismissed separately
+    await page.goto(base + '#workout');
+    assert.ok(await page.$('.me-plan'), 'workout plan line still shown');
+    await page.click('.me-plan .me-plan-dismiss');
+    assert.strictEqual(await page.$('.me-plan'), null, 'dismissed on #workout');
+    // Home weekly plan can also be dismissed
+    await page.goto(base + '#home');
+    await page.waitForSelector('#me-plan-home .me-plan-dismiss');
+    await page.click('#me-plan-home .me-plan-dismiss');
+    assert.strictEqual(await page.$('#me-plan-home'), null, 'dismissed on Home');
+    await page.reload();
+    assert.strictEqual(await page.$('#me-plan-home'), null, 'stays dismissed on Home after reload');
+  });
   await t.step('making a plan from #me/checkin (via Home Check-in change link) redraws the page when it arrives', async () => {
     await page.evaluate(() => {
       const m = JSON.parse(localStorage.getItem('wl.me.v1'));

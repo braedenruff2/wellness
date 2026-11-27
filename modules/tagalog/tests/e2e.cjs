@@ -44,7 +44,13 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
       if (ex.type === 'mc' || ex.type === 'listen') await page.click(`#tl-ex [data-o="${ex.answer.replace(/"/g, '\\"')}"]`);
       if (ex.type === 'type') { await page.fill('#tl-in', ex.answer.toLowerCase()); await page.press('#tl-in', 'Enter'); } // Enter used to skip the feedback
       if (ex.type === 'build') {
-        const ws = ex.answer.split(' ');
+        const clean = (w) => String(w || '').toLowerCase().replace(/[.,!?;:"“”‘’…()¿¡]/g, '').trim();
+        const bankTexts = await page.locator('#tl-ex .word').allTextContents();
+        for (const bt of bankTexts) {
+          assert.strictEqual(bt, bt.toLowerCase(), 'build bubble must be lowercase: ' + bt);
+          assert.ok(!/[.,!?;:"“”‘’…()¿¡]/.test(bt), 'build bubble must have no sentence punctuation: ' + bt);
+        }
+        const ws = ex.answer.split(' ').map(clean);
         // tap an out-of-order word first, then tap it in #tl-built to pull just that word back
         if (ws.length >= 2) {
           await page.click(`#tl-ex .word:not([disabled]):text-is("${ws[1]}")`);

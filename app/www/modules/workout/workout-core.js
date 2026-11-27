@@ -535,30 +535,32 @@
     return added;
   }
 
-  /* General adult age-group benchmarks (general fitness reference only, never medical advice).
-     Pushups: ACSM/CSEP single-set endurance norms (men). Plank: general strict-form hold reference. */
+  /* General adult age-group benchmarks for every exercise (general fitness reference only, never medical advice).
+     Pushups use ACSM/CSEP adult endurance norms; Walk uses WHO/CSEP activity guidance; other exercises are realistic
+     general-adult single-set estimates scaled for bodyweight / light (~10 lb) dumbbells. */
+  function normBrackets(vals, unit, source) {
+    var out = {}, bs = ['20–29', '30–39', '40–49', '50–59', '60+'];
+    bs.forEach(function (b, i) { out[b] = { avg: vals[i][0], low: vals[i][1], high: vals[i][2], good: vals[i][3], unit: unit, source: source }; });
+    return out;
+  }
   var AGE_NORMS = {
-    'Pushups': {
-      '20–29': { avg: 23, low: 17, high: 29, good: 35, unit: 'reps', source: 'ACSM/CSEP general adult reference' },
-      '30–39': { avg: 19, low: 13, high: 24, good: 30, unit: 'reps', source: 'ACSM/CSEP general adult reference' },
-      '40–49': { avg: 15, low: 11, high: 20, good: 25, unit: 'reps', source: 'ACSM/CSEP general adult reference' },
-      '50–59': { avg: 13, low: 9, high: 17, good: 22, unit: 'reps', source: 'ACSM/CSEP general adult reference' },
-      '60+':   { avg: 11, low: 8, high: 14, good: 18, unit: 'reps', source: 'ACSM/CSEP general adult reference' }
-    },
-    'Plank': {
-      '20–29': { avg: 60, low: 45, high: 90, good: 90, unit: 'sec', source: 'rough guide only (there are no published age norms for planks)' },
-      '30–39': { avg: 55, low: 45, high: 75, good: 85, unit: 'sec', source: 'rough guide only (there are no published age norms for planks)' },
-      '40–49': { avg: 50, low: 40, high: 65, good: 75, unit: 'sec', source: 'rough guide only (there are no published age norms for planks)' },
-      '50–59': { avg: 40, low: 35, high: 55, good: 65, unit: 'sec', source: 'rough guide only (there are no published age norms for planks)' },
-      '60+':   { avg: 35, low: 30, high: 45, good: 55, unit: 'sec', source: 'rough guide only (there are no published age norms for planks)' }
-    },
-    'Walk': {
-      '20–29': { avg: 25, low: 20, high: 30, good: 30, unit: 'min', source: 'WHO/CSEP ~150 min/week activity guide' },
-      '30–39': { avg: 25, low: 20, high: 30, good: 30, unit: 'min', source: 'WHO/CSEP ~150 min/week activity guide' },
-      '40–49': { avg: 25, low: 20, high: 30, good: 30, unit: 'min', source: 'WHO/CSEP ~150 min/week activity guide' },
-      '50–59': { avg: 25, low: 20, high: 30, good: 30, unit: 'min', source: 'WHO/CSEP ~150 min/week activity guide' },
-      '60+':   { avg: 25, low: 20, high: 30, good: 30, unit: 'min', source: 'WHO/CSEP ~150 min/week activity guide' }
-    }
+    'Pushups': normBrackets([[23, 17, 29, 35], [19, 13, 24, 30], [15, 11, 20, 25], [13, 9, 17, 22], [11, 8, 14, 18]], 'reps', 'ACSM/CSEP general adult reference'),
+    'Plank': normBrackets([[60, 45, 90, 90], [55, 45, 75, 85], [50, 40, 65, 75], [40, 35, 55, 65], [35, 30, 45, 55]], 'sec', 'rough guide only (there are no published age norms for planks)'),
+    'Walk': normBrackets([[25, 20, 30, 30], [25, 20, 30, 30], [25, 20, 30, 30], [25, 20, 30, 30], [25, 20, 30, 30]], 'min', 'WHO/CSEP ~150 min/week activity guide'),
+    'Bulgarian Split Squats': normBrackets([[12, 8, 15, 18], [10, 7, 14, 16], [9, 6, 12, 15], [8, 5, 11, 13], [7, 5, 10, 12]], 'reps', 'general adult estimate (per leg, bodyweight/light DB)'),
+    'One-Arm Rows': normBrackets([[16, 12, 20, 24], [15, 11, 19, 22], [13, 10, 17, 20], [12, 9, 15, 18], [10, 8, 14, 16]], 'reps', 'general adult estimate (per side, light DB)'),
+    'Overhead Press': normBrackets([[15, 11, 19, 22], [14, 10, 18, 20], [12, 9, 16, 18], [10, 8, 14, 16], [9, 7, 12, 15]], 'reps', 'general adult estimate (light DBs)'),
+    'Single Leg RDL': normBrackets([[12, 8, 15, 18], [11, 8, 14, 16], [10, 7, 13, 15], [9, 6, 12, 14], [8, 5, 10, 12]], 'reps', 'general adult estimate (per leg, bodyweight/light DB)'),
+    'Pike Pushups': normBrackets([[10, 6, 14, 18], [9, 5, 12, 15], [7, 4, 10, 13], [6, 4, 9, 11], [5, 3, 8, 10]], 'reps', 'general adult estimate (bodyweight)'),
+    'Rear Delt Flys': normBrackets([[16, 12, 20, 25], [15, 11, 19, 23], [13, 10, 17, 21], [12, 9, 15, 19], [10, 8, 14, 17]], 'reps', 'general adult estimate (light DBs)'),
+    'Reverse Lunges': normBrackets([[15, 11, 19, 22], [14, 10, 18, 20], [12, 9, 16, 18], [11, 8, 14, 16], [9, 7, 12, 15]], 'reps', 'general adult estimate (per leg, bodyweight/light DB)'),
+    'Dead Bug': normBrackets([[12, 9, 15, 18], [11, 8, 14, 16], [10, 7, 13, 15], [9, 6, 12, 14], [8, 6, 10, 12]], 'reps', 'general adult estimate (per side, slow controlled reps)'),
+    'Split Squats': normBrackets([[15, 11, 19, 22], [14, 10, 18, 20], [12, 9, 16, 18], [11, 8, 14, 16], [9, 7, 12, 15]], 'reps', 'general adult estimate (per leg, bodyweight/light DB)'),
+    'Dumbbell Pullovers': normBrackets([[18, 14, 22, 25], [16, 12, 20, 24], [15, 11, 18, 22], [13, 10, 16, 20], [11, 8, 15, 18]], 'reps', 'general adult estimate (light DB)'),
+    'Hammer Curls': normBrackets([[16, 12, 20, 24], [15, 11, 19, 22], [13, 10, 17, 20], [12, 9, 15, 18], [10, 8, 14, 16]], 'reps', 'general adult estimate (light DBs)'),
+    'Single Leg Glute Bridge': normBrackets([[15, 11, 19, 22], [14, 10, 18, 20], [12, 9, 16, 18], [11, 8, 14, 16], [9, 7, 12, 15]], 'reps', 'general adult estimate (per leg, bodyweight)'),
+    'Calf Raises': normBrackets([[25, 18, 30, 35], [22, 16, 28, 32], [20, 15, 25, 30], [18, 13, 22, 27], [15, 11, 20, 24]], 'reps', 'general adult estimate (standing)'),
+    'Russian Twists': normBrackets([[28, 20, 36, 42], [24, 18, 32, 38], [22, 16, 28, 34], [18, 14, 24, 30], [16, 12, 20, 26]], 'reps', 'general adult estimate (total twists)')
   };
   function cleanAge(age) {
     if (age == null || age === '') return null;

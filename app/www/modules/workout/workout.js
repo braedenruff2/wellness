@@ -50,7 +50,7 @@
     var M = window.WLMe, co = W.coach(S, now());
     if (fin && !forceAhead) {
       var h0 = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">Done for today \u2713</h1>' + weekDots(now()) + '</div>';
-      h0 += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + fin.day, co) : '') + '</p>';
+      if (!(M && M.flagged && M.flagged('workout', 'coach:' + fin.day))) h0 += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + fin.day, co) : '') + '</p>';
       if (M) h0 += M.planLine('workout');
       if (M) h0 += M.askHtml('workout', fin.id, 'Workout done \u2713 Quick questions (optional): they shape your next workouts');
       h0 += '<div class="card done-banner ui" id="wo-done-today"><p style="margin-bottom:6px"><b>Finished ' + esc(W.PROGRAM[fin.day].title) + '</b> (' + fin.sets.length + ' set' + (fin.sets.length === 1 ? '' : 's') + '). Next time: <b>' + esc(plan.title) + '</b>.</p>' +
@@ -58,8 +58,8 @@
       return h0;
     }
     var h = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">' + esc(plan.title) + '</h1>' + weekDots(now()) + '</div>';
-    h += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + day, co) : '') + '</p>';
-    if (M && M.painNote && M.painNote()) {
+    if (!(M && M.flagged && M.flagged('workout', 'coach:' + day))) h += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + day, co) : '') + '</p>';
+    if (M && M.painNote && M.painNote() && !(M.flagged && M.flagged('workout', 'guide:pain'))) {
       var pn = 'Pain came up after two workouts lately. Go lighter on the moves that hurt and check your form (the “How” notes). If it keeps up or is sharp, see a doctor or physio.';
       h += '<p class="gentle ui" id="wo-pain">' + esc(pn) + ' ' + M.fitLink('workout', 'guide:pain', pn) + '</p>';
     }
@@ -237,9 +237,10 @@
   function volume() {
     var v = W.weekVolume(S), adv = W.volumeAdvice(S);
     if (!adv) return '';
+    var hideAdv = window.WLMe && WLMe.flagged && WLMe.flagged('workout', 'balance');
     return '<p class="meta" id="wo-volume" style="margin:.4em 0 0">Sets this week (last week): ' + W.AREAS.map(function (k) {
       return k + ' ' + v.thisWeek[k] + ' (' + v.lastWeek[k] + ')';
-    }).join(' · ') + '</p><p class="gentle" style="margin:.3em 0 0">' + esc(adv) + (window.WLMe ? ' ' + WLMe.fitLink('workout', 'balance', adv) : '') + '</p>';
+    }).join(' · ') + '</p>' + (hideAdv ? '' : '<p class="gentle" style="margin:.3em 0 0">' + esc(adv) + (window.WLMe ? ' ' + WLMe.fitLink('workout', 'balance', adv) : '') + '</p>');
   }
 
   /* 4 weeks x 7 days: filled = workout, outlined = a rest day he chose (reason in the label), faint = nothing. */
@@ -365,9 +366,9 @@
     if (bm && bm.kind === 'age') {
       note = '<p class="meta" id="wo-bench-note" style="margin:.25em 0 0">Typical ' + esc(bm.bracket) + ' average: ' + bm.low + '–' + bm.high + ' ' + esc(bm.unit) + ' (midpoint ' + bm.avg + ', strong ' + bm.good + '+) · ' + esc(bm.source) + '. General guidance, not medical advice.</p>';
     } else if (!S.age) {
-      note = '<p class="meta" id="wo-bench-note" style="margin:.25em 0 0"><a class="link" href="#workout/settings">Set your age in Setup</a> to show an average for your age group on Pushups, Plank and Walk.</p>';
+      note = '<p class="meta" id="wo-bench-note" style="margin:.25em 0 0"><a class="link" href="#workout/settings">Set your age in Setup</a> to show an average for your age group on every exercise.</p>';
     } else if (e.range) {
-      note = '<p class="meta" id="wo-bench-note" style="margin:.25em 0 0">Program set target: ' + e.range[0] + '–' + e.range[1] + ' ' + esc(u) + '. Age-group averages are shown on Pushups, Plank and Walk.</p>';
+      note = '<p class="meta" id="wo-bench-note" style="margin:.25em 0 0">Program set target: ' + e.range[0] + '–' + e.range[1] + ' ' + esc(u) + '.</p>';
     }
     return '<div class="card ui" id="wo-chart-card"><div class="row" style="margin-bottom:8px"><h3 class="grow" style="margin:0">Progress graph</h3></div>' +
       '<label class="sr" for="wo-chart-ex">Choose exercise to graph</label><select id="wo-chart-ex">' +

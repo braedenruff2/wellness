@@ -69,6 +69,7 @@
     if (!advice) return '';
     if (advice.error) return '<p class="no">' + esc(advice.error) + '</p>';
     if (advice.waiting != null) return '<p class="meta">Claude is thinking… ' + advice.waiting + ' s</p>';
+    if (window.WLMe && WLMe.flagged && WLMe.flagged('home', 'advice:' + String(advice.at || '').slice(0, 16))) return '';
     var a = advice.answer || {};
     return '<div class="advice">' + (a.headline ? '<p><b>' + esc(a.headline) + '</b></p>' : '') +
       (Array.isArray(a.points) ? '<ul>' + a.points.map(function (p) { return '<li>' + esc(p) + '</li>'; }).join('') + '</ul>' : '') +

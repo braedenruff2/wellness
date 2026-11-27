@@ -331,7 +331,7 @@
   }
 
   WL.register({
-    id: 'cook', title: 'Cooking', short: 'Cook', icon: '🍳', nav: false, navAs: 'home', storageKeys: [store.key],
+    id: 'cook', title: 'Cooking', short: 'Cook', icon: '🍳', nav: true, storageKeys: [store.key],
     route: function (parts, v) {
       view = v;
       var t = (parts && parts[0]) || '';

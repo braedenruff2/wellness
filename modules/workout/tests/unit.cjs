@@ -545,7 +545,21 @@ t('ageBracket, benchmark, weeklyTrend, exerciseSeries, and age validation', () =
   const noAge = W.benchmark('Pushups', null);
   assert.strictEqual(noAge.kind, 'target'); assert.strictEqual(noAge.high, 20);
   const rowBm = W.benchmark('One-Arm Rows', 34);
-  assert.strictEqual(rowBm.kind, 'target');
+  assert.strictEqual(rowBm.kind, 'age'); assert.strictEqual(rowBm.bracket, '30–39');
+  // Every exercise in EX has valid age-group norms across all 5 age brackets
+  const ages = [25, 34, 45, 55, 65];
+  for (const name of Object.keys(W.EX)) {
+    const unit = W.EX[name].track === 'sec' ? 'sec' : W.EX[name].track === 'min' ? 'min' : 'reps';
+    for (const age of ages) {
+      const bm = W.benchmark(name, age);
+      assert.strictEqual(bm && bm.kind, 'age', name + ' age ' + age + ' should have an age benchmark');
+      assert.strictEqual(bm.unit, unit, name + ' unit mismatch');
+      assert.ok(bm.low > 0 && bm.low <= bm.avg && bm.avg <= bm.high && bm.high <= bm.good, name + ' age ' + age + ': ' + JSON.stringify(bm));
+      assert.ok(bm.source && bm.source.length > 5, name + ' source');
+    }
+    const fallback = W.benchmark(name, null);
+    assert.strictEqual(fallback && fallback.kind, 'target', name + ' without age falls back to program target');
+  }
   // weeklyTrend across 8 weeks + exerciseSeries
   const s = W.defaults();
   W.logSet(s, 'A', 1, 16, null, at(16, 9)); W.logSet(s, 'A', 1, 14, null, at(16, 9, 3)); W.endSession(s, at(16, 9, 30));

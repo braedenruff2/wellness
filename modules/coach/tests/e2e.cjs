@@ -185,6 +185,56 @@ const W = require('../../../tests/lib/web.cjs');
     assert.ok((await page.textContent('.home-card[data-module="coach"]')).includes('Scenario done today'));
   });
 
+  await t.step('suggested Parenting scenario auto-generates once per day when Claude is available', async () => {
+    const p2 = await page.context().newPage();
+    await p2.clock.install({ time: new Date(2026, 10, 22, 9, 0) });
+    await p2.addInitScript(() => {
+      window.__coAutoAsks = [];
+      window.FCAndroid = {
+        pcStatus: () => '{"paired":true,"host":"192.168.1.20","name":"PC"}',
+        pcRequest: (id, op, a, b) => {
+          let out = '{}';
+          if (op === 'post' && a === '/v1/ask') {
+            const body = JSON.parse(b);
+            if (body.task === 'coach-scenario') window.__coAutoAsks.push(body.input);
+            out = '{"job":"co-auto-1"}';
+          } else if (op === 'get' && a.indexOf('/v1/job') === 0) {
+            out = JSON.stringify({ state: 'done', answer: { title: 'Auto daily moment', skill: 'Connection', scenario: 'She hands you a block and smiles.', question: 'What do you do and say?' } });
+          }
+          Promise.resolve().then(() => window.FCPcDone(id, true, out));
+        }
+      };
+    });
+    await p2.goto(base + '#home');
+    await p2.evaluate(() => {
+      localStorage.setItem('wl.coach.v1', JSON.stringify({ child: { name: 'Mila', birth: '2025-11-24' }, history: [], current: null, pending: null, teach: {} }));
+    });
+    await p2.reload();
+    await p2.clock.runFor(13000);
+    await p2.waitForFunction(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1') || '{}');
+      return s.current && s.current.title === 'Auto daily moment';
+    });
+    const asks = await p2.evaluate(() => window.__coAutoAsks);
+    assert.strictEqual(asks.length, 1, 'auto-generated once');
+    assert.strictEqual(asks[0].skill, 'Connection', 'uses suggested skill');
+    assert.ok((await p2.textContent('.home-card[data-module="coach"]')).includes('Auto daily moment'), 'Home card refreshed with auto scenario');
+    // Clearing current same day does NOT auto-generate again (autoTried is today)
+    await p2.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      s.current = null;
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      WL.modules.coach.reload();
+    });
+    await p2.clock.runFor(16 * 60000);
+    assert.strictEqual(await p2.evaluate(() => window.__coAutoAsks.length), 1, 'does not auto-generate twice same day');
+    // Next day: auto-generates fresh suggested scenario
+    await p2.clock.setSystemTime(new Date(2026, 10, 23, 9, 0));
+    await p2.clock.runFor(16 * 60000);
+    await p2.waitForFunction(() => window.__coAutoAsks.length === 2);
+    await p2.close();
+  });
+
   await t.step('no overflow, no console errors', async () => {
     await t.noOverflow(['#coach', '#coach/setup', '#coach/h/h1', '#coach/h/h2']);
     assert.deepStrictEqual(t.errors, []);

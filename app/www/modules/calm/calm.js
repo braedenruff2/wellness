@@ -132,7 +132,7 @@
       h += '<p class="meta" id="c-path-status">' + (ps.sits ? ps.sits + ' sit' + (ps.sits === 1 ? '' : 's') + ' at this stage (' + ps.mins + ' min)' + (ps.rated ? '; attention mostly steady in ' + ps.steady + ' of the last ' + ps.rated : '') + '.' : 'No sits at this stage yet.') + '</p>';
       if (ps.tip) h += '<p class="meta" id="c-path-tip">' + esc(ps.tip) + '</p>';
       if (ps.when) h += '<p class="meta" id="c-path-when">' + esc(ps.when.text) + '</p>';
-      if (ps.late && !(window.WLMe && WLMe.state().feedback.some(function (f) { return f && f.part === 'calm' && f.kind === 'notfit' && f.about === 'path:late'; })))
+      if (ps.late && !(window.WLMe && WLMe.flagged && WLMe.flagged('calm', 'path:late')))
         h += '<p class="meta" id="c-path-late">' + esc(ps.late) + fit('path:late', ps.late) + '</p>';
       if (ps.back) h += '<div class="row" id="c-path-back" style="gap:4px 8px"><span class="meta">Your mind has wandered a lot in recent sits at this stage. That’s normal; going back a step for a while often helps.</span><button class="chip" data-stage="' + ps.prev + '">Back to ' + esc(practice(ps.prev).title) + '</button></div>';
       if (ps.ready) h += '<div class="row" id="c-path-ready" style="gap:4px 8px"><span class="meta">Your attention has been steady lately. Ready for the next stage?</span><button class="chip" data-stage="' + ps.next + '">Move on to ' + esc(nx.title) + '</button></div>';
@@ -173,13 +173,12 @@
     var helped = window.WLMe && WLMe.calmHelped ? WLMe.calmHelped() : {};
     // a practice that hasn't helped him in 3+ tries goes to the end of the list
     var never = function (p) { var x = helped[p.id]; return x && x.n >= 3 && x.yes === 0 ? 1 : 0; };
-    var order = K.PRACTICES.filter(function (p) { return !p.path; }).map(function (p, i) { return [p, i]; }).sort(function (a, b) { return never(a[0]) - never(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
+    var order = K.PRACTICES.filter(function (p) { return !p.path && !(window.WLMe && WLMe.flagged && WLMe.flagged('calm', p.id)); }).map(function (p, i) { return [p, i]; }).sort(function (a, b) { return never(a[0]) - never(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
     h += '<h2 class="ui" style="font-size:1em;margin:1em 0 .3em">All practices</h2><ul class="list">' + order.map(function (p) {
       var hp = helped[p.id];
       return '<li><a href="#calm/s/' + p.id + '"><h3>' + esc(p.title) + '</h3><div class="meta ui">' + esc(p.when) + ' · ' + mins(p) + ' min' +
         (hp && hp.n >= 2 ? '<span class="c-helped"> · ' + (never(p) ? 'Hasn’t helped you so far' : 'Helped ' + hp.yes + ' of ' + hp.n + ' times') + '</span>' : '') + '</div>' +
-        (p.blurb || (p.pacer && K.PACERS[p.pacer].blurb) ? '<p style="margin:.3em 0 0">' + esc(p.blurb || K.PACERS[p.pacer].blurb) + '</p>' : '') + '</a>' +
-        (window.WLMe && WLMe.state().feedback.some(function (f) { return f.part === 'calm' && f.kind === 'notfit' && f.about === p.id; }) ? '<div class="meta ui">Marked not for you: suggested less</div>' : '') + '</li>';
+        (p.blurb || (p.pacer && K.PACERS[p.pacer].blurb) ? '<p style="margin:.3em 0 0">' + esc(p.blurb || K.PACERS[p.pacer].blurb) + '</p>' : '') + '</a></li>';
     }).join('') + '</ul>';
     h += '<div class="card ui"><b>' + st.weekMins + '</b> min this week on ' + st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') + ' · ' + st.total + ' sessions in all' +
       (st.avgDrop != null ? '<br><span class="meta">Stress before → after, average change: ' + (st.avgDrop >= 0 ? '−' : '+') + Math.abs(st.avgDrop).toFixed(1) + ' (from ' + st.rated + ' rated sessions)</span>' : '') + '</div>';

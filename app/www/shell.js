@@ -670,9 +670,7 @@
     }
     var bar = document.getElementById('wl-bar');
     if (bar) {
-      bar.innerHTML = '<button class="link" id="wl-bar-note" data-wl-note="1" type="button">💡 Note for autopilot</button>' +
-        (id !== 'journal' ? '<a class="link" href="#journal">✎ Journal</a>' : '') +
-        (modules.cook && id !== 'cook' ? '<a class="link" href="#cook">🍳 Cook</a>' : '');
+      bar.innerHTML = '<button class="link" id="wl-bar-note" data-wl-note="1" type="button">💡 Note for autopilot</button>';
     }
     var tab = m ? (m.navAs || id) : 'home';
     $$('nav#tabs a').forEach(function (a) {

@@ -347,6 +347,18 @@
     var p = state.plan; if (!p || !p.at) return false;
     return flagged(state, part, 'plan:' + String(p.at).slice(0, 10));
   }
+  /* Dismiss "This week, for you" for a part (or Home) for the current weekly plan; a newer plan shows fresh. */
+  function dismissPlan(state, part) {
+    var p = state && state.plan;
+    if (!p || !p.at || PARTS.indexOf(part) < 0) return false;
+    if (!state.planDismissed || typeof state.planDismissed !== 'object') state.planDismissed = {};
+    state.planDismissed[part] = p.at;
+    return true;
+  }
+  function planDismissed(state, part) {
+    var p = state && state.plan;
+    return !!(p && p.at && state.planDismissed && state.planDismissed[part] === p.at);
+  }
   function planDue(state, now) {
     now = now || new Date();
     return !state.plan || now.getTime() - new Date(state.plan.at).getTime() > 6.5 * 864e5;
@@ -402,6 +414,14 @@
     if (s.plan) d.plan = typeof s.plan.at === 'string' && !isNaN(Date.parse(s.plan.at)) ? (function () { var p = cleanPlan(s.plan); if (p) p.at = cut(s.plan.at, 40); return p; })() : null;
     if (WLD.isDate(s.planTried)) d.planTried = s.planTried;
     if (WLD.isDate(s.planCancelled)) d.planCancelled = s.planCancelled;
+    if (s.planDismissed && typeof s.planDismissed === 'object') {
+      var pd = {};
+      PARTS.forEach(function (k) {
+        var v = s.planDismissed[k];
+        if (typeof v === 'string' && !isNaN(Date.parse(v))) pd[k] = cut(v, 40);
+      });
+      if (Object.keys(pd).length) d.planDismissed = pd;
+    }
     if (s.skipped && typeof s.skipped === 'object') Object.keys(s.skipped).forEach(function (k) { if (WLD.isDate(k)) d.skipped[k] = 1; });
     return d;
   }
@@ -420,7 +440,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged,
+    notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

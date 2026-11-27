@@ -241,4 +241,25 @@ t('teachForAge, setTeach, doneToday, doneInLast, and validate persistence', () =
   assert.strictEqual(K.doneInLast(s, 7, new Date(2026, 10, 26, 9, 0)), 1);
   assert.strictEqual(K.doneInLast(s, 7, new Date(2026, 10, 28, 9, 0)), 0);
 });
+t('scenarioDue & validate persistence for daily auto-generated scenarios', () => {
+  const day1 = new Date(2026, 10, 20, 10, 0), day2 = new Date(2026, 10, 21, 10, 0);
+  const s = K.defaults();
+  assert.strictEqual(K.scenarioDue(s, day1), false, 'not due without child birthday');
+  s.child.birth = '2025-11-24';
+  assert.strictEqual(K.scenarioDue(s, day1), true, 'due once birthday set');
+  s.autoTried = '2026-11-20';
+  assert.strictEqual(K.scenarioDue(s, day1), false, 'not due again same day after autoTried');
+  assert.strictEqual(K.scenarioDue(s, day2), true, 'due again next day');
+  s.autoCancelled = '2026-11-21';
+  assert.strictEqual(K.scenarioDue(s, day2), false, 'not due same day after cancel');
+  delete s.autoTried; delete s.autoCancelled;
+  K.setScenario(s, { skill: 'Sleep', scenario: 'Crying at nap' }, day1);
+  assert.strictEqual(K.scenarioDue(s, day1), false, 'not due when scenario already active');
+  K.grade(s, 'Hold calmly and sing', { score: 8 }, day1);
+  assert.strictEqual(K.scenarioDue(s, day1), false, 'not due when already graded today');
+  assert.strictEqual(K.scenarioDue(s, day2), true, 'due next day after yesterday graded');
+  const v = K.validate({ child: { birth: '2025-11-24' }, history: [], autoTried: '2026-11-20', autoCancelled: '2026-02-30' });
+  assert.strictEqual(v.autoTried, '2026-11-20');
+  assert.strictEqual(v.autoCancelled, undefined, 'invalid calendar date dropped');
+});
 console.log(n + ' coach tests passed');

@@ -640,4 +640,29 @@ t('linkerHint parity: split helpers match original three-branch behaviour across
   }
   assert.ok(cases.length >= 20 && hits >= 10, 'tested real pack mutations + fixtures: ' + cases.length + ' cases, ' + hits + ' hints');
 });
+t('bubbleWord: lowercases and strips sentence punctuation across all bundled build exercises without breaking check()', () => {
+  assert.strictEqual(T.bubbleWord('Magandang'), 'magandang');
+  assert.strictEqual(T.bubbleWord('po.'), 'po');
+  assert.strictEqual(T.bubbleWord('ba?'), 'ba');
+  assert.strictEqual(T.bubbleWord('“Opo!”'), 'opo');
+  assert.strictEqual(T.bubbleWord('mag-aral,'), 'mag-aral', 'keeps internal hyphen');
+  const fs = require('fs'), path = require('path'), dir = path.join(__dirname, '..', 'packs');
+  let checked = 0;
+  for (const f of fs.readdirSync(dir).filter((x) => /^\d{4}-\d\d-\d\d\.json$/.test(x))) {
+    const p = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    for (const l of p.lessons) for (const ex of l.exercises) {
+      if (ex.type !== 'build') continue;
+      checked++;
+      for (const w of ex.words) {
+        const bw = T.bubbleWord(w);
+        assert.ok(bw.length > 0, f + ' empty bubble for ' + w);
+        assert.strictEqual(bw, bw.toLowerCase(), f + ' uppercase leaked: ' + bw);
+        assert.ok(!/[.,!?;:"“”‘’…()¿¡]/.test(bw), f + ' punctuation leaked: ' + bw);
+      }
+      const built = ex.answer.split(/\s+/).map(T.bubbleWord).join(' ');
+      assert.strictEqual(T.check(ex, built), true, f + ' built answer must pass check: ' + built + ' vs ' + ex.answer);
+    }
+  }
+  assert.ok(checked >= 5, 'verified bundled build exercises: ' + checked);
+});
 console.log(n + ' tagalog unit tests passed');

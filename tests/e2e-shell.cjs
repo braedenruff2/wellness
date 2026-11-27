@@ -11,12 +11,26 @@ const W = require('./lib/web.cjs');
     const mods = await page.$$eval('.home-card', (els) => els.map((e) => e.dataset.module));
     for (const m of ['faith', 'calm', 'workout', 'tagalog', 'todo', 'journal', 'cook']) assert.ok(mods.includes(m), 'card ' + m + ' in ' + mods);
     const tabs = await page.$$eval('nav#tabs a', (els) => els.map((e) => e.dataset.tab));
-    assert.deepStrictEqual(tabs, ['home', 'faith', 'calm', 'workout', 'tagalog', 'coach']);
+    assert.deepStrictEqual(tabs, ['home', 'faith', 'calm', 'workout', 'tagalog', 'coach', 'journal', 'cook']);
+    const navGeom = await page.evaluate(() => {
+      const nav = document.querySelector('nav#tabs');
+      const cs = getComputedStyle(nav);
+      const heights = Array.from(nav.querySelectorAll('a')).map((a) => Math.round(a.getBoundingClientRect().height));
+      return { padBottom: parseFloat(cs.paddingBottom), heights };
+    });
+    assert.strictEqual(navGeom.padBottom, 0, 'no extra bottom padding below nav icons');
+    assert.ok(navGeom.heights.every((h) => h >= 44), 'all 8 nav icons >= 44px tall: ' + JSON.stringify(navGeom.heights));
   });
   await t.step('nav goes to a module and back; current tab is marked', async () => {
     await page.click('nav#tabs a[data-tab="faith"]');
     await page.waitForSelector('.subnav');
     assert.strictEqual(await page.getAttribute('nav#tabs a[data-tab="faith"]', 'aria-current'), 'page');
+    await page.click('nav#tabs a[data-tab="journal"]');
+    await page.waitForSelector('#new-entry');
+    assert.strictEqual(await page.getAttribute('nav#tabs a[data-tab="journal"]', 'aria-current'), 'page');
+    await page.click('nav#tabs a[data-tab="cook"]');
+    await page.waitForSelector('#ck-add, #view h1');
+    assert.strictEqual(await page.getAttribute('nav#tabs a[data-tab="cook"]', 'aria-current'), 'page');
     await page.click('nav#tabs a[data-tab="home"]');
     await page.waitForSelector('.home-card');
   });

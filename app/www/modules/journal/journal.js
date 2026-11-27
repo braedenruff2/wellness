@@ -107,7 +107,7 @@
   }
 
   WL.register({
-    id: 'journal', title: 'Journal', short: 'Journal', icon: '\u270E', nav: false, navAs: 'home',
+    id: 'journal', title: 'Journal', short: 'Journal', icon: '\u270E', nav: true,
     storageKeys: [], route: route, card: card
   });
 })();
