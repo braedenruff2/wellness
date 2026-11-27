@@ -295,4 +295,11 @@ t('recentAdvice: the newest real-situation advice of the last 3 days with its fi
   K.addReal(s, 'Another', { summary: 'only a summary' }, new Date(2026, 10, 28, 12));
   assert.strictEqual(K.recentAdvice(s, new Date(2026, 10, 28, 13)), null, 'the newest advice has no steps: nothing');
 });
+t('tipNotes: his answer on advice he asked for goes with later requests', () => {
+  const s = { child: { name: 'M', birth: '2025-11-24' }, history: [], current: null, pending: null, teach: {} };
+  const h = K.addReal(s, 'She cries when put down', { title: 'Crib', summary: 'x', steps: ['Stay beside the crib'] }, new Date(2026, 10, 27, 20));
+  const me = { feedback: [{ id: 'coach/after/real:' + h.id, at: new Date(2026, 10, 30).toISOString(), part: 'coach', about: 'real:' + h.id, kind: 'after', a: { tried: 'Sort of' } },
+    { id: 'coach/after/real:gone', at: new Date(2026, 10, 30).toISOString(), part: 'coach', about: 'real:gone', kind: 'after', a: { tried: 'It worked' } }] };
+  assert.deepStrictEqual(K.tipNotes(s, me), [{ tip: 'Advice he asked for (Crib): Stay beside the crib', skill: h.skill, tried: 'Sort of' }]);
+});
 console.log(n + ' coach tests passed');

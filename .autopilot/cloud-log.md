@@ -22,6 +22,7 @@
 - bug: the phone sent the "What to teach now" items he marked doing with every scenario request, but the prompt never used them / fixed: {{practising}} in pc/prompts/coach-scenario.md (PC and cloud) / test: test_pc (347). Done 343 (advice prompt: work within what he is comfortable with), 344 (plan summary names his newest sit in the app's words), 345 (unit: a workout across midnight). 346 dropped (exists). Added 342-348.
 - bug: a "Not for me" brought back from Settings stayed in the PC link's activity log (weekly plans still counted it) / fixed: unFit records it and activity.js sends fb/<id>/x, which the PC already drops / test: link unit, test_pc, me unit (349). Done 313 (e2e: auto scenario queued once, cancelled for the day), 341, 350 (tests; no bugs).
 - Done 351: advice on a real situation: Home's Parenting card shows its first step for 3 days with "See the advice". Added 349-352.
+- Done 352: the advice screen asks "Did you try it with her?" from day 2; his answer goes with later Parenting requests (tipNotes).
 - Checked, not a bug: body.hide-bar after leaving an open workout (route() resets body classes).
 - Done 325: an unsent Parenting question (draft kept as he types) says "Saved on this phone, not sent yet" on #coach, and Home's Parenting card adds "Finish and send" (#coach/real, Get advice focused); e2e-draft.
 - Added tasks 320-325.

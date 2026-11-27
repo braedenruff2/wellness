@@ -307,8 +307,11 @@
     var byId = {}, rows = [];
     state.history.forEach(function (h) { if (h && h.id) byId[h.id] = h; });
     me.feedback.forEach(function (f, idx) {
-      if (!f || f.part !== 'coach' || !/^tip:/.test(String(f.about || ''))) return;
-      var h = byId[String(f.about).slice(4)], tip = String(f.shown || (h && h.result && h.result.practice) || '').trim();
+      if (!f || f.part !== 'coach' || !/^(tip|real):/.test(String(f.about || ''))) return;
+      var real = /^real:/.test(f.about), h = byId[String(f.about).slice(real ? 5 : 4)];
+      // his answer on advice he asked for ("Did you try it with her?" on the advice screen)
+      var tip = real ? (h && h.advice ? ('Advice he asked for (' + h.title + '): ' + (h.advice.steps[0] || h.advice.summary || '')).trim() : '')
+        : String(f.shown || (h && h.result && h.result.practice) || '').trim();
       if (!tip) return;
       var o = { tip: tip.slice(0, 300) };
       if (h && h.skill) o.skill = h.skill;

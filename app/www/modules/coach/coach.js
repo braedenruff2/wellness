@@ -44,6 +44,8 @@
       (a.why ? '<h3>Why</h3><p>' + esc(a.why) + '</p>' : '') + (a.watch ? '<h3>When to get help</h3><p>' + esc(a.watch) + '</p>' : '') + (a.text ? '<p>' + esc(a.text) + '</p>' : '') +
       (a.sources.length ? '<p class="meta ui">Sources: ' + a.sources.map(function (x) { return '<a href="' + esc(x.url) + '">' + esc(x.title) + '</a>'; }).join(' · ') + '</p>' : '') +
       '<div class="row ui"><button class="primary" id="co-practise" data-id="' + esc(h.id) + '">Practise this as a scenario</button></div>' +
+      // a couple of days on: did it help? (sent with later Parenting requests, like the tip answers)
+      (window.WLMe && WLMe.askHtml && Date.now() - Date.parse(h.at) >= 2 * 864e5 ? WLMe.askHtml('coach', 'real:' + h.id, 'Did it help? (optional: later advice builds on your answer)') : '') +
       '<p class="meta ui">General guidance, not medical advice. For health worries, call your doctor or 811; in an emergency, 911.</p></div>';
   }
 
