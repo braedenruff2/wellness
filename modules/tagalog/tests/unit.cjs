@@ -262,6 +262,18 @@ t('orderHint: a short pronoun out of second place gets its own hint (his "bakit 
   const ex2 = { type: 'type', prompt: 'p', answer: 'Hindi pa siya kumakain.' };
   assert.ok(/short words like siya/.test(T.orderHint(ex2, 'hindi pa kumakain siya')));
   assert.strictEqual(T.orderHint(ex2, 'siya hindi pa kumakain'), 'Right words; short words like siya go right after the first word: Hindi pa siya kumakain.');
+  // inside the run of short words, one-syllable na/pa/po/ba come before ako/siya/kayo (a real build miss: "nag-aaral pa ako po")
+  const still = { type: 'build', prompt: "I'm still learning. (to an elder)", words: ['ako.', 'po', 'pa', 'Nag-aaral'], answer: 'Nag-aaral pa po ako.' };
+  assert.strictEqual(T.orderHint(still, 'nag-aaral pa ako po'), 'Right words; short words like po come before ako: Nag-aaral pa po ako.');
+  assert.strictEqual(T.hintKind(still, 'nag-aaral pa ako po'), 'pronoun');
+  assert.strictEqual(T.orderHint(still, 'nag-aaral ako pa po'), 'Right words; short words like pa come before ako: Nag-aaral pa po ako.');
+  assert.strictEqual(T.orderHint(still, 'Nag-aaral pa po ako.'), '', 'right -> no hint');
+  const kain = { type: 'type', prompt: 'Have you eaten? (to an elder)', answer: 'Kumain na po ba kayo?' };
+  assert.strictEqual(T.orderHint(kain, 'kumain na po kayo ba'), 'Right words; short words like ba come before kayo: Kumain na po ba kayo?');
+  // a hyphenated first word no longer hides the pronoun hint
+  assert.strictEqual(T.orderHint({ type: 'type', answer: 'Nag-aaral ako ng Tagalog.' }, 'nag-aaral ng tagalog ako'), 'Right words; short words like ako go right after the first word: Nag-aaral ako ng Tagalog.');
+  // one-syllable ka is a pronoun that comes first: no swap hint for "Kumain ka na ba?"
+  assert.strictEqual(T.orderHint({ type: 'type', answer: 'Kumain ka na ba?' }, 'kumain ka na ba'), '');
   // ang/ng sentences keep their own hint
   const ex3 = { type: 'type', prompt: 'p', answer: 'Umiinom ng gatas ang baby.' };
   assert.ok(/doer comes after the verb/.test(T.orderHint(ex3, 'umiinom ang gatas ng baby')));

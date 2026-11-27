@@ -86,6 +86,8 @@
     return g === a || noPo(g) === noPo(a) || gj === aj || noPo(gj) === noPo(aj) ? '' : ex.answer;
   }
   function normHo(s) { return norm(s).replace(/\bho\b/g, 'po'); }
+  /* For word order: a prefix hyphen joins (nag-aaral is one word), so the short words after it are found. */
+  function normJoinHo(s) { return normJoin(s).replace(/\bho\b/g, 'po'); }
   function sortedWords(s) { return s ? s.split(' ').sort().join(' ') : ''; }
   /* Right, but without the "po" the answer has: a gentle note (only on poOptional exercises). */
   function missedPo(ex, given) {
@@ -95,25 +97,42 @@
   /* The little words that follow a sentence's first word (pronouns and na, pa, ba, po...): the run of them at index 1+. */
   var PRON = ['ako', 'ka', 'siya', 'kami', 'tayo', 'sila', 'kayo', 'ko', 'mo', 'niya', 'namin', 'natin', 'nila', 'ninyo'];
   var ENC = PRON.concat(['na', 'pa', 'ba', 'po', 'din', 'rin', 'lang', 'daw', 'raw', 'naman', 'nga']);
+  var PRON2 = ['ako', 'siya', 'kami', 'tayo', 'sila', 'kayo', 'niya', 'namin', 'natin', 'nila', 'ninyo'];
+  var PART1 = ['na', 'pa', 'po', 'ba'];
+  /* A one-syllable particle the answer puts before a two-syllable pronoun but the given run puts after it: [particle, pronoun]. */
+  function clusterSwap(cc, gc) {
+    for (var a = 0; a < cc.length; a++) {
+      if (PART1.indexOf(cc[a]) < 0) continue;
+      for (var b = a + 1; b < cc.length; b++) {
+        if (PRON2.indexOf(cc[b]) < 0) continue;
+        var ga = gc.indexOf(cc[a]), gb = gc.indexOf(cc[b]);
+        if (ga >= 0 && gb >= 0 && ga > gb) return [cc[a], cc[b]];
+      }
+    }
+    return null;
+  }
   function cluster(words) { var out = []; for (var i = 1; i < words.length && ENC.indexOf(words[i]) >= 0; i++) out.push(words[i]); return out; }
   /* Same words as the answer (or an accepted answer) in a different order: a specific word-order hint instead of plain
      wrong, when a short pronoun is out of second place or on an ang/ng/si/ni sentence. */
   function orderHint(ex, given) {
     if (!ex || !ex.answer || ex.type === 'mc' || ex.type === 'listen') return '';
     if (check(ex, given)) return '';
-    var g = normHo(given);
+    var g = normJoinHo(given);
     if (!g) return '';
     var gw = g.split(' ');
     if (gw.length < 3) return '';
     var gKey = sortedWords(g), gNoPo = ex.poOptional ? sortedWords(noPo(g)) : '';
     var cands = [ex.answer].concat(ex.accept || []);
     for (var i = 0; i < cands.length; i++) {
-      var c = normHo(cands[i]), cw = c.split(' ');
+      var c = normJoinHo(cands[i]), cw = c.split(' ');
       // short words (siya, ako, kami, ko...) sit right after the first word: "Bakit siya umiiyak?", not "Bakit umiiyak siya?"
       if (cw.length === gw.length && sortedWords(c) === gKey) {
         var pron = cluster(cw).filter(function (w) { return PRON.indexOf(w) >= 0; }), gc = cluster(gw);
         var off = pron.filter(function (w) { return gc.indexOf(w) < 0; })[0];
         if (off) return 'Right words; short words like ' + off + ' go right after the first word: ' + (i === 0 ? ex.answer : cands[i]);
+        // inside that run, one-syllable na / pa / po / ba come before ako, siya, kayo...: "Nag-aaral pa po ako", not "pa ako po"
+        var swap = clusterSwap(cluster(cw), gc);
+        if (swap) return 'Right words; short words like ' + swap[0] + ' come before ' + swap[1] + ': ' + (i === 0 ? ex.answer : cands[i]);
       }
       if (!/\b(ang|ng|si|ni)\b/.test(c)) continue;
       var match = (c.split(' ').length === gw.length && sortedWords(c) === gKey) ||
@@ -282,7 +301,7 @@
   /* One line per kind for whoever writes next week's lessons from the weekly summary (the PC lesson job, a cloud run). */
   var HINT_ABOUT = {
     order: 'ang/ng word order: the doer (ang) comes after the verb and its object',
-    pronoun: 'short words (ako, siya, ko, na, po...) go right after the first word',
+    pronoun: 'short words (ako, siya, ko, na, po...) go right after the first word; one-syllable na/pa/po/ba come before ako/siya/kayo (nag-aaral pa po ako)',
     linker: 'a missing linker: -ng after a vowel or n, na otherwise (gusto kong, apat na)',
     extralinker: 'an extra linker: no -ng on the short word after hindi (hindi ako pagod, not hindi akong pagod)',
     aspect: 'verb form: the plain form after gusto/kailangan/puwede vs. the repeated-syllable form for "is doing / will do"'
