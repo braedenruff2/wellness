@@ -573,6 +573,21 @@ _zr = subprocess.run([sys.executable, "-c", "import datetime, sys; sys.path.inse
                      capture_output=True, text=True, env=dict(os.environ, TZ="Asia/Manila"))
 check("reset time read in the zone the message names (PC in Manila time): 00:41 Halifax = 04:41 UTC",
       _zr.stdout.strip() == "2026-11-27 04:41", (_zr.stdout + _zr.stderr)[-300:])
+# summer DST (ADT = UTC-3) and UTC zone name, plus direct fallback check for Windows without tzdata
+_z_sum = W.claude_reset_until("You've hit your session limit · resets 12:40am (America/Halifax)",
+                              datetime.datetime(2026, 7, 15, 2, 50, tzinfo=datetime.timezone.utc))
+check("summer Halifax reset uses ADT (UTC-3): 00:41 ADT = 03:41 UTC",
+      _z_sum.astimezone(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M") == "2026-07-15 03:41", _z_sum)
+_z_utc = W.claude_reset_until("You've hit your session limit · resets 5am (UTC)",
+                              datetime.datetime(2026, 11, 27, 2, 50, tzinfo=datetime.timezone.utc))
+check("UTC zone in reset message parses cleanly",
+      _z_utc.astimezone(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M") == "2026-11-27 05:01", _z_utc)
+_fb_hfx = W._NaDstZone("America/Halifax", -240)
+check("fallback _NaDstZone matches Halifax winter (-4h), summer (-3h), and Nov 1 fall-back",
+      datetime.datetime(2026, 11, 27, 4, 40, tzinfo=datetime.timezone.utc).astimezone(_fb_hfx).strftime("%H:%M %z") == "00:40 -0400"
+      and datetime.datetime(2026, 7, 15, 3, 40, tzinfo=datetime.timezone.utc).astimezone(_fb_hfx).strftime("%H:%M %z") == "00:40 -0300"
+      and datetime.datetime(2026, 11, 1, 4, 30, tzinfo=datetime.timezone.utc).astimezone(_fb_hfx).strftime("%H:%M %z") == "01:30 -0300"
+      and datetime.datetime(2026, 11, 1, 5, 30, tzinfo=datetime.timezone.utc).astimezone(_fb_hfx).strftime("%H:%M %z") == "01:30 -0400")
 _sess_fb = W.claude_reset_until("You've hit your session limit", _sess_now)
 check("session limit without clock time falls back to +5 hours",
       (_sess_fb.day, _sess_fb.hour, _sess_fb.minute) == (27, 3, 50), _sess_fb)

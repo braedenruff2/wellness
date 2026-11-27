@@ -676,19 +676,84 @@ def is_usage_limit(msg):
     return bool(LIMIT_RE.search(m))
 
 
-RESET_ZONE_RE = re.compile(r"\(([A-Za-z_]+(?:/[A-Za-z0-9_+-]+){1,2})\)")
+RESET_ZONE_RE = re.compile(r"\(((?:[A-Za-z_]+(?:/[A-Za-z0-9_+-]+){1,2}|UTC|GMT))\)")
+
+# Standard offsets (minutes from UTC) for fallback when Python has no system tzdata (Windows without pip tzdata).
+_NA_DST_ZONES = {
+    "America/St_Johns": -210,
+    "America/Halifax": -240, "America/Moncton": -240, "America/Glace_Bay": -240, "America/Goose_Bay": -240,
+    "America/Toronto": -300, "America/New_York": -300, "America/Detroit": -300, "America/Montreal": -300,
+    "America/Chicago": -360, "America/Winnipeg": -360,
+    "America/Denver": -420, "America/Edmonton": -420,
+    "America/Los_Angeles": -480, "America/Vancouver": -480,
+}
+_FIXED_ZONES = {
+    "UTC": 0, "Etc/UTC": 0, "GMT": 0, "Etc/GMT": 0,
+    "Asia/Manila": 480, "America/Regina": -360, "America/Phoenix": -420,
+}
+
+
+def _nth_sunday(year, month, n):
+    first = 1 + (6 - datetime.date(year, month, 1).weekday()) % 7
+    return first + 7 * (n - 1)
+
+
+class _NaDstZone(datetime.tzinfo):
+    """US/Canada DST fallback (2nd Sunday Mar 02:00 std -> 1st Sunday Nov 02:00 dst) when zoneinfo lacks tzdata."""
+    def __init__(self, name, std_min):
+        self._name = name
+        self._std = datetime.timedelta(minutes=std_min)
+
+    def _dst_bounds_utc(self, year):
+        start_std = datetime.datetime(year, 3, _nth_sunday(year, 3, 2), 2, 0)
+        end_std = datetime.datetime(year, 11, _nth_sunday(year, 11, 1), 1, 0)
+        return start_std - self._std, end_std - self._std
+
+    def dst(self, dt):
+        if dt is None:
+            return datetime.timedelta(0)
+        naive = dt.replace(tzinfo=None)
+        start = datetime.datetime(dt.year, 3, _nth_sunday(dt.year, 3, 2), 2, 0)
+        end = datetime.datetime(dt.year, 11, _nth_sunday(dt.year, 11, 1), 1 if dt.fold else 2, 0)
+        return datetime.timedelta(hours=1) if start <= naive < end else datetime.timedelta(0)
+
+    def utcoffset(self, dt):
+        return self._std + self.dst(dt)
+
+    def tzname(self, dt):
+        return self._name
+
+    def fromutc(self, dt):
+        naive_utc = dt.replace(tzinfo=None)
+        start_u, end_u = self._dst_bounds_utc(naive_utc.year)
+        in_dst = start_u <= naive_utc < end_u
+        local = naive_utc + self._std + (datetime.timedelta(hours=1) if in_dst else datetime.timedelta(0))
+        # Fall-back repeated hour: mark fold=1 on the post-transition (standard) pass
+        fold = 1 if (not in_dst and end_u <= naive_utc < end_u + datetime.timedelta(hours=1)) else 0
+        return local.replace(tzinfo=self, fold=fold)
+
+
+def _get_zone(name):
+    try:
+        from zoneinfo import ZoneInfo
+        return ZoneInfo(name)
+    except Exception:
+        pass
+    if name in _FIXED_ZONES:
+        return datetime.timezone(datetime.timedelta(minutes=_FIXED_ZONES[name]), name)
+    if name in _NA_DST_ZONES:
+        return _NaDstZone(name, _NA_DST_ZONES[name])
+    return None
 
 
 def _zoned_reset(msg, n, hr24, mn):
     """The clock time in the zone the message names ('resets 12:40am (America/Halifax)'), as a local datetime; None
-    when it names none or this Python has no zone data (Windows without the tzdata package): then the PC's zone is used."""
+    when it names none or the zone is unknown (then the PC's own zone is used)."""
     zm = RESET_ZONE_RE.search(str(msg or ""))
     if not zm:
         return None
-    try:
-        from zoneinfo import ZoneInfo
-        z = ZoneInfo(zm.group(1))
-    except Exception:
+    z = _get_zone(zm.group(1))
+    if z is None:
         return None
     nz = n.astimezone(z)
     cand = datetime.datetime(nz.year, nz.month, nz.day, hr24, mn, 0, tzinfo=z)
