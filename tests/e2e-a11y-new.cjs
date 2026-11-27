@@ -861,6 +861,21 @@ const W = require('./lib/web.cjs');
       await t.noOverflow(['#tagalog/settings']);
     });
   }
+  for (const theme of ['light', 'dark', 'night']) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step(theme + ': Cooking tabs (incl. the "What did Mama cook?" field) text contrast, 44 px at 1.3', async () => {
+      await look(1.3, theme); await page.goto(base + '#cook'); await page.reload(); await page.waitForSelector('[data-ck-meal]');
+      const m = await page.$('[data-ck-mama]');
+      if (m) { await m.click(); await page.waitForSelector('.ck-mama-form'); }
+      assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #cook');
+      assert.deepStrictEqual(await small('.ck-mama-form input, .ck-mama-form button, [data-ck-made], [data-ck-mama], [data-ck-reset]'), [], theme + ' #cook targets');
+      for (const h of ['#cook/week', '#cook/log', '#cook/pantry']) {
+        await page.goto(base + h); await page.waitForTimeout(80);
+        assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' ' + h);
+      }
+      await t.noOverflow(['#cook', '#cook/week', '#cook/log', '#cook/pantry']);
+    });
+  }
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y of new UI');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
