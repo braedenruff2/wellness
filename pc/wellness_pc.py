@@ -670,6 +670,28 @@ def is_usage_limit(msg):
     return bool(LIMIT_RE.search(m))
 
 
+RESET_ZONE_RE = re.compile(r"\(([A-Za-z_]+(?:/[A-Za-z0-9_+-]+){1,2})\)")
+
+
+def _zoned_reset(msg, n, hr24, mn):
+    """The clock time in the zone the message names ('resets 12:40am (America/Halifax)'), as a local datetime; None
+    when it names none or this Python has no zone data (Windows without the tzdata package): then the PC's zone is used."""
+    zm = RESET_ZONE_RE.search(str(msg or ""))
+    if not zm:
+        return None
+    try:
+        from zoneinfo import ZoneInfo
+        z = ZoneInfo(zm.group(1))
+    except Exception:
+        return None
+    nz = n.astimezone(z)
+    cand = datetime.datetime(nz.year, nz.month, nz.day, hr24, mn, 0, tzinfo=z)
+    if cand <= nz:
+        d = nz.date() + datetime.timedelta(days=1)
+        cand = datetime.datetime(d.year, d.month, d.day, hr24, mn, 0, tzinfo=z)
+    return cand.astimezone(n.tzinfo)
+
+
 def claude_reset_until(msg, now=None):
     """When Claude's limit ends: for a short session/5-hour limit with a clock time (e.g. 'resets 12:40am'),
     use the next local occurrence of that clock time (+1 min buffer); otherwise Wednesday noon."""
@@ -684,6 +706,9 @@ def claude_reset_until(msg, now=None):
         hr, mn, ap = int(tm.group(1)), int(tm.group(2) or 0), tm.group(3).lower()
         if 1 <= hr <= 12 and 0 <= mn <= 59:
             hr24 = (0 if hr == 12 else hr) if ap == "am" else (12 if hr == 12 else hr + 12)
+            zc = _zoned_reset(m, n, hr24, mn)
+            if zc is not None:
+                return min(zc + datetime.timedelta(minutes=1), weekly_until)
             d = n.date()
             cand = datetime.datetime(d.year, d.month, d.day, hr24, mn, 0).astimezone()
             if cand <= n:

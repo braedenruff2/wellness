@@ -561,6 +561,14 @@ check("session limit with 'resets 3pm' same day sets claude_until to 15:01 today
 _sess_wk = W.claude_reset_until("You've hit your weekly limit · resets Wed 12pm (America/Halifax)", _sess_now)
 check("weekly limit still resets on Wednesday noon",
       (_sess_wk.month, _sess_wk.day, _sess_wk.hour, _sess_wk.weekday()) == (12, 2, 12, 2), _sess_wk)
+# the zone in the message wins over the PC's own zone (a PC set to Manila time, a Halifax reset time)
+_zr = subprocess.run([sys.executable, "-c", "import datetime, sys; sys.path.insert(0, sys.argv[1]); import wellness_pc as W; "
+                      "n = datetime.datetime(2026, 11, 27, 2, 50, tzinfo=datetime.timezone.utc); "
+                      "u = W.claude_reset_until(\"You've hit your session limit \u00b7 resets 12:40am (America/Halifax)\", n); "
+                      "print(u.astimezone(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M'))", os.path.dirname(os.path.dirname(os.path.abspath(__file__)))],
+                     capture_output=True, text=True, env=dict(os.environ, TZ="Asia/Manila"))
+check("reset time read in the zone the message names (PC in Manila time): 00:41 Halifax = 04:41 UTC",
+      _zr.stdout.strip() == "2026-11-27 04:41", (_zr.stdout + _zr.stderr)[-300:])
 _sess_fb = W.claude_reset_until("You've hit your session limit", _sess_now)
 check("session limit without clock time falls back to +5 hours",
       (_sess_fb.day, _sess_fb.hour, _sess_fb.minute) == (27, 3, 50), _sess_fb)
