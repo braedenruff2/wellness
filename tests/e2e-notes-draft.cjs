@@ -25,6 +25,10 @@ const W = require('./lib/web.cjs');
     await openSheet();
     assert.strictEqual(await page.inputValue('#wl-note-in'), 'The timer skipped a minute in the quiet sit');
   });
+  await t.step('the draft stays on this phone: not in a backup (or the Drive sync file, built the same way)', async () => {
+    const b = await page.evaluate(() => WL.backupText());
+    assert.ok(!b.includes('wl.notes.draft') && !b.includes('timer skipped a minute in the quiet sit'), 'draft not in the backup');
+  });
   await t.step('Clear it empties the box and the draft', async () => {
     await page.click('#wl-note-clear');
     assert.strictEqual(await page.inputValue('#wl-note-in'), '');
