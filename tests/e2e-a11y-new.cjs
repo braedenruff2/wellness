@@ -434,6 +434,21 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/journal');
       await page.goto(base + '#journal'); await page.waitForSelector('#j-search');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #journal');
+      await page.evaluate(() => {
+        const s = WisdomCore.defaults();
+        WisdomCore.addZoomOut(s, { situation: 'He paused before replying.', assuming: 'Tiredness', nextStep: 'Breathe', feedback: { blindSpots: ['Check tone'], reframe: 'Long view' } }, new Date(2026, 10, 23, 10, 0));
+        WisdomCore.addDecision(s, { choice: 'Keep a light weekly floor', expect: 'Less burnout', reviewDays: 14 }, new Date(2026, 10, 1, 10, 0));
+        WisdomCore.addPrinciple(s, { text: 'Never solve big topics late at night', tag: 'Family' }, new Date(2026, 10, 22, 10, 0));
+        WisdomCore.addPrinciple(s, { text: 'Ask one curious question first', tag: 'Parenting' }, new Date(2026, 10, 21, 10, 0));
+        localStorage.setItem('wl.wisdom.v1', JSON.stringify(s));
+        if (window.WL && WL.modules.journal) WL.modules.journal.reload();
+      });
+      for (const wh of ['#journal/wisdom/zoom', '#journal/wisdom/decisions', '#journal/wisdom/principles']) {
+        await page.goto(base + wh); await page.waitForSelector('#w-modes');
+        assert.deepStrictEqual(await small('#w-modes button, #view button'), [], theme + ' ' + wh + ' targets');
+        assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' ' + wh);
+        await t.noOverflow([wh]);
+      }
       await page.goto(base + '#faith/prayers'); await page.waitForSelector('#p-search');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #faith/prayers');
       await page.goto(base + '#faith/settings'); await page.waitForSelector('#fc-export-text');

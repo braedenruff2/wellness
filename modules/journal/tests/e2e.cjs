@@ -176,8 +176,118 @@ const W = require('../../../tests/lib/web.cjs');
     await page.waitForSelector('#j-list');
     assert.strictEqual(await page.$('#j-lookback'), null, 'dismissed look-back stays gone after reload');
   });
+
+  await t.step('Wisdom toolkit (#journal/wisdom): Zoom Out + AI blind-spot check, Decision Log + due review -> Principle + snooze, Principles filter/search/export', async () => {
+    await page.goto(base + '#journal');
+    await page.waitForSelector('[data-jtab="wisdom"]');
+    await page.click('[data-jtab="wisdom"]');
+    await page.waitForSelector('#w-zoom-form');
+
+    // Stub WL.pc for blind-spot check
+    await page.evaluate(() => {
+      window.WL.pc = Object.assign({}, window.WL.pc || {}, {
+        canAsk: () => true,
+        ready: () => true,
+        queued: () => [],
+        ask: (task, inp) => {
+          if (task === 'wisdom-check') {
+            return Promise.resolve({
+              blindSpots: ['Treating tiredness as bad intent'],
+              otherSide: 'Everyone is running on low sleep tonight.',
+              reframe: 'In a year, calm kindness matters more than tonight’s schedule.',
+              nextStep: 'Offer tea and reset expectations gently.'
+            });
+          }
+          return Promise.reject(new Error('unexpected ' + task));
+        }
+      });
+    });
+
+    // Save & check blind spots on Zoom Out
+    await page.goto(base + '#journal/wisdom/zoom');
+    await page.waitForSelector('#w-z-ai');
+    await page.fill('#w-z-sit', 'He is tense because dinner is running late.');
+    await page.fill('#w-z-assume', 'Assuming the whole evening is ruined.');
+    await page.fill('#w-z-other', 'Everyone had a full day.');
+    await page.fill('#w-z-year', 'Staying steady and kind.');
+    await page.fill('#w-z-step', 'Take three slow breaths first.');
+    await page.click('#w-z-ai');
+    await page.waitForSelector('#w-z-list .w-fb');
+    assert.ok((await page.textContent('#w-z-list .w-fb')).includes('Treating tiredness as bad intent'));
+
+    // Decision Log: add 30-day decision, seed an overdue decision, snooze & review + auto-promote to Principles
+    await page.click('[data-wmode="decisions"]');
+    await page.waitForSelector('#w-d-choice');
+    await page.fill('#w-d-choice', 'Keep cooking plans flexible on busy weeks');
+    await page.fill('#w-d-why', 'Less pressure when Mama cooks');
+    await page.fill('#w-d-expect', 'Less stress and less wasted food');
+    await page.click('#w-d-days [data-ddays="14"]');
+    await page.click('#w-d-save');
+    await page.waitForFunction(() => document.getElementById('w-d-list').textContent.includes('Keep cooking plans flexible'));
+
+    // Seed two overdue decisions so #w-d-due surfaces (one to snooze, one to review & promote to Principle)
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.wisdom.v1'));
+      WisdomCore.addDecision(s, { choice: 'Switch to 2 workouts/wk', why: 'Rough sleep', expect: 'More consistent', reviewDays: 14 }, new Date(2026, 10, 1, 9, 0));
+      WisdomCore.addDecision(s, { choice: 'Buy walking pad', expect: 'More daily steps', reviewDays: 14 }, new Date(2026, 10, 5, 9, 0));
+      localStorage.setItem('wl.wisdom.v1', JSON.stringify(s));
+      WL.modules.journal.reload();
+    });
+    // Home Journal card gently notes due decisions
+    await page.goto(base + '#home');
+    await page.waitForSelector('.home-card[data-module="journal"]');
+    assert.ok((await page.textContent('.home-card[data-module="journal"]')).includes('2 decisions due for review'));
+
+    // Opening #journal/wisdom without sub-mode lands on Decisions automatically when due
+    await page.goto(base + '#journal/wisdom');
+    await page.waitForSelector('#w-d-due');
+    assert.strictEqual(await page.getAttribute('[data-wmode="decisions"]', 'aria-pressed'), 'true');
+    assert.ok((await page.textContent('[data-jtab="wisdom"]')).includes('Wisdom (2)'));
+
+    // Snooze the first due decision -> 1 due left
+    await page.click('#w-d-due [data-d-snooze]');
+    await page.waitForFunction(() => document.querySelectorAll('#w-d-due [data-due-id]').length === 1);
+
+    // Review the remaining due decision with lesson promoted to Personal Principles
+    const remId = await page.getAttribute('#w-d-due [data-due-id]', 'data-due-id');
+    await page.click('[data-dout="' + remId + '|Better than expected"]');
+    await page.fill('#w-rev-act-' + remId, 'Used it every afternoon');
+    await page.fill('#w-rev-les-' + remId, 'Remove friction from daily movement');
+    await page.click('[data-d-save-rev="' + remId + '"]');
+    await page.waitForFunction(() => !document.getElementById('w-d-due'));
+
+    // Principles tab: promoted principle is there; add two more tagged principles, filter by tag, search & export
+    await page.click('[data-wmode="principles"]');
+    await page.waitForSelector('#w-p-list');
+    assert.ok((await page.textContent('#w-p-list')).includes('Remove friction from daily movement'));
+    for (const [text, tag] of [
+      ['Never solve big topics after 9 pm', 'Family'],
+      ['Pause 10 seconds before reacting', 'Calm'],
+      ['Sleep comes before perfection', 'Health'],
+      ['Ask one curious question first', 'Parenting'],
+      ['Keep the daily floor tiny', 'Work']
+    ]) {
+      await page.fill('#w-p-text', text);
+      await page.click('#w-p-tags [data-ptag="' + tag + '"]');
+      await page.click('#w-p-save');
+      await page.waitForFunction((tx) => document.getElementById('w-p-list').textContent.includes(tx), text);
+    }
+    await page.waitForSelector('#w-p-filter');
+    await page.click('#w-p-filter [data-pfilter="Family"]');
+    assert.strictEqual(await page.locator('#w-p-list > li').count(), 1);
+    await page.click('#w-p-filter [data-pfilter=""]');
+    await page.waitForSelector('#w-p-search');
+    await page.fill('#w-p-search', 'curious');
+    assert.strictEqual(await page.textContent('#w-p-found'), ' 1 found');
+
+    const [wdl] = await Promise.all([page.waitForEvent('download'), page.click('#w-export-text')]);
+    assert.strictEqual(wdl.suggestedFilename(), 'wisdom-2026-11-25.txt');
+    const wtxt = fs.readFileSync(await wdl.path(), 'utf8');
+    assert.ok(wtxt.includes('Personal Principles') && wtxt.includes('Decision Log') && wtxt.includes('Zoom Out Reflections'), wtxt);
+  });
+
   await t.step('no overflow, no errors', async () => {
-    await t.noOverflow(['#journal', '#journal/journal', '#journal/awe', '#journal/gratitude']);
+    await t.noOverflow(['#journal', '#journal/journal', '#journal/awe', '#journal/gratitude', '#journal/wisdom/zoom', '#journal/wisdom/decisions', '#journal/wisdom/principles']);
     assert.deepStrictEqual(t.errors, []);
   });
 

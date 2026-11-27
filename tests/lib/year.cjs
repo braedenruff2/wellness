@@ -10,11 +10,12 @@ const ME = require('../../app/www/modules/me/me-core.js');
 const TD = require('../../app/www/modules/todo/todo-core.js');
 const CK = require('../../app/www/modules/cook/cook-core.js');
 const NT = require('../../app/www/lib/notes.js');
+const WS = require('../../app/www/modules/journal/wisdom-core.js');
 const words = (n) => Array.from({ length: n }, (_, i) => 'word' + (i % 50)).join(' ');
 function simulate(days) {
   const tg = TG.defaults(), co = CO.defaults(), fc = FC.defaults ? FC.defaults() : { journal: [], sessions: [] }, ca = CA.defaults(), wk = WK.defaults(), me = ME.defaults();
   if (!Array.isArray(fc.journal)) fc.journal = [];
-  const td = TD.defaults(), ck = CK.defaults(), nt = NT.defaults();
+  const td = TD.defaults(), ck = CK.defaults(), nt = NT.defaults(), ws = WS.defaults();
   co.child = { name: '{child}', birth: '2025-01-15' };
   const start = new Date(2026, 10, 18, 8, 0);
   const bins = TD.add(td, 'bins every thursday at 7pm', null, start), rent = TD.add(td, 'rent every month', { due: '2026-11-30' }, start);
@@ -55,7 +56,13 @@ function simulate(days) {
       CK.setTargets(ck, 'me', { kcal: 2300, pro: 130 });
     }
     if (d % 3 === 0) NT.add(nt, 'note ' + d + ' ' + words(30), '#home', 'Idea', at(22, 10));
+    if (d % 7 === 0) {
+      WS.addPrinciple(ws, { text: 'Principle ' + d + ' ' + words(8), context: words(10), tag: WS.TAGS[d % WS.TAGS.length] }, at(20, 0));
+      const dec = WS.addDecision(ws, { choice: 'Decision ' + d, why: words(6), expect: words(8), reviewDays: 30 }, at(20, 5));
+      if (d >= 30 && ws.decisions.length > 4) WS.reviewDecision(ws, ws.decisions[ws.decisions.length - 1].id, { outcome: 'As expected', actual: words(8), lesson: words(6) }, at(20, 10));
+      if (d % 14 === 0 && dec) WS.addZoomOut(ws, { situation: 'Zoom ' + d + ' ' + words(12), assuming: words(6), nextStep: words(5) }, at(20, 15));
+    }
   }
-  return { 'wl.tagalog.v1': tg, 'wl.coach.v1': co, 'fc.v1': fc, 'wl.calm.v1': ca, 'wl.workout.v1': wk, 'wl.me.v1': me, 'wl.todo.v1': td, 'wl.cook.v1': ck, 'wl.notes.v1': nt };
+  return { 'wl.tagalog.v1': tg, 'wl.coach.v1': co, 'fc.v1': fc, 'wl.calm.v1': ca, 'wl.workout.v1': wk, 'wl.me.v1': me, 'wl.todo.v1': td, 'wl.cook.v1': ck, 'wl.notes.v1': nt, 'wl.wisdom.v1': ws };
 }
 module.exports = { simulate };

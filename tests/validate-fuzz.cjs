@@ -13,6 +13,7 @@ const ME = require('../app/www/modules/me/me-core.js');
 const TD = require('../app/www/modules/todo/todo-core.js');
 const CK = require('../app/www/modules/cook/cook-core.js');
 const NT = require('../app/www/lib/notes.js');
+const WS = require('../app/www/modules/journal/wisdom-core.js');
 const FC = require('../app/www/modules/faith/core.js');
 const { simulate } = require('./lib/year.cjs');
 
@@ -26,6 +27,7 @@ const parts = {
   'wl.todo.v1': { v: TD.validate, use: (s) => { TD.groups(s, now); TD.reminders && TD.reminders(s, now); TD.tidy(s, now); } },
   'wl.cook.v1': { v: CK.validate, use: (s) => { CK.ensureWeekPlan(s, now); CK.expiringSoon(s, now, 5); CK.shoppingList(s, now); CK.childSummary(s, now); CK.dailyNutrition(s, 'me', CK.iso(now)); CK.dailyNutrition(s, 'child', CK.iso(now), { range: '7d' }); } },
   'wl.notes.v1': { v: NT.validate, use: (s) => { NT.unread(s); } },
+  'wl.wisdom.v1': { v: WS.validate, use: (s) => { WS.dueDecisions(s, now); WS.exportText(s, now); } },
   'fc.v1': { v: (s) => { try { return FC.importData(JSON.stringify({ app: 'faith-companion', state: s })); } catch (e) { if (/not a|backup|file/i.test(e.message)) return null; throw e; } }, use: (s) => { FC.currentDay(s, 120); } },
 };
 

@@ -891,7 +891,8 @@ def prompt_values(task, inp):
     """The {{name}} values for pc/prompts/<task>.md. Plain fields go in as text, quoted fields as JSON."""
     d = DEFAULTS.get(task, {})
     v = {k: str(inp.get(k) or d.get(k, "")) for k in ("child", "age", "skill")}
-    v.update({k: j(inp.get(k) or "") for k in ("scenario", "question", "answer", "situation", "task", "expected", "note", "assuming", "otherSide", "yearView", "nextStep")})
+    v.update({k: j(inp.get(k) or "") for k in ("scenario", "question", "answer", "situation", "task", "expected", "note", "assuming")})
+    v["otherside"] = j(inp.get("otherSide") or ""); v["yearview"] = j(inp.get("yearView") or ""); v["nextstep"] = j(inp.get("nextStep") or "")
     v["recent"] = j(inp.get("recent") or []); v["avoid"] = j(inp.get("avoid") or [])
     v["summary"] = str(inp.get("summary") or "")
     v["phone"] = j({"checkins": inp.get("checkins"), "feedback": inp.get("feedback")})[:20000]
