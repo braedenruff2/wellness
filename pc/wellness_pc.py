@@ -630,15 +630,56 @@ def next_reset(weekday, hour=0, now=None):
     return cand
 
 
+LIMIT_RE = re.compile(
+    r"\b(?:hit|reached)\s+(?:your\s+)?(?:[\w-]+\s+){0,3}limit\b"
+    r"|\bexceeded\s+(?:your\s+)?(?:rate|usage|quota|session|weekly|daily|hourly|credit)\s+limit\b"
+    r"|\blimit\b[^\n]{0,40}\bresets?\b",
+    re.I,
+)
+RESET_TIME_RE = re.compile(r"\bresets?\s+(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b", re.I)
+RESET_DATE_RE = re.compile(
+    r"\bresets?\s+(?:on\s+)?(?:mon|tue|wed|thu|fri|sat|sun|jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)",
+    re.I,
+)
+
+
 def is_usage_limit(msg):
     """True when a Claude or Gemini error means usage/quota is exhausted (not an auth or syntax error)."""
     m = str(msg or "").lower()
-    return any(k in m for k in (
-        "429", "rate limit", "rate_limit", "usage limit", "limit reached", "hit your limit",
-        "out of usage", "out of extra usage", "weekly limit", "5-hour limit", "you've reached your",
+    if any(k in m for k in (
+        "429", "rate limit", "rate_limit", "usage limit", "session limit", "weekly limit",
+        "daily limit", "hourly limit", "5-hour limit", "limit reached", "hit your limit",
+        "out of usage", "out of extra usage", "you've reached your",
         "quota", "resource_exhausted", "resource exhausted", "too many requests", "exhausted your capacity",
         "out of credits", "insufficient credits"
-    ))
+    )):
+        return True
+    return bool(LIMIT_RE.search(m))
+
+
+def claude_reset_until(msg, now=None):
+    """When Claude's limit ends: for a short session/5-hour limit with a clock time (e.g. 'resets 12:40am'),
+    use the next local occurrence of that clock time (+1 min buffer); otherwise Wednesday noon."""
+    n = _local_now(now)
+    m = str(msg or "")
+    ml = m.lower()
+    weekly_until = next_reset(CLAUDE_RESET_DAY, CLAUDE_RESET_HOUR, n)
+    if "weekly" in ml or RESET_DATE_RE.search(m):
+        return weekly_until
+    tm = RESET_TIME_RE.search(m)
+    if tm:
+        hr, mn, ap = int(tm.group(1)), int(tm.group(2) or 0), tm.group(3).lower()
+        if 1 <= hr <= 12 and 0 <= mn <= 59:
+            hr24 = (0 if hr == 12 else hr) if ap == "am" else (12 if hr == 12 else hr + 12)
+            d = n.date()
+            cand = datetime.datetime(d.year, d.month, d.day, hr24, mn, 0).astimezone()
+            if cand <= n:
+                d = d + datetime.timedelta(days=1)
+                cand = datetime.datetime(d.year, d.month, d.day, hr24, mn, 0).astimezone()
+            return min(cand + datetime.timedelta(minutes=1), weekly_until)
+    if "session limit" in ml or "5-hour" in ml:
+        return min(n + datetime.timedelta(hours=5), weekly_until)
+    return weekly_until
 
 
 def read_ai_state():
@@ -658,8 +699,8 @@ def is_exhausted(st, provider, now=None):
         return False
 
 
-def mark_exhausted(provider, now=None):
-    until = (next_reset(CLAUDE_RESET_DAY, CLAUDE_RESET_HOUR, now) if provider == "claude"
+def mark_exhausted(provider, now=None, msg=""):
+    until = (claude_reset_until(msg, now) if provider == "claude"
              else next_reset(GEMINI_RESET_DAY, GEMINI_RESET_HOUR, now))
     with ai_state_lock:
         st = read_json(AI_STATE_FILE, {})
@@ -786,12 +827,14 @@ def run_claude(prompt, tools):
     if not isinstance(env, dict):
         tail = (r.stderr or out or "").strip().splitlines()[-3:]
         said = " ".join(tail)[:300]
-        if said and is_usage_limit(said): raise UsageLimitError(explain_error(said))
+        if said and is_usage_limit(said):
+            e = UsageLimitError(explain_error(said)); e.raw = said; raise e
         if said and explain_error(said) != "Claude: " + said: raise RuntimeError(explain_error(said))
         raise RuntimeError("Claude didn't answer" + (": " + said if said else f" (exit {r.returncode})"))
     if env.get("is_error") or env.get("subtype", "success") != "success":
         raw = str(env.get("result") or env.get("subtype") or "error")
-        if is_usage_limit(raw): raise UsageLimitError(explain_error(raw))
+        if is_usage_limit(raw):
+            e = UsageLimitError(explain_error(raw)); e.raw = raw; raise e
         raise RuntimeError(explain_error(raw))
     return parse_answer(str(env.get("result") or "")), secs
 
@@ -946,8 +989,8 @@ def run_ai(prompt, tools, now=None):
     try:
         ans, secs = run_claude(prompt, tools)
         return ans, secs, "claude"
-    except UsageLimitError:
-        mark_exhausted("claude", now)
+    except UsageLimitError as ce:
+        mark_exhausted("claude", now, getattr(ce, "raw", str(ce)))
         return try_gemini(claude_limited=True)
 
 

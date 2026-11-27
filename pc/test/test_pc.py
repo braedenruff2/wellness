@@ -38,6 +38,8 @@ if 'FAIL-PLEASE' in p:
     print(json.dumps({"type": "result", "subtype": "error_max_turns", "is_error": True, "result": ""})); sys.exit(1)
 if 'REVOKED' in p:
     print(json.dumps({"type": "result", "subtype": "success", "is_error": True, "result": "Failed to authenticate. API Error: 401 OAuth access token has been revoked"})); sys.exit(1)
+if 'SESSION-LIMIT-CLAUDE' in p:
+    print(json.dumps({"type": "result", "subtype": "success", "is_error": True, "result": "You've hit your session limit · resets 12:40am (America/Halifax)"})); sys.exit(1)
 if 'NOT-JSON' in p:
     print('Invalid API key'); sys.exit(1)
 if 'writing his plan for the coming week' in p:
@@ -538,9 +540,25 @@ _r_mon = W.next_reset(W.GEMINI_RESET_DAY, W.GEMINI_RESET_HOUR, datetime.datetime
 check("Gemini reset at Mon 00:00 -> next Mon 00:00", (_r_mon.month, _r_mon.day, _r_mon.hour, _r_mon.weekday()) == (12, 7, 0, 0), _r_mon)
 _r_dst = W.next_reset(W.CLAUDE_RESET_DAY, W.CLAUDE_RESET_HOUR, datetime.datetime(2026, 10, 31, 15, 0))
 check("Claude reset across DST end (1 Nov 2026) stays Wed 12:00 local", (_r_dst.month, _r_dst.day, _r_dst.hour) == (11, 4, 12), _r_dst)
-check("is_usage_limit: catches quota/429, ignores auth/syntax",
+check("is_usage_limit: catches quota/429/session limits, ignores auth/syntax/context limits",
       W.is_usage_limit("429 rate limit") and W.is_usage_limit("RESOURCE_EXHAUSTED") and W.is_usage_limit("weekly usage limit")
-      and not W.is_usage_limit("401 OAuth revoked") and not W.is_usage_limit("Invalid API key"))
+      and W.is_usage_limit("You've hit your session limit · resets 12:40am (America/Halifax)")
+      and W.is_usage_limit("You've hit your 5-hour limit · resets 3pm")
+      and not W.is_usage_limit("401 OAuth revoked") and not W.is_usage_limit("Invalid API key")
+      and not W.is_usage_limit("Context length limit exceeded"))
+_sess_now = datetime.datetime(2026, 11, 26, 22, 50)
+_sess_u = W.claude_reset_until("You've hit your session limit · resets 12:40am (America/Halifax)", _sess_now)
+check("session limit with 'resets 12:40am' sets claude_until to 00:41 next day (not Wednesday)",
+      (_sess_u.year, _sess_u.month, _sess_u.day, _sess_u.hour, _sess_u.minute) == (2026, 11, 27, 0, 41), _sess_u)
+_sess_pm = W.claude_reset_until("You've hit your session limit · resets 3pm (America/Halifax)", datetime.datetime(2026, 11, 26, 11, 0))
+check("session limit with 'resets 3pm' same day sets claude_until to 15:01 today",
+      (_sess_pm.day, _sess_pm.hour, _sess_pm.minute) == (26, 15, 1), _sess_pm)
+_sess_wk = W.claude_reset_until("You've hit your weekly limit · resets Wed 12pm (America/Halifax)", _sess_now)
+check("weekly limit still resets on Wednesday noon",
+      (_sess_wk.month, _sess_wk.day, _sess_wk.hour, _sess_wk.weekday()) == (12, 2, 12, 2), _sess_wk)
+_sess_fb = W.claude_reset_until("You've hit your session limit", _sess_now)
+check("session limit without clock time falls back to +5 hours",
+      (_sess_fb.day, _sess_fb.hour, _sess_fb.minute) == (27, 3, 50), _sess_fb)
 check("gemini_tools_arg maps web search/fetch", W.gemini_tools_arg("WebSearch,WebFetch") == "google_web_search,web_fetch" and W.gemini_tools_arg("") == "")
 
 # Claude limit with no Gemini installed -> clear error mentioning Wednesday + Gemini backup
@@ -612,6 +630,21 @@ ans, _, prov = W.run_ai("practical coach", "", now=wed_before)
 check("Wed 11:59: still on Gemini just before Claude noon reset", prov == "gemini", prov)
 ans, _, prov = W.run_ai("practical coach", "", now=wed_reset)
 check("Wed 12:00: Claude resets -> automatically back on Claude", prov == "claude", prov)
+
+# 5. Session limit ("You've hit your session limit · resets 12:40am (America/Halifax)") -> Gemini until 00:41, then back to Claude
+W.write_json(W.AI_STATE_FILE, {})
+t_hit = datetime.datetime(2026, 11, 26, 22, 50)
+t_before = datetime.datetime(2026, 11, 27, 0, 40)
+t_after = datetime.datetime(2026, 11, 27, 0, 41)
+ans, _, prov = W.run_ai("SESSION-LIMIT-CLAUDE practical coach", "WebSearch,WebFetch", now=t_hit)
+check("Session limit falls back to Gemini on same request and stores 00:41 reset",
+      prov == "gemini" and ans.get("headline") == "from gemini"
+      and W.read_ai_state()["claude_until"].startswith("2026-11-27T00:41:00"),
+      (prov, ans, W.read_ai_state()))
+ans, _, prov = W.run_ai("practical coach", "", now=t_before)
+check("00:40: still on Gemini just before session reset", prov == "gemini", prov)
+ans, _, prov = W.run_ai("practical coach", "", now=t_after)
+check("00:41: automatically back on Claude after session reset", prov == "claude", prov)
 
 # Gemini backup TimeoutExpired propagates cleanly (doesn't leak CLI command path via RuntimeError)
 W.write_json(W.AI_STATE_FILE, {})
