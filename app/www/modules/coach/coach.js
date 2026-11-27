@@ -281,23 +281,41 @@
       if (here() && typingHere()) { waiting = null; return; }
       finish(); return;
     }
-    var reached = false;
+    var reached = false, mine = null, w = waiting;
+    // Two requests can overlap (an automatic scenario still running when he asks for advice): each one clears only
+    // its own saved job and its own spinner, so the other carries on and can still resume after a restart.
+    var clearMine = function () { if (mine && S.pending === mine) S.pending = null; };
+    var ownsUi = function () { return waiting === w; };
     pc.post('/v1/ask', { task: task, input: input }).then(function (r) { reached = true; return r; }, function (e) { throw pc.orQueue ? pc.orQueue(e, task, input, meta) : e; }).then(function (r) {
-      S.pending = { job: r.job, task: task, at: Date.now(), answer: input.answer || input.situation || '' };
-      if (auto) S.autoTried = today();
-      if (task === 'coach-grade' && S.current) S.pending.scn = JSON.parse(JSON.stringify(S.current)); // graded against this one
+      if (!S.pending || ownsUi()) { // a request running in the background never replaces the one on screen
+        mine = S.pending = { job: r.job, task: task, at: Date.now(), answer: input.answer || input.situation || '' };
+        if (task === 'coach-grade' && S.current) S.pending.scn = JSON.parse(JSON.stringify(S.current)); // graded against this one
+      }
+      if (auto) { S.autoTried = today(); autoFails = 0; }
       save();
       return pc.poll(r.job, Date.now(), tick);
-    }).then(function (a) { S.pending = null; onAnswer(a); save(); })
+    }).then(function (a) { clearMine(); onAnswer(a); save(); })
       // an answer Claude sent as prose (onAnswer throws) ends the wait with a message instead of a spinner forever
-      .then(function () { if (here() && typingHere()) { waiting = null; return; } finish(); }, function (e) {
-        S.pending = null;
+      .then(function () { if (!ownsUi()) return; if (here() && typingHere()) { waiting = null; return; } finish(); }, function (e) {
+        clearMine();
         if (auto && (e.queued || reached)) S.autoTried = today();
+        else if (auto) autoFailed();
         save();
+        if (!ownsUi()) return;
         err = e.queued || auto ? null : e.message || String(e);
         if (here() && typingHere()) { waiting = null; return; }
         finish();
       });
+  }
+  /* An automatic scenario that couldn't reach the PC (and wasn't queued) waits 1 h, then 3 h, and gives up for the
+     day after 3 tries, so a PC that's off doesn't make Home flip to "Claude is on it…" every 15 minutes. */
+  var autoFails = 0, autoFailDay = null, autoNext = 0;
+  function autoFailed() {
+    var d = today();
+    if (autoFailDay !== d) { autoFailDay = d; autoFails = 0; }
+    autoFails++;
+    if (autoFails >= 3) { S.autoTried = d; return; }
+    autoNext = Date.now() + (autoFails === 1 ? 60 : 180) * 60000;
   }
   function typingHere() {
     var ae = document.activeElement, id = ae && ae.id;
@@ -392,6 +410,8 @@
   // Automatically generate today's suggested scenario once a day when setup is done and Claude can answer (PC or cloud).
   function autoScenario() {
     if (waiting || document.hidden || !askable() || hasQueuedScenario() || !K.scenarioDue(S, new Date())) return;
+    if (Date.now() < autoNext) return;
+    if (here() && typingHere()) return; // never start while he is typing on the Parenting screen
     newScenario({ auto: true });
   }
   if (pc.onCancel) pc.onCancel(function (task) {

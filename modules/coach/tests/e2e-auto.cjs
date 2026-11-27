@@ -1,0 +1,97 @@
+/* Parenting automatic daily scenario (task 315): it never starts while he is typing a real situation (so a running
+   scenario can't wipe the advice request he sends next), and a paired PC that never answers is tried 3 times a day
+   at most (1 h, then 3 h apart) instead of every 15 minutes. */
+'use strict';
+const assert = require('assert');
+const W = require('../../../tests/lib/web.cjs');
+
+const CHILD = { child: { name: 'Mila', birth: '2025-11-24' }, history: [], current: null, pending: null, teach: {} };
+
+(async () => {
+  const t = await W.open({ time: new Date(2026, 10, 21, 10, 0) });
+  const { page, base } = t;
+
+  await t.step('typing a real situation: no auto scenario starts, the advice request keeps its saved job', async () => {
+    const p2 = await page.context().newPage();
+    await p2.clock.install({ time: new Date(2026, 10, 22, 9, 0) });
+    await p2.addInitScript(() => {
+      window.__posts = []; window.__start = {};
+      window.FCAndroid = {
+        pcStatus: () => '{"paired":true,"host":"192.168.1.20","name":"PC"}',
+        pcRequest: (id, op, a, b) => {
+          let out = '{}';
+          if (op === 'post' && a === '/v1/ask') { const body = JSON.parse(b); window.__posts.push(body.task); out = JSON.stringify({ job: 'job-' + body.task }); window.__start[body.task] = Date.now(); }
+          else if (op === 'get' && a.indexOf('/v1/job') === 0) {
+            const task = a.indexOf('coach-scenario') >= 0 ? 'coach-scenario' : 'coach-advice';
+            if (Date.now() - window.__start[task] < 60000) out = JSON.stringify({ state: 'running' });
+            else out = JSON.stringify({ state: 'done', answer: task === 'coach-scenario' ? { title: 'Auto', skill: 'Connection', scenario: 'A quiet morning.', question: 'What do you do?' } : { summary: 'Advice', steps: ['a'], say: ['b'], why: 'c' } });
+          }
+          Promise.resolve().then(() => window.FCPcDone(id, true, out));
+        }
+      };
+    });
+    await p2.goto(base + '#home');
+    await p2.evaluate((s) => localStorage.setItem('wl.coach.v1', JSON.stringify(s)), CHILD);
+    await p2.goto(base + '#coach'); await p2.reload();
+    await p2.waitForSelector('#co-real');
+    await p2.click('#co-real');
+    await p2.keyboard.type('She screams when I put her in the car seat every time');
+    await p2.clock.runFor(12000);
+    assert.deepStrictEqual(await p2.evaluate(() => window.__posts), [], 'nothing starts while he types');
+    await p2.click('#co-real-go');
+    await p2.clock.runFor(2000);
+    const pend = await p2.evaluate(() => JSON.parse(localStorage.getItem('wl.coach.v1')).pending);
+    assert.ok(pend && pend.task === 'coach-advice', 'the advice job is saved for resume');
+    assert.ok((await p2.textContent('#view')).includes('checking current guidance'), 'advice spinner');
+    await p2.clock.runFor(70000);
+    const s = await p2.evaluate(() => JSON.parse(localStorage.getItem('wl.coach.v1')));
+    assert.strictEqual(s.pending, null, 'advice done: no job left');
+    assert.ok(s.history.some((h) => h.kind === 'real'), 'advice saved');
+    // once he has stopped typing, the day's scenario comes on the next check
+    await p2.goto(base + '#home');
+    await p2.clock.runFor(16 * 60000);
+    await p2.clock.runFor(70000);
+    assert.deepStrictEqual(await p2.evaluate(() => window.__posts), ['coach-advice', 'coach-scenario']);
+    await p2.close();
+  });
+
+  await t.step('paired PC that never answers, Drive sync off: 3 tries in the day, not every 15 minutes', async () => {
+    const p2 = await page.context().newPage();
+    await p2.clock.install({ time: new Date(2026, 10, 22, 9, 0) });
+    await p2.addInitScript(() => {
+      window.__asks = [];
+      window.FCAndroid = {
+        pcStatus: () => '{"paired":true,"host":"192.168.1.20","name":"PC"}',
+        pcRequest: (id, op, a) => {
+          if (op === 'post' && a === '/v1/ask') { window.__asks.push(Date.now()); setTimeout(() => window.FCPcDone(id, false, "Couldn't reach the PC (timed out)"), 8000); return; }
+          Promise.resolve().then(() => window.FCPcDone(id, false, "Couldn't reach the PC"));
+        }
+      };
+    });
+    await p2.goto(base + '#home');
+    await p2.evaluate((s) => localStorage.setItem('wl.coach.v1', JSON.stringify(s)), CHILD);
+    await p2.reload();
+    await p2.clock.runFor(30000);
+    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 1, 'first try');
+    assert.ok(!(await p2.textContent('.home-card[data-module="coach"]')).includes('Claude is on it'), 'card back to normal after the failed try');
+    await p2.clock.runFor(50 * 60000);
+    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 1, 'no retry within the hour');
+    await p2.clock.runFor(30 * 60000); // the next 15-minute check after the hour
+    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 2, 'second try after an hour');
+    await p2.clock.runFor(3.5 * 3600000);
+    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 3, 'third try 3 h later');
+    await p2.clock.runFor(5 * 3600000);
+    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 3, 'then none for the rest of the day');
+    assert.strictEqual(await p2.evaluate(() => JSON.parse(localStorage.getItem('wl.coach.v1')).autoTried), '2026-11-22');
+    // a manual "Generate today's scenario" still works after the automatic ones gave up
+    const b = p2.locator('[data-co-daily]');
+    assert.strictEqual(await b.count(), 1, 'Generate button offered');
+    await b.click();
+    await p2.clock.runFor(1000);
+    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 4, 'manual try goes out');
+    await p2.close();
+  });
+
+  await t.step('no console errors', async () => { assert.deepStrictEqual(t.errors, []); });
+  await t.close('coach auto browser');
+})().catch((e) => { console.error(e); process.exit(1); });
