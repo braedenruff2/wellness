@@ -196,36 +196,57 @@
     (Array.isArray(customFoods) ? customFoods : []).forEach(function (cf) {
       if (!cf || !cf.name || !cf.nutri) return;
       var k = String(cf.name).toLowerCase().trim();
-      if (k.length >= 2) list.push({ phrase: k, id: 'custom:' + cf.id, nutri: cf.nutri });
+      if (k.length >= 2) list.push({ phrase: k, id: 'custom:' + cf.id, nutri: cf.nutri, serving: cf.serving });
     });
     FOOD_DB.forEach(function (f) {
       var phrases = [f.name.toLowerCase().replace(/\s*\([^)]*\)/g, '').trim(), f.id].concat(f.aliases);
       phrases.forEach(function (p) {
         var k = String(p || '').toLowerCase().trim();
-        if (k.length >= 3) list.push({ phrase: k, id: f.id, nutri: f.nutri });
+        if (k.length >= 3) list.push({ phrase: k, id: f.id, nutri: f.nutri, serving: f.serving });
       });
     });
     list.sort(function (a, b) { return b.phrase.length - a.phrase.length; });
     return list;
   }
 
-  /* Estimate multiplier immediately before a matched food phrase (e.g. "2 eggs", "half avocado", "1.5 cups rice"):
-     { n, len } where len is how many characters before the phrase the count takes (so it can be blanked too and never
-     carries over to the next food: "2 eggs rice" is 2 eggs and 1 rice). */
-  function countAt(text, idx) {
-    var raw = text.slice(Math.max(0, idx - 18), idx), pre = raw.replace(/\s+$/, ''), tail = raw.length - pre.length;
-    var h = /\b(?:half|1\/2)\s*(?:an?|of)?$/i.exec(pre);
-    if (h) return { n: 0.5, len: h[0].length + tail };
-    var q = /\b(?:quarter|1\/4)\s*(?:an?|of)?$/i.exec(pre);
-    if (q) return { n: 0.25, len: q[0].length + tail };
-    var m = /(?:^|[\s,+&(])(\d+(?:\.\d+)?)\s*(?:x|×|pcs?|pieces?|slices?|cups?|tbsp|scoops?|bowls?)?$/i.exec(pre);
-    if (m) {
-      var n = parseFloat(m[1]);
-      if (isFinite(n) && n > 0 && n <= 8) return { n: n, len: m[0].replace(/^[\s,+&(]/, '').length + tail };
-    }
-    return { n: 1, len: 0 };
+  /* Estimate multiplier immediately before a matched food phrase (e.g. "2 eggs", "half avocado", "1.5 cups rice",
+     "1/2 cup rice", "2 tbsp hummus"): { n, len } where len is how many characters before the phrase the count takes (so
+     it can be blanked too and never carries over to the next food: "2 eggs rice" is 2 eggs and 1 rice). A typed cup /
+     tbsp / tsp amount is measured against the food's own serving when that is a cup / tbsp / tsp too ("2 tbsp
+     hummus" is one 2-tbsp serving); otherwise the number counts servings, as before. */
+  var NUM_RE = /(?:^|[\s,+&(])(\d+\s+\d\/\d|\d+\/\d+|\d+(?:\.\d+)?|½|¼|¾|half|quarter)\s*(?:(?:an?)\s+)?(x|×|pcs?|pieces?|slices?|cups?|tbsps?|tablespoons?|tsps?|teaspoons?|scoops?|bowls?)?\s*(?:of)?$/i;
+  function parseNum(t) {
+    t = String(t).toLowerCase();
+    if (t === 'half' || t === '½') return 0.5;
+    if (t === 'quarter' || t === '¼') return 0.25;
+    if (t === '¾') return 0.75;
+    var mixed = /^(\d+)\s+(\d)\/(\d)$/.exec(t); if (mixed) return +mixed[1] + (+mixed[3] ? mixed[2] / mixed[3] : 0);
+    var fr = /^(\d+)\/(\d+)$/.exec(t); if (fr) return +fr[2] ? fr[1] / fr[2] : NaN;
+    return parseFloat(t);
   }
-  function countBefore(text, idx) { return countAt(text, idx).n; }
+  /* A cup / tbsp / tsp amount in tablespoons ("1/2 cup" -> 8), or 0 when it isn't a volume. */
+  function tbspOf(n, unit) {
+    unit = String(unit || '').toLowerCase();
+    if (/^cups?$/.test(unit)) return n * 16;
+    if (/^(tbsps?|tablespoons?)$/.test(unit)) return n;
+    if (/^(tsps?|teaspoons?)$/.test(unit)) return n / 3;
+    return 0;
+  }
+  function servingTbsp(serving) {
+    var m = /^\s*(\d+\s+\d\/\d|\d+\/\d+|\d+(?:\.\d+)?)\s*(cups?|tbsps?|tsps?)\b/i.exec(String(serving || ''));
+    return m ? tbspOf(parseNum(m[1]), m[2]) : 0;
+  }
+  function countAt(text, idx, serving) {
+    var raw = text.slice(Math.max(0, idx - 24), idx), pre = raw.replace(/\s+$/, ''), tail = raw.length - pre.length;
+    var m = NUM_RE.exec(pre);
+    if (!m) return { n: 1, len: 0 };
+    var n = parseNum(m[1]);
+    if (!isFinite(n) || n <= 0 || n > 8) return { n: 1, len: 0 };
+    var typed = tbspOf(n, m[2]), per = servingTbsp(serving);
+    if (typed && per) n = typed / per;
+    return { n: Math.min(8, n), len: m[0].replace(/^[\s,+&(]/, '').length + tail };
+  }
+  function countBefore(text, idx, serving) { return countAt(text, idx, serving).n; }
 
   /* Estimate nutrition from a logged meal entry (or plain text). Returns { nutri, matched }. */
   function estimateEntry(entry, customFoods, recipes) {
@@ -278,7 +299,7 @@
         seenIds[p.id] = 1;
         matched++;
         var phraseIdx = m.index + m[1].length;
-        var c = countAt(work, phraseIdx);
+        var c = countAt(work, phraseIdx, p.serving);
         addNutri(tot, p.nutri, c.n);
         // Blank the matched span and its count, so sub-phrases ("butter" inside "peanut butter") never double-count and
         // "2 eggs rice" never reads the 2 as the rice's count

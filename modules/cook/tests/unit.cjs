@@ -524,4 +524,19 @@ t('395: every bundled recipe has its own nutrition profile and no profile is orp
   assert.strictEqual(K.nutri.estimateEntry({ who: 'me', recipeId: 'snack-eggs', text: snack.title, portion: 'Regular' }, [], K.RECIPES).nutri.kcal, K.nutri.RECIPE_NUTRI['snack-eggs'].kcal);
 });
 
+t('396: typed cup / tbsp / tsp amounts are measured against the food\'s own serving', () => {
+  const CN = K.nutri, F = CN.FOOD_BY, me = (text) => Math.round(CN.estimateEntry({ who: 'me', text, portion: 'Regular' }, [], K.RECIPES).nutri.kcal);
+  assert.strictEqual(me('1/2 cup rice'), Math.round(F.rice.nutri.kcal / 2), 'rice serving is 1 cup');
+  assert.strictEqual(me('half a cup of rice'), Math.round(F.rice.nutri.kcal / 2));
+  assert.strictEqual(me('1 1/2 cups rice'), Math.round(F.rice.nutri.kcal * 1.5));
+  assert.strictEqual(me('2 tbsp hummus'), F.hummus.nutri.kcal, 'hummus serving is already 2 tbsp');
+  assert.strictEqual(me('1 cup carrots'), F.carrot.nutri.kcal * 2, 'carrot serving is 1/2 cup');
+  assert.strictEqual(me('2 tbsp peanut butter'), F.pb.nutri.kcal * 2, 'pb serving is 1 tbsp');
+  assert.strictEqual(me('3 slices bread'), 3 * F.toast.nutri.kcal, 'non-volume units still count servings');
+  assert.strictEqual(me('½ cup oatmeal'), Math.round(F.oatmeal.nutri.kcal / 2));
+  // a custom food's own serving counts too
+  const cf = [{ id: 'x', name: 'Sopas', serving: '1/2 cup', nutri: { kcal: 100 } }];
+  assert.strictEqual(Math.round(CN.estimateEntry({ who: 'me', text: '1 cup sopas', portion: 'Regular' }, cf, K.RECIPES).nutri.kcal), 200);
+});
+
 console.log(n + ' cook unit tests passed');
