@@ -870,6 +870,8 @@
     var key = norm(item.name);
     if (m[key]) { delete m[key]; return false; }
     m[key] = true;
+    var wks = Object.keys(state.bought).sort();
+    while (wks.length > 4) delete state.bought[wks.shift()];
     // Automatically add/replenish in fridge/pantry with smart default shelf life so tracking is zero extra work
     addPantryItem(state, {
       name: item.name,
@@ -883,6 +885,25 @@
   }
 
   /* ---- Food logs (Me & {child}) ---- */
+  function insertLog(state, rec) {
+    if (!Array.isArray(state.logs)) state.logs = [];
+    var rDate = rec.date || '', rMs = Date.parse(rec.at);
+    var idx = 0;
+    while (idx < state.logs.length) {
+      var cur = state.logs[idx];
+      if (!cur) { idx++; continue; }
+      var cDate = cur.date || '';
+      if (rDate > cDate) break;
+      if (rDate === cDate) {
+        var cMs = Date.parse(cur.at);
+        if (isNaN(cMs) || (!isNaN(rMs) && rMs >= cMs)) break;
+      }
+      idx++;
+    }
+    state.logs.splice(idx, 0, rec);
+    if (state.logs.length > 400) state.logs.length = 400;
+  }
+
   function logMe(state, data, now) {
     now = now || new Date();
     var text = String(data && data.text || '').trim().slice(0, 300);
@@ -891,8 +912,7 @@
     var portion = PORTIONS.indexOf(data.portion) >= 0 ? data.portion : 'Regular';
     var tags = (Array.isArray(data.tags) ? data.tags : []).filter(function (t) { return ME_TAGS.indexOf(t) >= 0; }).slice(0, 4);
     var rec = { id: newId('lm', now), at: now.toISOString(), date: isDate(data.date) ? data.date : iso(now), who: 'me', meal: meal, text: text, portion: portion, tags: tags };
-    state.logs.unshift(rec);
-    if (state.logs.length > 400) state.logs.length = 400;
+    insertLog(state, rec);
     return rec;
   }
 
@@ -904,8 +924,7 @@
     var ate = CHILD_ATE.indexOf(data.ate) >= 0 ? data.ate : 'About half';
     var note = String(data.note || '').trim().slice(0, 200);
     var rec = { id: newId('lc', now), at: now.toISOString(), date: isDate(data.date) ? data.date : iso(now), who: 'child', meal: meal, offered: offered, ate: ate, note: note };
-    state.logs.unshift(rec);
-    if (state.logs.length > 400) state.logs.length = 400;
+    insertLog(state, rec);
     return rec;
   }
 

@@ -294,4 +294,16 @@ t('weekly AI plans for months keep at most 40 AI recipes, always the ones this w
     K.weekDays(now).forEach((d) => ['lunch', 'dinner'].forEach((m) => assert.ok(s.aiRecipes[s.plan.days[d][m].recipeId], 'kept ' + d + ' ' + m)));
   }
 });
+t('earlier-day food logs stay newest-first chronologically, and toggleBought prunes older weeks to 4', () => {
+  const s = K.defaults();
+  const thu = new Date(2026, 10, 26, 18, 0), wed = new Date(2026, 10, 25, 18, 0), tue = new Date(2026, 10, 24, 12, 0);
+  K.logMe(s, { date: '2026-11-26', meal: 'dinner', text: 'Thu dinner' }, thu);
+  K.logChild(s, { date: '2026-11-24', meal: 'lunch', offered: 'Tue lunch', ate: 'Most of it' }, tue);
+  K.logMe(s, { date: '2026-11-25', meal: 'dinner', text: 'Wed dinner' }, wed);
+  assert.deepStrictEqual(s.logs.map((x) => x.date), ['2026-11-26', '2026-11-25', '2026-11-24'], 'newest date first even when backfilled');
+  for (let w = 0; w < 6; w++) {
+    K.toggleBought(s, { name: 'eggs', qty: 2, unit: 'pcs', cat: 'dairy', shelfDays: 21 }, new Date(2026, 9, 5 + w * 7, 12, 0));
+  }
+  assert.strictEqual(Object.keys(s.bought).length, 4, 'bought map stays capped at 4 newest weeks');
+});
 console.log(n + ' cook unit tests passed');

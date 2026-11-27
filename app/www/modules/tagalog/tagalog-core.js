@@ -253,11 +253,11 @@
   /* The specific slips of the last 14 days (answers that got an order / pronoun / linker / verb-form hint), newest
      first, one per exercise, with the lesson's own sentence: [{kind, answer, given, at}], at most n. */
   function slipItems(state, packs, now, n) {
-    var since = (now || new Date()).getTime() - 14 * 864e5, seen = {}, out = [];
+    var nowMs = (now || new Date()).getTime(), since = nowMs - 14 * 864e5, seen = {}, out = [];
     var byId = {}; (packs || []).forEach(function (p) { if (p && p.id) byId[p.id] = p; });
     for (var i = state.answers.length - 1; i >= 0 && out.length < (n || 6); i--) {
-      var a = state.answers[i];
-      if (!a || !a.hint || HINT_KINDS.indexOf(a.hint) < 0 || !(Date.parse(a.at) >= since)) continue;
+      var a = state.answers[i], t = a ? Date.parse(a.at) : NaN;
+      if (!a || !a.hint || HINT_KINDS.indexOf(a.hint) < 0 || !(t >= since && t <= nowMs)) continue;
       var key = a.pack + '/' + a.day + '/' + a.prompt; if (seen[key]) continue; seen[key] = 1;
       var p = byId[a.pack], l = p && (p.lessons || []).filter(function (x) { return x.day === a.day; })[0];
       var ex = l && (l.exercises || []).filter(function (e) { return String(e.prompt || e.say || '').slice(0, 120) === a.prompt && e.answer; })[0];
@@ -413,14 +413,14 @@
   }
 
   function slipKinds(state, now) {
-    var since = (now || new Date()).getTime() - 14 * 864e5, out = {}, newest = {};
+    var nowMs = (now || new Date()).getTime(), since = nowMs - 14 * 864e5, out = {}, newest = {};
     state.answers.forEach(function (a) {
-      var t = Date.parse(a.at); if (!(t >= since)) return;
+      var t = Date.parse(a.at); if (!(t >= since && t <= nowMs)) return;
       var k = a.pack + '/' + a.day + '/' + a.prompt;
       if (!newest[k] || t >= newest[k].t) newest[k] = { t: t, ok: a.ok };
     });
     state.answers.forEach(function (a) {
-      var t = Date.parse(a.at); if (!(t >= since) || a.ok || HINT_KINDS.indexOf(a.hint) < 0) return;
+      var t = Date.parse(a.at); if (!(t >= since && t <= nowMs) || a.ok || HINT_KINDS.indexOf(a.hint) < 0) return;
       var o = out[a.hint] = out[a.hint] || { slips: 0, stillWrong: 0, about: HINT_ABOUT[a.hint] || '', _ex: {} };
       o.slips++;
       var k = a.pack + '/' + a.day + '/' + a.prompt;

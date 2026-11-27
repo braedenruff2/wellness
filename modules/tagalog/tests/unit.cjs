@@ -354,6 +354,13 @@ t('weeklySummary.slipKinds: per kind, slips in the last 14 days and exercises st
   assert.strictEqual(k.extralinker.slips, 1); assert.strictEqual(k.extralinker.stillWrong, 0);
   assert.strictEqual(k.linker.slips, 1); assert.strictEqual(k.linker.stillWrong, 1);
   assert.ok(/missing linker/.test(k.linker.about));
+  // earlier-day lookup ignores future answers logged after `now`
+  const cut = new Date(2026, 10, 26, 17, 30);
+  const earlier = T.weeklySummary(s, [pk], cut);
+  assert.deepStrictEqual(Object.keys(earlier.slipKinds), ['extralinker']);
+  assert.strictEqual(earlier.slipKinds.extralinker.stillWrong, 1, 'tomorrow fix not yet visible on earlier day');
+  const pkFull = { id: '2026-11-25', lessons: [{ day: 2, exercises: [h, g] }] };
+  assert.deepStrictEqual(T.slips(s, [pkFull], cut).map((x) => x.kind), ['extralinker'], 'slips upper-bounded at now');
 });
 t('check: a dropped hyphen is forgiven ("magaral" for "mag-aral"), a changed verb form is not', () => {
   const g = { type: 'type', prompt: 'I want to study Tagalog.', answer: 'Gusto kong mag-aral ng Tagalog.', accept: ['gusto kong mag aral ng tagalog'] };
