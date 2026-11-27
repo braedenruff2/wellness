@@ -111,9 +111,15 @@
     }
     return out;
   }
-  function unFit(state, part, about) {
-    var n = state.feedback.length;
-    state.feedback = state.feedback.filter(function (f) { return !(f && f.kind === 'notfit' && f.part === part && f.about === about); });
+  function unFit(state, part, about, now) {
+    var n = state.feedback.length, at = (now || new Date()).toISOString(), gone = [];
+    state.feedback = state.feedback.filter(function (f) {
+      var hit = f && f.kind === 'notfit' && f.part === part && f.about === about;
+      if (hit && typeof f.id === 'string') gone.push({ id: f.id, part: f.part, at: at });
+      return !hit;
+    });
+    // the PC link already has these marks: they go again as removed (fb/<id>/x), so plans stop counting them
+    if (gone.length) state.unfitted = (Array.isArray(state.unfitted) ? state.unfitted : []).concat(gone).slice(-100);
     return n - state.feedback.length;
   }
 
@@ -457,6 +463,11 @@
       if (Object.keys(pd).length) d.planDismissed = pd;
     }
     if (s.skipped && typeof s.skipped === 'object') Object.keys(s.skipped).forEach(function (k) { if (WLD.isDate(k)) d.skipped[k] = 1; });
+    if (Array.isArray(s.unfitted)) {
+      var uf = s.unfitted.filter(function (u) { return u && typeof u.id === 'string' && PARTS.indexOf(u.part) >= 0 && typeof u.at === 'string' && !isNaN(Date.parse(u.at)); })
+        .slice(-100).map(function (u) { return { id: cut(u.id, 200), part: u.part, at: cut(u.at, 40) }; });
+      if (uf.length) d.unfitted = uf;
+    }
     return d;
   }
 

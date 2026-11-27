@@ -499,6 +499,11 @@ sm = W.summarize(14, datetime.date(2026, 11, 20))
 check("summary has the newest check-in only", "sleep 5–6 h" in sm and "sleep 4–5 h" not in sm and "teething-note" in sm, sm)
 check("summary has the newest answer and the not-for-me flag", "helped: A lot" in sm and "helped: A bit" not in sm and "NOT FOR ME" in sm and "my note" in sm, sm)
 check("feedback isn't counted as activity", "1 feedback" not in sm, sm)
+# a "not for me" he brought back (Settings) comes again as <id>/x: the plan stops counting it
+req("POST", "/v1/activity", {"events": [{"id": "fb/calm/notfit/ground/9", "at": "2026-11-19T15:00:00Z", "part": "calm", "kind": "not-for-me", "data": {"about": "ground-unfit-test", "a": {"reasons": []}}},
+    {"id": "fb/calm/notfit/ground/9/x", "at": "2026-11-19T16:00:00Z", "part": "calm", "kind": "not-for-me-removed"}]}, token=token)
+sm2 = W.summarize(14, datetime.date(2026, 11, 20))
+check("a not-for-me brought back is gone from the summary (and not counted as activity)", "ground-unfit-test" not in sm2 and "not-for-me-removed" not in sm2 and "NOT FOR ME [coach:A]" in sm2, sm2)
 st, r = ask("weekly-plan", {"age": "12 months old", "checkins": {"2026-11-19": {"note": "teething-note"}}, "feedback": []})
 check("weekly plan sees his check-ins", r.get("state") == "done" and "SAW-CHECKIN" in r["answer"].get("headline", ""), r)
 plans = open(os.path.join(TMP, "progress", "plans", "weekly.jsonl"), encoding="utf-8").read().splitlines()

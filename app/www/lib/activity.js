@@ -181,6 +181,11 @@
       if (t) ev.text = cut(t, 900);
       out.push(ev);
     });
+    // "Not for me" marks he brought back (Settings): removed on the PC too
+    (s.unfitted || []).forEach(function (u) {
+      if (!u || typeof u.id !== 'string' || !okDate(u.at)) return;
+      out.push({ id: 'fb/' + u.id + '/x', at: u.at, part: u.part === 'home' ? 'app' : u.part, kind: 'not-for-me-removed' });
+    });
   };
 
   /* Autopilot notes (wl.notes.v1): ideas, bugs, and requests left from anywhere in the app for the next autopilot run. */

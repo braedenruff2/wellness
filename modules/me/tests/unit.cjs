@@ -607,6 +607,8 @@ t('hiddenList: one row per marked item, newest first; guide lines only for 14 da
   assert.strictEqual(K.flagged(s, 'calm', 'ground'), false);
   assert.strictEqual(K.answers(s, 'calm', 'body@1').helped, 'A bit', 'quick answers untouched');
   assert.strictEqual(K.unFit(s, 'calm', 'nothing'), 0);
+  assert.deepStrictEqual(s.unfitted.map((u) => u.part), ['calm', 'calm'], 'what was brought back is kept to tell the PC');
+  assert.deepStrictEqual(K.validate(JSON.parse(JSON.stringify(s))).unfitted, s.unfitted, 'kept through a restore');
   K.notFit(s, 'workout', 'coach:A', 'old line', [], '', D(12));
   assert.ok(!K.hiddenList(s, D(13).getTime()).some((x) => x.about === 'coach:A'), 'the old per-day Move key (hides nothing now) is not listed');
 });
