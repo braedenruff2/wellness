@@ -94,6 +94,28 @@
     });
   }
 
+  /* What he marked "Not for me" and is still hidden (guide lines only for their 14 days), newest first, one per item;
+     unFit brings one back (removes its marks, so plans and suggestions count it again). */
+  function hiddenList(state, nowMs) {
+    nowMs = nowMs == null ? Date.now() : nowMs;
+    var seen = {}, out = [];
+    for (var i = state.feedback.length - 1; i >= 0; i--) {
+      var f = state.feedback[i];
+      if (!f || f.kind !== 'notfit') continue;
+      var k = f.part + '|' + f.about;
+      if (seen[k]) continue;
+      seen[k] = 1;
+      if (/^guide:/.test(f.about) && !inRange(f, nowMs - 14 * 864e5, null)) continue;
+      out.push({ part: f.part, about: f.about, shown: f.shown || '', at: f.at });
+    }
+    return out;
+  }
+  function unFit(state, part, about) {
+    var n = state.feedback.length;
+    state.feedback = state.feedback.filter(function (f) { return !(f && f.kind === 'notfit' && f.part === part && f.about === about); });
+    return n - state.feedback.length;
+  }
+
   function trim(state) { if (state.feedback.length > 600) state.feedback = state.feedback.slice(-600); }
 
   function trimCheckins(state) {
@@ -444,7 +466,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
+    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

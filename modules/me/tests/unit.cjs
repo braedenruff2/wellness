@@ -593,4 +593,19 @@ t('flagged() supports optional time-window bounds for 14-day guide:* expiry', ()
   assert.strictEqual(K.flagged(s, 'workout', 'guide:pain', D(18, 12).getTime() - 14 * 864e5, D(18, 12).getTime()), true, 'within 14 days');
   assert.strictEqual(K.flagged(s, 'workout', 'guide:pain', D(20, 12).getTime() - 14 * 864e5, D(20, 12).getTime()), false, 'expired after 14 days');
 });
+t('hiddenList: one row per marked item, newest first; guide lines only for 14 days; unFit brings one back', () => {
+  const s = K.defaults();
+  K.notFit(s, 'calm', 'ground', 'Grounding 5-4-3-2-1', ['Not helpful'], '', D(1));
+  K.notFit(s, 'calm', 'ground', 'Grounding 5-4-3-2-1', [], 'again', D(3));
+  K.notFit(s, 'workout', 'guide:coach:x', 'A line', [], '', D(2));
+  K.notFit(s, 'faith', 'day:4:think', 'Think', [], '', D(10));
+  K.answer(s, 'calm', 'body@1', 'helped', 'A bit', D(11));
+  const now = D(20).getTime();
+  assert.deepStrictEqual(K.hiddenList(s, now).map((x) => x.part + ':' + x.about), ['faith:day:4:think', 'calm:ground'], 'guide line from 18 days ago left out');
+  assert.deepStrictEqual(K.hiddenList(s, D(5).getTime()).map((x) => x.about), ['day:4:think', 'guide:coach:x', 'ground']);
+  assert.strictEqual(K.unFit(s, 'calm', 'ground'), 2, 'both marks removed');
+  assert.strictEqual(K.flagged(s, 'calm', 'ground'), false);
+  assert.strictEqual(K.answers(s, 'calm', 'body@1').helped, 'A bit', 'quick answers untouched');
+  assert.strictEqual(K.unFit(s, 'calm', 'nothing'), 0);
+});
 console.log(n + ' me unit tests passed');

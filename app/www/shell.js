@@ -398,6 +398,7 @@
     h += updateHtml();
     h += syncHtml();
     h += saveFailHtml('wl-savefail-s');
+    if (window.WLMe && WLMe.hiddenHtml) try { h += WLMe.hiddenHtml(); } catch (e) {}
     h += '<div class="card ui"><h3>Backup</h3><p class="meta">Everything lives only on this phone. Save a backup file now and then (all parts of the app in one file).' +
       (SH.lastBackup ? ' Last saved ' + esc(new Date(SH.lastBackup).toLocaleDateString()) + '.' : '') + (backupDue() ? ' <b>It’s been a while: save one now.</b>' : '') + '</p>' +
       '<div class="row"><button id="wl-export">Save a backup</button><label class="btn" for="wl-import">Restore a backup</label><input type="file" id="wl-import" accept=".json,application/json" class="sr"></div>' +

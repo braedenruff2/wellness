@@ -288,6 +288,37 @@
     h += '<p class="meta ui">' + n + ' quick answers so far.</p>';
     return h;
   }
+  /* Settings: a quiet, collapsed list of what he marked "Not for me", so a mistaken tap can be undone (the main
+     screens no longer show marked items at all). */
+  function aboutText(x) {
+    if (x.shown) return x.shown;
+    var a = String(x.about).replace(/^guide:/, '');
+    return a.replace(/^ex:/, '').replace(/^tip:.*/, 'a parenting tip').replace(/^day:(\d+).*/, 'Faith day $1').replace(/[-_:]+/g, ' ');
+  }
+  function hiddenHtml() {
+    var xs = K.hiddenList(S, Date.now());
+    if (!xs.length) return '';
+    return '<details class="card ui" id="me-hidden"><summary>Hidden as “not for me” (' + xs.length + ')</summary>' +
+      '<p class="meta">They stay out of the app’s screens and suggestions. Bring one back if you tapped it by mistake.</p><ul class="me-g">' +
+      xs.map(function (x) {
+        return '<li><span class="meta">' + esc(label(x.part)) + ':</span> ' + esc(aboutText(x).slice(0, 140)) +
+          ' <button class="link" data-me-unfit="1" data-part="' + esc(x.part) + '" data-about="' + esc(x.about) + '">Bring back</button></li>';
+      }).join('') + '</ul></details>';
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-me-unfit]');
+    if (!b) return;
+    K.unFit(S, b.dataset.part, b.dataset.about); save();
+    var li = b.closest('li'), box = b.closest('#me-hidden');
+    if (li) li.remove();
+    if (box) {
+      var left = box.querySelectorAll('li').length, sm = box.querySelector('summary');
+      if (!left) box.remove(); else if (sm) sm.textContent = 'Hidden as “not for me” (' + left + ')';
+    }
+    WL.toast('Brought back');
+    try { document.dispatchEvent(new CustomEvent('wl-notfit', { detail: { part: b.dataset.part, about: b.dataset.about, undo: true } })); } catch (e2) {}
+  });
+
   function label(k) { return { calm: 'Calm', workout: 'Move', faith: 'Faith', coach: 'Parenting', tagalog: 'Tagalog', todo: 'To do', home: 'General' }[k] || k; }
 
   function route(parts, v) {
@@ -311,7 +342,7 @@
   document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(autoPlan, 5000); });
 
   window.WLMe = {
-    askHtml: askHtml, fitLink: fitLink, flagged: function (part, about, sinceMs, nowMs) { return K.flagged(S, part, about, sinceMs, nowMs); }, planLine: planLine, rough: function () { return K.rough(S, new Date()); },
+    hiddenHtml: hiddenHtml, askHtml: askHtml, fitLink: fitLink, flagged: function (part, about, sinceMs, nowMs) { return K.flagged(S, part, about, sinceMs, nowMs); }, planLine: planLine, rough: function () { return K.rough(S, new Date()); },
     calmLikes: function () { return K.calmLikes(S, new Date()); }, planFor: function (part) { return K.planFor(S, part, new Date()); }, planFlagged: function (part) { return K.planFlagged(S, part); }, calmHelped: function () { return K.calmHelped(S); }, painNote: function () { return K.painNote(S, new Date()); }, state: function () { return S; }
   };
 
