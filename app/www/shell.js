@@ -160,6 +160,7 @@
   }
   /* One soft bell (interval bells during a sit): quieter and shorter than the start/end bell. */
   function softBell() {
+    if (window.WLNoise && WLNoise.duck) WLNoise.duck(2.5); // heard over the background sound
     try {
       var ctx = getAudio(), t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
       o.type = 'sine'; o.frequency.value = 528;

@@ -144,5 +144,17 @@ const Wb = require('../../../tests/lib/web.cjs');
   });
 
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
+  await t.step('the soft interval bell dips the background sound so it is heard; nothing to dip when the sound is off', async () => {
+    await page.goto(base + '#calm');
+    const r = await page.evaluate(() => {
+      const out = {}; out.offDuck = WLNoise.duck(2.5);
+      WLNoise.start('brown');
+      const orig = WLNoise.duck; let calls = 0; WLNoise.duck = (s) => { calls++; return orig(s); };
+      WL.softBell(); out.calls = calls; out.onDuck = orig(2.5);
+      WLNoise.duck = orig; WLNoise.stop();
+      return out;
+    });
+    assert.deepStrictEqual(r, { offDuck: false, calls: 1, onDuck: true });
+  });
   await t.close('calm noise & exact timer');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

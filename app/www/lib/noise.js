@@ -98,7 +98,21 @@
     } catch (e) { curKind = 'off'; active = null; return false; }
   }
 
-  var api = { KINDS: KINDS, LABELS: LABELS, start: start, stop: stop, current: function () { return curKind; } };
+  /* The soft interval bell rings: the sound dips to a third for its 2.5 s, so the bell is heard over it. */
+  function duck(secs) {
+    if (!active) return false;
+    try {
+      var g = active.gain.gain, t = active.ctx.currentTime, full = GAIN[curKind] || 0.08, d = secs || 2.5;
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(Math.max(0.0001, g.value || full), t);
+      g.linearRampToValueAtTime(full / 3, t + 0.15);
+      g.setValueAtTime(full / 3, t + d);
+      g.linearRampToValueAtTime(full, t + d + 0.8);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  var api = { KINDS: KINDS, LABELS: LABELS, start: start, stop: stop, duck: duck, current: function () { return curKind; } };
   root.WLNoise = api;
   if (root.WL) root.WL.noise = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
