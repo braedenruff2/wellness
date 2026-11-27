@@ -586,4 +586,11 @@ t('dismissPlan & planDismissed: per-part dismissal persists through validate and
   assert.strictEqual(K.planDismissed(v, 'calm'), false);
   assert.strictEqual(K.planDismissed(v, 'home'), false);
 });
+t('flagged() supports optional time-window bounds for 14-day guide:* expiry', () => {
+  const s = K.defaults();
+  K.notFit(s, 'workout', 'guide:pain', 'Pain note', ['Other'], '', D(5, 12));
+  assert.strictEqual(K.flagged(s, 'workout', 'guide:pain'), true, 'unbounded stays true');
+  assert.strictEqual(K.flagged(s, 'workout', 'guide:pain', D(18, 12).getTime() - 14 * 864e5, D(18, 12).getTime()), true, 'within 14 days');
+  assert.strictEqual(K.flagged(s, 'workout', 'guide:pain', D(20, 12).getTime() - 14 * 864e5, D(20, 12).getTime()), false, 'expired after 14 days');
+});
 console.log(n + ' me unit tests passed');

@@ -86,8 +86,12 @@
     state.feedback.push(f); trim(state);
     return f;
   }
-  function flagged(state, part, about) {
-    return state.feedback.some(function (f) { return f.kind === 'notfit' && f.part === part && f.about === about; });
+  function flagged(state, part, about, sinceMs, nowMs) {
+    return state.feedback.some(function (f) {
+      if (!f || f.kind !== 'notfit' || f.part !== part || f.about !== about) return false;
+      if (sinceMs == null && nowMs == null) return true;
+      return inRange(f, sinceMs, nowMs);
+    });
   }
 
   function trim(state) { if (state.feedback.length > 600) state.feedback = state.feedback.slice(-600); }

@@ -153,7 +153,7 @@
         '</div><div class="row" style="margin-top:10px"><button class="primary" id="co-new"' + (askable() ? '' : ' disabled') + '>New scenario</button></div></div>';
     }
     if (window.WLMe) h += WLMe.planLine('coach');
-    var tips = K.tips(S).filter(function (x) { return !tipFlagged(x.id); });
+    var tips = K.tips(S, null, 50).filter(function (x) { return !tipFlagged(x.id); }).slice(0, 3);
     if (tips.length) h += '<div class="card ui" id="co-tips"><h3>This week, try</h3><ul class="list">' + tips.map(function (x) {
       return '<li style="flex-wrap:wrap"><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.text) + '</a><span class="meta">' + esc(x.skill) + '</span>' +
         (window.WLMe ? '<div style="flex-basis:100%">' + WLMe.askHtml('coach', 'tip:' + x.id, ' ', true) + WLMe.fitLink('coach', 'tip:' + x.id, x.text) + '</div>' : '') + '</li>';
@@ -374,7 +374,7 @@
         : '<a class="btn' + (done ? '' : ' primary') + '" href="#coach">Open</a>';
     return '<div class="meta ui">Parenting practice</div><h3>' + title + '</h3>' +
       (last ? '<p class="meta ui">Last: ' + last.result.score + '/10 in ' + esc(last.skill) + ' · ' + st.length + ' skill' + (st.length === 1 ? '' : 's') + ' practised</p>' : '') +
-      (function () { var ts = K.tips(S, null, 5).filter(function (x) { return !tipFlagged(x.id); }); return ts[0] && !S.current ? '<p class="ui" id="co-tip">Try this week: ' + esc(ts[0].text) + '</p>' : ''; })() +
+      (function () { var ts = K.tips(S, null, 50).filter(function (x) { return !tipFlagged(x.id); }); return ts[0] && !S.current ? '<p class="ui" id="co-tip">Try this week: ' + esc(ts[0].text) + '</p>' : ''; })() +
       '<div class="row ui">' + actions + '</div>';
   }
   function wireCard(el) {

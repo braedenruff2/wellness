@@ -59,7 +59,7 @@
     }
     var h = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">' + esc(plan.title) + '</h1>' + weekDots(now()) + '</div>';
     if (!(M && M.flagged && M.flagged('workout', 'coach:' + day))) h += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + day, co) : '') + '</p>';
-    if (M && M.painNote && M.painNote() && !(M.flagged && M.flagged('workout', 'guide:pain'))) {
+    if (M && M.painNote && M.painNote()) {
       var pn = 'Pain came up after two workouts lately. Go lighter on the moves that hurt and check your form (the “How” notes). If it keeps up or is sharp, see a doctor or physio.';
       h += '<p class="gentle ui" id="wo-pain">' + esc(pn) + ' ' + M.fitLink('workout', 'guide:pain', pn) + '</p>';
     }

@@ -124,6 +124,15 @@ const Wb = require('../../../tests/lib/web.cjs');
     });
     await page.goto(base + '#home'); await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('h1');
     assert.strictEqual(await page.$('#wo-pain'), null);
+    // After 14 days pass and pain recurs twice, #wo-pain returns with its "Not for me?" button
+    await page.clock.setSystemTime(new Date(2026, 11, 10, 10, 0));
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+      [7, 9].forEach((d) => me.feedback.push({ id: 'workout/after/pdec' + d, at: new Date(2026, 11, d, 18).toISOString(), part: 'workout', about: 'pdec' + d, kind: 'after', a: { hard: 'Hard', pain: 'A little' } }));
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('#wo-pain');
+    assert.ok(await page.$('#wo-pain [data-me-fit="1"]'), '#wo-pain returns after 14 days with Not for me? button');
   });
   await t.step('no overflow, no errors', async () => {
     await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.workout.v1')); s.sessions = []; s.rest = {}; localStorage.setItem('wl.workout.v1', JSON.stringify(s)); });

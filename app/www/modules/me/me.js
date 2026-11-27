@@ -35,7 +35,8 @@
   /* "Not for me?" link next to a piece of advice or a practice. Once marked, it stays in the backend (S.feedback)
      but is removed from the UI instead of lingering as "Noted". */
   function fitLink(part, about, shown) {
-    if (K.flagged(S, part, about)) return '';
+    var ms = Date.now(), isGuide = /^guide:/.test(String(about || ''));
+    if (isGuide ? K.flagged(S, part, about, ms - 14 * 864e5, ms) : K.flagged(S, part, about)) return '';
     return '<button class="link me-fit" data-me-fit="1" data-part="' + esc(part) + '" data-about="' + esc(about) + '" data-shown="' + esc(String(shown || '').slice(0, 300)) + '">Not for me?</button>';
   }
 

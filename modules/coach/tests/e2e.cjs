@@ -110,6 +110,38 @@ const W = require('../../../tests/lib/web.cjs');
     assert.ok((await page.textContent('#co-worked')).includes('Sing the same car-seat song'), 'older working tip stays');
   });
 
+  await t.step('flagging the newest 3 tips "Not for me?" still surfaces an unflagged 4th tip from this week', async () => {
+    const saved = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      const snap = { coach: JSON.parse(JSON.stringify(s)), me: localStorage.getItem('wl.me.v1') };
+      s.current = null;
+      s.history = [
+        { id: 't4', at: '2026-11-17T12:00:00Z', title: 'S4', skill: 'Feeding', scenario: 'S', question: 'Q', age: '11 months old', answer: 'A', result: { score: 8, verdict: 'V', good: [], improve: [], better: '', why: '', practice: 'Offer water in an open cup', text: '', sources: [] } },
+        { id: 't3', at: '2026-11-18T12:00:00Z', title: 'S3', skill: 'Sleep', scenario: 'S', question: 'Q', age: '11 months old', answer: 'A', result: { score: 8, verdict: 'V', good: [], improve: [], better: '', why: '', practice: 'Hidden tip 3', text: '', sources: [] } },
+        { id: 't2', at: '2026-11-19T12:00:00Z', title: 'S2', skill: 'Safety', scenario: 'S', question: 'Q', age: '11 months old', answer: 'A', result: { score: 8, verdict: 'V', good: [], improve: [], better: '', why: '', practice: 'Hidden tip 2', text: '', sources: [] } },
+        { id: 't1', at: '2026-11-20T12:00:00Z', title: 'S1', skill: 'Routines', scenario: 'S', question: 'Q', age: '11 months old', answer: 'A', result: { score: 8, verdict: 'V', good: [], improve: [], better: '', why: '', practice: 'Hidden tip 1', text: '', sources: [] } }
+      ];
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      const me = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[],"checkins":{},"plan":null,"skipped":{}}');
+      ['t1', 't2', 't3'].forEach((id) => me.feedback.push({ id: 'coach/notfit/tip:' + id, at: '2026-11-21T09:00:00Z', part: 'coach', about: 'tip:' + id, kind: 'notfit', a: { reasons: ['I know this already'] } }));
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+      return snap;
+    });
+    await page.reload();
+    await page.goto(base + '#coach');
+    await page.waitForSelector('#co-tips');
+    const txt = await page.textContent('#co-tips');
+    assert.ok(txt.includes('Offer water in an open cup') && !txt.includes('Hidden tip 1'), txt);
+    await page.goto(base + '#home');
+    await page.waitForSelector('#co-tip');
+    assert.ok((await page.textContent('#co-tip')).includes('Offer water in an open cup'));
+    await page.evaluate((snap) => {
+      localStorage.setItem('wl.coach.v1', JSON.stringify(snap.coach));
+      if (snap.me == null) localStorage.removeItem('wl.me.v1'); else localStorage.setItem('wl.me.v1', snap.me);
+    }, saved);
+    await page.reload();
+  });
+
   await t.step('past practice views escape HTML cleanly and unknown id shows Not found', async () => {
     await page.goto(base + '#coach/h/h1');
     const txt = await page.textContent('#view');
