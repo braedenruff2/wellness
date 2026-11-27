@@ -501,4 +501,17 @@ t('393: slotFood / slotLogged: a skipped dinner is no food, Mama-cooked is what 
   assert.strictEqual(K.slotLogged(s, '2026-11-27', 'dinner'), false, 'another day is not logged');
 });
 
+t('394: custom foods that differ only by symbols, or have non-Latin names, never overwrite each other', () => {
+  const s = K.defaults();
+  K.addCustomFood(s, { name: 'Milk 2%', kcal: 120 });
+  K.addCustomFood(s, { name: 'Milk 2', kcal: 300 });
+  K.addCustomFood(s, { name: '粥', kcal: 200 });
+  K.addCustomFood(s, { name: '饺子', kcal: 400 });
+  assert.deepStrictEqual(s.customFoods.map((x) => x.name + ':' + x.nutri.kcal).sort(), ['Milk 2%:120', 'Milk 2:300', '粥:200', '饺子:400'].sort());
+  // the same name again (case, spaces) still updates the one food
+  K.addCustomFood(s, { name: '  milk  2% ', kcal: 130 });
+  assert.strictEqual(s.customFoods.length, 4);
+  assert.strictEqual(s.customFoods.find((x) => x.name.trim().toLowerCase().replace(/\s+/g, ' ') === 'milk 2%').nutri.kcal, 130);
+});
+
 console.log(n + ' cook unit tests passed');

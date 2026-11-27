@@ -976,8 +976,10 @@
     if (!Array.isArray(state.customFoods)) state.customFoods = [];
     var name = item.name.trim().slice(0, 80);
     var serving = String(item.serving || '1 serving').trim().slice(0, 40) || '1 serving';
-    var k = norm(name);
-    var existing = state.customFoods.filter(function (x) { return x && norm(x.name) === k; })[0];
+    // the same food again (case and spaces aside) updates it; "Milk 2" and "Milk 2%", or two non-Latin names, are two foods
+    var key = function (v) { v = String(v || ''); if (v.normalize) v = v.normalize('NFC'); return v.toLowerCase().replace(/\s+/g, ' ').trim(); };
+    var k = key(name);
+    var existing = state.customFoods.filter(function (x) { return x && key(x.name) === k; })[0];
     if (existing) { existing.name = name; existing.serving = serving; existing.nutri = nutri; return existing; }
     var rec = { id: newId('cf', now || new Date()), name: name, serving: serving, nutri: nutri };
     state.customFoods.unshift(rec);
