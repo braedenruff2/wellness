@@ -820,6 +820,7 @@
               }).filter(function (x) { return x && x.name; }),
               steps: m.steps.filter(function (s) { return typeof s === 'string' && s.trim(); }).slice(0, 10).map(function (s) { return s.trim().slice(0, 300); })
             };
+            var aw = cleanWords(m.words); if (aw.length) state.aiRecipes[rid].words = aw;
           }
           curDay[meal] = { recipeId: rid, title: m.title.trim().slice(0, 120), status: 'planned', note: typeof m.note === 'string' ? m.note.trim().slice(0, 200) : '' };
         }
@@ -1109,6 +1110,7 @@
           }).filter(function (x) { return x && x.name; }),
           steps: (Array.isArray(r.steps) ? r.steps : []).filter(function (st) { return typeof st === 'string' && st.trim(); }).slice(0, 10).map(function (st) { return st.trim().slice(0, 300); })
         };
+        var vw = cleanWords(r.words); if (vw.length) d.aiRecipes[k].words = vw;
       });
     }
     if (s.lastPhoto && typeof s.lastPhoto === 'object') {
@@ -1133,6 +1135,13 @@
       if (Object.keys(tg).length) d.targets = tg;
     }
     return d;
+  }
+
+  /* A dish's Tagalog words from an AI plan: [{tl, en}], letters and spaces only, at most 8. */
+  function cleanWords(ws) {
+    return (Array.isArray(ws) ? ws : []).filter(function (w) {
+      return w && typeof w.tl === 'string' && typeof w.en === 'string' && /^[a-zA-ZñÑ' -]{2,40}$/.test(w.tl.trim()) && w.en.trim();
+    }).slice(0, 8).map(function (w) { return { tl: w.tl.trim().toLowerCase(), en: w.en.trim().slice(0, 40) }; });
   }
 
   /* A fridge-photo answer's items, only what the app can show and add: [{name, qty, unit, status, cat, expiresInDays}]. */

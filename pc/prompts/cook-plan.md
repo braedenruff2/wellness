@@ -13,13 +13,15 @@ Write a practical 7-day meal plan (Monday through Sunday) for a beginner cook:
 - **Beginner-friendly**: 10–35 min meals, minimal pots/pans, clear step-by-step instructions with visual doneness cues (no jargon).
 - **Baby adaptation**: include a short `babyNote` explaining how to set aside a soft, low-salt portion for his daughter (fitting her age; no honey if under 12 months; soft/squishable textures). For a toddler: eggs, meat and fish fully cooked; never whole nuts, popcorn or hard raw vegetables (raw carrot or cucumber rounds); grapes, cherry tomatoes and blueberries quartered or squashed; smooth nut butter only thinly spread; low-sodium broth; light tuna, not albacore.
 
+- **Filipino dishes** (optional `words`): for a Filipino dish, up to 6 of its everyday Tagalog words (`{"tl": "manok", "en": "chicken"}`): real, common words only, lowercase, never invented; leave `words` out for other dishes.
+
 Return ONLY one JSON object (no markdown fences):
 {
   "note": "One short encouraging paragraph highlighting what expiring items get used first and how the week supports his workouts.",
   "days": [
     {
       "date": "YYYY-MM-DD",
-      "breakfast": { "title": "...", "mins": 10, "protein": "~25 g protein", "babyNote": "...", "tip": "...", "ingredients": [{"name": "eggs", "qty": 3, "unit": "pcs", "cat": "dairy"}], "steps": ["Step 1...", "Step 2..."] },
+      "breakfast": { "title": "...", "mins": 10, "protein": "~25 g protein", "babyNote": "...", "tip": "...", "ingredients": [{"name": "eggs", "qty": 3, "unit": "pcs", "cat": "dairy"}], "steps": ["Step 1...", "Step 2..."], "words": [{"tl": "itlog", "en": "egg"}] },
       "lunch": { "title": "...", "mins": 15, "protein": "...", "babyNote": "...", "tip": "...", "ingredients": [...], "steps": [...] },
       "dinner": { "title": "...", "mins": 25, "protein": "...", "babyNote": "...", "tip": "...", "ingredients": [...], "steps": [...] }
     }

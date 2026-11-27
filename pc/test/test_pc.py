@@ -51,7 +51,7 @@ elif 'Grade a dad' in p:
     ans = 'Here you go:\\n```json\\n{"score": 7, "verdict": "Good start {really}.", "good": ["stayed calm"], "improve": ["name the feeling"], "better": "x", "why": "y", "practice": "z", "sources": []}\\n```'
 elif 'ONE realistic' in p:
     ans = '{"title": "Teething at 3am", "skill": "Crying and comfort", "scenario": "S", "question": "Q"}'
-elif 'Tagalog' in p:
+elif 'Tagalog' in p and '7-day meal plan' not in p:  # the meal-plan prompt mentions Tagalog dish words too
     ans = 'Sure! {"ok": false, "corrected": "Kumain ka na ba?", "meaning": "Have you eaten?", "explain": "e", "tip": "t"} Hope that helps.'
 elif 'Read and inspect the photo at:' in p:
     import re as _re
