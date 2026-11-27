@@ -127,5 +127,16 @@ const W = require('../../../tests/lib/web.cjs');
     await t.noOverflow(['#todo', '#home']);
     assert.deepStrictEqual(t.errors, []);
   });
+  await t.step('app start (on Home, the list never opened) drops done tasks older than 30 days, keeps open and recent ones', async () => {
+    const now = await page.evaluate(() => Date.now()), d = (n) => new Date(now - n * 864e5).toISOString();
+    await page.evaluate((x) => localStorage.setItem('wl.todo.v1', JSON.stringify({ tasks: [
+      { id: 'old', text: 'old done', due: null, done: x.old, created: x.old, repeat: null, at: null },
+      { id: 'new', text: 'recent done', due: null, done: x.recent, created: x.recent, repeat: null, at: null },
+      { id: 'open', text: 'still open', due: null, done: null, created: x.old, repeat: null, at: null }] })), { old: d(40), recent: d(3) });
+    await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('.home-card');
+    const ids = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.todo.v1')).tasks.map((x) => x.id));
+    assert.deepStrictEqual(ids, ['new', 'open']);
+    assert.deepStrictEqual(t.errors, []);
+  });
   await t.close('to-do browser');
 })().catch((e) => { console.error(e); process.exit(1); });

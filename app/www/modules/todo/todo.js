@@ -50,6 +50,8 @@
     return '<h2>' + title + '</h2><ul class="list tasks">' + arr.map(function (t) { return item(t, overdue); }).join('') + '</ul>';
   }
 
+  /* Done tasks older than 30 days go when the app starts too, not only when the list opens (a year of use stays small). */
+  function tidyNow() { var n0 = S.tasks.length; T.tidy(S); if (S.tasks.length !== n0) save(); }
   function render() {
     T.tidy(S); save();
     var g = T.groups(S), adv = T.advice(S);
@@ -202,8 +204,9 @@
       return { label: 'To do: ' + first + (due.length > 1 ? ' + ' + (due.length - 1) + ' more' : ''), done: false, href: '#todo' };
     },
     validate: function (k, raw) { try { var s = T.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
-    reload: function () { S = store.load(); syncAlarms(); }
+    reload: function () { S = store.load(); tidyNow(); syncAlarms(); }
   });
+  tidyNow();
   syncAlarms();
   /* Tasks ticked "Done" on a notification: Android hands them over when the app opens or is on screen. */
   window.FCTodoTicked = function (starting) {

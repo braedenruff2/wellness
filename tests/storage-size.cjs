@@ -22,4 +22,11 @@ assert.ok(total(z365) < 4000000, 'a year of everything stays under the quota: ' 
 const backup = JSON.stringify({ app: 'wellness', exported: new Date().toISOString(), stores: Object.fromEntries(Object.entries(s365).map(([k, v]) => [k, JSON.stringify(v)])), requests: [], acked: [] });
 console.log('a year as a backup/sync file:', backup.length, 'chars');
 assert.ok(Buffer.byteLength(backup, 'utf8') < 4 * 1024 * 1024, 'backup of a year < 4 MB: ' + Buffer.byteLength(backup, 'utf8'));
+// to-dos: done ones older than 30 days go when the app starts (todo.js tidyNow), so a year of daily errands stays small
+const TD = require('../app/www/modules/todo/todo-core.js');
+const td = JSON.parse(JSON.stringify(s365['wl.todo.v1'])); TD.tidy(td, new Date(2026, 10, 18 + 364, 20, 0));
+const end = new Date(2026, 10, 18 + 364, 20, 0).getTime();
+assert.ok(td.tasks.filter((x) => x.done).every((x) => end - Date.parse(x.done) <= 30 * 864e5), 'only the last 30 days of done tasks are kept');
+assert.ok(JSON.stringify(td).length < JSON.stringify(s365['wl.todo.v1']).length / 2, 'tidy at least halves a year of to-dos: ' + JSON.stringify(td).length);
+assert.ok(td.tasks.some((x) => x.repeat === 'weekly') && td.tasks.some((x) => x.repeat === 'monthly'), 'repeats are never tidied away');
 console.log('storage size checks passed');
