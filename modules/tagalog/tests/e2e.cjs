@@ -172,6 +172,28 @@ const RAW = 'https://raw.githubusercontent.com/test/wellness/main/modules/tagalo
     assert.ok((await page.textContent('#tl-fb')).includes('Right'), 'a dropped hyphen is fine');
     await page.evaluate((raw) => { localStorage.setItem('wl.tagalog.v1', raw); window.WL.modules.tagalog.reload(); }, saved);
   });
+  await t.step('an extra linker after hindi ("Hindi akong pagod") says no linker here, and Watch for next time names it', async () => {
+    const saved = await page.evaluate(() => localStorage.getItem('wl.tagalog.v1'));
+    await page.goto(base + '#tagalog'); await page.goto(base + '#tagalog/l/2026-11-25/2');
+    let fb = '';
+    for (let k = 0; k < 14 && !(await page.$('#tl-watch')); k++) {
+      if (await page.$('#tl-next')) { await page.click('#tl-next'); continue; }
+      if (await page.$('#tl-in')) {
+        const tired = (await page.textContent('#tl-ex')).includes("I'm not tired.");
+        await page.fill('#tl-in', tired ? 'Hindi akong pagod' : 'x'); await page.click('#tl-check');
+        if (tired) fb = await page.textContent('#tl-linker');
+        continue;
+      }
+      if (await page.$('#tl-ex .opt:not(.word)')) await page.click('#tl-ex .opt:not(.word)');
+      else await page.click('#tl-check');
+    }
+    assert.ok(/Almost: no linker here \(ako, not akong, after hindi\)/.test(fb), fb);
+    const w = await page.textContent('#tl-watch');
+    assert.ok(w.includes('No linker after hindi') && w.includes('Hindi ako pagod.'), w);
+    const st = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')));
+    assert.ok(st.answers.some((a) => a.hint === 'extralinker'), 'kept as its own kind');
+    await page.evaluate((raw) => { localStorage.setItem('wl.tagalog.v1', raw); window.WL.modules.tagalog.reload(); }, saved);
+  });
   await t.step('next day: lesson 2 is next and the words are due for review', async () => {
     await page.clock.runFor(86400e3);
     await page.goto(base + '#tagalog');
