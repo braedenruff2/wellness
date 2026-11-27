@@ -23,8 +23,8 @@
 - Checked, not a bug: body.hide-bar after leaving an open workout (route() resets body classes).
 - Done 325: an unsent Parenting question (draft kept as he types) says "Saved on this phone, not sent yet" on #coach, and Home's Parenting card adds "Finish and send" (#coach/real, Get advice focused); e2e-draft.
 - Added tasks 320-325.
-- Tested: full suite at the APK's commit (106+ suites, none skipped).
-- Check on the phone: Settings > Hidden as not for me (only appears once something is marked); Parenting: start typing a real situation, nothing interrupts.
+- Tested: full suite at each APK's commit (113 suites, none skipped). APKs this run: 0.1.20261127.0927, .0953, .1036 (real key, cert 6795e499...).
+- Check on the phone: Home's Parenting card "Finish and send" (an unsent question) opens it and sends; Settings > Hidden as not for me (appears once something is marked); Calm path tip after a restless sit; a note for the autopilot left unsaved comes back.
 
 ## 2026-11-26 21:15-21:35 AST (same run, continued; APK 0.1.20261127.0131, real key, cert 6795e499...)
 - Done 293 (Tagalog weekly summary: slips per kind + still wrong), 295 (an unread note takes a second tap to delete), 294 (Home Cooking card at its fullest at 320 px), 296 (Filipino recipes show their Tagalog words with 🔊), 297 (offline plan: no 45+ min dish on a workout day, weeks differ), 308 (the soft bell dips background noise), 300 (bug: AI recipes piled up forever; each AI plan keeps the plan's + newest 40; Cooking pages in e2e-perf). 292, 307 existed.
