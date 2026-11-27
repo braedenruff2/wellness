@@ -170,6 +170,7 @@ const W = require('../../../tests/lib/web.cjs');
     assert.ok((await page.textContent('#j-lookback')).includes('peaceful walk along the river'));
     await page.click('#j-lb-dismiss');
     assert.strictEqual(await page.$('#j-lookback'), null, 'Dismiss removes look-back card');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'new-entry', 'Dismiss restores focus to #new-entry');
     await page.reload();
     await page.goto(base + '#journal');
     await page.waitForSelector('#j-list');

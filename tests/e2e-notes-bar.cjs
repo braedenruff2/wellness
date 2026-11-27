@@ -151,6 +151,33 @@ const W = require('./lib/web.cjs');
     }
   });
 
+  await t.step('399: deleting notes keeps focus inside #wl-note-modal and disarms unread delete after 4 s', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => { localStorage.setItem('wl.shell.v1', JSON.stringify({ theme: 'light', textSize: 1 })); WL.applyLook(); });
+    await page.goto(base + '#todo');
+    await page.waitForSelector('#wl-bar-note');
+    await page.click('#wl-bar-note');
+    await page.waitForSelector('#wl-note-list summary');
+    await page.click('#wl-note-list summary');
+
+    // Delete read note (n1) -> focus stays inside modal on remaining Delete button (n2), never <body>
+    await page.click('.wl-note-del[data-id="n1"]');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-id')), 'n2', 'focus moves to remaining delete button');
+
+    // Tap unread note (n2) Delete once -> arms, then disarms after 4 s
+    await page.click('.wl-note-del[data-id="n2"]');
+    assert.ok((await page.textContent('.wl-note-del[data-id="n2"]')).includes('tap again'));
+    await page.clock.fastForward(4100);
+    assert.strictEqual((await page.textContent('.wl-note-del[data-id="n2"]')).trim(), 'Delete', 'unread delete confirmation disarms after 4 s');
+
+    // Two-tap delete on last note -> focus returns to #wl-note-in inside the dialog
+    await page.click('.wl-note-del[data-id="n2"]');
+    await page.click('.wl-note-del[data-id="n2"]');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'wl-note-in', 'focus falls back to #wl-note-in when last note deleted');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.getElementById('wl-note-modal'));
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('notes bar & sheet');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

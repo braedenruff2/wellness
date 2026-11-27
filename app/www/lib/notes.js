@@ -141,11 +141,18 @@
           var n0 = S.notes.filter(function (x) { return x && x.id === b.dataset.id; })[0];
           if (n0 && !n0.read && b.dataset.sure !== '1') {
             b.dataset.sure = '1'; b.textContent = 'Not read yet: tap again to delete'; b.setAttribute('aria-label', 'Not read by the autopilot yet. Tap again to delete');
+            setTimeout(function () {
+              if (b.isConnected && b.dataset.sure === '1') {
+                delete b.dataset.sure; b.textContent = 'Delete'; b.setAttribute('aria-label', 'Delete note');
+              }
+            }, 4000);
             return;
           }
           remove(S, b.dataset.id); save();
           var lw = $('#wl-note-list-wrap', wrap);
           if (lw) { lw.innerHTML = listHtml(); var det = $('#wl-note-list', lw); if (det) det.open = true; wireList(); }
+          if (window.WL && WL.refocus) WL.refocus(wrap, '.wl-note-del', '#wl-note-in');
+          else { var ta2 = $('#wl-note-in', wrap); if (ta2 && ta2.focus) try { ta2.focus(); } catch (e) {} }
           WL.toast('Note removed');
         };
       });

@@ -117,6 +117,7 @@
     if (lbd) lbd.onclick = function () {
       dismissLookBack(lbd.dataset.id);
       var box = $('#j-lookback', view); if (box) box.remove();
+      var ta = $('#new-entry', view); if (ta && ta.focus) try { ta.focus(); } catch (e) {}
     };
     var ex = $('#j-export-text', view);
     if (ex) ex.onclick = function () {
