@@ -192,6 +192,10 @@
     'Doubting it': 'Last time you doubted it: that’s common. Judge it by weeks of practice, not one sit.',
     Interrupted: 'Last time you were interrupted: a shorter sit when she’s asleep still counts.'
   };
+  // while he is still on counting breaths, "go back to counting" makes no sense: a shorter count does the same job
+  var HIND_TIP_COUNT = {
+    Restless: 'Last time you were restless: let each out-breath be a little longer, and if ten feels far away, count to four and start again, as many times as you need.'
+  };
 
   /* Other wordings for the guided scripts, so a practice doesn't sound the same every time. VARIANTS[id][i] lists
      alternatives for step i (the step's own `say` is wording 0). scriptFor picks wording n % count for each step,
@@ -466,7 +470,8 @@
     var rated = sits.filter(function (s) { return s.focus >= 1 && s.focus <= 3; }).slice(-5);
     var steady = rated.filter(function (s) { return s.focus === 3; }).length;
     var lastSit = all[all.length - 1] || null, hind = lastSit && Array.isArray(lastSit.hind) ? lastSit.hind : [];
-    var tip = null; hind.some(function (h) { return HIND_TIP[h] ? (tip = HIND_TIP[h]) : false; });
+    var tips = lastSit && lastSit.id === 'count' ? HIND_TIP_COUNT : {};
+    var tip = null; hind.some(function (h) { return tips[h] || HIND_TIP[h] ? (tip = tips[h] || HIND_TIP[h]) : false; });
     var lost = rated.filter(function (s) { return s.focus === 1; }).length;
     return { stage: id, n: i + 1, of: PATH.length, sits: sits.length, mins: Math.round(sits.reduce(function (a, s) { return a + (s.mins || 0); }, 0)),
       rated: rated.length, steady: steady, lost: lost, ready: i < PATH.length - 1 && sits.length >= READY_SITS && steady >= 3,
