@@ -5,7 +5,7 @@
   'use strict';
   var K = window.CookCore, V = window.CookViews, $ = WL.$, $$ = WL.$$;
   var store = WL.store('wl.cook.v1', K.defaults);
-  var S = store.load(), view = null, curTab = '';
+  var S = store.load(), view = null, curTab = '', pantryCat = 'all';
   var planBusy = false, photoBusy = false, photoErr = '', planErr = '';
 
   function save() { store.save(S); }
@@ -178,7 +178,7 @@
     return {
       realNow: rn, logNow: now(), childLabel: childLabel, pers: pers,
       wk: curTab === '' ? workoutInfo(rn) : null,
-      askable: askable, queuedFor: queuedFor,
+      askable: askable, queuedFor: queuedFor, pantryCat: pantryCat,
       planBusy: planBusy, planErr: planErr, photoBusy: photoBusy, photoErr: photoErr
     };
   }
@@ -303,6 +303,14 @@
         if (!rec) { nm.focus(); return; }
         save(); render(); WL.toast('Added ' + rec.name);
       };
+      $$('[data-pcat]', view).forEach(function (b) {
+        b.onclick = function () {
+          pantryCat = b.dataset.pcat || 'all';
+          render();
+          var btn = $('[data-pcat="' + pantryCat + '"]', view);
+          if (btn && btn.focus) try { btn.focus(); } catch (e) {}
+        };
+      });
       $$('[data-pst]', view).forEach(function (b) {
         b.onclick = function () { var p = b.dataset.pst.split('|'); K.updatePantryStatus(S, p[0], p[1], d); save(); render(); };
       });
@@ -337,6 +345,7 @@
       view = v;
       var t = (parts && parts[0]) || '';
       curTab = ['week', 'log', 'pantry'].indexOf(t) >= 0 ? t : '';
+      if (curTab !== 'pantry') pantryCat = 'all';
       render();
     },
     card: card,

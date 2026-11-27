@@ -245,18 +245,30 @@
       }).join('') + '</div>' +
       '<div class="row" style="margin-top:10px"><button class="primary" id="ck-p-save" type="button">Add item</button></div></div>';
 
-    // Inventory list (soonest expiring first)
-    h += '<div class="card ui" id="ck-pantry-list"><h3>In your fridge &amp; pantry (' + items.length + ')</h3>';
-    if (items.length) {
-      h += '<ul class="list">' + items.map(function (x) {
+    // Inventory list (soonest expiring first, with category filter chips once 10+ items exist)
+    var showCats = items.length >= 10;
+    var activeCat = showCats && ctx.pantryCat && K.CATS.indexOf(ctx.pantryCat) >= 0 ? ctx.pantryCat : 'all';
+    var visible = activeCat === 'all' ? items : items.filter(function (x) { return x.cat === activeCat; });
+    h += '<div class="card ui" id="ck-pantry-list"><h3>In your fridge &amp; pantry (' + (activeCat === 'all' ? items.length : visible.length + ' of ' + items.length) + ')</h3>';
+    if (showCats) {
+      h += '<div class="chips" id="ck-pantry-cats" style="margin:6px 0 8px">' +
+        '<button class="chip" type="button" data-pcat="all" aria-pressed="' + (activeCat === 'all') + '">All</button>' +
+        K.CATS.map(function (c) {
+          return '<button class="chip" type="button" data-pcat="' + c + '" aria-pressed="' + (activeCat === c) + '">' + esc(K.CAT_LABEL[c]) + '</button>';
+        }).join('') + '</div>';
+    }
+    if (visible.length) {
+      h += '<ul class="list">' + visible.map(function (x) {
         var dl = K.daysUntilExpiry(x, d);
         var qtyTxt = x.qty != null ? ' · ' + x.qty + (x.unit ? ' ' + x.unit : '') : '';
-        return '<li><div class="row"><div class="grow"><b>' + esc(x.name) + '</b>' + esc(qtyTxt) + ' ' + expiryBadge(dl) +
+        return '<li data-pcat-item="' + esc(x.cat || '') + '"><div class="row"><div class="grow"><b>' + esc(x.name) + '</b>' + esc(qtyTxt) + ' ' + expiryBadge(dl) +
           '<div class="meta">' + esc(K.CAT_LABEL[x.cat] || x.cat) + ' · ' + esc(x.status) + '</div></div></div>' +
           '<div class="chips" style="margin-top:6px">' + K.STATUS.map(function (st) {
             return '<button class="chip" type="button" data-pst="' + esc(x.id) + '|' + st + '" aria-pressed="' + (x.status === st) + '">' + (st === 'plenty' ? 'Plenty' : st === 'low' ? 'Low' : 'Out') + '</button>';
           }).join('') + '<button class="link" type="button" data-pdel="' + esc(x.id) + '" aria-label="Remove ' + esc(x.name) + '">Remove</button></div></li>';
       }).join('') + '</ul>';
+    } else if (items.length) {
+      h += '<p class="meta" id="ck-pantry-empty">No items in ' + esc(K.CAT_LABEL[activeCat] || activeCat) + '.</p>';
     } else {
       h += '<p class="meta">Nothing added yet. Add perishables here (or tick items bought above) and the app will nudge you to use them before they spoil.</p>';
     }

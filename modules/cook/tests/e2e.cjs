@@ -251,6 +251,66 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.deepStrictEqual(await page.evaluate(() => window.__said), [['luya', 'fil-PH']]);
   });
 
+  await t.step('Fridge category filter chips appear at 10+ items, filter accurately, and stay clean at 320 px / 1.3x', async () => {
+    // Under 10 items: no filter chips
+    await page.goto(base + '#cook/pantry');
+    await page.waitForSelector('#ck-pantry-list');
+    assert.strictEqual(await page.$('#ck-pantry-cats'), null, 'hidden under 10 items');
+
+    // Seed 10 pantry items across categories (none frozen)
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.cook.v1'));
+      const d = new Date(2026, 10, 26, 17, 0);
+      s.pantry = [];
+      const seed = [
+        ['Spinach', 'produce'], ['Broccoli', 'produce'], ['Carrots', 'produce'],
+        ['Chicken thighs', 'meat'], ['Ground beef', 'meat'],
+        ['Milk', 'dairy'], ['Eggs', 'dairy'], ['Greek yogurt', 'dairy'],
+        ['Rolled oats', 'pantry'], ['Jasmine rice', 'pantry']
+      ];
+      seed.forEach(([name, cat]) => CookCore.addPantryItem(s, { name, cat, status: 'plenty' }, d));
+      localStorage.setItem('wl.cook.v1', JSON.stringify(s));
+      WL.modules.cook.reload();
+    });
+    await page.goto(base + '#cook'); await page.goto(base + '#cook/pantry');
+    await page.waitForSelector('#ck-pantry-cats');
+    assert.strictEqual((await page.$$('#ck-pantry-list li')).length, 10);
+
+    // Filter to Meat & protein -> 2 items, update status preserves active filter
+    await page.click('#ck-pantry-cats [data-pcat="meat"]');
+    assert.strictEqual(await page.getAttribute('#ck-pantry-cats [data-pcat="meat"]', 'aria-pressed'), 'true');
+    assert.strictEqual((await page.$$('#ck-pantry-list li')).length, 2);
+    assert.ok((await page.textContent('#ck-pantry-list h3')).includes('2 of 10'));
+    await page.click('#ck-pantry-list [data-pst$="|low"]');
+    assert.strictEqual((await page.$$('#ck-pantry-list li')).length, 2, 'filter preserved after status update');
+    assert.ok((await page.textContent('#ck-pantry-list')).includes('low'));
+
+    // Empty category (Frozen) shows clear empty message
+    await page.click('#ck-pantry-cats [data-pcat="frozen"]');
+    assert.strictEqual((await page.$$('#ck-pantry-list li')).length, 0);
+    assert.ok((await page.textContent('#ck-pantry-empty')).includes('No items in Frozen'));
+
+    // 320 px / 1.3x overflow and 44 px tap targets on filter chips
+    await page.click('#ck-pantry-cats [data-pcat="all"]');
+    await page.setViewportSize({ width: 320, height: 640 });
+    await page.evaluate(() => { localStorage.setItem('wl.shell.v1', JSON.stringify({ theme: 'night', textSize: 1.3 })); WL.applyLook(); });
+    const a11y = await page.evaluate(() => {
+      const over = document.documentElement.scrollWidth - window.innerWidth;
+      const small = Array.from(document.querySelectorAll('#ck-pantry-cats button')).map((e) => ({
+        t: e.textContent.trim(), h: Math.round(e.getBoundingClientRect().height), right: Math.round(e.getBoundingClientRect().right)
+      })).filter((x) => x.h < 44 || x.right > window.innerWidth + 1);
+      return { over, small };
+    });
+    assert.strictEqual(a11y.over, 0, 'overflow: ' + a11y.over);
+    assert.deepStrictEqual(a11y.small, [], 'chip targets: ' + JSON.stringify(a11y.small));
+
+    // Removing one item drops below 10 -> filter hides cleanly and all 9 items show
+    await page.click('#ck-pantry-cats [data-pcat="meat"]');
+    await page.click('#ck-pantry-list [data-pdel]');
+    assert.strictEqual(await page.$('#ck-pantry-cats'), null, 'hidden again under 10 items');
+    assert.strictEqual((await page.$$('#ck-pantry-list li')).length, 9);
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('cook e2e');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

@@ -863,8 +863,21 @@ const W = require('./lib/web.cjs');
   }
   for (const theme of ['light', 'dark', 'night']) {
     const min = theme === 'night' ? 3 : 4.5;
-    await t.step(theme + ': Cooking tabs (incl. the "What did Mama cook?" field) text contrast, 44 px at 1.3', async () => {
-      await look(1.3, theme); await page.goto(base + '#cook'); await page.reload(); await page.waitForSelector('[data-ck-meal]');
+    await t.step(theme + ': Cooking tabs (incl. "What did Mama cook?" & fridge category filter) text contrast, 44 px at 1.3', async () => {
+      await look(1.3, theme);
+      await page.evaluate(() => {
+        const s = JSON.parse(localStorage.getItem('wl.cook.v1') || '{}');
+        if (!Array.isArray(s.pantry) || s.pantry.length < 10) {
+          const d = new Date(2026, 10, 26, 12, 0);
+          const base = CookCore.validate(s) || CookCore.defaults();
+          [['Spinach', 'produce'], ['Broccoli', 'produce'], ['Carrots', 'produce'], ['Tomatoes', 'produce'],
+            ['Chicken thighs', 'meat'], ['Ground beef', 'meat'], ['Milk', 'dairy'], ['Eggs', 'dairy'],
+            ['Rolled oats', 'pantry'], ['Frozen peas', 'frozen']].forEach(([name, cat]) => CookCore.addPantryItem(base, { name, cat, status: 'plenty' }, d));
+          localStorage.setItem('wl.cook.v1', JSON.stringify(base));
+          if (window.WL && WL.modules.cook) WL.modules.cook.reload();
+        }
+      });
+      await page.goto(base + '#cook'); await page.reload(); await page.waitForSelector('[data-ck-meal]');
       const m = await page.$('[data-ck-mama]');
       if (m) { await m.click(); await page.waitForSelector('.ck-mama-form'); }
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #cook');
@@ -873,6 +886,8 @@ const W = require('./lib/web.cjs');
         await page.goto(base + h); await page.waitForTimeout(80);
         assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' ' + h);
       }
+      await page.waitForSelector('#ck-pantry-cats');
+      assert.deepStrictEqual(await small('#ck-pantry-cats button'), [], theme + ' #ck-pantry-cats targets');
       await t.noOverflow(['#cook', '#cook/week', '#cook/log', '#cook/pantry']);
     });
   }
