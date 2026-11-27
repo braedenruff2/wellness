@@ -643,9 +643,22 @@ RESET_DATE_RE = re.compile(
 )
 
 
+# A size/length limit ("file size limit reached", "max tokens limit", "recursion limit") is not running out of usage:
+# treating it as one would hand every request to Gemini until the weekly reset.
+NOT_QUOTA_RE = re.compile(
+    r"\b(?:file|size|context|tokens?|length|characters?|upload|attachments?|recursion|depth|memory|output|images?|pdf|pages?|lines?)"
+    r"\s+(?:size\s+)?limit\b",
+    re.I,
+)
+QUOTA_HINTS = ("429", "rate limit", "rate_limit", "usage", "session limit", "weekly", "daily limit", "hourly", "5-hour",
+               "quota", "resource_exhausted", "resource exhausted", "too many requests", "credits", "capacity", "resets")
+
+
 def is_usage_limit(msg):
-    """True when a Claude or Gemini error means usage/quota is exhausted (not an auth or syntax error)."""
+    """True when a Claude or Gemini error means usage/quota is exhausted (not an auth, syntax or size error)."""
     m = str(msg or "").lower()
+    if NOT_QUOTA_RE.search(m) and not any(h in m for h in QUOTA_HINTS):
+        return False
     if any(k in m for k in (
         "429", "rate limit", "rate_limit", "usage limit", "session limit", "weekly limit",
         "daily limit", "hourly limit", "5-hour limit", "limit reached", "hit your limit",

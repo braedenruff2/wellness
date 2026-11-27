@@ -546,6 +546,11 @@ check("is_usage_limit: catches quota/429/session limits, ignores auth/syntax/con
       and W.is_usage_limit("You've hit your 5-hour limit · resets 3pm")
       and not W.is_usage_limit("401 OAuth revoked") and not W.is_usage_limit("Invalid API key")
       and not W.is_usage_limit("Context length limit exceeded"))
+check("is_usage_limit: a file size / tokens / recursion limit is not running out of usage (no Gemini hand-off until Wednesday)",
+      not W.is_usage_limit("You have hit the file size limit") and not W.is_usage_limit("File size limit reached")
+      and not W.is_usage_limit("Maximum recursion depth limit reached") and not W.is_usage_limit("reached the max output tokens limit")
+      and W.is_usage_limit("Claude AI usage limit reached|1764000000") and W.is_usage_limit("You've hit your limit · resets 3pm")
+      and W.is_usage_limit("429 Too Many Requests: token limit per minute"))
 _sess_now = datetime.datetime(2026, 11, 26, 22, 50)
 _sess_u = W.claude_reset_until("You've hit your session limit · resets 12:40am (America/Halifax)", _sess_now)
 check("session limit with 'resets 12:40am' sets claude_until to 00:41 next day (not Wednesday)",
