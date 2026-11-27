@@ -29,7 +29,7 @@ const W = require('./lib/web.cjs');
     await page.waitForSelector('#new-entry');
     assert.strictEqual(await page.getAttribute('nav#tabs a[data-tab="journal"]', 'aria-current'), 'page');
     await page.click('nav#tabs a[data-tab="cook"]');
-    await page.waitForSelector('#ck-add, #view h1');
+    await page.waitForSelector('nav#tabs a[data-tab="cook"][aria-current="page"]');
     assert.strictEqual(await page.getAttribute('nav#tabs a[data-tab="cook"]', 'aria-current'), 'page');
     await page.click('nav#tabs a[data-tab="home"]');
     await page.waitForSelector('.home-card');

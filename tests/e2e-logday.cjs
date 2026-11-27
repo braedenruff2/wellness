@@ -59,7 +59,7 @@ const W = require('./lib/web.cjs');
     for (const ex of exs) {
       if (ex.type === 'mc' || ex.type === 'listen') await page.click(`#tl-ex [data-o="${ex.answer.replace(/"/g, '\\"')}"]`);
       else if (ex.type === 'type') { await page.fill('#tl-in', ex.answer); await page.click('#tl-check'); }
-      else if (ex.type === 'build') { for (const w of ex.answer.split(' ')) await page.click(`#tl-ex .word:not([disabled]):text-is("${w}")`); await page.click('#tl-check'); }
+      else if (ex.type === 'build') { const bw = (w) => String(w || '').toLowerCase().replace(/[.,!?;:"“”‘’…()¿¡]/g, '').trim(); for (const w of ex.answer.split(' ')) await page.click(`#tl-ex .word:not([disabled]):text-is("${bw(w)}")`); await page.click('#tl-check'); }
       await page.click('#tl-next');
     }
     let s = await st('wl.tagalog.v1');

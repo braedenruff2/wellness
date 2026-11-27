@@ -115,7 +115,7 @@ const W = require('./lib/web.cjs');
       result: { score: 8, verdict: 'Steady', good: ['Calm'], improve: [], better: '', why: '', practice: i === 20 ? 'Pause and name the feeling' : '', sources: [] }
     }));
     localStorage.setItem('wl.coach.v1', JSON.stringify({
-      child: { name: 'Baby', birth: '2025-08-01', can: [] }, current: null, history: hist, pending: null, realDraft: ''
+      child: { name: 'Baby', birth: '2025-08-01', can: [] }, current: null, history: hist, pending: null, realDraft: '', autoTried: '2026-11-23'
     }));
     localStorage.setItem('wl.me.v1', JSON.stringify({
       checkins: {

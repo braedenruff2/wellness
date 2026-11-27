@@ -208,7 +208,7 @@ const FAKE_PC = `
       await page.waitForSelector('#tl-ex .meta');
       if (ex.type === 'type') break;
       if (ex.type === 'mc' || ex.type === 'listen') await page.click(`#tl-ex [data-o="${ex.answer.replace(/"/g, '\\"')}"]`);
-      if (ex.type === 'build') { for (const w of ex.answer.split(' ')) await page.click(`#tl-ex .word:not([disabled]):text-is("${w}")`); await page.click('#tl-check'); }
+      if (ex.type === 'build') { const bw = (w) => String(w || '').toLowerCase().replace(/[.,!?;:"“”‘’…()¿¡]/g, '').trim(); for (const w of ex.answer.split(' ')) await page.click(`#tl-ex .word:not([disabled]):text-is("${bw(w)}")`); await page.click('#tl-check'); }
       await page.click('#tl-next');
     }
     await page.fill('#tl-in', 'salamt'); await page.click('#tl-check');
