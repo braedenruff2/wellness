@@ -153,6 +153,28 @@ const W = require('../../../tests/lib/web.cjs');
     assert.ok(!cardText.includes('Quiet morning walk with her') && !cardText.includes('hopeless'), 'Home Latest preview stays on today rather than an earlier-day entry: ' + cardText);
     await page.selectOption('#wl-logday', '');
   });
+  await t.step('7-day-old look-back does not clutter #faith/today; lives collapsed and dismissable in #journal', async () => {
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('fc.v1'));
+      s.journal.push({ id: 'lb-week-1', at: new Date(2026, 10, 18, 10, 0).toISOString(), kind: 'journal', text: 'A peaceful walk along the river a week ago.' });
+      localStorage.setItem('fc.v1', JSON.stringify(s));
+      if (WL.modules.faith && WL.modules.faith.reload) WL.modules.faith.reload();
+    });
+    await page.goto(base + '#faith/today');
+    await page.waitForSelector('#reading');
+    assert.ok(!(await page.textContent('#view')).includes('ago you wrote'), '#faith/today no longer shows look-back card');
+    await page.goto(base + '#journal');
+    await page.waitForSelector('#j-lookback');
+    assert.strictEqual(await page.getAttribute('#j-lookback', 'open'), null, 'collapsed by default on #journal');
+    await page.click('#j-lookback summary');
+    assert.ok((await page.textContent('#j-lookback')).includes('peaceful walk along the river'));
+    await page.click('#j-lb-dismiss');
+    assert.strictEqual(await page.$('#j-lookback'), null, 'Dismiss removes look-back card');
+    await page.reload();
+    await page.goto(base + '#journal');
+    await page.waitForSelector('#j-list');
+    assert.strictEqual(await page.$('#j-lookback'), null, 'dismissed look-back stays gone after reload');
+  });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#journal', '#journal/journal', '#journal/awe', '#journal/gratitude']);
     assert.deepStrictEqual(t.errors, []);

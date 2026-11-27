@@ -69,6 +69,7 @@
   }
   function refreshWorked() { var wrap = $('#co-worked-wrap'); if (wrap) wrap.innerHTML = workedHtml(); }
 
+  var teachKeyFn = null, teachTrigger = null;
   function teachItemHtml(x, badge) {
     return '<li data-teach-item="' + esc(x.id) + '"><div class="row"><b class="grow">' + esc(x.title) + '</b>' +
       (badge ? '<span class="meta">' + esc(badge) + '</span>' : '') + '</div>' +
@@ -81,11 +82,24 @@
       '<button class="chip" data-teach-id="' + esc(x.id) + '" data-teach-val="done" aria-pressed="' + (x.status === 'done') + '">Got it \u2713</button>' +
       '</div></li>';
   }
-  function teachHtml(openNext, openEarlier) {
+  function teachLauncherHtml() {
+    var t = K.teachForAge(S);
+    if (!t || (!t.now.length && !t.next.length && !t.earlier.length)) return '';
+    var nudges = t.now.concat(t.next, t.earlier).filter(function (x) { return x.nudge; }).length;
+    var bits = ['Around ' + K.ageText(S.child.birth)];
+    if (t.doingCount || t.doneCount) bits.push(t.doingCount + ' practising \u00b7 ' + t.doneCount + ' got it');
+    else bits.push(t.now.length + ' for this age');
+    if (nudges) bits.push(nudges + ' check-in');
+    return '<div class="card ui" id="co-teach-card"><div class="row"><div class="grow"><b>Milestones &amp; what to teach ' + esc(S.child.name || 'her') + '</b>' +
+      '<div class="meta">' + esc(bits.join(' \u00b7 ')) + '</div></div>' +
+      '<button id="co-teach-open" type="button">Open</button></div></div>';
+  }
+  function teachModalBodyHtml(openNext, openEarlier) {
     var t = K.teachForAge(S);
     if (!t || (!t.now.length && !t.next.length && !t.earlier.length)) return '';
     var summary = t.doneCount || t.doingCount ? ' (' + t.doingCount + ' practising \u00b7 ' + t.doneCount + ' got it)' : '';
-    var h = '<div class="card ui" id="co-teach"><h3>What to teach ' + esc(S.child.name || 'her') + ' now</h3>' +
+    var h = '<div class="row" style="margin-bottom:4px"><h3 class="grow" id="co-teach-h" style="margin:0">What to teach ' + esc(S.child.name || 'her') + ' now</h3>' +
+      '<button class="link" id="co-teach-x" type="button" aria-label="Close">\u2715</button></div>' +
       '<p class="meta">Around ' + esc(K.ageText(S.child.birth)) + '. Mark what you’re working on or what she’s got down' + summary + '.</p>';
     if (t.now.length) {
       h += '<ul class="list">' + t.now.map(function (x) { return teachItemHtml(x, x.from + '–' + x.to + 'm'); }).join('') + '</ul>';
@@ -101,40 +115,76 @@
         '<p class="meta">No stress if an earlier window passed — kids catch up fast once you start.</p>' +
         '<ul class="list">' + t.earlier.map(function (x) { return teachItemHtml(x, 'From ' + x.from + 'm'); }).join('') + '</ul></details>';
     }
-    h += '<p class="meta" style="margin:.6em 0 0">General guidance (CDC / AAP / Canadian Paediatric Society), not medical advice. Every child develops at their own pace.</p></div>';
+    h += '<p class="meta" style="margin:.6em 0 0">General guidance (CDC / AAP / Canadian Paediatric Society), not medical advice. Every child develops at their own pace.</p>' +
+      '<div class="row" style="margin-top:10px"><button id="co-teach-close" type="button">Close</button></div>';
     return h;
   }
-  function wireTeach() {
-    var wrap = $('#co-teach-wrap'); if (!wrap) return;
-    function redrawTeach() {
-      var openNext = !!($('#co-teach-next') && $('#co-teach-next').open);
-      var openEarlier = !!($('#co-teach-earlier') && $('#co-teach-earlier').open);
-      wrap.innerHTML = teachHtml(openNext, openEarlier);
-      wireTeach();
+  function closeTeachModal(noFocus) {
+    var m = document.getElementById('co-teach-modal');
+    if (m) m.remove();
+    if (teachKeyFn) { document.removeEventListener('keydown', teachKeyFn); teachKeyFn = null; }
+    var tr = teachTrigger; teachTrigger = null;
+    if (!noFocus) {
+      var target = (tr && tr.isConnected) ? tr : $('#co-teach-open');
+      if (target && target.focus) try { target.focus(); } catch (e) {}
     }
-    $$('[data-teach-id]', wrap).forEach(function (b) {
+  }
+  function wireTeachModal(modal) {
+    var box = $('#co-teach', modal); if (!box) return;
+    function redraw() {
+      var openNext = !!($('#co-teach-next', box) && $('#co-teach-next', box).open);
+      var openEarlier = !!($('#co-teach-earlier', box) && $('#co-teach-earlier', box).open);
+      var sy = box.scrollTop;
+      box.innerHTML = teachModalBodyHtml(openNext, openEarlier);
+      box.scrollTop = sy;
+      wireTeachModal(modal);
+      var wrap = $('#co-teach-wrap');
+      if (wrap) { wrap.innerHTML = teachLauncherHtml(); wireTeach(); }
+    }
+    var x = $('#co-teach-x', box); if (x) x.onclick = function () { closeTeachModal(); };
+    var cl = $('#co-teach-close', box); if (cl) cl.onclick = function () { closeTeachModal(); };
+    $$('[data-teach-id]', box).forEach(function (b) {
       b.onclick = function () {
         var id = b.dataset.teachId, val = b.dataset.teachVal;
         var cur = (S.teach && S.teach[id]) || '';
         K.setTeach(S, id, cur === val ? '' : val);
         save();
-        redrawTeach();
+        redraw();
       };
     });
-    $$('[data-teach-keep]', wrap).forEach(function (b) {
-      b.onclick = function () {
-        K.ackTeachNudge(S, b.dataset.teachKeep);
-        save();
-        redrawTeach();
-      };
+    $$('[data-teach-keep]', box).forEach(function (b) {
+      b.onclick = function () { K.ackTeachNudge(S, b.dataset.teachKeep); save(); redraw(); };
     });
-    $$('[data-teach-done]', wrap).forEach(function (b) {
-      b.onclick = function () {
-        K.setTeach(S, b.dataset.teachDone, 'done');
-        save();
-        redrawTeach();
-      };
+    $$('[data-teach-done]', box).forEach(function (b) {
+      b.onclick = function () { K.setTeach(S, b.dataset.teachDone, 'done'); save(); redraw(); };
     });
+  }
+  function openTeachModal(trigger) {
+    closeTeachModal(true);
+    var body = teachModalBodyHtml(false, false);
+    if (!body) return;
+    teachTrigger = trigger || $('#co-teach-open') || null;
+    var modal = document.createElement('div');
+    modal.id = 'co-teach-modal';
+    modal.className = 'wl-modal ui';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'co-teach-h');
+    modal.innerHTML = '<div class="card wl-modal-box" id="co-teach">' + body + '</div>';
+    document.body.appendChild(modal);
+    modal.onclick = function (e) { if (e.target === modal) closeTeachModal(); };
+    wireTeachModal(modal);
+    teachKeyFn = function (ev) {
+      if (!modal.isConnected) { closeTeachModal(true); return; }
+      if (ev.key === 'Escape') { ev.preventDefault(); closeTeachModal(); }
+    };
+    document.addEventListener('keydown', teachKeyFn);
+    var closeBtn = $('#co-teach-x', modal);
+    if (closeBtn) try { closeBtn.focus(); } catch (e) {}
+  }
+  function wireTeach() {
+    var btn = $('#co-teach-open');
+    if (btn) btn.onclick = function () { openTeachModal(btn); };
   }
   /* A real situation he started writing but never sent (saved as he types): said plainly, so it isn't forgotten. */
   function draftWaiting() {
@@ -185,7 +235,7 @@
       return '<li style="flex-wrap:wrap"><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.text) + '</a><span class="meta">' + esc(x.skill) + '</span>' +
         (window.WLMe ? '<div style="flex-basis:100%">' + WLMe.askHtml('coach', 'tip:' + x.id, ' ', true) + WLMe.fitLink('coach', 'tip:' + x.id, x.text) + '</div>' : '') + '</li>';
     }).join('') + '</ul></div>';
-    h += '<div id="co-teach-wrap">' + teachHtml() + '</div>';
+    h += '<div id="co-teach-wrap">' + teachLauncherHtml() + '</div>';
     if (!waiting) h += '<div class="card ui"><h3>Something happening with ' + esc(S.child.name || 'her') + '?</h3><p class="meta">Describe a real situation you’re dealing with: what she does, when, what you’ve tried. Claude checks current guidance for her age and gives you steps, words to say, and why.</p>' +
       '<label class="sr" for="co-real">Your situation</label><textarea id="co-real" rows="5" placeholder="e.g. She screams when I put her in the car seat, every time, since last week. I’ve tried…">' + esc(S.realDraft || '') + '</textarea>' +
       '<div class="row" style="margin-top:8px"><button class="primary" id="co-real-go"' + (askable() ? '' : ' disabled') + '>Get advice</button>' +
@@ -471,9 +521,18 @@
     if (e && e.detail && e.detail.part === 'coach') refreshWorked();
   });
 
+  var prevBackCoach = window.FCBack;
+  window.FCBack = function () {
+    if (WL.darkScreen && WL.darkScreen.lit && WL.darkScreen.lit()) return prevBackCoach ? prevBackCoach() : true;
+    if (document.getElementById('co-teach-modal')) { closeTeachModal(); return true; }
+    return prevBackCoach ? prevBackCoach() : false;
+  };
+  window.addEventListener('hashchange', function () { closeTeachModal(true); });
+
   WL.register({
     id: 'coach', title: 'Parenting', short: 'Parent', icon: '🧸', nav: true, storageKeys: [store.key], settingsLink: '#coach/setup',
-    route: function (parts, v) { view = v; resume(); render(parts); },
+    route: function (parts, v) { view = v; closeTeachModal(true); resume(); render(parts); },
+    leave: function () { closeTeachModal(true); },
     card: card, wireCard: wireCard,
     today: todayItem,
     week: function () { var n = K.doneInLast(S, 7); return n ? n + ' parenting scenario' + (n === 1 ? '' : 's') : ''; },

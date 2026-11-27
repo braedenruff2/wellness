@@ -100,11 +100,6 @@
         'Your ticks are kept too.</p><button class="primary big" id="walk-again">Walk the path again</button></div>';
       return html;
     }
-    var lb = C.lookBack(S);
-    if (lb) {
-      html += '<div class="card"><div class="meta ui">' + (lb.days === 7 ? 'A week' : lb.days === 30 ? 'About a month' : 'About three months') +
-        ' ago you wrote</div><p>' + esc(lb.entry.text.slice(0, 280)) + (lb.entry.text.length > 280 ? '\u2026' : '') + '</p></div>';
-    }
     return html + dayHtml(day(n), true);
   }
 

@@ -17,10 +17,14 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(!(await page.$('#c-aim')));
     assert.strictEqual((await calm()).settings.aim, 'calm');
     assert.ok(!/Counting breaths/.test(await page.textContent('#c-today h3')));
-    const all = await page.$$eval('.list > li h3', (h) => h.map((x) => x.textContent));
+    await page.click('#c-all-open');
+    await page.waitForSelector('#c-all-list');
+    const all = await page.$$eval('#c-all-list > li h3', (h) => h.map((x) => x.textContent));
     assert.ok(all.includes('One-minute reset') && !all.includes('Counting breaths'), 'path sits are not in the stress list');
+    await page.click('#c-all-x');
   });
   await t.step('switching to "Training my mind" in the settings opens the path at stage 1 and today leads with it', async () => {
+    await page.click('#c-settings summary');
     await page.click('#c-aim-set [data-aim="train"]'); await page.waitForSelector('#c-path[open]');
     assert.ok((await page.textContent('#c-path summary')).includes('stage 1 of 5: Counting breaths'));
     assert.ok((await page.textContent('#c-today h3')).includes('Counting breaths · 20 min'));

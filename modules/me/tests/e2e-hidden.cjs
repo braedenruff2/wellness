@@ -7,7 +7,13 @@ const W = require('../../../tests/lib/web.cjs');
 (async () => {
   const t = await W.open({ time: new Date(2026, 10, 21, 15, 0) });
   const { page, base } = t;
-  const calmIds = () => page.$$eval('#view a[href^="#calm/s/"]', (as) => as.map((a) => a.getAttribute('href').slice(8)));
+  const calmIds = async () => {
+    await page.click('#c-all-open');
+    await page.waitForSelector('#c-all-list');
+    const ids = await page.$$eval('#c-all-list a[href^="#calm/s/"]', (as) => as.map((a) => a.getAttribute('href').slice(8)));
+    await page.click('#c-all-x');
+    return ids;
+  };
   let id;
   await t.step('nothing marked: no section in Settings', async () => {
     await page.goto(base + '#settings');

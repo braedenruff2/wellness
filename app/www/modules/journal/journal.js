@@ -20,6 +20,28 @@
       '<button class="link del" data-id="' + esc(e.id) + '" aria-label="Delete">Delete</button></li>';
   }
 
+  var LB_KEY = 'wl.journal.lb.dismiss';
+  function lbDismissed() {
+    try { var a = JSON.parse(localStorage.getItem(LB_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+  }
+  function dismissLookBack(id) {
+    if (!id) return;
+    try {
+      var a = lbDismissed();
+      if (a.indexOf(id) < 0) a.push(id);
+      localStorage.setItem(LB_KEY, JSON.stringify(a.slice(-50)));
+    } catch (e) {}
+  }
+  function lookBackHtml(S, tab) {
+    if (tab !== 'all' || !C.lookBack) return '';
+    var lb = C.lookBack(S);
+    if (!lb || !lb.entry || !lb.entry.id || lbDismissed().indexOf(lb.entry.id) >= 0) return '';
+    var ago = lb.days === 7 ? 'a week ago' : lb.days === 30 ? 'about a month ago' : 'about three months ago';
+    return '<details class="card ui" id="j-lookback"><summary class="meta">Looking back (' + ago + ')</summary>' +
+      '<p style="margin:.4em 0">' + esc(lb.entry.text.slice(0, 280)) + (lb.entry.text.length > 280 ? '\u2026' : '') + '</p>' +
+      '<div class="row"><button class="link" type="button" id="j-lb-dismiss" data-id="' + esc(lb.entry.id) + '">Dismiss</button></div></details>';
+  }
+
   function screen(tab) {
     var S = state();
     tab = tab || 'all';
@@ -38,6 +60,7 @@
     }[tab];
     h += '<div class="card ui"><label for="new-entry">' + esc(hint) + '</label><textarea id="new-entry" placeholder="A line or two is plenty."></textarea>' +
       '<div class="row" style="margin-top:8px"><button class="primary" id="add-entry" data-kind="' + (tab === 'all' ? 'journal' : tab) + '">Save</button><span class="grow"></span></div><div id="entry-gentle"></div></div>';
+    h += lookBackHtml(S, tab);
     var items = (S.journal || []).filter(function (e) { return tab === 'all' || e.kind === tab; });
     if (items.length > 5) h += '<div class="ui" style="margin:8px 0"><label class="sr" for="j-search">Search your journal</label><input type="search" id="j-search" placeholder="Search your journal" autocomplete="off"><span class="meta" id="j-found"></span></div>';
     h += items.length ? '<ul class="list card" id="j-list">' + items.map(entryHtml).join('') + '</ul>' : '<p class="meta ui">Nothing here yet.</p>';
@@ -90,6 +113,11 @@
         setTimeout(function () { if (b.isConnected) { delete b.dataset.armed; b.textContent = 'Delete'; } }, 4000);
       };
     });
+    var lbd = $('#j-lb-dismiss', view);
+    if (lbd) lbd.onclick = function () {
+      dismissLookBack(lbd.dataset.id);
+      var box = $('#j-lookback', view); if (box) box.remove();
+    };
     var ex = $('#j-export-text', view);
     if (ex) ex.onclick = function () {
       var dt = window.FC && window.FC.dayTitle ? window.FC.dayTitle : null;

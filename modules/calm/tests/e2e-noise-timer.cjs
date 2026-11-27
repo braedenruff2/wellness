@@ -28,10 +28,12 @@ const Wb = require('../../../tests/lib/web.cjs');
 
   await t.step('Calm settings saves background sound choice and reloads it', async () => {
     await page.goto(base + '#calm');
+    await page.click('#c-settings summary');
     await page.waitForSelector('#c-noise');
     await page.click('#c-noise [data-noise="white"]');
     await page.waitForSelector('#c-noise [data-noise="white"][aria-pressed="true"]');
     await page.reload();
+    await page.click('#c-settings summary');
     await page.waitForSelector('#c-noise [data-noise="white"][aria-pressed="true"]');
     const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).settings.noise);
     assert.strictEqual(saved, 'white');

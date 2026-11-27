@@ -185,20 +185,37 @@ const W = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.locator('#co-hist-list > li:not([hidden])').count(), total, 'Show all reveals all items');
   });
 
-  await t.step('What to teach now & coming up next checklist persists, and Parenting shows in Home daily list', async () => {
-    await page.waitForSelector('#co-teach');
+  await t.step('Milestones open in a closable window, persist toggles & 3-week nudge, and Parenting shows in Home daily list', async () => {
+    await page.waitForSelector('#co-teach-open');
+    assert.strictEqual(await page.$('#co-teach-modal'), null, 'milestones window stays closed until tapped (no inline wall)');
+    await page.click('#co-teach-open');
+    await page.waitForSelector('#co-teach-modal #co-teach');
     const teachTxt = await page.textContent('#co-teach');
     assert.ok(teachTxt.includes('What to teach Mila now') && teachTxt.includes('Drink from an open cup'), teachTxt);
-    // Toggle Practising -> Got it -> persisted across reload
+    // Toggle Practising -> launcher summary behind updates, persists across reload
     await page.click('#co-teach [data-teach-id="opencup"][data-teach-val="doing"]');
     assert.strictEqual(await page.getAttribute('#co-teach [data-teach-id="opencup"][data-teach-val="doing"]', 'aria-pressed'), 'true');
+    assert.ok((await page.textContent('#co-teach-card')).includes('1 practising'), 'launcher card updates live');
     await page.click('#co-teach-next summary');
     assert.ok((await page.textContent('#co-teach-next')).includes('Transition off bottles to cups'), 'upcoming skills shown in Coming up next');
+    // Escape closes the milestones window and restores focus to #co-teach-open
+    await page.keyboard.press('Escape');
+    assert.strictEqual(await page.$('#co-teach-modal'), null, 'Escape closes milestones modal');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'co-teach-open', 'focus restored to Open button');
+    // Android Back (FCBack) also closes it
+    await page.click('#co-teach-open');
+    await page.waitForSelector('#co-teach-modal');
+    assert.strictEqual(await page.evaluate(() => window.FCBack && window.FCBack()), true, 'FCBack handles open milestones modal');
+    assert.strictEqual(await page.$('#co-teach-modal'), null, 'FCBack closed milestones modal');
     await page.reload();
     await page.goto(base + '#coach');
+    await page.waitForSelector('#co-teach-open');
+    await page.click('#co-teach-open');
     await page.waitForSelector('#co-teach');
     assert.strictEqual(await page.getAttribute('#co-teach [data-teach-id="opencup"][data-teach-val="doing"]', 'aria-pressed'), 'true', 'teach status persisted');
-    // 3+ weeks marked "doing" -> gentle "Still working on it / Done" nudge once
+    await page.click('#co-teach-close');
+    assert.strictEqual(await page.$('#co-teach-modal'), null, 'Close button closes modal');
+    // 3+ weeks marked "doing" -> gentle "Still working on it / Done" nudge once inside modal
     await page.evaluate(() => {
       const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
       s.teach = Object.assign({}, s.teach, { opencup: 'doing', strawcup: 'doing' });
@@ -208,6 +225,9 @@ const W = require('../../../tests/lib/web.cjs');
       WL.modules.coach.reload();
     });
     await page.goto(base + '#home'); await page.goto(base + '#coach');
+    await page.waitForSelector('#co-teach-open');
+    assert.ok((await page.textContent('#co-teach-card')).includes('2 check-in'), 'launcher notes pending check-ins');
+    await page.click('#co-teach-open');
     await page.waitForSelector('[data-teach-nudge="opencup"]');
     await page.waitForSelector('[data-teach-nudge="strawcup"]');
     // "Still working on it" dismisses nudge once while keeping item as doing across reload
@@ -218,11 +238,15 @@ const W = require('../../../tests/lib/web.cjs');
     await page.click('[data-teach-done="strawcup"]');
     assert.strictEqual(await page.$('[data-teach-nudge="strawcup"]'), null, 'nudge gone after Done');
     assert.strictEqual(await page.getAttribute('#co-teach [data-teach-id="strawcup"][data-teach-val="done"]', 'aria-pressed'), 'true');
+    await page.click('#co-teach-x');
+    assert.strictEqual(await page.$('#co-teach-modal'), null, 'X button closes modal');
     await page.reload();
     await page.goto(base + '#coach');
+    await page.click('#co-teach-open');
     await page.waitForSelector('#co-teach');
     assert.strictEqual(await page.$('[data-teach-nudge="opencup"]'), null, 'dismissed nudge stays gone after reload');
     assert.strictEqual(await page.getAttribute('#co-teach [data-teach-id="strawcup"][data-teach-val="done"]', 'aria-pressed'), 'true');
+    await page.click('#co-teach-x');
     // Home Today list includes Parenting once birthday is set, and marks done after a graded scenario today
     await page.goto(base + '#home');
     await page.waitForSelector('#wl-today');

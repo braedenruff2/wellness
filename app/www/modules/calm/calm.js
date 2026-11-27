@@ -148,15 +148,76 @@
     return h + '</details>';
   }
 
+  var allKeyFn = null, allTrigger = null, settingsOpen = false;
+  function visiblePractices() {
+    var helped = window.WLMe && WLMe.calmHelped ? WLMe.calmHelped() : {};
+    // a practice that hasn't helped him in 3+ tries goes to the end of the list
+    var never = function (p) { var x = helped[p.id]; return x && x.n >= 3 && x.yes === 0 ? 1 : 0; };
+    var order = K.PRACTICES.filter(function (p) { return !p.path && !(window.WLMe && WLMe.flagged && WLMe.flagged('calm', p.id)); }).map(function (p, i) { return [p, i]; }).sort(function (a, b) { return never(a[0]) - never(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
+    return { order: order, helped: helped, never: never };
+  }
+  function allPracticesHtml() {
+    var vp = visiblePractices();
+    return '<div class="row" style="margin-bottom:4px"><h3 class="grow" id="c-all-h" style="margin:0">All practices</h3>' +
+      '<button class="link" id="c-all-x" type="button" aria-label="Close">\u2715</button></div>' +
+      '<p class="meta" style="margin:0 0 8px">Pick any practice for stress, sleep, or a quick reset.</p>' +
+      '<ul class="list" id="c-all-list">' + vp.order.map(function (p) {
+        var hp = vp.helped[p.id];
+        return '<li><a href="#calm/s/' + p.id + '"><h3>' + esc(p.title) + '</h3><div class="meta ui">' + esc(p.when) + ' · ' + mins(p) + ' min' +
+          (hp && hp.n >= 2 ? '<span class="c-helped"> · ' + (vp.never(p) ? 'Hasn’t helped you so far' : 'Helped ' + hp.yes + ' of ' + hp.n + ' times') + '</span>' : '') + '</div>' +
+          (p.blurb || (p.pacer && K.PACERS[p.pacer].blurb) ? '<p style="margin:.3em 0 0">' + esc(p.blurb || K.PACERS[p.pacer].blurb) + '</p>' : '') + '</a></li>';
+      }).join('') + '</ul>' +
+      '<div class="row" style="margin-top:10px"><button id="c-all-close" type="button">Close</button></div>';
+  }
+  function closeAllModal(noFocus) {
+    var m = document.getElementById('c-all-modal');
+    if (m) m.remove();
+    if (allKeyFn) { document.removeEventListener('keydown', allKeyFn); allKeyFn = null; }
+    if (location.hash === '#calm/all' && history.replaceState) { try { history.replaceState(null, '', '#calm'); } catch (e) {} }
+    var tr = allTrigger; allTrigger = null;
+    if (!noFocus) {
+      var target = (tr && tr.isConnected) ? tr : $('#c-all-open');
+      if (target && target.focus) try { target.focus(); } catch (e) {}
+    }
+  }
+  function openAllModal(trigger) {
+    closeAllModal(true);
+    allTrigger = trigger || $('#c-all-open') || null;
+    var modal = document.createElement('div');
+    modal.id = 'c-all-modal';
+    modal.className = 'wl-modal ui';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'c-all-h');
+    modal.innerHTML = '<div class="card wl-modal-box" id="c-all-sheet">' + allPracticesHtml() + '</div>';
+    document.body.appendChild(modal);
+    modal.onclick = function (e) { if (e.target === modal) closeAllModal(); };
+    var x = $('#c-all-x', modal); if (x) x.onclick = function () { closeAllModal(); };
+    var cl = $('#c-all-close', modal); if (cl) cl.onclick = function () { closeAllModal(); };
+    $$('#c-all-list a', modal).forEach(function (a) { a.onclick = function () { closeAllModal(true); }; });
+    allKeyFn = function (ev) {
+      if (!modal.isConnected) { closeAllModal(true); return; }
+      if (ev.key === 'Escape') { ev.preventDefault(); closeAllModal(); }
+    };
+    document.addEventListener('keydown', allKeyFn);
+    if (x) try { x.focus(); } catch (e) {}
+  }
+
   function list() {
     var st = K.stats(S), goal = K.goalOf(S);
     var train = S.settings.aim === 'train';
+    var vp = visiblePractices();
     var h = '<h1>Calm</h1>' + (window.WLMe ? WLMe.planLine('calm') : '') + aimCard() + todayCard() + (train ? pathHtml(true) : '');
-    h += '<details class="card ui"><summary>How Calm works</summary><p>Work toward your daily goal below (one longer practice, or shorter ones that add up). ' +
-      'Press Begin, rate how stressed you are if you like, then follow the voice or breathing circle (exhale down to the inner dashed ring). At the end, rate again and press Done. ' +
-      'Guided practices are worded a little differently each time; the one-minute reset is always here for hard moments.</p></details>';
-    h += '<p class="meta ui">' + esc(K.advice(S)) + '</p>';
-    h += '<div class="card ui"><div class="row"><span class="grow">Daily goal</span></div><div class="chips" id="c-goal">' + K.DAILY_GOALS.map(function (g) {
+    h += '<div class="card ui" id="c-all-wrap"><div class="row"><div class="grow"><b>All practices</b>' +
+      '<div class="meta">' + vp.order.length + ' practices for stress, sleep &amp; quick resets</div></div>' +
+      '<button id="c-all-open" type="button">Browse</button></div></div>';
+    h += '<div class="card ui"><b>' + st.weekMins + '</b> min this week on ' + st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') + ' · ' + st.total + ' sessions in all' +
+      (st.avgDrop != null ? '<br><span class="meta">Stress before → after, average change: ' + (st.avgDrop >= 0 ? '−' : '+') + Math.abs(st.avgDrop).toFixed(1) + ' (from ' + st.rated + ' rated sessions)</span>' : '') +
+      '<p class="meta" style="margin:.4em 0 0">' + esc(K.advice(S)) + '</p></div>';
+    if (!train) h += pathHtml(false);
+    h += recentHtml();
+    h += '<details class="card ui" id="c-settings"' + (settingsOpen ? ' open' : '') + '><summary>Calm settings · ' + goal + ' min goal</summary>' +
+      '<div class="row" style="margin-top:6px"><span class="grow">Daily goal</span></div><div class="chips" id="c-goal">' + K.DAILY_GOALS.map(function (g) {
       return '<button class="chip" data-goal="' + g + '" aria-pressed="' + (goal === g) + '">' + (g === 1 ? '1 min (rough days)' : g + ' min') + '</button>';
     }).join('') + '</div><p class="meta" style="margin:.45em 0 8px">Research guide: ~5 min/day of cyclic sighing lowers stress and lifts mood; 10–13 min/day of mindfulness shows measurable focus and mood gains over ~8 weeks; 20 min/day is the classic deeper target. Even a 1-minute reset helps in the moment and counts toward today’s total.</p>' +
       '<div class="row"><span class="grow">Length for breathing and the quiet timer</span></div><div class="chips">' + [3, 5, 10, 15, 20].map(function (m) {
@@ -169,21 +230,10 @@
       return '<button class="chip" data-iv="' + m + '" aria-pressed="' + ((S.settings.interval || 0) === m) + '">' + (m ? 'Every ' + m + ' min' : 'Off') + '</button>';
     }).join('') + '</div>' +
       '<div class="row" style="margin-top:8px"><span class="grow">Background sound during sits</span></div>' + noiseChips('c-noise') +
-      '<div class="row" style="margin-top:8px"><span class="grow">Calm is mainly for</span></div><div class="chips" id="c-aim-set">' + aimChips() + '</div></div>';
-    var helped = window.WLMe && WLMe.calmHelped ? WLMe.calmHelped() : {};
-    // a practice that hasn't helped him in 3+ tries goes to the end of the list
-    var never = function (p) { var x = helped[p.id]; return x && x.n >= 3 && x.yes === 0 ? 1 : 0; };
-    var order = K.PRACTICES.filter(function (p) { return !p.path && !(window.WLMe && WLMe.flagged && WLMe.flagged('calm', p.id)); }).map(function (p, i) { return [p, i]; }).sort(function (a, b) { return never(a[0]) - never(b[0]) || a[1] - b[1]; }).map(function (x) { return x[0]; });
-    h += '<h2 class="ui" style="font-size:1em;margin:1em 0 .3em">All practices</h2><ul class="list">' + order.map(function (p) {
-      var hp = helped[p.id];
-      return '<li><a href="#calm/s/' + p.id + '"><h3>' + esc(p.title) + '</h3><div class="meta ui">' + esc(p.when) + ' · ' + mins(p) + ' min' +
-        (hp && hp.n >= 2 ? '<span class="c-helped"> · ' + (never(p) ? 'Hasn’t helped you so far' : 'Helped ' + hp.yes + ' of ' + hp.n + ' times') + '</span>' : '') + '</div>' +
-        (p.blurb || (p.pacer && K.PACERS[p.pacer].blurb) ? '<p style="margin:.3em 0 0">' + esc(p.blurb || K.PACERS[p.pacer].blurb) + '</p>' : '') + '</a></li>';
-    }).join('') + '</ul>';
-    h += '<div class="card ui"><b>' + st.weekMins + '</b> min this week on ' + st.weekDays + ' day' + (st.weekDays === 1 ? '' : 's') + ' · ' + st.total + ' sessions in all' +
-      (st.avgDrop != null ? '<br><span class="meta">Stress before → after, average change: ' + (st.avgDrop >= 0 ? '−' : '+') + Math.abs(st.avgDrop).toFixed(1) + ' (from ' + st.rated + ' rated sessions)</span>' : '') + '</div>';
-    if (!train) h += pathHtml(false);
-    h += recentHtml();
+      '<div class="row" style="margin-top:8px"><span class="grow">Calm is mainly for</span></div><div class="chips" id="c-aim-set">' + aimChips() + '</div></details>';
+    h += '<details class="card ui"><summary>How Calm works</summary><p>Work toward your daily goal above (one longer practice, or shorter ones that add up). ' +
+      'Press Begin, rate how stressed you are if you like, then follow the voice or breathing circle (exhale down to the inner dashed ring). At the end, rate again and press Done. ' +
+      'Guided practices are worded a little differently each time; the one-minute reset is always here for hard moments.</p></details>';
     h += '<div class="row ui" style="gap:4px 8px"><span class="meta">Christian meditation (breath prayer, Lectio Divina, quiet prayer) is in</span><a class="link" href="#faith/pray">Faith › Pray</a></div>';
     return h;
   }
@@ -442,10 +492,18 @@
     }
   }
   function leave() {
+    closeAllModal(true);
+    settingsOpen = false;
     if (keyHandler) { document.removeEventListener('keydown', keyHandler); keyHandler = null; }
     pick = null;
     saveEarly(); stopRun();
   }
+  var prevBackCalm = window.FCBack;
+  window.FCBack = function () {
+    if (WL.darkScreen && WL.darkScreen.lit && WL.darkScreen.lit()) return prevBackCalm ? prevBackCalm() : true;
+    if (document.getElementById('c-all-modal')) { closeAllModal(); return true; }
+    return prevBackCalm ? prevBackCalm() : false;
+  };
   /* Returning after the screen was locked: if a sit or Quiet timer already passed its end, finish cleanly without a duplicate bell. */
   document.addEventListener('visibilitychange', function () {
     // (back in the app mid-sit, WL.darkScreen shows the time first and goes dark again 10 s later)
@@ -455,6 +513,24 @@
     }
   });
 
+  function redrawList(keepSettings) {
+    settingsOpen = !!keepSettings;
+    view.innerHTML = list();
+    wireList();
+  }
+  function wireList() {
+    var openAll = $('#c-all-open'); if (openAll) openAll.onclick = function () { openAllModal(openAll); };
+    var det = $('#c-settings'); if (det) det.ontoggle = function () { settingsOpen = !!det.open; };
+    $$('[data-goal]').forEach(function (b) { b.onclick = function () { S.settings.dailyGoal = +b.dataset.goal; save(); redrawList(true); }; });
+    $$('[data-min]').forEach(function (b) { b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); redrawList(true); }; });
+    $('#cv').onclick = function () { S.settings.voice = !S.settings.voice; save(); redrawList(true); };
+    $('#ctk').onclick = function () { S.settings.tick = !S.settings.tick; save(); redrawList(true); };
+    $('#cdk').onclick = function () { S.settings.dark = S.settings.dark === false; save(); redrawList(true); };
+    $$('[data-iv]').forEach(function (b) { b.onclick = function () { S.settings.interval = +b.dataset.iv; save(); redrawList(true); }; });
+    $$('#c-noise [data-noise]').forEach(function (b) { b.onclick = function () { S.settings.noise = b.dataset.noise; save(); redrawList(true); }; });
+    $$('[data-aim]').forEach(function (b) { b.onclick = function () { S.settings.aim = b.dataset.aim; save(); redrawList(!!(det && det.open)); }; });
+    $$('[data-stage]').forEach(function (b) { b.onclick = function () { K.setStage(S, b.dataset.stage); save(); WL.toast('Your stage: ' + titleOf(K.stageOf(S))); redrawList(false); }; });
+  }
   function route(parts, v) {
     if (v) view = v;
     leave();
@@ -464,16 +540,8 @@
       if (parts[2] && lengths(p).indexOf(+parts[2]) >= 0) pick = { id: p.id, m: +parts[2] };
       view.innerHTML = sessionHtml(p); wireSession(p); return;
     }
-    view.innerHTML = list();
-    $$('[data-goal]').forEach(function (b) { b.onclick = function () { S.settings.dailyGoal = +b.dataset.goal; save(); route([]); }; });
-    $$('[data-min]').forEach(function (b) { b.onclick = function () { S.settings.minutes = +b.dataset.min; save(); route([]); }; });
-    $('#cv').onclick = function () { S.settings.voice = !S.settings.voice; save(); route([]); };
-    $('#ctk').onclick = function () { S.settings.tick = !S.settings.tick; save(); route([]); };
-    $('#cdk').onclick = function () { S.settings.dark = S.settings.dark === false; save(); route([]); };
-    $$('[data-iv]').forEach(function (b) { b.onclick = function () { S.settings.interval = +b.dataset.iv; save(); route([]); }; });
-    $$('#c-noise [data-noise]').forEach(function (b) { b.onclick = function () { S.settings.noise = b.dataset.noise; save(); route([]); }; });
-    $$('[data-aim]').forEach(function (b) { b.onclick = function () { S.settings.aim = b.dataset.aim; save(); route([]); }; });
-    $$('[data-stage]').forEach(function (b) { b.onclick = function () { K.setStage(S, b.dataset.stage); save(); WL.toast('Your stage: ' + titleOf(K.stageOf(S))); route([]); }; });
+    redrawList(false);
+    if (parts && parts[0] === 'all') openAllModal($('#c-all-open'));
   }
 
   /* A path sit on a rough day (short or broken night, low energy): offered at 10 minutes, for that sit only. */
@@ -489,7 +557,7 @@
     var short = roughSit(sug);
     return '<div class="meta ui">' + (t.any ? 'Calm · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min today' : 'Calm · today’s practice (goal ' + t.goal + ' min)') + '</div><h3>' + esc(sug.title) + ' · ' + (short ? 10 : mins(sug)) + ' min</h3>' +
       (short ? '<p class="meta ui" id="c-card-rough">Short night: a 10-minute sit counts just as much today.</p>' : '<p class="meta ui">' + esc(K.advice(S)) + '</p>') +
-      '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + (short ? '/10' : '') + '">Begin</a><a class="btn" href="#calm">All practices</a></div>';
+      '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + (short ? '/10' : '') + '">Begin</a><a class="btn" href="#calm/all">All practices</a></div>';
   }
 
   function wireCard(el) {

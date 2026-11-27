@@ -100,11 +100,13 @@ const Wb = require('../../../tests/lib/web.cjs');
 
   await t.step('setting Off: no dark screen, no hint; soft bell every 5 min rings once in a 10-min timer, then the end bell', async () => {
     await page.goto(base + '#calm');
+    await page.click('#c-settings summary');
     await page.click('#cdk');
     await page.waitForSelector('#cdk[aria-pressed="false"]');
     await page.click('[data-iv="5"]');
     await page.waitForSelector('[data-iv="5"][aria-pressed="true"]');
     await page.reload();
+    await page.click('#c-settings summary');
     await page.waitForSelector('#cdk[aria-pressed="false"]');
     assert.strictEqual(await page.getAttribute('[data-iv="5"]', 'aria-pressed'), 'true', 'interval kept after reload');
     const st = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).settings);
