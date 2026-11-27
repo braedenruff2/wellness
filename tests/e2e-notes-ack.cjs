@@ -64,6 +64,14 @@ const FAKE = `
     await page.evaluate(() => WL.driveSync.sync());
     assert.ok(((JSON.parse(await page.evaluate(() => window.__drive.content)).acked) || []).includes('notes-ack-20261127150000'), 'acked so the next run drops the row');
   });
+  await t.step('Android Back with the note sheet open closes the sheet and stays on the screen', async () => {
+    await page.goto(base + '#calm'); await page.waitForTimeout(50);
+    await page.click('[data-wl-note]'); await page.waitForSelector('#wl-note-modal');
+    assert.strictEqual(await page.evaluate(() => window.FCBack()), true);
+    assert.ok(!(await page.$('#wl-note-modal')));
+    assert.strictEqual(await page.evaluate(() => location.hash), '#calm');
+    assert.strictEqual(await page.evaluate(() => window.FCBack()), false, 'nothing open: Back goes back as usual');
+  });
   await t.step('a read note deletes with one tap; an unread one with two', async () => {
     await page.goto(base + '#home'); await page.waitForSelector('.home-card');
     await page.click('[data-wl-note]'); await page.waitForSelector('#wl-note-sheet'); await page.click('#wl-note-list summary');

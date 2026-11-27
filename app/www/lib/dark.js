@@ -59,7 +59,12 @@
   document.addEventListener('visibilitychange', function () { if (!document.hidden && darkEl()) darkLight(); });
 
   // Android's Back: with a dark screen up it only lights the screen (true); otherwise Android goes back as usual
-  root.FCBack = function () { if (darkEl()) { darkLight(); return true; } return false; };
+  root.FCBack = function () {
+    if (darkEl()) { darkLight(); return true; }
+    // the "Note for autopilot" sheet: Back closes it and stays on this screen
+    if (document.getElementById('wl-note-modal') && root.WL && root.WL.notes && root.WL.notes.close) { root.WL.notes.close(); return true; }
+    return false;
+  };
 
   var darkScreen = { start: darkStart, light: darkLight, stop: darkStop, isDark: function () { return !!darkEl(); } };
   root.WLDark = { dimScreen: dimScreen, darkScreen: darkScreen };
