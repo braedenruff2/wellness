@@ -116,7 +116,7 @@
       babyNote: 'Mix plain drained light tuna with mashed avocado and soft rice for {child} before adding soy sauce or mayo; peel the cucumber and cut hers into thin strips or tiny dice.',
       tip: 'Use leftover cooked rice (warm it with a splash of water covered for 60 seconds so it steams soft again).',
       ingredients: [
-        { name: 'canned light tuna', qty: 2, unit: 'cans', cat: 'pantry', shelfDays: 365 },
+        { name: 'canned tuna', qty: 2, unit: 'cans', cat: 'pantry', shelfDays: 365 },
         { name: 'rice', qty: 1.5, unit: 'cups', cat: 'pantry', shelfDays: 180 },
         { name: 'avocado', qty: 0.5, unit: 'pcs', cat: 'produce', shelfDays: 4 },
         { name: 'cucumber', qty: 0.5, unit: 'pcs', cat: 'produce', shelfDays: 6 },
@@ -352,11 +352,16 @@
     if (w.endsWith('s') && w.length > 3 && !w.endsWith('ss')) return w.slice(0, -1);
     return w;
   }
-  var CUTS = ['thighs', 'breasts', 'drumsticks', 'wings', 'legs', 'fillets', 'mince', 'strips', 'pieces', 'chunks', 'cubes', 'florets', 'leaves', 'slices', 'steaks', 'boneless', 'skinless'].map(stem);
-  // words that make a different food of the next one: peanut butter, sweet potato, oat milk, cream cheese, bell pepper
-  var OTHER_FOOD = ['peanut', 'almond', 'cashew', 'nut', 'apple', 'coconut', 'oat', 'soy', 'rice', 'cocoa', 'sweet', 'cream', 'sour', 'bell', 'chili', 'chilli', 'hot', 'baking', 'corn', 'egg', 'fish', 'oyster'].map(stem);
+  var CUTS = ['thighs', 'breasts', 'drumsticks', 'wings', 'legs', 'fillets', 'mince', 'strips', 'pieces', 'chunks', 'cubes', 'florets', 'leaves', 'slices', 'steaks', 'boneless', 'skinless', 'cloves', 'bulbs', 'heads', 'cans', 'tins', 'jars', 'packs', 'bags', 'bunches'].map(stem);
+  // a word before a food that makes it a different food: peanut butter, sweet potato, oat milk, cream cheese, bell
+  // pepper, egg noodles (but "sweet onion", "corn tortillas", "baking potatoes" are still onion, tortilla, potato)
+  var OTHER_FOOD = { butter: ['peanut', 'almond', 'cashew', 'nut', 'apple', 'cocoa', 'shea'], milk: ['oat', 'soy', 'rice', 'almond', 'coconut', 'cashew'],
+    potato: ['sweet'], cheese: ['cream'], cream: ['sour', 'ice'], pepper: ['bell', 'chili', 'chilli', 'hot', 'sweet'], noodle: ['egg', 'rice'],
+    flour: ['corn', 'rice', 'almond', 'coconut'], sugar: ['icing'], sauce: ['fish', 'soy', 'oyster', 'hot', 'tomato'] };
   function sameFood(a, b) {
-    var na = norm(a), nb = norm(b);
+    // "onion, diced" / "garlic (minced)" are onion and garlic
+    var cut = function (x) { return String(x || '').split(/[,(]/)[0]; };
+    var na = norm(cut(a)), nb = norm(cut(b));
     if (!na || !nb) return false;
     if (na === nb || stem(na) === stem(nb)) return true;
     // whole words: the shorter name inside the longer one, with only describing words before it ("red lentils",
@@ -364,11 +369,14 @@
     // "peanut butter" is not butter, "sweet potato" not potato, "chicken broth" not chicken, "tomato sauce" not tomato.
     var wa = na.split(' ').map(stem), wb = nb.split(' ').map(stem);
     var lng = wa.length >= wb.length ? wa : wb, sht = lng === wa ? wb : wa, n = sht.length;
+    // blueberries, strawberries ... are berries
+    if (n === 1 && (sht[0] === 'berry' && /berry$/.test(lng[lng.length - 1]) || lng.length === 1 && lng[0] === 'berry' && /berry$/.test(sht[0]))) return true;
     if (lng.length === n) return false;
     for (var i = 0; i + n <= lng.length; i++) {
       if (lng.slice(i, i + n).join(' ') !== sht.join(' ')) continue;
       var before = lng.slice(0, i), after = lng.slice(i + n);
-      if (before.some(function (w) { return OTHER_FOOD.indexOf(w) >= 0; })) continue;
+      var head = sht[n - 1], other = OTHER_FOOD[head] || [];
+      if (before.some(function (w) { return other.indexOf(w) >= 0; })) continue;
       if (after.every(function (w) { return CUTS.indexOf(w) >= 0; })) return true;
     }
     return false;

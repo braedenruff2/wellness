@@ -57,7 +57,7 @@
 
   function dayHeading(iso) {
     var p = iso.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]);
-    var tIso = K.iso(now());
+    var tIso = K.iso(realNow());
     var prefix = iso === tIso ? 'Today · ' : '';
     return prefix + d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }

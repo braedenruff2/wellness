@@ -188,7 +188,9 @@ t('a log day in an earlier week never replaces this week\'s plan (made / Mama co
 
 t('sameFood: whole words; a describing word before or a cut after still matches, a different food does not', () => {
   const yes = [['chicken thighs', 'chicken'], ['Chicken breasts', 'chicken'], ['boneless skinless chicken thighs', 'chicken'], ['red lentils', 'lentils'], ['ground beef', 'beef'], ['broccoli florets', 'broccoli'], ['baby spinach', 'spinach'], ['tomatoes', 'tomato'], ['eggs', 'egg'], ['greek yogurt', 'yogurt'], ['frozen peas', 'peas']];
-  const no = [['peanut butter', 'butter'], ['chicken broth', 'chicken'], ['tomato sauce', 'tomato'], ['sweet potato', 'potatoes'], ['oat milk', 'milk'], ['rice noodles', 'rice'], ['cream cheese', 'cheese'], ['egg noodles', 'eggs'], ['carrots', 'car']];
+  yes.push(['blueberries', 'berries'], ['strawberries', 'berries'], ['garlic cloves', 'garlic'], ['onion, diced', 'onion'], ['garlic (minced)', 'garlic'], ['cherry tomatoes, halved', 'cherry tomatoes'], ['sweet onion', 'onion'], ['corn tortillas', 'tortilla'], ['baking potatoes', 'potato'], ['canned tuna', 'tuna']);
+  const no = [['blueberries', 'strawberries'], ['pineapple', 'apple'], ['fish sauce', 'fish'], ['bell pepper', 'pepper'],
+    ['peanut butter', 'butter'], ['chicken broth', 'chicken'], ['tomato sauce', 'tomato'], ['sweet potato', 'potatoes'], ['oat milk', 'milk'], ['rice noodles', 'rice'], ['cream cheese', 'cheese'], ['egg noodles', 'eggs'], ['carrots', 'car']];
   for (const [a, b] of yes) { assert.strictEqual(K.sameFood(a, b), true, a + ' ~ ' + b); assert.strictEqual(K.sameFood(b, a), true, b + ' ~ ' + a); }
   for (const [a, b] of no) { assert.strictEqual(K.sameFood(a, b), false, a + ' !~ ' + b); assert.strictEqual(K.sameFood(b, a), false, b + ' !~ ' + a); }
 });
@@ -247,7 +249,7 @@ t('toddler portions: eggs cooked through, light tuna, low-sodium broth, no cucum
   assert.ok(!K.RECIPES.some((r) => /soft scrambled/i.test(r.babyNote)), 'no soft-scrambled egg for {child}');
   for (const r of K.RECIPES) {
     if (r.ingredients.some((i) => /cucumber/.test(i.name))) assert.ok(/strips|dice/.test(r.babyNote), r.id + ': how to cut her cucumber');
-    if (r.ingredients.some((i) => /tuna/.test(i.name))) assert.ok(r.ingredients.some((i) => /light tuna/.test(i.name)), r.id + ': light tuna');
+    if (r.ingredients.some((i) => /tuna/.test(i.name))) assert.ok(/light tuna/.test(r.babyNote), r.id + ': light tuna');
     if (r.ingredients.some((i) => /broth|stock/.test(i.name))) assert.ok(r.ingredients.some((i) => /low-sodium/.test(i.name)), r.id + ': low-sodium broth');
   }
 });

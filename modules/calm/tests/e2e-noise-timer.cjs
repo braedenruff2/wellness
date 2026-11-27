@@ -46,13 +46,34 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.textContent('#c-exact-note'), '= 1:15');
     await page.fill('#c-exact-s', '5');
     assert.strictEqual(await page.textContent('#c-exact-note'), 'At least 10 seconds.');
-    assert.strictEqual(await page.textContent('#c-pp'), '▶ Begin · 1:15', 'too short: the last good time stays');
+    assert.strictEqual(await page.textContent('#c-pp'), before, 'too short: back to the chosen length, never a time it won\'t run');
     await page.fill('#c-exact-s', '');
     assert.strictEqual(await page.textContent('#c-pp'), before, 'cleared: back to the length chips');
     assert.strictEqual(await page.isHidden('#c-exact-note'), true);
     await page.fill('#c-exact-m', '200');
     assert.strictEqual(await page.textContent('#c-pp'), '▶ Begin · 120 min', 'at most 120 minutes');
     await page.fill('#c-exact-m', '');
+    // a chip, then an exact time, then cleared: back to that chip; a chip tap also clears the note
+    const chip = await page.$('#c-len [data-len]:not([aria-pressed="true"])');
+    if (chip) {
+      const len = await chip.getAttribute('data-len');
+      await chip.click();
+      await page.fill('#c-exact-s', '5');
+      assert.strictEqual(await page.isVisible('#c-exact-note'), true);
+      await page.fill('#c-exact-s', '');
+      assert.strictEqual(await page.textContent('#c-pp'), '▶ Begin · ' + len + ' min', 'back to the chip just tapped');
+      await page.fill('#c-exact-s', '75');
+      await page.click('#c-len [data-len="' + len + '"]');
+      assert.strictEqual(await page.isHidden('#c-exact-note'), true, 'chip tap clears the note');
+    }
+    // the note never stays up once the timer runs
+    await page.fill('#c-exact-s', '75');
+    assert.strictEqual(await page.isVisible('#c-exact-note'), true);
+    await page.click('#c-pp');
+    assert.strictEqual(await page.isHidden('#c-exact-note'), true, 'hidden during the session');
+    await page.goto(base + '#calm');
+    await page.waitForFunction(() => window.WLNoise.current() === 'off');
+    await page.evaluate(() => { window.__noise.starts = 0; window.__noise.stops = 0; window.__noise.loops = []; }); // the next step counts its own
   });
 
   await t.step('Quiet timer: exact custom minutes + seconds (1m 30s), looping white noise on play/pause/resume/finish, and exact mm:ss countdown', async () => {

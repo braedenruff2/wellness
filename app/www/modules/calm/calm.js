@@ -288,6 +288,7 @@
     var pp = $('#c-pp'); pp.textContent = '⏸ Pause'; pp.dataset.state = 'playing';
     var lc = $('#c-len'); if (lc) lc.hidden = true;
     var ex = $('#c-exact'); if (ex) ex.hidden = true;
+    var exn = $('#c-exact-note'); if (exn) exn.hidden = true;
     var nr = $('#c-noise-row'); if (nr) nr.hidden = true;
     var qr = $('#c-quiet-row'); if (qr) qr.hidden = true;
     var ft = $('#c-first-tip'); if (ft) ft.hidden = true;
@@ -338,12 +339,14 @@
   }
 
   function wireSession(p) {
+    var chipPick = pick && pick.id === p.id && !pick.secs ? pick : null; // the length chip in force (exact time cleared -> back to it)
     $$('#c-len [data-len]').forEach(function (b) { b.onclick = function () {
       pick = { id: p.id, m: +b.dataset.len };
       // a sit length is kept for next time (not the shorter one picked because of a rough night)
       if (p.path && !(roughDay(p) && pick.m <= 10)) { S.settings.sitMinutes = pick.m; save(); }
       $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
-      var em = $('#c-exact-m'), es = $('#c-exact-s'); if (em) em.value = ''; if (es) es.value = '';
+      var em = $('#c-exact-m'), es = $('#c-exact-s'), exn = $('#c-exact-note'); if (em) em.value = ''; if (es) es.value = ''; if (exn) { exn.textContent = ''; exn.hidden = true; }
+      chipPick = pick;
       $('#c-pp').textContent = beginLabel(p);
     }; });
     function applyExact() {
@@ -354,16 +357,16 @@
       // 75 seconds is 1:15 (not 0:59); at most 120 minutes
       var tot = Math.min(120 * 60, m * 60 + s);
       var empty = (!em || em.value === '') && (!es || es.value === '');
-      if (empty || tot === 0) {
-        // cleared: back to the length chips' choice, not the last number typed
-        if (pick && pick.id === p.id && pick.secs) pick = null;
-        say('');
+      function back(msg) {
+        // cleared or too short: back to the length chip's choice (not an old typed time), and say why if needed
+        if (pick && pick.id === p.id && pick.secs) pick = chipPick;
+        say(msg || '');
         $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', String(+x.dataset.len === mins(p))); });
         $('#c-pp').textContent = beginLabel(p);
-        return;
       }
-      if (p.path && tot < 60) { say('A sit is at least 1 minute.'); return; }
-      if (tot < 10) { say('At least 10 seconds.'); return; }
+      if (empty || tot === 0) return back('');
+      if (p.path && tot < 60) return back('A sit is at least 1 minute.');
+      if (tot < 10) return back('At least 10 seconds.');
       pick = { id: p.id, m: tot / 60, secs: tot };
       say(s >= 60 || m * 60 + s > tot ? '= ' + fmtTimer(tot) : '');
       $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', String(+x.dataset.len * 60 === tot)); });
