@@ -36,6 +36,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <provider
+            android:name=".FridgePhotoProvider"
+            android:authorities="app.faithcompanion.fridgephoto"
+            android:exported="false"
+            android:grantUriPermissions="true" />
         <receiver android:name=".RestAlarm" android:exported="false" />
         <receiver android:name=".CalmAlarm" android:exported="false" />
         <receiver android:name=".Updater$Result" android:exported="false" />

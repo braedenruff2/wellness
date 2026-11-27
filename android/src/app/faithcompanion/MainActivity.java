@@ -130,15 +130,14 @@ public class MainActivity extends Activity {
                                 chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{cam});
                                 launch = chooser;
                             } else {
-                                getContentResolver().delete(camUri, null, null);
-                                FridgePhoto.untrack(MainActivity.this, camUri);
+                                FridgePhoto.deleteTemp(MainActivity.this, camUri);
                             }
                         }
                     } catch (Exception ignored) { cameraPhotoUri = null; }
                 }
                 try { ownScreenOnTop = true; startActivityForResult(launch, PICK_FILE); } catch (Exception e) {
                     ownScreenOnTop = false;
-                    if (cameraPhotoUri != null) { try { getContentResolver().delete(cameraPhotoUri, null, null); } catch (Exception ignored) { } FridgePhoto.untrack(MainActivity.this, cameraPhotoUri); cameraPhotoUri = null; }
+                    if (cameraPhotoUri != null) { FridgePhoto.deleteTemp(MainActivity.this, cameraPhotoUri); cameraPhotoUri = null; }
                     fileCallback = null; cb.onReceiveValue(null); return false;
                 }
                 return true;
@@ -177,9 +176,9 @@ public class MainActivity extends Activity {
         registerReceiver(noisy, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
         if (saved != null) {
             String cu = saved.getString("cameraPhotoUri", null);
-            if (cu != null && FridgePhoto.isSafeTrackUri(cu)) cameraPhotoUri = Uri.parse(cu);
+            if (cu != null && FridgePhoto.isOwnPhotoUri(cu)) cameraPhotoUri = Uri.parse(cu);
         }
-        // sweep any leftover wellness-fridge-*.jpg rows from an earlier capture or process death
+        // sweep any leftover app-private wellness-fridge-*.jpg files from an earlier capture or process death
         final Uri keepAtStart = cameraPhotoUri;
         final Context appCtx = getApplicationContext();
         new Thread(() -> FridgePhoto.cleanup(appCtx, keepAtStart, keepAtStart == null ? 0L : 60_000L), "wl-photo-clean").start();
@@ -349,9 +348,8 @@ public class MainActivity extends Activity {
             if (u == null && res == RESULT_OK && cameraPhotoUri != null) {
                 u = cameraPhotoUri;
             } else if (cameraPhotoUri != null && !cameraPhotoUri.equals(u)) {
-                // a picked file (or cancel): the empty camera row goes; never the photo a camera app handed back as u
-                try { getContentResolver().delete(cameraPhotoUri, null, null); } catch (Exception ignored) { }
-                FridgePhoto.untrack(MainActivity.this, cameraPhotoUri);
+                // a picked file (or cancel): remove the unused empty app-cache photo; never the photo handed back as u
+                FridgePhoto.deleteTemp(MainActivity.this, cameraPhotoUri);
             }
             cameraPhotoUri = null;
             fileCallback.onReceiveValue(u == null ? null : new Uri[]{u});
@@ -514,7 +512,7 @@ public class MainActivity extends Activity {
             });
         }
 
-        /** Deletes temporary wellness-fridge-*.jpg MediaStore rows once the page has finished reading the photo. */
+        /** Deletes temporary app-private wellness-fridge-*.jpg files once the page has finished reading the photo. */
         @JavascriptInterface public void clearFridgePhotos() {
             final Context app = getApplicationContext();
             final Uri keep = cameraPhotoUri;
