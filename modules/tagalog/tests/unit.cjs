@@ -665,4 +665,22 @@ t('bubbleWord: lowercases and strips sentence punctuation across all bundled bui
   }
   assert.ok(checked >= 5, 'verified bundled build exercises: ' + checked);
 });
+t('every bundled type/build exercise: its answer and each accept variant check right, and no slip hint fires on them', () => {
+  const fs = require('fs'), path = require('path');
+  const dir = path.join(__dirname, '..', 'packs');
+  let n = 0;
+  for (const f of fs.readdirSync(dir).filter((x) => /^\d{4}-\d{2}-\d{2}\.json$/.test(x))) {
+    const pk = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    for (const l of pk.lessons) for (const ex of l.exercises || []) {
+      if (ex.type !== 'type' && ex.type !== 'build') continue;
+      const ex2 = JSON.parse(JSON.stringify(ex).replace(/\{child\}/g, 'Mila'));
+      for (const g of [ex2.answer].concat(ex2.accept || [])) {
+        assert.ok(T.check(ex2, g), f + ' lesson ' + l.day + ': "' + g + '" should be right for ' + ex2.prompt);
+        assert.strictEqual(T.hintKind(ex2, g), '', f + ' lesson ' + l.day + ': a hint on a right answer "' + g + '"');
+        n++;
+      }
+    }
+  }
+  assert.ok(n > 50, 'checked ' + n);
+});
 console.log(n + ' tagalog unit tests passed');
