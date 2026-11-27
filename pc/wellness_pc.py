@@ -891,7 +891,7 @@ def prompt_values(task, inp):
     """The {{name}} values for pc/prompts/<task>.md. Plain fields go in as text, quoted fields as JSON."""
     d = DEFAULTS.get(task, {})
     v = {k: str(inp.get(k) or d.get(k, "")) for k in ("child", "age", "skill")}
-    v.update({k: j(inp.get(k) or "") for k in ("scenario", "question", "answer", "situation", "task", "expected", "note")})
+    v.update({k: j(inp.get(k) or "") for k in ("scenario", "question", "answer", "situation", "task", "expected", "note", "assuming", "otherSide", "yearView", "nextStep")})
     v["recent"] = j(inp.get("recent") or []); v["avoid"] = j(inp.get("avoid") or [])
     v["summary"] = str(inp.get("summary") or "")
     v["phone"] = j({"checkins": inp.get("checkins"), "feedback": inp.get("feedback")})[:20000]
@@ -1150,7 +1150,7 @@ def parse_answer(text):
     return {"text": text.strip()[:MAX_TEXT]}
 
 
-TASKS = ("coach-scenario", "coach-grade", "coach-advice", "tagalog-check", "advice", "weekly-plan", "cook-plan", "cook-photo")
+TASKS = ("coach-scenario", "coach-grade", "coach-advice", "tagalog-check", "advice", "weekly-plan", "cook-plan", "cook-photo", "wisdom-check")
 MAX_PHOTO_B64 = 750_000
 
 
