@@ -251,6 +251,34 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.deepStrictEqual(await page.evaluate(() => window.__said), [['luya', 'fil-PH']]);
   });
 
+  await t.step('#cook/week inline recipe preview expands ingredients, steps & Filipino Tagalog words, hides when Mama cooked, and fits 320 px / 1.3x', async () => {
+    await page.setViewportSize({ width: 320, height: 640 });
+    await page.evaluate(() => { localStorage.setItem('wl.shell.v1', JSON.stringify({ theme: 'light', textSize: 1.3 })); WL.applyLook(); });
+    await page.goto(base + '#cook/week');
+    const slotSel = '[data-wk-slot="2026-11-26|dinner"]';
+    await page.waitForSelector(slotSel + ' summary');
+    await page.click(slotSel + ' summary');
+    const txt = await page.textContent(slotSel);
+    assert.ok(txt.includes('Ingredients:') && txt.includes('In Tagalog:') && txt.includes('manok') && txt.includes('sayote'), txt);
+    await page.evaluate(() => { window.__said = []; WL.speech.speak = (text, done, o) => { window.__said.push([text, o && o.lang]); }; });
+    await page.click(slotSel + ' [data-tl-say="manok"]');
+    assert.deepStrictEqual(await page.evaluate(() => window.__said), [['manok', 'fil-PH']]);
+    const check320 = await page.evaluate((sel) => {
+      const over = document.documentElement.scrollWidth - window.innerWidth;
+      const small = Array.from(document.querySelectorAll(sel + ' summary, ' + sel + ' button')).filter((e) => e.offsetParent !== null)
+        .map((e) => ({ t: (e.textContent || e.getAttribute('aria-label') || '').trim().slice(0, 25), h: Math.round(e.getBoundingClientRect().height), right: Math.round(e.getBoundingClientRect().right) }))
+        .filter((x) => x.h < 44 || x.right > window.innerWidth + 1);
+      return { over, small };
+    }, slotSel);
+    assert.strictEqual(check320.over, 0, '#cook/week expanded overflow: ' + check320.over);
+    assert.deepStrictEqual(check320.small, [], '#cook/week expanded small/cut targets: ' + JSON.stringify(check320.small));
+    // Marking the slot Mama hides the recipe preview; Undo Mama restores it
+    await page.click('[data-wk-mama="2026-11-26|dinner"]');
+    assert.strictEqual(await page.$(slotSel + ' details'), null, 'Mama slot hides recipe preview');
+    await page.click('[data-wk-mama="2026-11-26|dinner"]');
+    await page.waitForSelector(slotSel + ' details');
+  });
+
   await t.step('Fridge category filter chips appear at 10+ items, filter accurately, and stay clean at 320 px / 1.3x', async () => {
     // Under 10 items: no filter chips
     await page.goto(base + '#cook/pantry');

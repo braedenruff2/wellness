@@ -115,11 +115,13 @@
       h += '<div class="card ui"><h3 style="margin-bottom:6px">' + esc(dayHeading(iso, d)) + '</h3>';
       K.MEALS.forEach(function (meal) {
         var m = slot[meal] || { title: '', status: 'planned', note: '' };
-        h += '<div class="ck-slot"><div class="row"><div class="grow"><span class="meta">' + esc(K.MEAL_LABEL[meal]) + '</span><br><b>' +
+        var r = m.status !== 'mama' ? K.recipeById(S, m.recipeId) : null;
+        h += '<div class="ck-slot" data-wk-slot="' + iso + '|' + meal + '"><div class="row"><div class="grow"><span class="meta">' + esc(K.MEAL_LABEL[meal]) + '</span><br><b>' +
           esc(m.status === 'mama' ? ('Mama cooked' + (m.note ? ': ' + m.note : '')) : (m.title || '—')) + '</b>' +
           (m.status === 'made' ? ' <span class="tick">✓</span>' : '') + '</div>' +
           '<button class="link" type="button" data-wk-swap="' + iso + '|' + meal + '">Swap</button>' +
-          '<button class="link" type="button" data-wk-mama="' + iso + '|' + meal + '">' + (m.status === 'mama' ? 'Undo Mama' : 'Mama') + '</button></div></div>';
+          '<button class="link" type="button" data-wk-mama="' + iso + '|' + meal + '">' + (m.status === 'mama' ? 'Undo Mama' : 'Mama') + '</button></div>' +
+          recipeDetailsHtml(r, ctx) + '</div>';
       });
       h += '</div>';
     });

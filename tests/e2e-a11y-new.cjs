@@ -900,6 +900,11 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('.ck-mama-form input, .ck-mama-form button, [data-ck-made], [data-ck-mama], [data-ck-reset]'), [], theme + ' #cook targets');
       for (const h of ['#cook/week', '#cook/log', '#cook/pantry']) {
         await page.goto(base + h); await page.waitForTimeout(80);
+        if (h === '#cook/week') {
+          const sum = await page.$('.ck-slot summary');
+          if (sum) await sum.click();
+          assert.deepStrictEqual(await small('.ck-slot summary, .ck-slot button'), [], theme + ' #cook/week targets');
+        }
         assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' ' + h);
       }
       await page.waitForSelector('#ck-pantry-cats');
