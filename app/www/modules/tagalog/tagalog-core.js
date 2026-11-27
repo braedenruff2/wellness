@@ -224,13 +224,15 @@
   }
 
   /* Which specific hint a wrong answer got: 'pronoun' (short word out of second place), 'order' (ang/ng word order),
-     'linker' (missing -ng / na), or ''. */
+     'linker' (missing -ng / na), 'extralinker' (an -ng that isn't wanted: hindi akong), 'aspect', or ''. */
   function hintKind(ex, given) {
     var o = orderHint(ex, given);
     if (o) return /short words like/.test(o) ? 'pronoun' : 'order';
-    return linkerHint(ex, given) ? 'linker' : aspectHint(ex, given) ? 'aspect' : '';
+    var lk = linkerHint(ex, given);
+    if (lk) return /^Almost: no linker here/.test(lk) ? 'extralinker' : 'linker';
+    return aspectHint(ex, given) ? 'aspect' : '';
   }
-  var HINT_KINDS = ['order', 'pronoun', 'linker', 'aspect'];
+  var HINT_KINDS = ['order', 'pronoun', 'linker', 'extralinker', 'aspect'];
   /* The specific slips of the last 14 days (answers that got an order / pronoun / linker / verb-form hint), newest
      first, one per exercise, with the lesson's own sentence: [{kind, answer, given, at}], at most n. */
   function slipItems(state, packs, now, n) {
@@ -247,7 +249,7 @@
     return out;
   }
   /* The short label shown with a slip (Watch for next time, Slips to watch). */
-  var HINT_LABEL = { order: 'Word order', pronoun: 'Short words go second', linker: 'Linker', aspect: 'Verb form' };
+  var HINT_LABEL = { order: 'Word order', pronoun: 'Short words go second', linker: 'Linker', extralinker: 'No linker after hindi', aspect: 'Verb form' };
   function slips(state, packs, now, n) {
     return slipItems(state, packs, now, n).map(function (x) { return { kind: x.kind, answer: x.answer, given: x.given, at: x.at }; });
   }
@@ -260,6 +262,7 @@
     order: 'ang/ng word order: the doer (ang) comes after the verb and its object',
     pronoun: 'short words (ako, siya, ko, na, po...) go right after the first word',
     linker: 'a missing linker: -ng after a vowel or n, na otherwise (gusto kong, apat na)',
+    extralinker: 'an extra linker: no -ng on the short word after hindi (hindi ako pagod, not hindi akong pagod)',
     aspect: 'verb form: the plain form after gusto/kailangan/puwede vs. the repeated-syllable form for "is doing / will do"'
   };
 
@@ -334,7 +337,7 @@
       if (!a.ok) wrong[k] = (wrong[k] || 0) + 1;
       // a near miss with a specific rule (verb form, linker): worth practising first among equally missed ones,
       // tracked by timestamp so an earlier-day miss logged after newer mastery never resurrects the slip flag
-      var isRuleSlip = !a.ok && (a.hint === 'aspect' || a.hint === 'linker');
+      var isRuleSlip = !a.ok && (a.hint === 'aspect' || a.hint === 'linker' || a.hint === 'extralinker');
       if (isRuleSlip || a.ok) {
         var t = isNaN(ms) ? -Infinity : ms;
         if (slipAt[k] == null || t >= slipAt[k]) {

@@ -285,7 +285,14 @@ t('linkerHint: an extra -ng on a short word ("Hindi akong pagod") gets "no linke
   const m = T.linkerHint(h, 'Hindi akong pagod');
   assert.ok(/^Almost: no linker here \(ako, not akong, after hindi\)/.test(m), m);
   assert.ok(/palagi siyang masaya\): Hindi ako pagod\.$/.test(m), m);
-  assert.strictEqual(T.hintKind(h, 'Hindi akong pagod'), 'linker');
+  assert.strictEqual(T.hintKind(h, 'Hindi akong pagod'), 'extralinker');
+  assert.strictEqual(T.HINT_LABEL.extralinker, 'No linker after hindi');
+  assert.ok(/hindi ako pagod/.test(T.HINT_ABOUT.extralinker));
+  // kept by validate, counted as a rule slip first in mixed practice
+  const st = T.defaults(), pk = { id: '2026-11-25' }, ls = { day: 2, words: [] };
+  T.recordAnswer(st, pk, ls, h, false, new Date(2026, 10, 26, 17), 'Hindi akong pagod');
+  assert.strictEqual(st.answers[0].hint, 'extralinker');
+  assert.strictEqual(T.validate(JSON.parse(JSON.stringify(st))).answers[0].hint, 'extralinker');
   assert.strictEqual(T.linkerHint(h, 'Hindi ako pagod'), '', 'right');
   assert.strictEqual(T.linkerHint(h, 'Hindi po akong pagod').indexOf('after hindi') > 0, true, 'po between: still after hindi');
   const s = { type: 'type', prompt: "She hasn't slept yet.", answer: 'Hindi pa siya natutulog.', accept: ['hindi pa siya natutulog', 'hindi pa siya tulog'] };
