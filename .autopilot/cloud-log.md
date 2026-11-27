@@ -1,5 +1,12 @@
 # Cloud log
 
+## 2026-11-26 20:15-21:00 AST (same run, continued; APK 0.1.20261127.0057, real key, cert 6795e499...)
+- Done 258 (Tagalog stats/dueCards/weeklySummary across DST in 4 zones; lessonsDone on an earlier day counts only lessons done by then), 265 (Calm exact timer: 75 s = 1:15, 120 min cap, plain "At least 10 seconds." / "A sit is at least 1 minute.", cleared or too short -> back to the chip), 266 (Cooking plan/fridge/shopping always use today; only the food log uses the earlier day), 267 (photo answers: amount kept, damaged answers render safely, nothing usable says so), 272 (notes for the autopilot: "Read by the autopilot" via `cloud-answer.cjs ack-notes` -> notes-ack row), 275 (audio focus while in-session; a ringing/ongoing call pauses a prayer or sit), 277, 280 (Mama cooked: one tap + inline optional field, no window.prompt), 281 (to-dos tidy on app start), 283, 259, 285, 286 (extralinker slip kind), 287 (note sheet says where it goes; Settings shows unread notes). Also: the no-linker hint after hindi when the rest differs.
+- Independent review of 260-281 (subagent) -> 282: sameFood false negatives (blueberries/berries, garlic cloves, "onion, diced", sweet onion) fixed with specific different-food pairs; recipe name "canned tuna" kept (Bought ticks); Week tab "Today" from the real date; exact-timer note hidden on Begin / chip.
+- Dropped as existing or not applicable: 268, 269, 271.
+- Tested: full suite at 10cb473 (102 suites, none skipped; this APK's code).
+- Check on the phone: a call during a Calm sit pauses it (and his music ducks during a sit); Cooking > Mama cooked > the field; Settings > Sync line shows notes not read yet.
+
 ## 2026-11-26 19:43-20:15 AST (new run after the usage reset; APK 0.1.20261127.0010, real key, cert 6795e499...)
 - Done 260: Tagalog typed answers with an extra -ng on a short word ("Hindi akong pagod" for "Hindi ako pagod") get "Almost: no linker here (ako, not akong, after hindi)..." (linkerHint, kind linker). Week 2026-11-25 lesson 2 also accepts "hindi pa siya tulog" / "nakakatulog" for "She hasn't slept yet".
 - Done 244 (run2's claim had ended with that run): tests/lib/year.cjs makes to-dos, Parenting tip answers + Not for me, Cooking and autopilot notes too. bug: a ticked repeating to-do's done copy came back from a restore with a new `at` field / cause: TodoCore.complete's copy had no `at`, validate adds it / fixed: the copy carries at: null / test: todo unit + e2e-backup-year (now names the first differing item).
