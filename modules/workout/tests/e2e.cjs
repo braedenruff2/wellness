@@ -127,12 +127,17 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.locator('#wo-ex-svg rect').count(), 1, 'age-group band renders for Plank');
     await page.selectOption('#wo-chart-ex', 'Walk');
     assert.ok((await page.textContent('#wo-ex-svg .wo-ref-lbl')).includes('Age 30–39 avg: 25 min'), await page.textContent('#wo-ex-svg'));
-    // Switch exercise via dropdown & "Show on graph" button + toggle volume metric on weighted exercise
+    // Switch exercise via dropdown & "Show on graph" button + toggle volume metric on weighted exercise (restoring focus)
     await page.selectOption('#wo-chart-ex', 'Single Leg RDL');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'wo-chart-ex', 'switching exercise restores focus to #wo-chart-ex');
     assert.ok((await page.textContent('#wo-ex-svg .wo-ref-lbl')).includes('Age 30–39 avg: 11 reps'), await page.textContent('#wo-ex-svg'));
     await page.waitForSelector('[data-wo-metric="volume"]');
     await page.click('[data-wo-metric="volume"]');
     assert.strictEqual(await page.getAttribute('[data-wo-metric="volume"]', 'aria-pressed'), 'true');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-wo-metric')), 'volume', 'switching metric restores focus to metric chip');
+    await page.click('[data-wo-metric="best"]');
+    assert.strictEqual(await page.getAttribute('[data-wo-metric="best"]', 'aria-pressed'), 'true');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-wo-metric')), 'best', 'switching back restores focus to best chip');
     await page.click('[data-pick-ex="Pushups"]');
     assert.strictEqual(await page.inputValue('#wo-chart-ex'), 'Pushups');
     const vol = await page.$('#wo-volume');

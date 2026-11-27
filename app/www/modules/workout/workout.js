@@ -416,16 +416,26 @@
 
   function wireHistory() {
     var rows = Object.keys(W.EX).map(function (n) { return { n: n, p: W.performances(S, n), area: W.AREA[n] || 'other' }; }).filter(function (x) { return x.p.length; });
-    function redrawChart() {
+    function redrawChart(focusSel) {
       var wrap = $('#wo-chart-wrap'); if (!wrap) return;
       wrap.innerHTML = exerciseChartHtml(rows);
       $$('.wo-ex').forEach(function (c) { c.classList.toggle('wo-selected', c.dataset.ex === chartEx); });
       wireChartControls();
+      if (focusSel) {
+        var target = $(focusSel, wrap);
+        if (target && target.focus) try { target.focus(); } catch (e) {}
+      }
     }
     function wireChartControls() {
       var sel = $('#wo-chart-ex');
-      if (sel) sel.onchange = function () { chartEx = sel.value; redrawChart(); };
-      $$('[data-wo-metric]').forEach(function (b) { b.onclick = function () { chartMetric = b.dataset.woMetric; redrawChart(); }; });
+      if (sel) sel.onchange = function () { chartEx = sel.value; redrawChart('#wo-chart-ex'); };
+      $$('[data-wo-metric]').forEach(function (b) {
+        b.onclick = function () {
+          var m = b.dataset.woMetric;
+          chartMetric = m;
+          redrawChart('[data-wo-metric="' + m + '"]');
+        };
+      });
     }
     wireChartControls();
     $$('[data-pick-ex]').forEach(function (b) {

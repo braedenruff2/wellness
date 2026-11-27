@@ -546,13 +546,16 @@ t('ageBracket, benchmark, weeklyTrend, exerciseSeries, and age validation', () =
   assert.strictEqual(noAge.kind, 'target'); assert.strictEqual(noAge.high, 20);
   const rowBm = W.benchmark('One-Arm Rows', 34);
   assert.strictEqual(rowBm.kind, 'age'); assert.strictEqual(rowBm.bracket, '30–39');
-  // Every exercise in EX has valid age-group norms across all 5 age brackets
-  const ages = [25, 34, 45, 55, 65];
-  for (const name of Object.keys(W.EX)) {
+  // Every exercise in EX (all 17) has valid age-group norms across all 5 age brackets
+  const exNames = Object.keys(W.EX);
+  assert.strictEqual(exNames.length, 17, '17 exercises in WorkoutCore.EX');
+  const ageCases = [[25, '20–29'], [34, '30–39'], [45, '40–49'], [55, '50–59'], [65, '60+']];
+  for (const name of exNames) {
     const unit = W.EX[name].track === 'sec' ? 'sec' : W.EX[name].track === 'min' ? 'min' : 'reps';
-    for (const age of ages) {
+    for (const [age, bracket] of ageCases) {
       const bm = W.benchmark(name, age);
       assert.strictEqual(bm && bm.kind, 'age', name + ' age ' + age + ' should have an age benchmark');
+      assert.strictEqual(bm.bracket, bracket, name + ' bracket mismatch');
       assert.strictEqual(bm.unit, unit, name + ' unit mismatch');
       assert.ok(bm.low > 0 && bm.low <= bm.avg && bm.avg <= bm.high && bm.high <= bm.good, name + ' age ' + age + ': ' + JSON.stringify(bm));
       assert.ok(bm.source && bm.source.length > 5, name + ' source');
