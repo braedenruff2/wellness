@@ -284,4 +284,15 @@ t('validate keeps the automatic scenario back-off ({day, n 1-3, next}) and drops
   assert.strictEqual(K.validate({ ...base, autoFail: { day: 'x', n: 2, next: 1 } }).autoFail, undefined);
   assert.strictEqual(K.validate({ ...base, autoFail: { day: '2026-11-22', n: 9, next: 1 } }).autoFail, undefined);
 });
+t('recentAdvice: the newest real-situation advice of the last 3 days with its first step', () => {
+  const s = { child: { name: 'M', birth: '2025-11-24' }, history: [], current: null, pending: null, teach: {} };
+  assert.strictEqual(K.recentAdvice(s, new Date(2026, 10, 27)), null);
+  const h = K.addReal(s, 'She cries when put down', { title: 'Crib', summary: 'x', steps: ['Same short routine', 'Stay beside the crib'] }, new Date(2026, 10, 27, 20));
+  assert.deepStrictEqual(K.recentAdvice(s, new Date(2026, 10, 28, 9)), { id: h.id, title: 'Crib', step: 'Same short routine' });
+  assert.strictEqual(K.recentAdvice(s, new Date(2026, 10, 31, 21)), null, 'after 3 days: gone');
+  s.history.push({ id: 'g', at: new Date(2026, 10, 28, 10).toISOString(), title: 'scenario', skill: 'Sleep', result: { score: 7 } });
+  assert.strictEqual(K.recentAdvice(s, new Date(2026, 10, 28, 11)).id, h.id, 'a graded scenario after it doesn\'t hide it');
+  K.addReal(s, 'Another', { summary: 'only a summary' }, new Date(2026, 10, 28, 12));
+  assert.strictEqual(K.recentAdvice(s, new Date(2026, 10, 28, 13)), null, 'the newest advice has no steps: nothing');
+});
 console.log(n + ' coach tests passed');

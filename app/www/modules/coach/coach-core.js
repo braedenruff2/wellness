@@ -264,6 +264,20 @@
     state.pending = null;
     return h;
   }
+  /* The newest advice on a real situation from the last 3 days, with its first step (for Home's card): {id, title, step}
+     or null. */
+  function recentAdvice(state, now) {
+    now = now || new Date();
+    for (var i = (state.history || []).length - 1; i >= 0; i--) {
+      var h = state.history[i];
+      if (!h || h.kind !== 'real') continue;
+      var t = Date.parse(h.at);
+      if (isNaN(t) || t > now.getTime() || now.getTime() - t > 3 * 864e5) return null;
+      var st = h.advice && Array.isArray(h.advice.steps) && h.advice.steps[0];
+      return st ? { id: h.id, title: h.title, step: st } : null;
+    }
+    return null;
+  }
   /* "Practise this": his real situation becomes the scenario to answer and get graded on. */
   function practiseReal(state, id, now) {
     var h = state.history.filter(function (x) { return x.id === id && x.kind === 'real'; })[0]; if (!h) return null;
@@ -409,7 +423,7 @@
   }
 
   var api = { SKILLS: SKILLS, CAN: CAN, TEACH: TEACH, iso: iso, toggleCan: toggleCan, setCanNote: setCanNote, canText: canText, setTeach: setTeach, ackTeachNudge: ackTeachNudge, teachForAge: teachForAge, doneToday: doneToday, scenarioDue: scenarioDue, doneInLast: doneInLast, defaults: defaults, ageMonths: ageMonths, ageText: ageText, skillStats: skillStats, suggestSkill: suggestSkill,
-    scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, practiseReal: practiseReal, tips: tips, tipNotes: tipNotes, workedTips: workedTips, cleanResult: cleanResult, validate: validate };
+    scenarioInput: scenarioInput, setScenario: setScenario, grade: grade, addReal: addReal, recentAdvice: recentAdvice, practiseReal: practiseReal, tips: tips, tipNotes: tipNotes, workedTips: workedTips, cleanResult: cleanResult, validate: validate };
   root.CoachCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

@@ -115,6 +115,22 @@ const DRAFT = 'She cries every time I put her down in the crib unless she is alr
     await page.setViewportSize({ width: 360, height: 760 });
     await page.evaluate(() => localStorage.removeItem('wl.shell.v1'));
   });
+  await t.step('advice he asked for: Home shows its first step for 3 days, with a link to it', async () => {
+    await page.evaluate(() => {
+      localStorage.setItem('wl.coach.v1', JSON.stringify({ child: { name: 'Mila', birth: '2025-11-24' }, current: null, pending: null, teach: {}, realDraft: '', autoTried: '2026-11-22',
+        history: [{ id: 'r1', at: new Date(2026, 10, 21, 20).toISOString(), kind: 'real', title: 'Crib', skill: 'Sleep', scenario: 's', question: '', age: '12 months', answer: '', result: null,
+          advice: { summary: 'x', steps: ['Keep the same short routine every night'], say: [], avoid: [], why: '', watch: '', text: '', sources: [] } }] }));
+    });
+    await page.goto(base + '#coach'); await page.goto(base + '#home'); await page.reload();
+    const card = '.home-card[data-module="coach"]';
+    assert.ok(/From your question: Keep the same short routine/.test(await page.textContent(card + ' #co-advice-step')));
+    assert.strictEqual(await page.locator(card + ' #co-tip').count(), 0, 'no tip line beside it');
+    await page.click(card + ' a[href="#coach/h/r1"]');
+    await page.waitForFunction(() => location.hash === '#coach/h/r1');
+    await page.clock.setSystemTime(new Date(2026, 10, 25, 9, 0));
+    await page.goto(base + '#home'); await page.reload();
+    assert.strictEqual(await page.locator(card + ' #co-advice-step').count(), 0, 'gone after 3 days');
+  });
   await t.step('narrow + no errors', async () => {
     await t.noOverflow(['#home', '#coach', '#coach/real']);
     assert.deepStrictEqual(t.errors, []);

@@ -501,8 +501,12 @@
         : '<a class="btn' + (done ? '' : ' primary') + '" href="#coach">Open</a>';
     return '<div class="meta ui">Parenting practice</div><h3>' + title + '</h3>' +
       (last ? '<p class="meta ui">Last: ' + last.result.score + '/10 in ' + esc(last.skill) + ' · ' + st.length + ' skill' + (st.length === 1 ? '' : 's') + ' practised</p>' : '') +
+      (function () { // advice he asked for lately: its first step, so it gets tried
+        var ra = !S.current && K.recentAdvice(S, new Date());
+        return ra ? '<p class="ui" id="co-advice-step">From your question: <b>' + esc(ra.step.slice(0, 200)) + '</b></p><div class="row ui"><a class="btn" href="#coach/h/' + esc(ra.id) + '">See the advice</a></div>' : '';
+      })() +
       (draftWaiting() ? '<div class="row ui" id="co-draft-line"><span class="grow">Your question is saved, not sent yet.</span><a class="btn" href="#coach/real">Finish and send</a></div>' : '') +
-      (function () { var ts = K.tips(S, null, 50).filter(function (x) { return !tipFlagged(x.id); }); return ts[0] && !S.current ? '<p class="ui" id="co-tip">Try this week: ' + esc(ts[0].text) + '</p>' : ''; })() +
+      (function () { var ts = K.tips(S, null, 50).filter(function (x) { return !tipFlagged(x.id); }); return ts[0] && !S.current && !K.recentAdvice(S, new Date()) ? '<p class="ui" id="co-tip">Try this week: ' + esc(ts[0].text) + '</p>' : ''; })() +
       '<div class="row ui">' + actions + '</div>';
   }
   function wireCard(el) {
