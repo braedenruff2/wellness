@@ -1,5 +1,8 @@
 # Cloud log
 
+## 2026-11-27 13:15 AST (run2 ends)
+- Run2's last local commits (a second take on 244 and a to-do restore fix) were superseded upstream (year.cjs already makes to-dos; complete() now writes at: null, which fixes the same restore difference), so they were dropped, not pushed. 249 and 251 had already landed. No claims left open.
+
 ## 2026-11-27 04:42-05:15 AST (new run after the usage reset; APK 0.1.20261127.0927, real key, cert 6795e499...)
 - Cross-review of Gemini 122f7ae..eb3301e with an independent subagent. Fixed with tests:
   - bug: an automatic Parenting scenario that finished while an advice request was running cleared the advice's saved job and spinner (could be sent twice, lost on restart) / cause: start() set S.pending = null and finish() for any request / fixed: each request clears only its own job and spinner; no auto start while typing on #coach / test: modules/coach/tests/e2e-auto.cjs (fails without the fix) (task 315).
