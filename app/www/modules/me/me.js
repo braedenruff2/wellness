@@ -29,7 +29,9 @@
     var a = K.answers(S, part, about);
     return '<div class="' + (compact ? '' : 'card ') + 'ui me-ask" data-part="' + esc(part) + '" data-about="' + esc(about) + '">' +
       (compact ? '' : '<div class="meta">' + esc(title || 'Quick questions (optional): they help the app fit you') + '</div>') +
-      qs.map(function (q) { return chips('data-me-a="1"', q, a[q.k]); }).join('') + '</div>';
+      qs.map(function (q) { return chips('data-me-a="1"', q, a[q.k]); }).join('') +
+      // his own words too (compact lists, like one tip among many, keep to the chips)
+      (compact ? '' : '<input class="me-ask-note" type="text" maxlength="600" aria-label="In your own words (optional)" placeholder="In your own words (optional)" value="' + esc(K.afterNoteOf(S, part, about)) + '">') + '</div>';
   }
 
   /* "Not for me?" link next to a piece of advice or a practice. Once marked, it stays in the backend (S.feedback)
@@ -116,6 +118,11 @@
   }
 
   /* One click handler for every quick question, check-in chip, plan dismiss, and "Not for me?" anywhere in the app. */
+  document.addEventListener('input', function (e) {
+    var n = e.target; if (!n || !n.classList || !n.classList.contains('me-ask-note')) return;
+    var box = n.closest('.me-ask'); if (!box) return;
+    if (K.afterNote(S, box.dataset.part, box.dataset.about, n.value, now(), new Date()) || !n.value.trim()) save();
+  });
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-me-a],[data-me-ck],[data-me-fit],[data-me-plan-dismiss]');
     if (!b) return;

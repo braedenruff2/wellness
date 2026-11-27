@@ -176,6 +176,7 @@ p.ok { color: var(--good); } p.no { color: var(--warn); }
 .me-g li { margin: .35em 0; }
 .me-plan { border-left: 3px solid currentColor; }
 #me-ck-note { margin-top: 10px; width: 100%; }
+.me-ask-note { margin-top: 10px; width: 100%; }
 
 /* The hidden attribute always hides (a button's display: flex used to win: the calm "Pause" button stayed after the end) */
 [hidden] { display: none !important; }

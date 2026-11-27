@@ -74,6 +74,21 @@
     trim(state);
     return f;
   }
+  /* His own words with the quick questions ("the bubbles are too limiting"): saved as the entry's note (to 600
+     characters), sent with the activity log like a "Not for me" note. Clearing it removes the note. */
+  function afterNote(state, part, about, text, now, real) {
+    if (!questions(part).length || !about) return null;
+    now = now || new Date();
+    var note = cut(String(text == null ? '' : text).replace(/\s+/g, ' ').trim(), 600);
+    var id = part + '/after/' + cut(about, 80), f = find(state, id);
+    if (!f && !note) return null;
+    if (!f) { f = { id: id, at: now.toISOString(), part: part, about: cut(about, 80), kind: 'after', a: {} }; state.feedback.push(f); }
+    if (note) f.note = note; else delete f.note;
+    f.edited = (real || now).toISOString();
+    trim(state);
+    return f;
+  }
+  function afterNoteOf(state, part, about) { var f = find(state, part + '/after/' + cut(about, 80)); return (f && f.note) || ''; }
   function answers(state, part, about) { var f = find(state, part + '/after/' + cut(about, 80)); return f ? f.a : {}; }
 
   /* "Not for me": what it was about (part + about + the text he saw), why (reasons from REASONS), an optional note. */
@@ -485,7 +500,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
+    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, afterNote: afterNote, afterNoteOf: afterNoteOf, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

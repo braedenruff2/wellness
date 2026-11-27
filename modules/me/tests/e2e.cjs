@@ -31,10 +31,13 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(await page.isVisible('#c-after .me-ask'));
     await page.click('#c-after [data-me-a][data-k="helped"][data-v="A lot"]');
     await page.click('#c-after [data-me-a][data-k="block"][data-v="Interrupted"]');
+    assert.strictEqual(await page.getAttribute('#c-after .me-ask-note', 'aria-label'), 'In your own words (optional)');
+    await page.fill('#c-after .me-ask-note', '  the baby woke halfway  ');
     await page.click('#c-save');
     const s = await me(), f = s.feedback.find((x) => x.part === 'calm');
     assert.ok(/^sigh@2026-11-20/.test(f.about), f.about);
     assert.deepStrictEqual(f.a, { helped: 'A lot', block: ['Interrupted'] });
+    assert.strictEqual(f.note, 'the baby woke halfway', 'his own words saved with the answers');
   });
   await t.step('"Not for me?" opens reasons, saves them with the words shown, and Calm stops suggesting it', async () => {
     await page.clock.setSystemTime(new Date(2026, 10, 21, 15, 0)); await page.goto(base + '#calm'); await page.reload();
@@ -65,8 +68,11 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('[data-me-a][data-k="pain"][data-v="None"]');
     const f = (await me()).feedback.find((x) => x.part === 'workout');
     assert.deepStrictEqual(f.a, { hard: 'Too hard', pain: 'None' });
+    await page.fill('.me-ask[data-part="workout"] .me-ask-note', 'left knee felt odd on split squats');
+    assert.strictEqual((await me()).feedback.find((x) => x.part === 'workout').note, 'left knee felt odd on split squats', 'saved as he types (no button)');
     await page.goto(base + '#workout');
     assert.strictEqual(await page.getAttribute('[data-me-a][data-k="hard"][data-v="Too hard"]', 'aria-pressed'), 'true', 'kept after leaving');
+    assert.strictEqual(await page.inputValue('.me-ask[data-part="workout"] .me-ask-note'), 'left knee felt odd on split squats', 'words kept after leaving');
   });
   await t.step('About you page lists check-ins, flags and the plan state; activity log carries it all', async () => {
     await page.goto(base + '#me');

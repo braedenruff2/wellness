@@ -621,4 +621,28 @@ t('600 answers at most: the oldest quick answers go, an old "Not for me" mark st
   assert.strictEqual(K.answers(s, 'calm', 'sigh@619').helped, 'A bit', 'newest kept');
   assert.strictEqual(K.answers(s, 'calm', 'sigh@0').helped, undefined, 'oldest answer dropped');
 });
+t('quick questions: his own words saved as the note (trimmed, 600 max), with or without a chip; cleared removes it; restore keeps it', () => {
+  const s = K.defaults(), A = require('../../../app/www/lib/activity.js');
+  assert.strictEqual(K.afterNote(s, 'faith', 'day:10@2026-11-27T23:15', '   ', D(27)), null, 'nothing typed, nothing saved');
+  assert.strictEqual(s.feedback.length, 0);
+  const f = K.afterNote(s, 'faith', 'day:10@2026-11-27T23:15', '  The line about\n rest   hit me  ', D(27, 20), D(27, 21));
+  assert.strictEqual(f.note, 'The line about rest hit me');
+  assert.deepStrictEqual(f.a, {});
+  assert.strictEqual(f.edited, D(27, 21).toISOString(), 'edited = the real time');
+  K.answer(s, 'faith', 'day:10@2026-11-27T23:15', 'felt', 'Peaceful', D(27, 20));
+  assert.strictEqual(s.feedback.length, 1, 'one entry for chips and words');
+  assert.deepStrictEqual([s.feedback[0].a.felt, s.feedback[0].note], ['Peaceful', 'The line about rest hit me']);
+  assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:10@2026-11-27T23:15'), 'The line about rest hit me');
+  assert.strictEqual(K.afterNote(s, 'faith', 'day:10@2026-11-27T23:15', 'x'.repeat(900), D(27)).note.length, 600);
+  assert.strictEqual(K.afterNote(s, 'nope', 'x', 'hi', D(27)), null, 'a part with no questions');
+  K.afterNote(s, 'faith', 'day:10@2026-11-27T23:15', 'The line about rest hit me', D(27));
+  const back = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(back.feedback[0].note, 'The line about rest hit me', 'kept through a restore');
+  const ev = []; A.collect({ 'wl.me.v1': s }, {}, D(28)).forEach((e) => ev.push(e));
+  const fb = ev.find((e) => e.kind === 'feedback');
+  assert.ok(fb && /rest hit me/.test(fb.text), 'goes with the activity log (summary for advice and plans)');
+  K.afterNote(s, 'faith', 'day:10@2026-11-27T23:15', '', D(27));
+  assert.strictEqual(s.feedback[0].note, undefined, 'cleared');
+  assert.strictEqual(s.feedback[0].a.felt, 'Peaceful', 'chips untouched');
+});
 console.log(n + ' me unit tests passed');
