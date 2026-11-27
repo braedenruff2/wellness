@@ -233,14 +233,15 @@
 
   /* Every word met: the hard ones first (most often wrong), then the rest, known-well ones marked; tap 🔊 to hear. */
   /* Where a word came from when it wasn't a lesson: a recipe he cooked (card.from 'cook/<id>'). */
-  function fromLine(c) {
+  function fromLine(c, cookState) {
     var m = /^cook\/(.+)$/.exec(String(c.from || '')); if (!m) return '';
-    var r = window.CookCore && CookCore.recipeById ? CookCore.recipeById(null, m[1]) : null;
+    var r = window.CookCore && CookCore.recipeById ? CookCore.recipeById(cookState, m[1]) : null;
     return '<span class="tl-from"> · from ' + esc(r ? String(r.title).split(' (')[0] : 'a recipe') + '</span>';
   }
   function wordsHtml() {
     var keys = Object.keys(S.cards), hard = T.weakWords(S, 10), known = keys.filter(function (k) { return S.cards[k].box >= 3; });
-    var row = function (k) { var c = S.cards[k]; return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(c.en) + ((c.seen || 0) >= 2 ? '<span class="tl-score"> · right ' + (c.right || 0) + ' of ' + c.seen + '</span>' : '') + (c.againMiss > 0 ? '<span class="tl-again"> · missed again ' + (c.againMiss > 1 ? c.againMiss + '×' : 'once') + '</span>' : '') + fromLine(c) + '</span></span>' + (c.box >= 3 ? '<span class="tick" title="known well">✓</span>' : '') + hear(k) + '</li>'; };
+    var cookState = null; try { cookState = JSON.parse(localStorage.getItem('wl.cook.v1') || 'null'); } catch (e) {}
+    var row = function (k) { var c = S.cards[k]; return '<li class="row"><span class="grow"><b lang="tl">' + esc(k) + '</b><br><span class="meta">' + esc(c.en) + ((c.seen || 0) >= 2 ? '<span class="tl-score"> · right ' + (c.right || 0) + ' of ' + c.seen + '</span>' : '') + (c.againMiss > 0 ? '<span class="tl-again"> · missed again ' + (c.againMiss > 1 ? c.againMiss + '×' : 'once') + '</span>' : '') + fromLine(c, cookState) + '</span></span>' + (c.box >= 3 ? '<span class="tick" title="known well">✓</span>' : '') + hear(k) + '</li>'; };
     var h = subnav('') + '<h1>Your words</h1><p class="meta ui">' + keys.length + ' met · ' + known.length + ' known well (✓).</p>';
     if (keys.length >= 10) h += '<div class="ui" style="margin:8px 0"><label class="sr" for="tl-word-search">Search your words</label><input type="search" id="tl-word-search" placeholder="Search Tagalog or English" autocomplete="off"><span class="meta" id="tl-word-found"></span></div>';
     if (hard.length) h += '<div class="card"><h2>Hard ones</h2><p class="meta ui">Missed most often. Say each one out loud a few times.</p><ul class="list" id="tl-hard">' + hard.map(row).join('') + '</ul>' +

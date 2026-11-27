@@ -552,6 +552,54 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.waitForFunction(() => document.getElementById('ck-pantry-list').textContent.includes('Avocado'));
   });
 
+  await t.step('387: AI meal plan Filipino dish with words shows "In Tagalog", offers "Add N Tagalog words" after Made it, and names the dish in Your words', async () => {
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.cook.v1'));
+      s.plan.days['2026-11-26'].dinner = { recipeId: null, title: '', status: 'planned', note: '' };
+      const ok = CookCore.applyAiPlan(s, {
+        note: 'Filipino family night.',
+        days: [{
+          date: '2026-11-26',
+          dinner: {
+            title: 'Kare-kare (peanut stew)', mins: 45, protein: '~32 g protein',
+            ingredients: [{ name: 'peanut butter', qty: 4, unit: 'tbsp', cat: 'pantry' }, { name: 'eggplant', qty: 1, unit: 'pcs', cat: 'produce' }],
+            steps: ['Simmer meat until tender.', 'Stir in peanut sauce and eggplant.'],
+            words: [{ tl: 'mani', en: 'peanut' }, { tl: 'talong', en: 'eggplant' }, { tl: 'bagoong', en: 'shrimp paste' }]
+          }
+        }]
+      }, new Date(2026, 10, 26, 12, 0));
+      if (!ok) throw new Error('applyAiPlan returned false');
+      localStorage.setItem('wl.cook.v1', JSON.stringify(s));
+      if (WL.modules.cook && WL.modules.cook.reload) WL.modules.cook.reload();
+    });
+    await page.goto(base + '#cook');
+    await page.waitForSelector('[data-ck-meal="dinner"] summary');
+    assert.ok((await page.textContent('[data-ck-meal="dinner"] h3')).includes('Kare-kare'));
+    await page.click('[data-ck-meal="dinner"] summary');
+    const tlTxt = await page.textContent('[data-ck-meal="dinner"] .ck-tl');
+    assert.ok(tlTxt.includes('In Tagalog:') && tlTxt.includes('mani') && tlTxt.includes('peanut') && tlTxt.includes('talong') && tlTxt.includes('eggplant'), tlTxt);
+    await page.evaluate(() => { window.__said = []; WL.speech.speak = (text, done, o) => { window.__said.push([text, o && o.lang]); }; });
+    await page.click('[data-ck-meal="dinner"] [data-tl-say="talong"]');
+    assert.deepStrictEqual(await page.evaluate(() => window.__said), [['talong', 'fil-PH']]);
+
+    await page.click('[data-ck-made="dinner"]');
+    const addSel = '[data-ck-tl-add="ai-2026-11-26-dinner"]';
+    await page.waitForSelector(addSel);
+    assert.ok((await page.textContent(addSel)).includes('Add 3 Tagalog words'), await page.textContent(addSel));
+    await page.click(addSel);
+    await page.waitForSelector('[data-ck-meal="dinner"] .ck-tl-added');
+    const addedTxt = await page.textContent('[data-ck-meal="dinner"] .ck-tl-added');
+    assert.ok(addedTxt.includes('mani') && addedTxt.includes('talong') && addedTxt.includes('bagoong'), addedTxt);
+    const tlCards = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')).cards);
+    assert.strictEqual(tlCards.talong && tlCards.talong.from, 'cook/ai-2026-11-26-dinner');
+    assert.strictEqual(tlCards.mani && tlCards.mani.from, 'cook/ai-2026-11-26-dinner');
+
+    await page.goto(base + '#tagalog/words');
+    await page.waitForSelector('#view h1');
+    const wordsTxt = await page.textContent('#view');
+    assert.ok(wordsTxt.includes('talong') && wordsTxt.includes('from Kare-kare'), 'AI dish title shown in Your words: ' + wordsTxt.slice(0, 400));
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('cook e2e');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
