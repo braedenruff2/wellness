@@ -161,6 +161,16 @@ const W = require('./lib/web.cjs');
       return { t: (e.textContent || e.id || e.placeholder || '').trim().slice(0, 25), r: +((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).toFixed(2) };
     });
   }, root);
+  // SVG chart labels: their colour is `fill`, against the card behind the chart
+  const svgContrast = (sel) => page.evaluate((s) => {
+    const rgb = (x) => (x.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
+    const lum = (c) => { c = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const bg = (e) => { while (e) { const b = getComputedStyle(e).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return rgb(b); e = e.parentElement; } return [255, 255, 255]; };
+    return Array.from(document.querySelectorAll(s)).filter((e) => e.textContent.trim()).map((e) => {
+      const a = lum(rgb(getComputedStyle(e).fill)), b = lum(bg(e.closest('svg').parentElement));
+      return { t: e.textContent.trim().slice(0, 20), r: +((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).toFixed(2) };
+    });
+  }, sel);
   async function openBuildExercise() {
     await page.goto(base + '#tagalog/l/2026-11-18/1'); await page.reload(); await page.waitForSelector('#tl-ex');
     for (let step = 0; step < 8; step++) {
@@ -384,6 +394,12 @@ const W = require('./lib/web.cjs');
       await page.goto(base + '#workout/history'); await page.waitForSelector('#wo-areas'); await page.waitForSelector('#wo-4w');
       assert.deepStrictEqual((await contrast('#wo-4w')).filter((x) => x.r < min), [], theme + ' #wo-4w');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #workout/history');
+      for (const sel of ['#wo-weekly-chart text', '#wo-ex-svg text']) {
+        const lbl = await svgContrast(sel);
+        if (sel.startsWith('#wo-weekly')) assert.ok(lbl.length >= 8, 'weekly chart has its labels: ' + lbl.length);
+        assert.deepStrictEqual(lbl.filter((x) => x.r < min), [], theme + ' ' + sel);
+      }
+      assert.deepStrictEqual((await contrast('#wo-chart-card')).filter((x) => x.r < min), [], theme + ' #wo-chart-card (incl. #wo-bench-note)');
       await page.goto(base + '#workout/settings'); await page.waitForSelector('[data-hard]');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #workout/settings');
       await page.goto(base + '#faith/journal'); await page.waitForSelector('#j-search');
