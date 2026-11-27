@@ -618,4 +618,22 @@ t('validate keeps a session as the app saved it: no empty "removed" added; real 
   assert.deepStrictEqual(v.sessions[1].removed, [{ at: '2026-11-21T12:05:00.000Z', i: 0 }]);
   assert.deepStrictEqual(W.validate(JSON.parse(JSON.stringify(v))), v, 'a restore of a restore is unchanged');
 });
+t('a workout from 23:30 Sunday to 00:20 Monday counts for Sunday everywhere (last week), not as Monday', () => {
+  // Sun 1 Nov 2026 is also the night the clocks go back in Halifax: run the same check on 1 Nov and on 29 Nov
+  for (const sun of [1, 29]) {
+    const s = W.defaults();
+    W.logSet(s, 'A', 0, 10, 10, new Date(2026, 10, sun, 23, 30));
+    W.logSet(s, 'A', 1, 12, null, new Date(2026, 10, sun, 23, 50));
+    W.logSet(s, 'A', 0, 10, 10, new Date(2026, 10, sun + 1, 0, 15));
+    W.endSession(s, new Date(2026, 10, sun + 1, 0, 20));
+    assert.strictEqual(s.sessions.length, 1, 'one session');
+    assert.strictEqual(s.sessions[0].sets.length, 3, 'the set after midnight is in it');
+    assert.strictEqual(s.sessions[0].date, W.iso(new Date(2026, 10, sun)), 'dated the day it began');
+    const mon = new Date(2026, 10, sun + 1, 9);
+    assert.strictEqual(W.weekStats(s, mon).thisWeek, 0, 'Monday: a new week, nothing yet');
+    assert.strictEqual(W.finishedToday(s, mon), null, 'Monday is not "done for today"');
+    assert.strictEqual(W.weekStats(s, new Date(2026, 10, sun, 23, 59)).thisWeek, 1, 'Sunday counts it');
+    assert.ok(!/Done for today/.test(W.coach(s, mon)), W.coach(s, mon));
+  }
+});
 console.log(n + ' workout unit tests passed');
