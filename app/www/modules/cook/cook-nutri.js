@@ -45,117 +45,169 @@
     ['filipino', 'Filipino']
   ];
 
-  /* Compact everyday food table: 1 standard adult serving (rough USDA-based estimates).
+  /* Broad everyday food table: 1 standard adult serving (rough USDA-based estimates).
      [id, name, cat, serving, kcal, pro, carb, fat, fib, iron, ca, vitc, k, aliases] */
   var RAW_FOODS = [
-    // Everyday / Breakfast / Breads & Dairy
-    ['toast', 'White / brioche bread / toast', 'common', '1 slice', 120, 3.5, 20, 3, 0.8, 0.9, 40, 0, 45, ['brioche', 'white brioche', 'brioche toast', 'white bread', 'bread', 'toast', 'bun', 'dinner roll']],
-    ['wholegrain', 'Whole-grain / whole-wheat bread', 'dairy', '1 slice', 82, 4, 14, 1.1, 2, 0.7, 30, 0, 70, ['whole wheat bread', 'whole grain bread', 'whole wheat toast', 'sourdough']],
+    // Everyday / Breakfast / Breads & Grains
+    ['toast', 'White / brioche bread / toast', 'common', '1 slice', 120, 3.5, 20, 3, 0.8, 0.9, 40, 0, 45, ['brioche', 'white brioche', 'brioche toast', 'white bread', 'bread', 'toast', 'bun', 'dinner roll', 'garlic bread']],
+    ['wholegrain', 'Whole-grain / whole-wheat bread', 'dairy', '1 slice', 82, 4, 14, 1.1, 2, 0.7, 30, 0, 70, ['whole wheat bread', 'whole grain bread', 'whole wheat toast', 'multigrain bread', 'rye bread', 'sourdough']],
     ['bagel', 'Bagel', 'dairy', '1 medium', 270, 10, 53, 1.5, 2.3, 3.6, 20, 0, 100, ['bagels', 'everything bagel']],
     ['englishmuffin', 'English muffin', 'dairy', '1 muffin', 135, 5, 26, 1, 1.5, 1.6, 95, 0, 75, ['english muffin']],
-    ['pancake', 'Pancakes / waffles', 'common', '2 medium', 240, 6, 36, 8, 1.5, 2.1, 160, 0, 140, ['pancakes', 'waffle', 'waffles']],
+    ['croissant', 'Croissant', 'dairy', '1 medium', 235, 5, 26, 12, 1.5, 1.2, 22, 0, 70, ['croissants']],
+    ['biscuit', 'Biscuit / scone', 'dairy', '1 medium', 220, 4.5, 29, 9.5, 1, 1.6, 80, 0, 95, ['scone', 'tea biscuit', 'buttermilk biscuit']],
+    ['naan', 'Naan / flatbread', 'dairy', '1 piece', 260, 8, 45, 5, 2, 2.5, 65, 0, 110, ['flatbread', 'garlic naan', 'roti']],
+    ['pancake', 'Pancakes / waffles', 'common', '2 medium', 240, 6, 36, 8, 1.5, 2.1, 160, 0, 140, ['pancakes', 'waffle', 'waffles', 'crepe', 'crepes']],
     ['frenchtoast', 'French toast', 'common', '2 slices', 320, 11, 36, 14, 1.5, 2.2, 130, 0, 175, ['french toast']],
-    ['cereal', 'Breakfast cereal with milk', 'common', '1 bowl', 240, 8, 42, 4.5, 3, 4.5, 220, 0, 260, ['cereal', 'cheerios', 'corn flakes', 'bran flakes']],
+    ['cereal', 'Breakfast cereal with milk', 'common', '1 bowl', 240, 8, 42, 4.5, 3, 4.5, 220, 0, 260, ['cereal', 'cheerios', 'corn flakes', 'bran flakes', 'shreddies', 'rice krispies']],
     ['granola', 'Granola', 'dairy', '1/2 cup', 240, 6, 32, 10, 4, 1.8, 35, 0, 220, ['granola']],
-    ['egg', 'Egg', 'common', '1 large egg', 72, 6.3, 0.4, 5, 0, 0.9, 28, 0, 69, ['eggs', 'scrambled egg', 'scrambled eggs', 'boiled egg', 'fried egg', 'poached egg', 'omelette', 'omelet']],
-    ['oatmeal', 'Oatmeal (cooked)', 'common', '1 cup', 158, 6, 27, 3.2, 4, 2.1, 21, 0, 164, ['rolled oats', 'oats', 'porridge']],
-    ['yogurt', 'Greek yogurt (plain)', 'common', '3/4 cup', 130, 15, 6, 5, 0, 0.1, 187, 0, 240, ['greek yogurt', 'plain yogurt', 'yogurt', 'yoghurt']],
-    ['milk', 'Whole milk', 'dairy', '1 cup', 149, 8, 12, 8, 0, 0.1, 276, 0, 322, ['cow milk', 'dairy milk', '2% milk', 'skim milk']],
-    ['oatmilk', 'Fortified oat/soy milk', 'dairy', '1 cup', 110, 5, 14, 3.5, 2, 0.6, 300, 0, 320, ['oat milk', 'soy milk', 'almond milk']],
-    ['cheese', 'Cheddar / mozzarella cheese', 'dairy', '30 g', 115, 7, 0.5, 9.5, 0, 0.2, 200, 0, 28, ['cheddar', 'mozzarella', 'shredded cheese', 'cheese slice', 'parmesan']],
+    ['breakfastsand', 'Breakfast sandwich / wrap', 'meals', '1 sandwich', 390, 19, 32, 20, 1.8, 2.6, 210, 0, 250, ['breakfast sandwich', 'breakfast wrap', 'breakfast burrito', 'egg mcmuffin', 'bacon egger']],
+    ['egg', 'Egg', 'common', '1 large egg', 72, 6.3, 0.4, 5, 0, 0.9, 28, 0, 69, ['eggs', 'scrambled egg', 'scrambled eggs', 'boiled egg', 'hard boiled egg', 'fried egg', 'poached egg', 'omelette', 'omelet']],
+    ['eggwhite', 'Egg whites', 'protein', '1/2 cup', 63, 13, 0.9, 0.2, 0, 0.1, 9, 0, 200, ['egg whites', 'egg white']],
+    ['oatmeal', 'Oatmeal (cooked)', 'common', '1 cup', 158, 6, 27, 3.2, 4, 2.1, 21, 0, 164, ['rolled oats', 'oats', 'porridge', 'cream of wheat']],
+    ['yogurt', 'Greek yogurt (plain)', 'common', '3/4 cup', 130, 15, 6, 5, 0, 0.1, 187, 0, 240, ['greek yogurt', 'plain yogurt', 'yogurt', 'yoghurt', 'kefir']],
+    ['fruityogurt', 'Flavoured / fruit yogurt', 'dairy', '3/4 cup', 150, 6, 24, 3, 0, 0.1, 190, 2, 240, ['fruit yogurt', 'vanilla yogurt', 'strawberry yogurt', 'yogurt cup', 'yogurt tube']],
+    ['milk', 'Whole milk', 'dairy', '1 cup', 149, 8, 12, 8, 0, 0.1, 276, 0, 322, ['cow milk', 'dairy milk', '2% milk', '1% milk', 'skim milk']],
+    ['chocmilk', 'Chocolate milk', 'snacks', '1 cup', 190, 8, 26, 5, 1, 0.6, 280, 0, 410, ['chocolate milk']],
+    ['oatmilk', 'Fortified oat / soy / almond milk', 'dairy', '1 cup', 110, 5, 14, 3.5, 2, 0.6, 300, 0, 320, ['oat milk', 'soy milk', 'almond milk']],
+    ['cheese', 'Cheddar / mozzarella cheese', 'dairy', '30 g', 115, 7, 0.5, 9.5, 0, 0.2, 200, 0, 28, ['cheddar', 'mozzarella', 'swiss cheese', 'feta', 'shredded cheese', 'cheese slice', 'parmesan', 'brie']],
     ['creamcheese', 'Cream cheese', 'dairy', '2 tbsp', 100, 1.8, 1.6, 10, 0, 0.1, 28, 0, 40, ['cream cheese']],
-    ['cottage', 'Cottage cheese', 'dairy', '1/2 cup', 110, 14, 4, 4.5, 0, 0.1, 95, 0, 120, ['cottage cheese']],
-    ['rice', 'Cooked rice', 'common', '1 cup', 205, 4.3, 45, 0.4, 0.6, 1.9, 16, 0, 55, ['white rice', 'jasmine rice', 'brown rice', 'steamed rice']],
-    ['pasta', 'Cooked pasta', 'dairy', '1 cup', 220, 8, 43, 1.3, 2.5, 1.8, 10, 0, 62, ['spaghetti', 'macaroni', 'noodles', 'penne', 'fusilli']],
+    ['cottage', 'Cottage cheese', 'dairy', '1/2 cup', 110, 14, 4, 4.5, 0, 0.1, 95, 0, 120, ['cottage cheese', 'ricotta']],
+    ['sourcream', 'Sour cream / mayo / ranch', 'dairy', '2 tbsp', 110, 0.6, 1.2, 11, 0, 0, 25, 0, 35, ['sour cream', 'mayo', 'mayonnaise', 'ranch', 'ranch dressing']],
+    ['rice', 'Cooked rice', 'common', '1 cup', 205, 4.3, 45, 0.4, 0.6, 1.9, 16, 0, 55, ['white rice', 'jasmine rice', 'brown rice', 'basmati rice', 'steamed rice', 'kanin']],
+    ['quinoa', 'Cooked quinoa / couscous', 'dairy', '1 cup', 222, 8, 39, 3.6, 5.2, 2.8, 31, 0, 318, ['couscous', 'barley', 'bulgur']],
+    ['pasta', 'Cooked pasta', 'dairy', '1 cup', 220, 8, 43, 1.3, 2.5, 1.8, 10, 0, 62, ['spaghetti', 'macaroni', 'noodles', 'penne', 'fusilli', 'linguine', 'fettuccine']],
     ['tortilla', 'Flour / corn tortilla', 'dairy', '1 medium', 140, 3.5, 24, 3.5, 1.5, 1.4, 45, 0, 60, ['wrap', 'wraps', 'pita']],
     ['pb', 'Peanut butter', 'common', '1 tbsp', 94, 4, 3.2, 8, 1, 0.3, 8, 0, 104, ['pb', 'almond butter', 'nut butter', 'sunbutter']],
-    ['butter', 'Butter / olive oil', 'dairy', '1 tsp', 36, 0, 0, 4, 0, 0, 1, 0, 1, ['olive oil', 'margarine', 'oil']],
-    ['jam', 'Jam / maple syrup', 'dairy', '1 tbsp', 52, 0, 13, 0, 0.2, 0.1, 8, 1, 25, ['jelly', 'maple syrup', 'syrup', 'strawberry jam']],
-    ['hummus', 'Hummus', 'dairy', '2 tbsp', 70, 2.4, 6, 4.2, 1.8, 0.7, 15, 0, 75, ['chickpea dip']],
+    ['nutella', 'Nutella / chocolate spread', 'snacks', '1 tbsp', 100, 1, 11, 5.5, 0.5, 0.4, 15, 0, 75, ['chocolate spread', 'hazelnut spread']],
+    ['butter', 'Butter / olive oil', 'dairy', '1 tsp', 36, 0, 0, 4, 0, 0, 1, 0, 1, ['olive oil', 'margarine', 'oil', 'ghee']],
+    ['jam', 'Jam / maple syrup', 'dairy', '1 tbsp', 52, 0, 13, 0, 0.2, 0.1, 8, 1, 25, ['jelly', 'maple syrup', 'syrup', 'strawberry jam', 'honey']],
+    ['gravy', 'Gravy / ketchup / BBQ sauce', 'dairy', '2 tbsp', 40, 0.8, 6, 1.5, 0.2, 0.2, 6, 1, 75, ['ketchup', 'bbq sauce', 'barbecue sauce', 'brown gravy']],
+    ['hummus', 'Hummus', 'dairy', '2 tbsp', 70, 2.4, 6, 4.2, 1.8, 0.7, 15, 0, 75, ['chickpea dip', 'tzatziki']],
 
-    // Everyday Western / North American Meals
+    // Everyday Western / North American / Canadian Meals
+    ['pbj', 'PB&J sandwich', 'meals', '1 sandwich', 380, 13, 48, 16, 3.5, 2.3, 95, 1, 245, ['pb&j', 'pb and j', 'peanut butter and jelly', 'peanut butter and jam']],
     ['grilledcheese', 'Grilled cheese sandwich', 'meals', '1 sandwich', 380, 14, 34, 21, 1.5, 2.2, 320, 0, 160, ['grilled cheese']],
-    ['sandwich', 'Deli / turkey / ham sandwich', 'meals', '1 sandwich', 390, 24, 40, 14, 3, 2.8, 180, 5, 420, ['turkey sandwich', 'ham sandwich', 'chicken sandwich', 'club sandwich', 'sub', 'blt']],
-    ['burger', 'Burger / cheeseburger', 'meals', '1 burger', 520, 28, 38, 28, 2, 4.2, 210, 4, 460, ['cheeseburger', 'hamburger', 'beef burger', 'veggie burger']],
-    ['pizza', 'Pizza', 'meals', '1 slice', 285, 12, 36, 10, 2.5, 2.4, 200, 2, 185, ['cheese pizza', 'pepperoni pizza', 'pizza slice']],
+    ['sandwich', 'Deli / turkey / ham sandwich', 'meals', '1 sandwich', 390, 24, 40, 14, 3, 2.8, 180, 5, 420, ['turkey sandwich', 'ham sandwich', 'chicken sandwich', 'club sandwich', 'egg salad sandwich', 'tuna sandwich', 'tuna melt', 'pulled pork sandwich', 'sub', 'blt', 'panini']],
+    ['burger', 'Burger / cheeseburger', 'meals', '1 burger', 520, 28, 38, 28, 2, 4.2, 210, 4, 460, ['cheeseburger', 'hamburger', 'beef burger', 'chicken burger', 'veggie burger', 'big mac', 'whopper']],
+    ['poutine', 'Poutine', 'meals', '1 medium', 680, 22, 68, 36, 5, 2.0, 380, 10, 820, ['poutine']],
+    ['pizza', 'Pizza', 'meals', '1 slice', 285, 12, 36, 10, 2.5, 2.4, 200, 2, 185, ['cheese pizza', 'pepperoni pizza', 'pizza slice', 'calzone']],
     ['maccheese', 'Mac and cheese', 'meals', '1 cup', 340, 12, 42, 14, 2, 1.8, 220, 0, 210, ['mac & cheese', 'mac n cheese', 'kd', 'kraft dinner']],
-    ['bolognese', 'Spaghetti & meat sauce', 'meals', '1 bowl', 490, 26, 56, 17, 5, 4.2, 85, 16, 680, ['meat sauce', 'spaghetti bolognese', 'pasta with meat sauce']],
-    ['alfredo', 'Pasta alfredo', 'meals', '1 bowl', 540, 18, 52, 28, 2.5, 2.1, 240, 0, 210, ['fettuccine alfredo', 'chicken alfredo']],
-    ['nuggets', 'Chicken nuggets / tenders', 'meals', '5 pieces', 280, 15, 16, 17, 0.8, 1.0, 20, 0, 240, ['chicken nuggets', 'chicken tenders', 'chicken strips', 'chicken fingers']],
-    ['fishsticks', 'Fish sticks / breaded fish', 'meals', '4 pieces', 260, 13, 22, 13, 1, 0.9, 25, 0, 270, ['fish sticks', 'fish and chips', 'breaded fish']],
+    ['bolognese', 'Spaghetti & meat sauce', 'meals', '1 bowl', 490, 26, 56, 17, 5, 4.2, 85, 16, 680, ['meat sauce', 'spaghetti bolognese', 'pasta with meat sauce', 'spaghetti and meatballs']],
+    ['lasagna', 'Lasagna', 'meals', '1 piece', 480, 26, 40, 24, 3.5, 3.2, 320, 10, 520, ['meat lasagna', 'veggie lasagna']],
+    ['ravioli', 'Ravioli / tortellini', 'meals', '1 bowl', 380, 15, 50, 13, 3, 2.6, 160, 4, 280, ['tortellini', 'cheese ravioli', 'gnocchi']],
+    ['alfredo', 'Pasta alfredo / carbonara', 'meals', '1 bowl', 540, 18, 52, 28, 2.5, 2.1, 240, 0, 210, ['fettuccine alfredo', 'chicken alfredo', 'carbonara', 'pesto pasta']],
+    ['shepherdspie', 'Shepherd’s pie / cottage pie', 'meals', '1 serving', 430, 24, 38, 20, 4, 3.6, 75, 14, 780, ['shepherds pie', 'cottage pie', 'pate chinois']],
+    ['beefstew', 'Beef stew / pot roast', 'meals', '1 bowl', 380, 28, 26, 18, 3.5, 4.0, 50, 16, 820, ['pot roast', 'irish stew', 'roast dinner']],
+    ['meatloaf', 'Meatloaf', 'meals', '1 thick slice', 330, 24, 14, 20, 1, 3.2, 55, 4, 410, ['meatloaf', 'salisbury steak']],
+    ['ribs', 'BBQ pork ribs', 'meals', '4 ribs', 480, 32, 18, 30, 0.5, 2.2, 65, 2, 520, ['pork ribs', 'bbq ribs', 'baby back ribs']],
+    ['potpie', 'Chicken pot pie', 'meals', '1 serving', 460, 18, 42, 24, 3, 2.4, 70, 6, 420, ['chicken pot pie', 'meat pie', 'tourtiere']],
+    ['chickenparm', 'Chicken parmesan', 'meals', '1 serving', 510, 38, 28, 26, 2.5, 2.6, 280, 10, 560, ['chicken parm', 'chicken parmesan']],
+    ['wings', 'Chicken wings', 'meals', '6 wings', 440, 30, 8, 32, 0.5, 1.8, 30, 0, 320, ['chicken wings', 'buffalo wings', 'honey garlic wings']],
+    ['nuggets', 'Chicken nuggets / tenders', 'meals', '5 pieces', 280, 15, 16, 17, 0.8, 1.0, 20, 0, 240, ['chicken nuggets', 'chicken tenders', 'chicken strips', 'chicken fingers', 'fried chicken']],
+    ['fishsticks', 'Fish sticks / fish & chips', 'meals', '4 pieces', 260, 13, 22, 13, 1, 0.9, 25, 0, 270, ['fish sticks', 'fish and chips', 'fish & chips', 'breaded fish']],
+    ['chowder', 'Seafood / clam / corn chowder', 'meals', '1 bowl', 320, 14, 28, 17, 2.5, 2.2, 160, 10, 540, ['seafood chowder', 'clam chowder', 'corn chowder', 'fish chowder']],
     ['chili', 'Beef / bean chili', 'meals', '1 bowl', 360, 24, 32, 14, 9, 4.5, 95, 18, 720, ['chili con carne', 'turkey chili']],
-    ['chickensoup', 'Chicken noodle soup', 'meals', '1 bowl', 190, 12, 22, 6, 2, 1.4, 35, 4, 360, ['chicken noodle soup', 'chicken soup']],
-    ['tomatosoup', 'Tomato soup', 'meals', '1 bowl', 170, 4, 26, 6, 3, 1.2, 60, 22, 480, ['tomato soup']],
-    ['burrito', 'Burrito / taco', 'meals', '1 medium', 460, 22, 48, 20, 7, 3.6, 210, 10, 520, ['tacos', 'taco', 'fajita', 'burrito bowl']],
+    ['chickensoup', 'Chicken noodle soup', 'meals', '1 bowl', 190, 12, 22, 6, 2, 1.4, 35, 4, 360, ['chicken noodle soup', 'chicken soup', 'chicken rice soup']],
+    ['tomatosoup', 'Tomato soup', 'meals', '1 bowl', 170, 4, 26, 6, 3, 1.2, 60, 22, 480, ['tomato soup', 'minestrone', 'vegetable soup']],
+    ['broccolisoup', 'Broccoli cheddar / potato soup', 'meals', '1 bowl', 290, 10, 22, 18, 3, 1.1, 240, 28, 460, ['broccoli cheddar soup', 'potato soup', 'split pea soup', 'squash soup']],
+    ['burrito', 'Burrito / taco', 'meals', '1 medium', 460, 22, 48, 20, 7, 3.6, 210, 10, 520, ['tacos', 'taco', 'fish tacos', 'fajita', 'fajitas', 'enchilada', 'burrito bowl']],
     ['quesadilla', 'Cheese / chicken quesadilla', 'meals', '1 quesadilla', 420, 20, 36, 22, 2.5, 2.4, 320, 2, 240, ['quesadilla']],
-    ['friedrice', 'Fried rice', 'meals', '1 bowl', 360, 12, 52, 11, 2.5, 2.2, 45, 8, 240, ['fried rice', 'egg fried rice', 'garlic rice']],
-    ['fries', 'French fries / potato wedges', 'meals', '1 medium serving', 310, 4, 41, 15, 3.8, 1.0, 20, 8, 570, ['french fries', 'fries', 'wedges', 'tater tots']],
+    ['nachos', 'Loaded nachos', 'meals', '1 plate', 560, 18, 52, 32, 6, 2.5, 320, 8, 540, ['nachos']],
+    ['friedrice', 'Fried rice', 'meals', '1 bowl', 360, 12, 52, 11, 2.5, 2.2, 45, 8, 240, ['fried rice', 'egg fried rice', 'garlic rice', 'chicken fried rice']],
+    ['stirfry', 'Chicken / beef stir-fry', 'meals', '1 bowl', 420, 30, 36, 17, 4.5, 3.2, 95, 48, 680, ['stir fry', 'stir-fry', 'teriyaki chicken', 'orange chicken', 'sweet and sour chicken', 'ginger beef']],
+    ['chowmein', 'Chow mein / lo mein / pad thai', 'meals', '1 bowl', 480, 18, 62, 18, 4, 3.0, 65, 16, 420, ['chow mein', 'lo mein', 'pad thai']],
+    ['ramen', 'Ramen / pho / udon bowl', 'meals', '1 bowl', 460, 22, 58, 15, 3, 3.2, 60, 8, 520, ['ramen', 'pho', 'udon', 'instant noodles']],
+    ['dumplings', 'Dumplings / gyoza / potstickers', 'meals', '6 pieces', 290, 12, 36, 10, 2, 1.8, 40, 4, 240, ['gyoza', 'potstickers', 'siomai', 'dim sum', 'spring roll', 'spring rolls', 'egg roll']],
+    ['sushi', 'Sushi roll', 'meals', '6-8 pieces', 310, 12, 48, 7, 3, 1.8, 40, 6, 290, ['sushi', 'california roll', 'salmon roll', 'maki', 'poke bowl']],
+    ['curry', 'Butter chicken / curry', 'meals', '1 bowl', 460, 28, 22, 28, 3.5, 3.2, 95, 14, 580, ['butter chicken', 'chicken curry', 'tikka masala', 'thai curry', 'japanese curry', 'korma']],
+    ['shawarma', 'Shawarma / donair / gyro wrap', 'meals', '1 wrap', 560, 30, 48, 26, 4, 3.6, 140, 12, 560, ['donair', 'gyro', 'souvlaki', 'falafel wrap']],
+    ['fries', 'French fries / potato wedges', 'meals', '1 medium serving', 310, 4, 41, 15, 3.8, 1.0, 20, 8, 570, ['french fries', 'fries', 'wedges', 'tater tots', 'onion rings']],
     ['hashbrowns', 'Hash browns', 'meals', '1 patty / cup', 180, 2.5, 22, 9.5, 2, 0.7, 15, 8, 360, ['hash brown', 'home fries']],
-    ['salad', 'Garden / Caesar salad', 'meals', '1 bowl', 180, 5, 10, 14, 3.5, 1.2, 85, 24, 360, ['caesar salad', 'garden salad', 'green salad', 'side salad']],
+    ['salad', 'Garden / Caesar / Greek salad', 'meals', '1 bowl', 180, 5, 10, 14, 3.5, 1.2, 85, 24, 360, ['caesar salad', 'garden salad', 'greek salad', 'cobb salad', 'green salad', 'side salad', 'coleslaw']],
+    ['potatosalad', 'Potato / pasta salad', 'meals', '1 cup', 260, 5, 32, 12, 2.5, 1.2, 35, 10, 420, ['potato salad', 'pasta salad', 'macaroni salad']],
+    ['stuffing', 'Stuffing / dressing', 'meals', '1 cup', 240, 5.5, 34, 9, 2.5, 2.0, 55, 2, 180, ['stuffing']],
+
+    // Filipino family dishes (everyday home bowls / plates)
+    ['nilaga', 'Nilaga (pork / beef soup with potatoes & cabbage)', 'filipino', '1 bowl', 380, 28, 24, 19, 3.5, 2.8, 65, 28, 760, ['nilagang baboy', 'nilagang baka', 'pork nilaga', 'beef nilaga', 'bulalo']],
+    ['tinola', 'Tinolang manok (chicken ginger soup)', 'filipino', '1 bowl', 310, 32, 14, 13, 2.5, 2.4, 75, 28, 620, ['chicken tinola', 'tinolang manok']],
+    ['adobo', 'Chicken / pork adobo', 'filipino', '1 serving', 390, 34, 8, 24, 0.5, 2.0, 28, 2, 410, ['pork adobo', 'chicken adobo', 'adobong manok', 'adobong baboy']],
+    ['sinigang', 'Sinigang na baboy / isda (tamarind soup)', 'filipino', '1 bowl', 360, 27, 16, 20, 3.5, 2.5, 85, 35, 680, ['sinigang na baboy', 'pork sinigang', 'sinigang na hipon', 'sinigang na isda']],
+    ['sopas', 'Chicken sopas (creamy macaroni soup)', 'filipino', '1 bowl', 350, 22, 36, 13, 2.5, 2.0, 120, 10, 460, ['chicken sopas', 'macaroni sopas']],
+    ['monggo', 'Ginisang monggo (mung bean stew)', 'filipino', '1 bowl', 290, 19, 38, 7, 11, 3.8, 95, 22, 650, ['munggo', 'mung bean', 'ginisang monggo']],
+    ['arrozcaldo', 'Arroz caldo / lugaw (chicken rice porridge)', 'filipino', '1 bowl', 340, 24, 42, 8, 1.5, 2.2, 40, 4, 380, ['arroz caldo', 'lugaw', 'goto', 'congee']],
+    ['pancit', 'Pancit bihon / canton', 'filipino', '1 plate', 380, 22, 52, 9, 3.5, 2.1, 55, 25, 420, ['pancit bihon', 'pancit canton', 'bihon', 'sotanghon', 'pancit palabok', 'palabok']],
+    ['mami', 'Beef mami / batchoy / lomi', 'filipino', '1 bowl', 410, 24, 48, 13, 2.5, 2.8, 50, 8, 480, ['beef mami', 'chicken mami', 'batchoy', 'lomi']],
+    ['giniling', 'Pork / beef giniling (picadillo)', 'filipino', '1 bowl', 380, 26, 20, 22, 3, 3.0, 45, 22, 580, ['pork giniling', 'beef giniling', 'picadillo', 'corned beef guisado', 'embutido']],
+    ['kaldereta', 'Beef kaldereta / mechado / afritada / menudo', 'filipino', '1 bowl', 420, 30, 20, 24, 3, 3.5, 45, 32, 620, ['mechado', 'afritada', 'menudo', 'bistek', 'bistek tagalog', 'pares', 'beef pares']],
+    ['karekare', 'Kare-kare (peanut oxtail / beef stew)', 'filipino', '1 bowl', 490, 28, 22, 32, 5, 3.2, 95, 22, 680, ['kare kare', 'kare-kare']],
+    ['bicolexpress', 'Bicol express / ginataang manok', 'filipino', '1 bowl', 440, 24, 12, 34, 2.5, 2.2, 45, 14, 480, ['bicol express', 'ginataang manok', 'ginataang gulay', 'ginataang kalabasa', 'laing']],
+    ['pinakbet', 'Pinakbet (mixed veggies & pork)', 'filipino', '1 bowl', 260, 14, 20, 14, 5.5, 2.2, 85, 34, 560, ['pakbet']],
+    ['lumpia', 'Lumpiang shanghai / fresh lumpia', 'filipino', '4 pieces', 300, 14, 26, 16, 2, 1.8, 35, 8, 240, ['lumpiang shanghai', 'fresh lumpia']],
+    ['sisig', 'Pork / chicken sisig', 'filipino', '1 serving', 460, 28, 6, 36, 0.5, 2.2, 25, 8, 380, ['pork sisig', 'chicken sisig', 'lechon kawali', 'lechon', 'crispy pata', 'dinuguan']],
+    ['inihaw', 'Pork BBQ / inihaw na liempo', 'filipino', '2 skewers / 1 slice', 370, 28, 12, 23, 0, 1.6, 22, 0, 420, ['pork bbq', 'inihaw', 'inihaw na liempo', 'chicken inasal', 'inasal']],
+    ['paksiw', 'Paksiw / pritong isda / daing na bangus', 'filipino', '1 serving', 320, 28, 6, 20, 0.5, 1.8, 65, 6, 520, ['daing na bangus', 'bangus', 'pritong isda', 'paksiw na isda', 'paksiw na pata', 'tilapia']],
+    ['tortangtalong', 'Tortang talong (eggplant omelette)', 'filipino', '1 piece', 220, 13, 12, 14, 3.5, 1.8, 55, 4, 340, ['tortang talong']],
+    ['longganisa', 'Silog / tocino / longganisa plate', 'filipino', '1 plate', 490, 22, 52, 21, 1, 2.2, 45, 2, 320, ['tapsilog', 'tocilog', 'longsilog', 'bangsilog', 'tocino', 'tapa']],
+    ['champorado', 'Champorado (chocolate rice porridge)', 'filipino', '1 bowl', 310, 6, 62, 4.5, 2.5, 2.2, 75, 0, 220, ['champorado']],
+    ['pandesal', 'Pandesal', 'filipino', '2 small rolls', 190, 6, 36, 2.5, 1.5, 1.8, 40, 0, 85, ['pan de sal', 'ensaymada']],
+    ['taho', 'Taho (silken tofu & arnibal)', 'filipino', '1 cup', 180, 9, 30, 3, 0.5, 1.5, 140, 0, 180, ['taho']],
+    ['kakanin', 'Puto / bibingka / turon / halo-halo', 'filipino', '1 serving', 240, 4, 46, 5, 1.5, 1.0, 50, 4, 180, ['puto', 'bibingka', 'kutsinta', 'suman', 'turon', 'banana cue', 'halo halo', 'halo-halo']],
 
     // Proteins
-    ['chicken', 'Chicken (breast / thigh)', 'protein', '120 g cooked', 210, 34, 0, 7.5, 0, 1.2, 16, 0, 310, ['chicken breast', 'chicken thigh', 'chicken thighs', 'roast chicken', 'rotisserie chicken', 'manok']],
-    ['turkey', 'Turkey (roast / deli)', 'protein', '100 g', 155, 28, 1, 3.5, 0, 1.4, 18, 0, 280, ['deli turkey', 'roast turkey', 'ground turkey']],
-    ['ham', 'Ham', 'protein', '90 g', 145, 19, 2, 6.5, 0, 1.0, 12, 0, 310, ['deli ham', 'sliced ham']],
-    ['bacon', 'Bacon', 'protein', '2 slices', 90, 6, 0.2, 7, 0, 0.3, 3, 0, 95, ['bacon strips']],
-    ['sausage', 'Breakfast / dinner sausage', 'protein', '1 link', 170, 9, 1.5, 14, 0, 0.8, 14, 0, 165, ['sausages', 'pork sausage', 'turkey sausage']],
-    ['hotdog', 'Hot dog', 'protein', '1 frank', 170, 6.5, 2, 15, 0, 0.7, 15, 0, 130, ['hot dogs', 'wiener', 'smokie']],
-    ['salmon', 'Baked salmon', 'protein', '120 g cooked', 248, 26, 0, 15, 0, 0.9, 18, 0, 490, ['fish', 'trout', 'haddock', 'cod', 'baked fish']],
+    ['chicken', 'Chicken (breast / thigh)', 'protein', '120 g cooked', 210, 34, 0, 7.5, 0, 1.2, 16, 0, 310, ['chicken breast', 'chicken thigh', 'chicken thighs', 'roast chicken', 'rotisserie chicken', 'baked chicken', 'grilled chicken', 'manok']],
+    ['turkey', 'Turkey (roast / deli / ground)', 'protein', '100 g', 155, 28, 1, 3.5, 0, 1.4, 18, 0, 280, ['deli turkey', 'roast turkey', 'ground turkey']],
+    ['ham', 'Ham / deli meat', 'protein', '90 g', 145, 19, 2, 6.5, 0, 1.0, 12, 0, 310, ['deli ham', 'sliced ham', 'salami', 'pepperoni', 'bologna']],
+    ['bacon', 'Bacon', 'protein', '2 slices', 90, 6, 0.2, 7, 0, 0.3, 3, 0, 95, ['bacon strips', 'peameal bacon']],
+    ['sausage', 'Breakfast / dinner sausage', 'protein', '1 link', 170, 9, 1.5, 14, 0, 0.8, 14, 0, 165, ['sausages', 'pork sausage', 'turkey sausage', 'kielbasa', 'chorizo']],
+    ['hotdog', 'Hot dog', 'protein', '1 frank', 170, 6.5, 2, 15, 0, 0.7, 15, 0, 130, ['hot dogs', 'wiener', 'smokie', 'corn dog']],
+    ['salmon', 'Baked salmon', 'protein', '120 g cooked', 248, 26, 0, 15, 0, 0.9, 18, 0, 490, ['fish', 'trout', 'haddock', 'cod', 'halibut', 'baked fish', 'sardines', 'mackerel']],
     ['tuna', 'Canned light tuna', 'protein', '100 g drained', 116, 25.5, 0, 0.8, 0, 1.5, 11, 0, 237, ['light tuna', 'tuna salad']],
-    ['shrimp', 'Cooked shrimp', 'protein', '100 g', 100, 24, 0.2, 0.3, 0, 0.5, 70, 0, 259, ['prawns']],
-    ['beef', 'Ground beef / lean steak', 'protein', '120 g cooked', 260, 30, 0, 15, 0, 3.1, 20, 0, 380, ['ground beef', 'steak', 'roast beef', 'beef patty', 'meatballs']],
-    ['pork', 'Pork (tenderloin / shoulder)', 'protein', '120 g cooked', 235, 28, 0, 13, 0, 1.2, 18, 0, 420, ['baboy', 'pork chop', 'pork chops', 'pork belly', 'pulled pork']],
-    ['tofu', 'Firm tofu', 'protein', '100 g', 144, 15.8, 3, 8.7, 2.3, 2.7, 350, 0, 237, ['bean curd']],
-    ['lentils', 'Cooked lentils', 'protein', '1 cup', 230, 18, 40, 0.8, 15.6, 6.6, 38, 3, 731, ['lentil', 'lentil soup', 'red lentils', 'daal']],
-    ['beans', 'Black / kidney beans', 'protein', '1 cup', 225, 15, 41, 0.9, 15, 3.6, 46, 0, 611, ['black beans', 'chickpeas', 'kidney beans', 'baked beans']],
+    ['shrimp', 'Cooked shrimp / seafood', 'protein', '100 g', 100, 24, 0.2, 0.3, 0, 0.5, 70, 0, 259, ['prawns', 'scallops', 'mussels', 'lobster', 'crab']],
+    ['beef', 'Ground beef / lean steak', 'protein', '120 g cooked', 260, 30, 0, 15, 0, 3.1, 20, 0, 380, ['ground beef', 'steak', 'roast beef', 'beef patty', 'meatballs', 'lamb']],
+    ['pork', 'Pork (tenderloin / chop / shoulder)', 'protein', '120 g cooked', 235, 28, 0, 13, 0, 1.2, 18, 0, 420, ['baboy', 'pork chop', 'pork chops', 'pork tenderloin', 'pork belly', 'pulled pork']],
+    ['tofu', 'Firm tofu / tempeh', 'protein', '100 g', 144, 15.8, 3, 8.7, 2.3, 2.7, 350, 0, 237, ['bean curd', 'tempeh']],
+    ['lentils', 'Cooked lentils', 'protein', '1 cup', 230, 18, 40, 0.8, 15.6, 6.6, 38, 3, 731, ['lentil', 'lentil soup', 'red lentils', 'daal', 'dal']],
+    ['beans', 'Black / kidney / baked beans', 'protein', '1 cup', 225, 15, 41, 0.9, 15, 3.6, 46, 0, 611, ['black beans', 'chickpeas', 'kidney beans', 'pinto beans', 'baked beans', 'refried beans']],
     ['shake', 'Protein shake (1 scoop)', 'protein', '1 scoop', 130, 25, 3, 2, 0.5, 0.5, 120, 0, 180, ['whey', 'protein powder', 'smoothie']],
 
-    // Snacks & Drinks
-    ['crackers', 'Crackers / Goldfish / Ritz', 'snacks', '1 small handful', 120, 2.5, 20, 3.5, 1, 0.8, 25, 0, 55, ['cracker', 'goldfish', 'ritz', 'saltines', 'puffs']],
+    // Snacks & Drinks (incl. toddler snacks)
+    ['crackers', 'Crackers / Goldfish / Ritz', 'snacks', '1 small handful', 120, 2.5, 20, 3.5, 1, 0.8, 25, 0, 55, ['cracker', 'goldfish', 'ritz', 'saltines', 'triscuits', 'puffs', 'rice cake', 'rice cakes', 'mum mums']],
     ['cheesestring', 'Cheese string / Babybel', 'snacks', '1 piece', 70, 6, 0.5, 5, 0, 0.1, 160, 0, 20, ['string cheese', 'babybel', 'cheese stick']],
+    ['pouch', 'Fruit / applesauce / veggie pouch', 'snacks', '1 pouch', 70, 0.5, 17, 0.2, 2, 0.2, 10, 15, 160, ['applesauce pouch', 'fruit pouch', 'yogurt pouch', 'baby pouch']],
     ['pretzels', 'Pretzels', 'snacks', '1 small handful', 110, 3, 23, 1, 1, 1.2, 10, 0, 40, ['pretzel']],
-    ['chips', 'Potato / tortilla chips', 'snacks', '1 small bowl (28 g)', 150, 2, 15, 9, 1.2, 0.5, 18, 4, 310, ['potato chips', 'tortilla chips', 'doritos', 'nachos']],
-    ['granolabar', 'Granola / protein bar', 'snacks', '1 bar', 190, 8, 24, 7, 3, 1.2, 60, 0, 140, ['granola bar', 'protein bar', 'clif bar', 'kind bar']],
-    ['nuts', 'Mixed nuts / almonds', 'snacks', '1/4 cup (30 g)', 180, 6, 6, 16, 3, 1.1, 60, 0, 210, ['almonds', 'cashews', 'walnuts', 'peanuts', 'trail mix', 'mixed nuts']],
+    ['chips', 'Potato / tortilla chips', 'snacks', '1 small bowl (28 g)', 150, 2, 15, 9, 1.2, 0.5, 18, 4, 310, ['potato chips', 'tortilla chips', 'doritos', 'cheetos']],
+    ['granolabar', 'Granola / protein bar', 'snacks', '1 bar', 190, 8, 24, 7, 3, 1.2, 60, 0, 140, ['granola bar', 'protein bar', 'clif bar', 'kind bar', 'fig bar', 'nutrigrain']],
+    ['nuts', 'Mixed nuts / almonds / seeds', 'snacks', '1/4 cup (30 g)', 180, 6, 6, 16, 3, 1.1, 60, 0, 210, ['almonds', 'cashews', 'walnuts', 'peanuts', 'pistachios', 'pumpkin seeds', 'sunflower seeds', 'chia seeds', 'trail mix', 'mixed nuts']],
     ['popcorn', 'Popcorn', 'snacks', '3 cups popped', 110, 3, 19, 3, 3.5, 0.8, 3, 0, 80, ['popcorn']],
-    ['muffin', 'Muffin', 'snacks', '1 medium', 340, 5.5, 48, 14, 2, 1.8, 65, 1, 140, ['blueberry muffin', 'banana muffin']],
-    ['cookie', 'Cookie / brownie', 'snacks', '1 medium', 160, 2, 22, 7.5, 0.8, 0.8, 12, 0, 55, ['cookies', 'brownie', 'chocolate chip cookie']],
-    ['icecream', 'Ice cream', 'snacks', '1/2 cup', 140, 2.5, 16, 7.5, 0.3, 0.1, 85, 0, 130, ['ice cream', 'gelato']],
-    ['coffee', 'Coffee with milk / latte', 'snacks', '1 cup', 60, 3, 5, 3, 0, 0, 95, 0, 180, ['latte', 'cappuccino', 'iced coffee', 'double double']],
-    ['oj', 'Orange / apple juice', 'snacks', '1 cup', 112, 1.5, 26, 0.4, 0.5, 0.4, 27, 90, 450, ['orange juice', 'apple juice', 'juice']],
-
-    // Filipino family dishes (1 generous home bowl/plate serving)
-    ['tinola', 'Tinolang manok (chicken ginger soup)', 'filipino', '1 bowl', 310, 32, 14, 13, 2.5, 2.4, 75, 28, 620, ['chicken tinola', 'tinolang manok']],
-    ['adobo', 'Chicken adobo', 'filipino', '1 serving', 390, 34, 8, 24, 0.5, 2.0, 28, 2, 410, ['pork adobo', 'adobong manok']],
-    ['sinigang', 'Sinigang na baboy (tamarind soup)', 'filipino', '1 bowl', 360, 27, 16, 20, 3.5, 2.5, 85, 35, 680, ['sinigang na baboy', 'pork sinigang', 'sinigang']],
-    ['monggo', 'Ginisang monggo (mung bean stew)', 'filipino', '1 bowl', 290, 19, 38, 7, 11, 3.8, 95, 22, 650, ['munggo', 'mung bean', 'ginisang monggo']],
-    ['arrozcaldo', 'Arroz caldo (chicken rice porridge)', 'filipino', '1 bowl', 340, 24, 42, 8, 1.5, 2.2, 40, 4, 380, ['arroz caldo', 'lugaw', 'congee']],
-    ['pancit', 'Pancit bihon (rice noodles & chicken)', 'filipino', '1 plate', 380, 22, 52, 9, 3.5, 2.1, 55, 25, 420, ['pancit bihon', 'pancit canton', 'bihon']],
-    ['longganisa', 'Silog / tocino / longganisa plate', 'filipino', '1 plate', 490, 22, 52, 21, 1, 2.2, 45, 2, 320, ['tapsilog', 'tocilog', 'tocino', 'tapa']],
-    ['kaldereta', 'Beef kaldereta / mechado', 'filipino', '1 bowl', 420, 30, 20, 24, 3, 3.5, 45, 32, 620, ['mechado', 'afritada', 'menudo', 'kare kare', 'bistek']],
+    ['muffin', 'Muffin / donut', 'snacks', '1 medium', 340, 5.5, 48, 14, 2, 1.8, 65, 1, 140, ['blueberry muffin', 'banana muffin', 'banana bread', 'donut', 'doughnut', 'timbit', 'timbits', 'cinnamon roll']],
+    ['cookie', 'Cookie / brownie / cake', 'snacks', '1 medium', 160, 2, 22, 7.5, 0.8, 0.8, 12, 0, 55, ['cookies', 'brownie', 'cake', 'cupcake', 'pie', 'chocolate chip cookie']],
+    ['chocolate', 'Chocolate (dark / milk)', 'snacks', '30 g', 160, 2.2, 17, 9.5, 2, 1.8, 45, 0, 140, ['dark chocolate', 'milk chocolate', 'chocolate bar']],
+    ['icecream', 'Ice cream / frozen yogurt', 'snacks', '1/2 cup', 140, 2.5, 16, 7.5, 0.3, 0.1, 85, 0, 130, ['ice cream', 'gelato', 'frozen yogurt', 'popsicle', 'pudding']],
+    ['coffee', 'Coffee with milk / latte', 'snacks', '1 cup', 60, 3, 5, 3, 0, 0, 95, 0, 180, ['latte', 'cappuccino', 'iced coffee', 'double double', 'hot chocolate']],
+    ['oj', 'Orange / apple juice', 'snacks', '1 cup', 112, 1.5, 26, 0.4, 0.5, 0.4, 27, 90, 450, ['orange juice', 'apple juice', 'juice', 'soda', 'pop']],
 
     // Fruits & Vegetables
     ['banana', 'Banana', 'common', '1 medium', 105, 1.3, 27, 0.4, 3.1, 0.3, 6, 10, 422, ['bananas', 'mashed banana']],
     ['avocado', 'Avocado', 'common', '1/2 medium', 120, 1.5, 6.4, 11, 5, 0.4, 9, 8, 364, ['mashed avocado', 'guacamole']],
-    ['berries', 'Mixed berries / blueberries', 'produce', '1 cup', 70, 1, 17, 0.4, 4.5, 0.5, 18, 32, 160, ['blueberries', 'strawberries', 'raspberries', 'blackberries', 'strawberry']],
+    ['berries', 'Mixed berries / blueberries / strawberries', 'produce', '1 cup', 70, 1, 17, 0.4, 4.5, 0.5, 18, 32, 160, ['blueberries', 'strawberries', 'raspberries', 'blackberries', 'strawberry', 'cherries']],
     ['apple', 'Apple / pear', 'produce', '1 medium', 95, 0.5, 25, 0.3, 4.4, 0.2, 11, 8, 195, ['apples', 'pear', 'pears', 'applesauce']],
-    ['grapes', 'Grapes', 'produce', '1 cup', 104, 1.1, 27, 0.2, 1.4, 0.5, 15, 5, 288, ['grape']],
+    ['grapes', 'Grapes', 'produce', '1 cup', 104, 1.1, 27, 0.2, 1.4, 0.5, 15, 5, 288, ['grape', 'raisins', 'dates', 'dried cranberries']],
     ['melon', 'Watermelon / cantaloupe', 'produce', '1 cup', 50, 1, 12, 0.2, 0.9, 0.3, 12, 35, 280, ['watermelon', 'cantaloupe', 'honeydew']],
-    ['pineapple', 'Pineapple', 'produce', '1 cup', 82, 0.9, 22, 0.2, 2.3, 0.5, 21, 79, 180, ['pineapple']],
-    ['peach', 'Peach / plum', 'produce', '1 medium', 59, 1.4, 14, 0.4, 2.2, 0.4, 9, 10, 285, ['peaches', 'plum', 'plums', 'nectarine']],
-    ['orange', 'Orange / clementine', 'produce', '1 medium', 62, 1.2, 15, 0.2, 3.1, 0.1, 52, 70, 237, ['clementine', 'mandarin', 'tangerine', 'mango', 'kiwi']],
-    ['broccoli', 'Broccoli (steamed)', 'produce', '1 cup', 55, 3.7, 11, 0.6, 5.1, 1.0, 62, 101, 457, ['steamed broccoli']],
-    ['cauliflower', 'Cauliflower', 'produce', '1 cup', 27, 2.1, 5.3, 0.3, 2.1, 0.5, 24, 52, 320, ['cauliflower']],
-    ['spinach', 'Spinach (cooked / fresh)', 'produce', '1 cup', 24, 3, 3.7, 0.4, 2.2, 2.7, 100, 18, 420, ['malunggay', 'kale', 'bok choy', 'greens']],
-    ['sweetpotato', 'Sweet potato', 'produce', '1 medium', 112, 2, 26, 0.1, 3.9, 0.8, 39, 22, 438, ['sweet potatoes', 'yam', 'mashed sweet potato', 'kamote']],
-    ['potato', 'Potato', 'produce', '1 medium', 130, 3, 30, 0.2, 3, 1.1, 15, 20, 620, ['potatoes', 'mashed potato', 'mashed potatoes', 'baked potato', 'roasted potatoes']],
-    ['carrot', 'Carrots', 'produce', '1/2 cup', 27, 0.6, 6.4, 0.1, 1.8, 0.2, 22, 4, 205, ['carrots', 'steamed carrots', 'baby carrots']],
-    ['peas', 'Green peas / green beans', 'produce', '1/2 cup', 62, 4.1, 11, 0.3, 4.4, 1.2, 20, 12, 195, ['frozen peas', 'green beans', 'sitaw']],
-    ['tomato', 'Tomato / tomato sauce', 'produce', '1/2 cup', 32, 1.3, 7, 0.2, 1.6, 0.6, 14, 16, 330, ['tomatoes', 'pasta sauce', 'salsa']],
+    ['pineapple', 'Pineapple / mango', 'produce', '1 cup', 82, 0.9, 22, 0.2, 2.3, 0.5, 21, 79, 180, ['mango', 'papaya']],
+    ['peach', 'Peach / plum', 'produce', '1 medium', 59, 1.4, 14, 0.4, 2.2, 0.4, 9, 10, 285, ['peaches', 'plum', 'plums', 'nectarine', 'apricot']],
+    ['orange', 'Orange / clementine / kiwi', 'produce', '1 medium', 62, 1.2, 15, 0.2, 3.1, 0.1, 52, 70, 237, ['clementine', 'mandarin', 'tangerine', 'grapefruit', 'kiwi']],
+    ['broccoli', 'Broccoli (steamed / roasted)', 'produce', '1 cup', 55, 3.7, 11, 0.6, 5.1, 1.0, 62, 101, 457, ['steamed broccoli', 'brussels sprouts', 'asparagus']],
+    ['cauliflower', 'Cauliflower / cabbage', 'produce', '1 cup', 27, 2.1, 5.3, 0.3, 2.1, 0.5, 24, 52, 320, ['cabbage', 'sauerkraut']],
+    ['spinach', 'Spinach / kale / greens', 'produce', '1 cup', 24, 3, 3.7, 0.4, 2.2, 2.7, 100, 18, 420, ['malunggay', 'kale', 'bok choy', 'kangkong', 'greens', 'lettuce', 'arugula']],
+    ['sweetpotato', 'Sweet potato', 'produce', '1 medium', 112, 2, 26, 0.1, 3.9, 0.8, 39, 22, 438, ['sweet potatoes', 'yam', 'mashed sweet potato', 'kamote', 'butternut squash', 'pumpkin']],
+    ['potato', 'Potato', 'produce', '1 medium', 130, 3, 30, 0.2, 3, 1.1, 15, 20, 620, ['potatoes', 'mashed potato', 'mashed potatoes', 'baked potato', 'roasted potatoes', 'scalloped potatoes']],
+    ['carrot', 'Carrots', 'produce', '1/2 cup', 27, 0.6, 6.4, 0.1, 1.8, 0.2, 22, 4, 205, ['carrots', 'steamed carrots', 'baby carrots', 'beets', 'turnip']],
+    ['peas', 'Green peas / green beans', 'produce', '1/2 cup', 62, 4.1, 11, 0.3, 4.4, 1.2, 20, 12, 195, ['frozen peas', 'green beans', 'snow peas', 'snap peas', 'sitaw']],
+    ['tomato', 'Tomato / tomato sauce', 'produce', '1/2 cup', 32, 1.3, 7, 0.2, 1.6, 0.6, 14, 16, 330, ['tomatoes', 'cherry tomatoes', 'pasta sauce', 'salsa']],
     ['bellpepper', 'Bell pepper', 'produce', '1/2 cup', 24, 0.8, 5.5, 0.2, 1.6, 0.3, 8, 95, 160, ['bell pepper', 'red pepper', 'green pepper', 'peppers']],
-    ['mushroom', 'Mushrooms', 'produce', '1/2 cup', 15, 2.2, 2.3, 0.2, 0.7, 0.4, 2, 1, 220, ['mushrooms']],
-    ['cucumber', 'Cucumber / zucchini', 'produce', '1/2 cup', 12, 0.6, 2.5, 0.1, 0.6, 0.2, 10, 4, 110, ['zucchini', 'sayote', 'squash', 'celery']],
-    ['corn', 'Corn / edamame', 'produce', '1/2 cup', 95, 5.5, 16, 2, 3, 1.1, 25, 5, 260, ['edamame', 'sweet corn']]
+    ['mushroom', 'Mushrooms', 'produce', '1/2 cup', 15, 2.2, 2.3, 0.2, 0.7, 0.4, 2, 1, 220, ['mushrooms', 'eggplant']],
+    ['cucumber', 'Cucumber / zucchini', 'produce', '1/2 cup', 12, 0.6, 2.5, 0.1, 0.6, 0.2, 10, 4, 110, ['zucchini', 'sayote', 'chayote', 'squash', 'celery', 'radish', 'pickles', 'olives']],
+    ['corn', 'Corn / edamame', 'produce', '1/2 cup', 95, 5.5, 16, 2, 3, 1.1, 25, 5, 260, ['edamame', 'sweet corn', 'corn on the cob']]
   ];
 
   var FOOD_DB = RAW_FOODS.map(function (r) {
@@ -247,23 +299,42 @@
 
   function escRe(s) { return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-  /* Build sorted match patterns (longest phrase first) for FOOD_DB + optional user customFoods. */
-  function buildPatterns(customFoods) {
-    var list = [];
-    (Array.isArray(customFoods) ? customFoods : []).forEach(function (cf) {
-      if (!cf || !cf.name || !cf.nutri) return;
-      var k = String(cf.name).toLowerCase().trim();
-      if (k.length >= 2) list.push({ phrase: k, id: 'custom:' + cf.id, name: cf.name, nutri: cf.nutri, serving: cf.serving || '1 serving' });
-    });
+  /* Pre-compile static FOOD_DB match patterns once (longest phrase first) for fast offline matching. */
+  var STATIC_PATTERNS = (function () {
+    var list = [], seen = {};
     FOOD_DB.forEach(function (f) {
       var phrases = [f.name.toLowerCase().replace(/\s*\([^)]*\)/g, '').trim(), f.id].concat(f.aliases);
       phrases.forEach(function (p) {
         var k = String(p || '').toLowerCase().trim();
-        if (k.length >= 2) list.push({ phrase: k, id: f.id, name: f.name, nutri: f.nutri, serving: f.serving });
+        if (k.length < 2 || seen[k + '|' + f.id]) return;
+        seen[k + '|' + f.id] = 1;
+        list.push({
+          phrase: k, id: f.id, name: f.name, nutri: f.nutri, serving: f.serving,
+          re: new RegExp('(^|[^a-z])(' + escRe(k) + ')(?:$|[^a-z])', 'i')
+        });
       });
     });
     list.sort(function (a, b) { return b.phrase.length - a.phrase.length; });
     return list;
+  })();
+
+  function buildPatterns(customFoods) {
+    if (!Array.isArray(customFoods) || !customFoods.length) return STATIC_PATTERNS;
+    var list = [];
+    customFoods.forEach(function (cf) {
+      if (!cf || !cf.name || !cf.nutri) return;
+      var k = String(cf.name).toLowerCase().trim();
+      if (k.length >= 2) {
+        list.push({
+          phrase: k, id: 'custom:' + cf.id, name: cf.name, nutri: cf.nutri, serving: cf.serving || '1 serving',
+          re: new RegExp('(^|[^a-z])(' + escRe(k) + ')(?:$|[^a-z])', 'i')
+        });
+      }
+    });
+    if (!list.length) return STATIC_PATTERNS;
+    var merged = list.concat(STATIC_PATTERNS);
+    merged.sort(function (a, b) { return b.phrase.length - a.phrase.length; });
+    return merged;
   }
 
   var NUM_RE = /(?:^|[\s,+&(])(\d+\s+(?:\d\/\d|[½¼¾])|\d+\/\d+|\d+(?:\.\d+)?|½|¼|¾|half|quarter)\s*(?:(?:an?)\s+)?(x|×|pcs?|pieces?|slices?|cups?|tbsps?|tablespoons?|tsps?|teaspoons?|scoops?|bowls?)?\s*(?:of)?$/i;
@@ -319,7 +390,6 @@
       ? (CHILD_ATE_SCALE[entry.ate] != null ? CHILD_ATE_SCALE[entry.ate] : 0.5)
       : (PORTION_SCALE[entry.portion] || 1);
 
-    // Explicit nutrition saved on the log (manual override, AI estimate, or Food Picker)
     if (entry.nutri && typeof entry.nutri === 'object') {
       var direct = zeroNutri();
       var mult = entry.nutriExact ? 1 : scale;
@@ -330,7 +400,6 @@
       return { nutri: direct, matched: true, summary: lbl, parts: [] };
     }
 
-    // Recipe ID directly attached to the log
     if (entry.recipeId && RECIPE_NUTRI[entry.recipeId]) {
       var rn = zeroNutri();
       addNutri(rn, RECIPE_NUTRI[entry.recipeId], entry.who === 'child' ? scale * CHILD_PORTION_BASE : scale);
@@ -343,7 +412,6 @@
     var patterns = buildPatterns(customFoods);
     var work = rawText;
     var tot = zeroNutri(), seenIds = {}, matched = 0, parts = [];
-    // A built-in recipe title counts as that recipe (once); the rest of the text ("..., Banana") still counts as foods.
     if (Array.isArray(recipes)) {
       for (var ri = 0; ri < recipes.length; ri++) {
         var r = recipes[ri];
@@ -360,8 +428,8 @@
     for (var i = 0; i < patterns.length; i++) {
       var p = patterns[i];
       if (seenIds[p.id]) continue;
-      var re = new RegExp('(^|[^a-z])(' + escRe(p.phrase) + ')(?:$|[^a-z])', 'i');
-      var m = re.exec(work);
+      if (work.indexOf(p.phrase) < 0) continue; // fast substring pre-check before regex
+      var m = p.re.exec(work);
       if (m) {
         seenIds[p.id] = 1;
         matched++;

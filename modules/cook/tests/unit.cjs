@@ -566,10 +566,14 @@ t('White / brioche bread default, expanded everyday Western foods, transparent m
   assert.strictEqual(Math.round(ww.nutri.kcal), F.wholegrain.nutri.kcal);
 
   // Everyday non-Filipino foods match cleanly
+  assert.ok(CN.FOOD_DB.length >= 135, 'broad everyday + Filipino food library: ' + CN.FOOD_DB.length);
   for (const [txt, minK] of [
     ['grilled cheese', 300], ['cheeseburger & fries', 700], ['2 slices pizza', 500],
     ['mac and cheese', 300], ['bagel with cream cheese', 320], ['pancakes and bacon', 300],
-    ['turkey sandwich & grapes', 420], ['chicken nuggets', 200], ['granola bar & latte', 200]
+    ['turkey sandwich & grapes', 420], ['chicken nuggets', 200], ['granola bar & latte', 200],
+    ['nilaga', 300], ['nilagang baboy & rice', 500], ['sopas', 300], ['shepherds pie', 350],
+    ['poutine', 600], ['butter chicken & naan', 650], ['lumpia', 250], ['pandesal', 150],
+    ['ramen', 400], ['sushi', 250], ['pb&j', 300], ['beef stew', 300], ['chicken wings', 350]
   ]) {
     const e = CN.estimateEntry({ who: 'me', text: txt, portion: 'Regular' });
     assert.ok(e.matched && e.nutri.kcal >= minK, txt + ' -> ' + JSON.stringify(e));

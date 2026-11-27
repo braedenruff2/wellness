@@ -105,7 +105,7 @@
   }
 
   /* ---- Tab 1: Today (#cook) ---- */
-  var MAMA_CHIPS = ['Tinolang manok', 'Chicken adobo', 'Sinigang na baboy', 'Ginisang monggo', 'Arroz caldo', 'Pancit bihon'];
+  var MAMA_CHIPS = ['Nilaga', 'Tinolang manok', 'Chicken adobo', 'Sinigang na baboy', 'Sopas', 'Ginisang monggo', 'Arroz caldo', 'Pancit bihon', 'Giniling'];
   function todayHtml(S, ctx) {
     var K = root.CookCore, d = ctx.realNow, tIso = K.iso(d);
     var soon = K.expiringSoon(S, d, 3);
