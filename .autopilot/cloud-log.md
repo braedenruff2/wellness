@@ -23,6 +23,7 @@
 - bug: a "Not for me" brought back from Settings stayed in the PC link's activity log (weekly plans still counted it) / fixed: unFit records it and activity.js sends fb/<id>/x, which the PC already drops / test: link unit, test_pc, me unit (349). Done 313 (e2e: auto scenario queued once, cancelled for the day), 341, 350 (tests; no bugs).
 - Done 351: advice on a real situation: Home's Parenting card shows its first step for 3 days with "See the advice". Added 349-352.
 - Done 352: the advice screen asks "Did you try it with her?" from day 2; his answer goes with later Parenting requests (tipNotes).
+- Done 353 (Past practice shows whether asked-for advice worked), 354, 355 (tests: the note draft never leaves the phone; the Parenting card readable in 3 themes). Added 353-355.
 - Checked, not a bug: body.hide-bar after leaving an open workout (route() resets body classes).
 - Done 325: an unsent Parenting question (draft kept as he types) says "Saved on this phone, not sent yet" on #coach, and Home's Parenting card adds "Finish and send" (#coach/real, Get advice focused); e2e-draft.
 - Added tasks 320-325.

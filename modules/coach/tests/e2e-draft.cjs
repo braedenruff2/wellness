@@ -139,6 +139,34 @@ const DRAFT = 'She cries every time I put her down in the crib unless she is alr
     await page.goto(base + '#home'); await page.reload();
     assert.strictEqual(await page.locator(card + ' #co-advice-step').count(), 0, 'gone after 3 days');
   });
+  for (const theme of ['light', 'dark', 'night']) {
+    await t.step(theme + ': Home Parenting card with the advice step and the saved question: readable, 44 px buttons', async () => {
+      await page.clock.setSystemTime(new Date(2026, 10, 22, 9, 0));
+      await page.evaluate(([theme, d]) => {
+        localStorage.setItem('wl.shell.v1', JSON.stringify({ theme, textSize: 1.3, since: '2026-10-01T12:00:00.000Z' }));
+        localStorage.setItem('wl.coach.v1', JSON.stringify({ child: { name: 'Mila', birth: '2025-11-24' }, current: null, pending: null, teach: {}, realDraft: d, autoTried: '2026-11-22',
+          history: [{ id: 'r1', at: new Date(2026, 10, 21, 20).toISOString(), kind: 'real', title: 'Crib', skill: 'Sleep', scenario: 's', question: '', age: '12 months', answer: '', result: null,
+            advice: { summary: 'x', steps: ['Keep the same short routine every night'], say: [], avoid: [], why: '', watch: '', text: '', sources: [] } }] }));
+      }, [theme, DRAFT]);
+      await page.goto(base + '#coach'); await page.goto(base + '#home'); await page.reload();
+      const card = '.home-card[data-module="coach"]';
+      await page.waitForSelector(card + ' #co-advice-step');
+      await page.waitForSelector(card + ' #co-draft-line');
+      const small = await page.$$eval(card + ' a.btn, ' + card + ' button', (els) => els.filter((e) => e.offsetParent).map((e) => ({ t: e.textContent.trim(), h: Math.round(e.getBoundingClientRect().height) })).filter((x) => x.h < 44));
+      assert.deepStrictEqual(small, []);
+      const low = await page.evaluate((sel) => {
+        const rgb = (s) => (s.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
+        const lum = (c) => { c = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+        const bg = (e) => { while (e) { const b = getComputedStyle(e).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return rgb(b); e = e.parentElement; } return [255, 255, 255]; };
+        return Array.from(document.querySelectorAll(sel + ' p, ' + sel + ' b, ' + sel + ' a, ' + sel + ' span, ' + sel + ' h3')).filter((e) => e.offsetParent && e.textContent.trim()).map((e) => {
+          const a = lum(rgb(getComputedStyle(e).color)), b = lum(bg(e));
+          return { t: e.textContent.trim().slice(0, 20), r: +((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).toFixed(2) };
+        });
+      }, card);
+      assert.deepStrictEqual(low.filter((x) => x.r < (theme === 'night' ? 3 : 4.5)), [], theme);
+      await page.evaluate(() => localStorage.removeItem('wl.shell.v1'));
+    });
+  }
   await t.step('narrow + no errors', async () => {
     await t.noOverflow(['#home', '#coach', '#coach/real']);
     assert.deepStrictEqual(t.errors, []);
