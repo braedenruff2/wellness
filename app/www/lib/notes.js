@@ -104,11 +104,16 @@
     return on ? 'Saved on this phone and synced via Drive / PC link so Claude &amp; Gemini see it next run.'
       : 'Saved on this phone. The autopilot sees it once Drive sync (Settings) or the PC link is on.';
   }
+  /* A note typed but not saved (the app went to the background, Back, ✕) waits here and comes back next time. */
+  var DRAFT = 'wl.notes.draft';
+  function getDraft() { try { var d = JSON.parse(localStorage.getItem(DRAFT) || 'null'); return d && typeof d.text === 'string' && d.text.trim() ? d : null; } catch (e) { return null; } }
+  function setDraft(d) { try { if (d && d.text && d.text.trim()) localStorage.setItem(DRAFT, JSON.stringify({ text: d.text.slice(0, 1200), tag: d.tag })); else localStorage.removeItem(DRAFT); } catch (e) {} }
   function open(trigger, whereOverride) {
     close();
+    var draft = getDraft();
     lastTrigger = trigger || null;
     var where = whereOverride || location.hash || '#home';
-    var pickedTag = 'Idea';
+    var pickedTag = draft && TAGS.indexOf(draft.tag) >= 0 ? draft.tag : 'Idea';
     var wrap = document.createElement('div');
     wrap.id = 'wl-note-modal';
     wrap.className = 'wl-modal ui';
@@ -122,7 +127,8 @@
         return '<button class="chip" type="button" data-ntag="' + esc(t) + '" aria-pressed="' + (t === pickedTag) + '">' + esc(t) + '</button>';
       }).join('') + '</div>' +
       '<label class="sr" for="wl-note-in">Your note for autopilot</label>' +
-      '<textarea id="wl-note-in" rows="3" placeholder="e.g. white noise during sits, exact timer, a new cooking idea..."></textarea>' +
+      '<textarea id="wl-note-in" rows="3" placeholder="e.g. white noise during sits, exact timer, a new cooking idea...">' + (draft ? esc(draft.text) : '') + '</textarea>' +
+      (draft ? '<p class="meta" id="wl-note-draft" style="margin:4px 0 0">Your unsaved note from last time. <button class="link" id="wl-note-clear" type="button">Clear it</button></p>' : '') +
       '<div class="row" style="margin-top:8px"><button class="primary" id="wl-note-save" type="button">Save note</button><button id="wl-note-close" type="button">Cancel</button></div>' +
       '<div id="wl-note-list-wrap">' + listHtml() + '</div></div>';
     document.body.appendChild(wrap);
@@ -148,9 +154,14 @@
     $$('[data-ntag]', wrap).forEach(function (b) {
       b.onclick = function () {
         pickedTag = b.dataset.ntag;
+        if (ta0 && ta0.value.trim()) setDraft({ text: ta0.value, tag: pickedTag });
         $$('[data-ntag]', wrap).forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
       };
     });
+    var ta0 = $('#wl-note-in', wrap);
+    ta0.oninput = function () { setDraft({ text: ta0.value, tag: pickedTag }); };
+    var clr = $('#wl-note-clear', wrap);
+    if (clr) clr.onclick = function () { setDraft(null); ta0.value = ''; var dl = $('#wl-note-draft', wrap); if (dl) dl.remove(); ta0.focus(); };
     wrap.onclick = function (e) { if (e.target === wrap) close(trigger); };
     $('#wl-note-x', wrap).onclick = function () { close(trigger); };
     $('#wl-note-close', wrap).onclick = function () { close(trigger); };
@@ -158,7 +169,7 @@
       var ta = $('#wl-note-in', wrap);
       var item = add(S, ta.value, where, pickedTag, new Date());
       if (!item) { ta.focus(); return; }
-      save();
+      save(); setDraft(null);
       if (WL.driveSync && WL.driveSync.status && WL.driveSync.status().configured) {
         try { WL.driveSync.sync({ auto: false }).catch(function () {}); } catch (e) {}
       }
