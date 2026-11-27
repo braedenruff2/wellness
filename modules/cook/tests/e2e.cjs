@@ -264,6 +264,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.deepStrictEqual([all.source, all.future, Object.keys(all.done)], ['https://example.org/keep-me/', { kept: true }, ['2026-11-18/1']], 'nothing else in his Tagalog data changes');
     await page.goto(base + '#tagalog/words'); await page.waitForTimeout(100);
     assert.ok((await page.textContent('#view')).includes('sayote'), 'listed in Your words');
+    assert.ok((await page.textContent('#view')).includes('from Tinolang manok'), 'says where it came from');
   });
 
   await t.step('#cook/week inline recipe preview expands ingredients, steps & Filipino Tagalog words, hides when Mama cooked, and fits 320 px / 1.3x', async () => {
