@@ -44,13 +44,22 @@
     return h + '</span>';
   }
 
+  /* "Not for me?" on the coach line hides that line (whatever its numbers) for 14 days, like other guidance, so one tap
+     never hides every later line ("Very sore today…", "It's been 14 days…") for good. */
+  function coachKey(co) {
+    return 'guide:coach:' + String(co || '').toLowerCase().replace(/[0-9]+/g, '#').replace(/[^a-z#]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+  }
+  function coachHidden(co) {
+    var M = window.WLMe, n = Date.now();
+    return !!(M && M.flagged && M.flagged('workout', coachKey(co), n - 14 * 864e5, n));
+  }
   function today() {
     var open = W.openSession(S, now()), fin = !open && W.finishedToday(S, now());
     var day = open ? open.day : (dayChoice || W.nextDay(S, now())), plan = W.PROGRAM[day];
     var M = window.WLMe, co = W.coach(S, now());
     if (fin && !forceAhead) {
       var h0 = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">Done for today \u2713</h1>' + weekDots(now()) + '</div>';
-      if (!(M && M.flagged && M.flagged('workout', 'coach:' + fin.day))) h0 += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + fin.day, co) : '') + '</p>';
+      if (!coachHidden(co)) h0 += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', coachKey(co), co) : '') + '</p>';
       if (M) h0 += M.planLine('workout');
       if (M) h0 += M.askHtml('workout', fin.id, 'Workout done \u2713 Quick questions (optional): they shape your next workouts');
       h0 += '<div class="card done-banner ui" id="wo-done-today"><p style="margin-bottom:6px"><b>Finished ' + esc(W.PROGRAM[fin.day].title) + '</b> (' + fin.sets.length + ' set' + (fin.sets.length === 1 ? '' : 's') + '). Next time: <b>' + esc(plan.title) + '</b>.</p>' +
@@ -58,7 +67,7 @@
       return h0;
     }
     var h = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">' + esc(plan.title) + '</h1>' + weekDots(now()) + '</div>';
-    if (!(M && M.flagged && M.flagged('workout', 'coach:' + day))) h += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', 'coach:' + day, co) : '') + '</p>';
+    if (!coachHidden(co)) h += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', coachKey(co), co) : '') + '</p>';
     if (M && M.painNote && M.painNote()) {
       var pn = 'Pain came up after two workouts lately. Go lighter on the moves that hurt and check your form (the “How” notes). If it keeps up or is sharp, see a doctor or physio.';
       h += '<p class="gentle ui" id="wo-pain">' + esc(pn) + ' ' + M.fitLink('workout', 'guide:pain', pn) + '</p>';
