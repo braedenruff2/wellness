@@ -53,6 +53,8 @@ const DRAFT = 'She cries every time I put her down in the crib unless she is alr
     await p2.clock.runFor(20000);
     const s = await p2.evaluate(() => JSON.parse(localStorage.getItem('wl.coach.v1')));
     assert.ok(s.history.some((h) => h.kind === 'real') && s.realDraft === '', 'advice saved, draft cleared');
+    assert.ok(/^#coach\/h\//.test(await p2.evaluate(() => location.hash)), 'taken to the answer (not left on a spinner)');
+    assert.ok(!(await p2.textContent('#view')).includes('checking current guidance'), 'no spinner left');
     await p2.goto(base + '#home');
     assert.strictEqual(await p2.locator('#co-draft-line').count(), 0, 'sent: no line');
     await p2.close();

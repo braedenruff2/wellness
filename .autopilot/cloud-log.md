@@ -8,6 +8,7 @@
   - No way back from a "Not for me" tap after the UI stopped showing marked items: Settings > "Hidden as not for me (N)" (collapsed) with Bring back (317; unit + modules/me/tests/e2e-hidden.cjs).
   - bug: PC is_usage_limit took "file size limit reached" / tokens / recursion limits for running out of Claude usage (Gemini until the reset) / fixed: NOT_QUOTA_RE unless the message names usage/rate/429/resets / test: test_pc (318).
   - bug: the 600-answer cap dropped old "Not for me" marks (hidden items came back) / fixed: oldest quick answers go first / test: me unit (319).
+- Second independent review (of this run's changes): bug: "Finish and send" (#coach/real) left the advice spinner up after the answer came and never opened it / cause: here() matched only #coach / fixed: here() takes #coach/real; a manual request whose spinner was cleared by another still shows its result or error; an advice job older than 15 min no longer hides the draft line; old per-day Move marks not listed as hidden; Tagalog tips not called parenting tips / test: e2e-draft (fails without the fix), me unit. Done 320, 323, 324 (tests; no bugs found).
 - Checked, not a bug: body.hide-bar after leaving an open workout (route() resets body classes).
 - Done 325: an unsent Parenting question (draft kept as he types) says "Saved on this phone, not sent yet" on #coach, and Home's Parenting card adds "Finish and send" (#coach/real, Get advice focused); e2e-draft.
 - Added tasks 320-325.

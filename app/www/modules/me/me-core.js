@@ -106,6 +106,7 @@
       if (seen[k]) continue;
       seen[k] = 1;
       if (/^guide:/.test(f.about) && !inRange(f, nowMs - 14 * 864e5, null)) continue;
+      if (f.part === 'workout' && /^coach:/.test(f.about)) continue; // the old per-day key (before 27 Nov) hides nothing now
       out.push({ part: f.part, about: f.about, shown: f.shown || '', at: f.at });
     }
     return out;

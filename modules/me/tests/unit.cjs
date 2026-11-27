@@ -607,6 +607,8 @@ t('hiddenList: one row per marked item, newest first; guide lines only for 14 da
   assert.strictEqual(K.flagged(s, 'calm', 'ground'), false);
   assert.strictEqual(K.answers(s, 'calm', 'body@1').helped, 'A bit', 'quick answers untouched');
   assert.strictEqual(K.unFit(s, 'calm', 'nothing'), 0);
+  K.notFit(s, 'workout', 'coach:A', 'old line', [], '', D(12));
+  assert.ok(!K.hiddenList(s, D(13).getTime()).some((x) => x.about === 'coach:A'), 'the old per-day Move key (hides nothing now) is not listed');
 });
 t('600 answers at most: the oldest quick answers go, an old "Not for me" mark stays', () => {
   const s = K.defaults();

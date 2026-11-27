@@ -293,7 +293,8 @@
   function aboutText(x) {
     if (x.shown) return x.shown;
     var a = String(x.about).replace(/^guide:/, '');
-    return a.replace(/^ex:/, '').replace(/^tip:.*/, 'a parenting tip').replace(/^day:(\d+).*/, 'Faith day $1').replace(/[-_:]+/g, ' ');
+    if (/^tip:/.test(a)) return x.part === 'coach' ? 'a parenting tip' : 'a tip';
+    return a.replace(/^ex:/, '').replace(/^day:(\d+).*/, 'Faith day $1').replace(/[-_:]+/g, ' ');
   }
   function hiddenHtml() {
     var xs = K.hiddenList(S, Date.now());

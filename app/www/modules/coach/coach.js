@@ -8,7 +8,7 @@
   var S = store.load(), view = null, waiting = null, err = null, pickSkill = '', showAllHist = false;
   function save() { store.save(S); }
   function today() { return K.iso(new Date()); }
-  function here() { return view && /^#coach\/?$/.test(location.hash); }
+  function here() { return view && /^#coach(\/real)?\/?$/.test(location.hash); } // the main screen (#coach/real: Home's "Finish and send")
   function tipFlagged(id) { return !!(window.WLMe && WLMe.flagged && WLMe.flagged('coach', 'tip:' + id)); }
 
   function setupHtml() {
@@ -120,7 +120,7 @@
   function draftWaiting() {
     if (String(S.realDraft || '').trim().length < 20) return false;
     if (waiting && waiting.kind === 'real') return false;
-    if (S.pending && S.pending.task === 'coach-advice') return false;
+    if (S.pending && S.pending.task === 'coach-advice' && Date.now() - S.pending.at < 15 * 60000) return false;
     return !(pc.queued && pc.queued().some(function (x) { return x.task === 'coach-advice'; }));
   }
   function hasQueuedScenario() {
@@ -298,7 +298,8 @@
     // Two requests can overlap (an automatic scenario still running when he asks for advice): each one clears only
     // its own saved job and its own spinner, so the other carries on and can still resume after a restart.
     var clearMine = function () { if (mine && S.pending === mine) S.pending = null; };
-    var ownsUi = function () { return waiting === w; };
+    // a manual request whose spinner something else cleared (a cloud answer, a finished request) still shows its result
+    var ownsUi = function () { return waiting === w || (!auto && !waiting); };
     pc.post('/v1/ask', { task: task, input: input }).then(function (r) { reached = true; return r; }, function (e) { throw pc.orQueue ? pc.orQueue(e, task, input, meta) : e; }).then(function (r) {
       if (!S.pending || ownsUi()) { // a request running in the background never replaces the one on screen
         mine = S.pending = { job: r.job, task: task, at: Date.now(), answer: input.answer || input.situation || '' };
@@ -314,7 +315,7 @@
         if (auto && (e.queued || reached)) S.autoTried = today();
         else if (auto) autoFailed();
         save();
-        if (!ownsUi()) return;
+        if (!ownsUi()) { if (!auto && !e.queued) err = e.message || String(e); return; } // shown on the next render
         err = e.queued || auto ? null : e.message || String(e);
         if (here() && typingHere()) { waiting = null; return; }
         finish();
