@@ -74,21 +74,23 @@ const CHILD = { child: { name: 'Mila', birth: '2025-11-24' }, history: [], curre
     await p2.clock.runFor(30000);
     assert.strictEqual(await p2.evaluate(() => window.__asks.length), 1, 'first try');
     assert.ok(!(await p2.textContent('.home-card[data-module="coach"]')).includes('Claude is on it'), 'card back to normal after the failed try');
-    await p2.clock.runFor(50 * 60000);
-    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 1, 'no retry within the hour');
+    await p2.clock.runFor(10 * 60000);
+    await p2.reload(); // reopening the app keeps the wait
+    await p2.clock.runFor(40 * 60000);
+    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 0, 'no retry within the hour, even after reopening (the counter restarts on reload)');
     await p2.clock.runFor(30 * 60000); // the next 15-minute check after the hour
-    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 2, 'second try after an hour');
+    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 1, 'second try after an hour');
     await p2.clock.runFor(3.5 * 3600000);
-    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 3, 'third try 3 h later');
+    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 2, 'third try 3 h later');
     await p2.clock.runFor(5 * 3600000);
-    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 3, 'then none for the rest of the day');
+    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 2, 'then none for the rest of the day');
     assert.strictEqual(await p2.evaluate(() => JSON.parse(localStorage.getItem('wl.coach.v1')).autoTried), '2026-11-22');
     // a manual "Generate today's scenario" still works after the automatic ones gave up
     const b = p2.locator('[data-co-daily]');
     assert.strictEqual(await b.count(), 1, 'Generate button offered');
     await b.click();
     await p2.clock.runFor(1000);
-    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 4, 'manual try goes out');
+    assert.strictEqual(await p2.evaluate(() => window.__asks.length), 3, 'manual try goes out');
     await p2.close();
   });
 

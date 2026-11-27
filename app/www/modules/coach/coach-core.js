@@ -342,6 +342,8 @@
     if (typeof s.realDraft === 'string') d.realDraft = s.realDraft.slice(0, 3000);
     if (parse(s.autoTried)) d.autoTried = s.autoTried;
     if (parse(s.autoCancelled)) d.autoCancelled = s.autoCancelled;
+    // automatic scenarios that couldn't reach the PC today: {day, n, next (ms)}
+    if (s.autoFail && parse(s.autoFail.day) && s.autoFail.n >= 1 && s.autoFail.n <= 3 && isFinite(s.autoFail.next)) d.autoFail = { day: s.autoFail.day, n: Math.floor(s.autoFail.n), next: +s.autoFail.next };
     if (s.teach && typeof s.teach === 'object') {
       Object.keys(s.teach).forEach(function (id) {
         var v = s.teach[id];

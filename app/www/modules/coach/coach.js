@@ -305,7 +305,7 @@
         mine = S.pending = { job: r.job, task: task, at: Date.now(), answer: input.answer || input.situation || '' };
         if (task === 'coach-grade' && S.current) S.pending.scn = JSON.parse(JSON.stringify(S.current)); // graded against this one
       }
-      if (auto) { S.autoTried = today(); autoFails = 0; }
+      if (auto) { S.autoTried = today(); delete S.autoFail; }
       save();
       return pc.poll(r.job, Date.now(), tick);
     }).then(function (a) { clearMine(); onAnswer(a); save(); })
@@ -323,14 +323,15 @@
   }
   /* An automatic scenario that couldn't reach the PC (and wasn't queued) waits 1 h, then 3 h, and gives up for the
      day after 3 tries, so a PC that's off doesn't make Home flip to "Claude is on it…" every 15 minutes. */
-  var autoFails = 0, autoFailDay = null, autoNext = 0;
+  // kept in wl.coach.v1 (autoFail: {day, n, next}) so reopening the app doesn't try again at once
   function autoFailed() {
-    var d = today();
-    if (autoFailDay !== d) { autoFailDay = d; autoFails = 0; }
-    autoFails++;
-    if (autoFails >= 3) { S.autoTried = d; return; }
-    autoNext = Date.now() + (autoFails === 1 ? 60 : 180) * 60000;
+    var d = today(), f = S.autoFail && S.autoFail.day === d ? S.autoFail : { day: d, n: 0, next: 0 };
+    f.n++;
+    if (f.n >= 3) { S.autoTried = d; delete S.autoFail; return; }
+    f.next = Date.now() + (f.n === 1 ? 60 : 180) * 60000;
+    S.autoFail = f;
   }
+  function autoWait() { return !!(S.autoFail && S.autoFail.day === today() && Date.now() < S.autoFail.next); }
   function typingHere() {
     var ae = document.activeElement, id = ae && ae.id;
     if (id === 'co-real' || id === 'co-answer' || id === 'co-hist-search') return true;
@@ -425,7 +426,7 @@
   // Automatically generate today's suggested scenario once a day when setup is done and Claude can answer (PC or cloud).
   function autoScenario() {
     if (waiting || document.hidden || !askable() || hasQueuedScenario() || !K.scenarioDue(S, new Date())) return;
-    if (Date.now() < autoNext) return;
+    if (autoWait()) return;
     if (here() && typingHere()) return; // never start while he is typing on the Parenting screen
     newScenario({ auto: true });
   }

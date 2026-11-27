@@ -262,4 +262,10 @@ t('scenarioDue & validate persistence for daily auto-generated scenarios', () =>
   assert.strictEqual(v.autoTried, '2026-11-20');
   assert.strictEqual(v.autoCancelled, undefined, 'invalid calendar date dropped');
 });
+t('validate keeps the automatic scenario back-off ({day, n 1-3, next}) and drops a bad one', () => {
+  const base = { child: { name: 'M', birth: '2025-11-24' }, history: [], current: null, pending: null };
+  assert.deepStrictEqual(K.validate({ ...base, autoFail: { day: '2026-11-22', n: 2, next: 1795000000000 } }).autoFail, { day: '2026-11-22', n: 2, next: 1795000000000 });
+  assert.strictEqual(K.validate({ ...base, autoFail: { day: 'x', n: 2, next: 1 } }).autoFail, undefined);
+  assert.strictEqual(K.validate({ ...base, autoFail: { day: '2026-11-22', n: 9, next: 1 } }).autoFail, undefined);
+});
 console.log(n + ' coach tests passed');
