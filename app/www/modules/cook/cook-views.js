@@ -44,7 +44,68 @@
       '</details>';
   }
 
+  /* ---- Cronometer-style target bar row ---- */
+  function targetBarHtml(b, who) {
+    var w = Math.max(0, Math.min(100, b.pct));
+    var cls = b.pct >= 80 && (who === 'child' || b.key !== 'kcal' || b.pct <= 125) ? ' ck-hit'
+      : (who === 'me' && b.key === 'kcal' && b.pct > 125 ? ' ck-over' : '');
+    return '<div class="ck-tbar" data-tbar="' + esc(b.key) + '">' +
+      '<div class="ck-tbar-top"><span>' + esc(b.label) + '</span><span class="meta"><b>' + esc(b.val) + '</b> / ' + esc(b.target) + ' ' + esc(b.unit) + ' (' + esc(b.pct) + '%)</span></div>' +
+      '<div class="ck-track" role="progressbar" aria-label="' + esc(b.label + ': ' + b.val + ' of ' + b.target + ' ' + b.unit) + '" aria-valuemin="0" aria-valuemax="' + esc(b.target) + '" aria-valuenow="' + esc(b.val) + '">' +
+      '<div class="ck-fill' + cls + '" style="width:' + w + '%"></div></div></div>';
+  }
+
+  function targetsCardHtml(S, ctx) {
+    var K = root.CookCore, d = ctx.logNow, tIso = K.iso(d);
+    if (!K.dailyNutrition) return '';
+    var who = ctx.targetWho === 'child' ? 'child' : 'me';
+    var range = ctx.targetRange === '7d' ? '7d' : 'day';
+    var cName = ctx.childLabel();
+    var dn = K.dailyNutrition(S, who, tIso, { range: range });
+    if (!dn) return '';
+    var mainKeys = who === 'child' ? ['kcal', 'pro', 'fat', 'iron', 'ca'] : ['kcal', 'pro', 'carb', 'fat', 'fib'];
+    var mainBars = dn.bars.filter(function (b) { return mainKeys.indexOf(b.key) >= 0; });
+    var moreBars = dn.bars.filter(function (b) { return mainKeys.indexOf(b.key) < 0; });
+    var whoLbl = who === 'child' ? cName : 'Me';
+    var whenLbl = range === '7d'
+      ? (dn.days ? '7-day daily average (' + dn.days + ' day' + (dn.days === 1 ? '' : 's') + ' logged)' : '7-day daily average (nothing logged yet)')
+      : (dn.entries ? dn.entries + ' meal' + (dn.entries === 1 ? '' : 's') + ' logged on ' + tIso : 'Nothing logged yet on ' + tIso);
+
+    var h = '<div class="card ui" id="ck-targets">' +
+      '<div class="row" style="margin-bottom:6px"><h3 class="grow" style="margin:0">Daily targets</h3>' +
+      '<div class="chips" role="group" aria-label="Target person">' +
+      '<button class="chip" type="button" data-ck-twho="me" aria-pressed="' + (who === 'me') + '">Me</button>' +
+      '<button class="chip" type="button" data-ck-twho="child" aria-pressed="' + (who === 'child') + '">' + esc(cName) + '</button></div></div>' +
+      '<div class="row" style="margin-bottom:6px"><span class="meta grow">' + esc(whenLbl) + '</span>' +
+      '<div class="chips" role="group" aria-label="Target time range">' +
+      '<button class="chip" type="button" data-ck-trange="day" aria-pressed="' + (range === 'day') + '">Day</button>' +
+      '<button class="chip" type="button" data-ck-trange="7d" aria-pressed="' + (range === '7d') + '">7-day avg</button></div></div>';
+
+    h += mainBars.map(function (b) { return targetBarHtml(b, who); }).join('');
+    if (dn.unmatched > 0) {
+      h += '<p class="meta" style="margin:.4em 0 0">' + dn.unmatched + ' logged item' + (dn.unmatched === 1 ? '' : 's') + ' had no built-in estimate — use “+ Pick foods” for closer totals.</p>';
+    }
+    h += '<details id="ck-micro" style="margin-top:6px"><summary class="meta">More nutrients (' + moreBars.map(function (b) { return b.label; }).join(', ') + ')</summary>' +
+      moreBars.map(function (b) { return targetBarHtml(b, who); }).join('') + '</details>';
+
+    var editKeys = ['kcal', 'pro', 'carb', 'fat', 'fib', 'iron', 'ca'];
+    h += '<details id="ck-tedit" style="margin-top:2px"><summary class="meta">Customize ' + esc(whoLbl) + '’s targets</summary>' +
+      '<div class="row" style="flex-wrap:wrap;gap:8px;margin-top:6px">' + editKeys.map(function (k) {
+        var meta = K.nutri.NUTRI_META[k];
+        return '<label style="flex:1 1 115px;min-width:110px"><span class="meta">' + esc(meta.label + ' (' + meta.unit + ')') + '</span>' +
+          '<input type="number" min="1" step="' + (k === 'iron' ? '0.5' : '1') + '" data-ck-tval="' + k + '" value="' + esc(dn.targets[k]) + '"></label>';
+      }).join('') + '</div>' +
+      '<div class="row" style="margin-top:8px"><button class="primary" type="button" id="ck-t-save">Save targets</button>' +
+      '<button class="link" type="button" id="ck-t-reset">Reset defaults</button></div></details>';
+
+    h += '<p class="meta" style="margin:.5em 0 0">Rough everyday estimates from logged foods' +
+      (who === 'child' ? ' (scaled by how much she actually ate; toddler appetites vary day to day)' : '') +
+      '. General reference only — not medical or paediatric advice.</p></div>';
+    return h;
+  }
+
   /* ---- Tab 1: Today (#cook) ---- */
+  var MAMA_CHIPS = ['Tinolang manok', 'Chicken adobo', 'Sinigang na baboy', 'Ginisang monggo', 'Arroz caldo', 'Pancit bihon'];
   function todayHtml(S, ctx) {
     var K = root.CookCore, d = ctx.realNow, tIso = K.iso(d);
     var soon = K.expiringSoon(S, d, 3);
@@ -58,7 +119,17 @@
         ? 'Move workout logged today: aim for a solid protein portion and carbs at your next meal for recovery (general guidance).'
         : 'Move workout on the schedule today (' + wk.thisWeek + ' of ' + wk.target + ' this week): high-protein meals are highlighted below.') + '</p>';
     } else {
-      h += '<p class="meta ui">Simple beginner meals for you and ' + esc(ctx.childLabel()) + '. If Mama cooks, tap “Mama cooked” and the shopping list adjusts.</p>';
+      h += '<p class="meta ui">Simple beginner meals for you and ' + esc(ctx.childLabel()) + '. Tap “Mama cooked” or “Not making” any time — the shopping list adjusts automatically.</p>';
+    }
+    if (K.dailyNutrition) {
+      var meToday = K.dailyNutrition(S, 'me', tIso);
+      var chToday = K.dailyNutrition(S, 'child', tIso);
+      if ((meToday && meToday.entries) || (chToday && chToday.entries)) {
+        var bits = [];
+        if (meToday && meToday.entries) bits.push('Me: ' + meToday.totals.kcal + ' kcal (' + meToday.bars[0].pct + '%) · ' + meToday.totals.pro + ' g pro');
+        if (chToday && chToday.entries) bits.push(ctx.childLabel() + ': ' + chToday.totals.kcal + ' kcal (' + chToday.bars[0].pct + '%)');
+        h += '<div class="card ui" id="ck-today-targets"><div class="row"><span class="meta grow">' + esc(bits.join(' · ')) + '</span><a class="link" href="#cook/log">Targets</a></div></div>';
+      }
     }
     if (soon.length) {
       h += '<div class="card ui" id="ck-soon" style="border-color:var(--warn)"><h3>Use soon</h3>' +
@@ -76,24 +147,34 @@
     K.MEALS.forEach(function (meal) {
       var slot = day[meal] || { recipeId: null, title: '', status: 'planned', note: '' };
       var r = K.recipeById(S, slot.recipeId);
+      if (slot.status === 'skipped') {
+        h += '<div class="card ui" data-ck-meal="' + meal + '"><div class="row"><div class="grow"><div class="meta">' + esc(K.MEAL_LABEL[meal]) + ' · Not making</div>' +
+          '<span class="meta">Off your shopping list.</span></div>' +
+          '<button class="link" type="button" data-ck-reset="' + meal + '">Back to plan</button></div></div>';
+        return;
+      }
       var statusBadge = slot.status === 'made' ? ' <span class="tick">✓ Made</span>'
         : slot.status === 'mama' ? ' <span class="meta">· Mama cooked</span>' : '';
       h += '<div class="card" data-ck-meal="' + meal + '">' +
         '<div class="meta ui">' + esc(K.MEAL_LABEL[meal]) + statusBadge + '</div>' +
         '<h3 style="margin:.2em 0">' + esc(slot.status === 'mama' ? (slot.note || 'Mama’s cooking') : (slot.title || 'Open slot')) + '</h3>' +
         (slot.status !== 'mama' ? recipeDetailsHtml(r, ctx) : (slot.title ? '<p class="meta ui">Original plan (' + esc(slot.title) + ') moved off the shopping list.</p>' : '') +
-          // what she made (optional), right on the card: no system dialog
+          // what she made (optional), right on the card: no system dialog + 1-tap Filipino dish chips
           '<form class="row ui ck-mama-form" data-ck-mama-form="' + meal + '" style="margin-top:6px"><label class="sr" for="ck-mama-' + meal + '">What did Mama cook? (optional)</label>' +
           '<input type="text" class="grow" id="ck-mama-' + meal + '" maxlength="200" placeholder="What did Mama cook? (optional)" value="' + esc(slot.note || '') + '" autocomplete="off">' +
-          '<button type="submit">Save</button></form>') +
+          '<button type="submit">Save</button></form>' +
+          '<div class="chips ui" style="margin-top:6px">' + MAMA_CHIPS.map(function (dish) {
+            return '<button class="chip" type="button" data-ck-mama-pick="' + meal + '|' + esc(dish) + '">' + esc(dish) + '</button>';
+          }).join('') + '</div>') +
         '<div class="row ui" style="margin-top:8px">' +
-        (slot.status !== 'made' && slot.status !== 'mama' ? '<button class="primary" type="button" data-ck-made="' + meal + '">Made it ✓</button>' : '') +
-        (slot.status !== 'mama' ? '<button type="button" data-ck-mama="' + meal + '">Mama cooked</button>' : '<button type="button" data-ck-reset="' + meal + '">Back to plan</button>') +
-        (slot.status === 'planned' ? '<button class="link" type="button" data-ck-swap="' + meal + '">Swap</button>' : '') +
+        (slot.status === 'planned' ? '<button class="primary" type="button" data-ck-made="' + meal + '">Made it ✓</button>' : '') +
+        (slot.status !== 'mama' ? '<button type="button" data-ck-mama="' + meal + '">Mama cooked</button>' : '') +
+        (slot.status === 'planned' ? '<button class="link" type="button" data-ck-skip="' + meal + '">Not making</button><button class="link" type="button" data-ck-swap="' + meal + '">Swap</button>' : '') +
+        (slot.status === 'made' || slot.status === 'mama' ? '<button type="button" data-ck-logmeal="' + meal + '">Log to food log</button><button class="link" type="button" data-ck-reset="' + meal + '">Back to plan</button>' : '') +
         '</div></div>';
     });
 
-    h += '<div class="row ui" style="margin-top:4px"><a class="btn primary" href="#cook/log">Log what we ate</a><a class="btn" href="#cook/pantry">Fridge &amp; shopping list</a></div>';
+    h += '<div class="row ui" style="margin-top:4px"><a class="btn primary" href="#cook/log">Log food &amp; targets</a><a class="btn" href="#cook/pantry">Fridge &amp; shopping list</a></div>';
     h += '<p class="meta ui" style="margin-top:10px">General everyday cooking and fitness guidance only — not medical or paediatric nutrition advice.</p>';
     return h;
   }
@@ -103,7 +184,7 @@
     var K = root.CookCore, WL = root.WL, d = ctx.realNow, days = K.weekDays(d);
     var q = ctx.queuedFor('cook-plan');
     var h = subnav('week') + '<h1>This week’s meals</h1>';
-    h += '<div class="card ui"><p class="meta">Your 7-day plan prioritizes foods expiring soon and protein on Move workout days. Tap “Mama cooked” on any meal she handles — its ingredients drop off your shopping list automatically.</p>' +
+    h += '<div class="card ui"><p class="meta">Your 7-day plan prioritizes foods expiring soon and protein on Move workout days. Tap “Mama” or “Skip” on any meal — its ingredients drop off your shopping list automatically.</p>' +
       '<div class="row" style="margin-top:8px"><button id="ck-regen" type="button">Refresh offline plan</button>' +
       (ctx.askable() ? '<button class="primary" id="ck-ai-plan" type="button"' + (ctx.planBusy ? ' disabled' : '') + '>' + (ctx.planBusy ? 'Asking Claude…' : 'Ask Claude for this week’s plan') + '</button>' : '') + '</div>' +
       (ctx.planErr ? '<p class="no" style="margin-top:6px">' + esc(ctx.planErr) + '</p>' : '') +
@@ -115,12 +196,16 @@
       h += '<div class="card ui"><h3 style="margin-bottom:6px">' + esc(dayHeading(iso, d)) + '</h3>';
       K.MEALS.forEach(function (meal) {
         var m = slot[meal] || { title: '', status: 'planned', note: '' };
-        var r = m.status !== 'mama' ? K.recipeById(S, m.recipeId) : null;
+        var r = m.status !== 'mama' && m.status !== 'skipped' ? K.recipeById(S, m.recipeId) : null;
+        var titleTxt = m.status === 'mama' ? ('Mama cooked' + (m.note ? ': ' + m.note : ''))
+          : m.status === 'skipped' ? 'Not making'
+          : (m.title || '—');
         h += '<div class="ck-slot" data-wk-slot="' + iso + '|' + meal + '"><div class="row"><div class="grow"><span class="meta">' + esc(K.MEAL_LABEL[meal]) + '</span><br><b>' +
-          esc(m.status === 'mama' ? ('Mama cooked' + (m.note ? ': ' + m.note : '')) : (m.title || '—')) + '</b>' +
+          esc(titleTxt) + '</b>' +
           (m.status === 'made' ? ' <span class="tick">✓</span>' : '') + '</div>' +
-          '<button class="link" type="button" data-wk-swap="' + iso + '|' + meal + '">Swap</button>' +
-          '<button class="link" type="button" data-wk-mama="' + iso + '|' + meal + '">' + (m.status === 'mama' ? 'Undo Mama' : 'Mama') + '</button></div>' +
+          (m.status !== 'skipped' ? '<button class="link" type="button" data-wk-swap="' + iso + '|' + meal + '">Swap</button>' : '') +
+          '<button class="link" type="button" data-wk-mama="' + iso + '|' + meal + '">' + (m.status === 'mama' ? 'Undo Mama' : 'Mama') + '</button>' +
+          '<button class="link" type="button" data-wk-skip="' + iso + '|' + meal + '">' + (m.status === 'skipped' ? 'Undo skip' : 'Skip') + '</button></div>' +
           recipeDetailsHtml(r, ctx) + '</div>';
       });
       h += '</div>';
@@ -128,7 +213,9 @@
     return h;
   }
 
-  /* ---- Tab 3: Food log (#cook/log) ---- */
+  /* ---- Tab 3: Food log & Cronometer-style targets (#cook/log) ---- */
+  var CHILD_QUICK = ['Scrambled egg', 'Banana', 'Avocado', 'Greek yogurt', 'Oatmeal', 'Chicken & rice'];
+  var ME_QUICK = ['2 eggs & toast', 'Chicken & rice', 'Greek yogurt & berries', 'Protein shake', 'Tinolang manok'];
   function logHtml(S, ctx) {
     var K = root.CookCore, d = ctx.logNow, tIso = K.iso(d);
     var day = (S.plan && S.plan.days && S.plan.days[tIso]) || {};
@@ -136,16 +223,19 @@
     var cName = ctx.childLabel();
     var cSum = K.childSummary(S, d);
 
-    var h = subnav('log') + '<h1>Food log</h1>';
+    var h = subnav('log') + '<h1>Food log &amp; targets</h1>';
+    h += targetsCardHtml(S, ctx);
 
-    // Child food log: Offered vs Actually ate (1 line + 1 tap)
+    // Child food log: Offered vs Actually ate (1-tap quick-add + searchable food picker)
     h += '<div class="card ui" id="ck-log-child"><h3>What ' + esc(cName) + ' ate</h3>' +
-      '<p class="meta">Keeping “offered” and “actually ate” separate takes one tap and tracks food exposure even on picky days.</p>' +
+      '<p class="meta">Tap quick foods or pick from the food list — scaled automatically by how much she actually ate.</p>' +
       '<div class="chips" id="ck-c-meal" style="margin:6px 0">' + K.ALL_MEALS.map(function (m) {
         return '<button class="chip" type="button" data-cmeal="' + m + '" aria-pressed="' + (m === 'lunch') + '">' + esc(K.MEAL_LABEL[m]) + '</button>';
       }).join('') + '</div>' +
+      '<div class="chips" id="ck-c-quick" style="margin:6px 0"><button class="chip" type="button" id="ck-c-pick">+ Pick foods</button>' +
+      CHILD_QUICK.map(function (q) { return '<button class="chip" type="button" data-cquick="' + esc(q) + '">+ ' + esc(q) + '</button>'; }).join('') + '</div>' +
       '<label for="ck-c-offered">What was offered</label>' +
-      '<input type="text" id="ck-c-offered" placeholder="e.g. oatmeal, mashed banana, soft egg">' +
+      '<input type="text" id="ck-c-offered" placeholder="e.g. oatmeal, mashed banana, egg">' +
       (dinnerTitle ? '<div class="row" style="margin:4px 0 6px"><button class="link" type="button" id="ck-c-same">Fill from today’s dinner (soft/unsalted)</button></div>' : '') +
       '<div class="meta" style="margin:8px 0 4px">How much did she actually eat?</div>' +
       '<div class="chips" id="ck-c-ate">' + K.CHILD_ATE.map(function (v) {
@@ -157,11 +247,13 @@
       (cSum.liked.length ? '<p class="meta" id="ck-c-liked" style="margin:10px 0 0"><b>Ate well lately:</b> ' + esc(cSum.liked.join(' · ')) + '</p>' : '') +
       '</div>';
 
-    // Adult food log: simple single field + rough portion + optional tags
+    // Adult food log: 1-tap quick-add + searchable food picker + rough portion + tags
     h += '<div class="card ui" id="ck-log-me"><h3>What I ate</h3>' +
       '<div class="chips" id="ck-m-meal" style="margin:6px 0">' + K.ALL_MEALS.map(function (m) {
         return '<button class="chip" type="button" data-mmeal="' + m + '" aria-pressed="' + (m === 'dinner') + '">' + esc(K.MEAL_LABEL[m]) + '</button>';
       }).join('') + '</div>' +
+      '<div class="chips" id="ck-m-quick" style="margin:6px 0"><button class="chip" type="button" id="ck-m-pick">+ Pick foods</button>' +
+      ME_QUICK.map(function (q) { return '<button class="chip" type="button" data-mquick="' + esc(q) + '">+ ' + esc(q) + '</button>'; }).join('') + '</div>' +
       '<label for="ck-m-text">Meal or snack</label>' +
       '<input type="text" id="ck-m-text" placeholder="e.g. chicken & broccoli rice, or Mama’s sinigang">' +
       '<div class="row" style="margin:4px 0 6px">' +
@@ -177,20 +269,26 @@
       }).join('') + '</div>' +
       '<div class="row" style="margin-top:10px"><button class="primary" id="ck-m-save" type="button">Save my meal</button></div></div>';
 
-    // Recent logs list
+    // Recent logs list (with rough kcal / protein estimate when matched)
     var recent = (S.logs || []).slice(0, 20);
     h += '<div class="card ui" id="ck-log-list"><h3>Recent meals</h3>' + (recent.length ? '<ul class="list">' + recent.map(function (x) {
       var who = x.who === 'child' ? cName : 'Me';
+      var est = K.nutri ? K.nutri.estimateEntry(x, S.customFoods, K.RECIPES) : null;
+      var estTxt = est && est.matched && est.nutri.kcal > 0 ? ' · ~' + Math.round(est.nutri.kcal) + ' kcal, ' + Math.round(est.nutri.pro) + ' g pro' : '';
       var body = x.who === 'child'
         ? 'Offered: ' + esc(x.offered) + ' · <b>' + esc(x.ate) + '</b>' + (x.note ? ' (' + esc(x.note) + ')' : '')
         : esc(x.text) + ' · ' + esc(x.portion) + (x.tags && x.tags.length ? ' (' + esc(x.tags.join(', ')) + ')' : '');
-      return '<li class="entry"><span class="kind">' + esc(who + ' · ' + (K.MEAL_LABEL[x.meal] || x.meal)) + '</span> <span class="when">' + esc(x.date) + '</span>' +
+      return '<li class="entry"><span class="kind">' + esc(who + ' · ' + (K.MEAL_LABEL[x.meal] || x.meal)) + '</span> <span class="when">' + esc(x.date + estTxt) + '</span>' +
         '<p>' + body + '</p><button class="link ck-log-del" type="button" data-id="' + esc(x.id) + '" aria-label="Delete meal log">Delete</button></li>';
     }).join('') + '</ul>' : '<p class="meta">Nothing logged yet.</p>') + '</div>';
     return h;
   }
 
   /* ---- Tab 4: Fridge, Pantry & Shopping List (#cook/pantry) ---- */
+  var PANTRY_QUICK = [
+    ['Eggs', 'dairy', 21], ['Milk', 'dairy', 7], ['Spinach', 'produce', 4], ['Chicken thighs', 'meat', 3],
+    ['Banana', 'produce', 5], ['Greek yogurt', 'dairy', 10], ['Broccoli', 'produce', 5], ['Avocado', 'produce', 4]
+  ];
   function pantryHtml(S, ctx) {
     var K = root.CookCore, WL = root.WL, d = ctx.realNow;
     var list = K.shoppingList(S, d), items = K.sortedPantry(S, d);
@@ -210,7 +308,7 @@
           '<div class="meta">' + esc(K.CAT_LABEL[x.cat] || x.cat) + (x.haveStatus === 'low' ? ' · running low' : '') + ' · for ' + esc(x.meals.slice(0, 2).join(', ')) + '</div></div></li>';
       }).join('') + '</ul>';
     } else {
-      h += '<p class="meta">You already have everything for this week’s planned meals (or all slots are marked done / Mama cooked).</p>';
+      h += '<p class="meta">You already have everything for this week’s planned meals (or all slots are marked done / Mama cooked / skipped).</p>';
     }
     h += '</div>';
 
@@ -234,8 +332,11 @@
     }
     h += '</div>';
 
-    // Add item form
+    // Add item form (with 1-tap common staples)
     h += '<div class="card ui" id="ck-pantry-add"><h3>Add to fridge / pantry</h3>' +
+      '<div class="chips" id="ck-p-quick" style="margin:0 0 8px">' + PANTRY_QUICK.map(function (q) {
+        return '<button class="chip" type="button" data-pquick="' + esc(q[0] + '|' + q[1] + '|' + q[2]) + '">+ ' + esc(q[0]) + '</button>';
+      }).join('') + '</div>' +
       '<label for="ck-p-name">Item</label><input type="text" id="ck-p-name" placeholder="e.g. chicken thighs, spinach, milk">' +
       '<div class="row" style="margin-top:8px">' +
       '<input type="number" id="ck-p-qty" class="ck-custom-min" min="0" step="any" placeholder="Qty" aria-label="Quantity">' +
@@ -286,15 +387,18 @@
     var pickMeal = hr < 11 ? 'breakfast' : hr < 15 ? 'lunch' : 'dinner';
     var slot = day[pickMeal] || day.dinner || {};
     var soon = K.expiringSoon(S, d, 2);
+    var headline = slot.status === 'mama' ? 'Mama cooked' + (slot.note ? ': ' + slot.note : '')
+      : slot.status === 'skipped' ? 'Flexible day (skipped ' + (K.MEAL_LABEL[pickMeal] || 'meal').toLowerCase() + ')'
+      : (slot.title || 'Plan today’s meals');
     return '<div class="meta ui">Cooking · ' + esc(K.MEAL_LABEL[pickMeal] || 'Today') + '</div>' +
-      '<h3>' + esc(slot.status === 'mama' ? 'Mama cooked' + (slot.note ? ': ' + slot.note : '') : (slot.title || 'Plan today’s meals')) + '</h3>' +
+      '<h3>' + esc(headline) + '</h3>' +
       (soon.length ? '<p class="meta ui" style="color:var(--warn)">Use soon: ' + esc(soon.slice(0, 3).map(function (x) { return x.item.name + ' (' + (x.daysLeft <= 0 ? 'today' : x.daysLeft + ' d') + ')'; }).join(', ')) + '</p>'
-        : '<p class="meta ui">Beginner recipes, flexible when Mama cooks, food logs for you &amp; ' + esc(ctx.childLabel()) + '.</p>') +
+        : '<p class="meta ui">Beginner recipes, flexible when Mama cooks, food logs &amp; targets for you &amp; ' + esc(ctx.childLabel()) + '.</p>') +
       '<div class="row ui"><a class="btn primary" href="#cook">Today’s meals</a><a class="btn" href="#cook/log">Log food</a><a class="btn" href="#cook/pantry">Fridge &amp; list</a></div>';
   }
 
   root.CookViews = {
     subnav: subnav, dayHeading: dayHeading, expiryBadge: expiryBadge, recipeDetailsHtml: recipeDetailsHtml,
-    todayHtml: todayHtml, weekHtml: weekHtml, logHtml: logHtml, pantryHtml: pantryHtml, cardHtml: cardHtml
+    targetsCardHtml: targetsCardHtml, todayHtml: todayHtml, weekHtml: weekHtml, logHtml: logHtml, pantryHtml: pantryHtml, cardHtml: cardHtml
   };
 })(typeof window !== 'undefined' ? window : this);

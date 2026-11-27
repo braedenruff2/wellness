@@ -8,6 +8,7 @@
 (function (root) {
   'use strict';
   var WLD = root.WLDates || require('../../lib/dates.js');
+  var CN = root.CookNutri || (typeof require === 'function' ? require('./cook-nutri.js') : null);
   var iso = WLD.iso, addDays = WLD.addDays, isDate = WLD.isDate;
 
   var MEALS = ['breakfast', 'lunch', 'dinner'];
@@ -721,7 +722,7 @@
       var workoutDay = Array.isArray(opts.workoutDays) ? opts.workoutDays.indexOf(dayIdx) >= 0 : (dayIdx === 0 || dayIdx === 2 || dayIdx === 4);
       var boostSoon = d >= todayIso && d <= addDays(todayIso, 2);
       MEALS.forEach(function (meal) {
-        if (cur[meal] && (!opts.force || cur[meal].status === 'made' || cur[meal].status === 'mama' || cur[meal].status === 'custom')) return;
+        if (cur[meal] && (!opts.force || cur[meal].status === 'made' || cur[meal].status === 'mama' || cur[meal].status === 'custom' || cur[meal].status === 'skipped')) return;
         var pool = RECIPES.filter(function (r) { return r.meal === meal; });
         pool.sort(function (a, b) {
           var sa = scoreRecipe(a, boostSoon ? soonNames : [], workoutDay, used);
@@ -739,7 +740,7 @@
 
   function markSlot(state, date, meal, status, note, now) {
     if (!isDate(date) || MEALS.indexOf(meal) < 0) return null;
-    if (['planned', 'made', 'mama', 'custom'].indexOf(status) < 0) return null;
+    if (['planned', 'made', 'mama', 'custom', 'skipped'].indexOf(status) < 0) return null;
     ensureWeekPlan(state, now);
     var day = state.plan.days[date] = state.plan.days[date] || {};
     var cur = day[meal] || { recipeId: null, title: '', status: 'planned', note: '' };
@@ -797,7 +798,7 @@
       MEALS.forEach(function (meal) {
         var m = d[meal];
         if (!usableMeal(m)) return;
-        if (curDay[meal] && (curDay[meal].status === 'made' || curDay[meal].status === 'mama')) return;
+        if (curDay[meal] && (curDay[meal].status === 'made' || curDay[meal].status === 'mama' || curDay[meal].status === 'skipped')) return;
         if (typeof m === 'string' && m.trim()) {
           curDay[meal] = { recipeId: null, title: m.trim().slice(0, 120), status: 'planned', note: '' };
           return;
@@ -930,6 +931,8 @@
     var portion = PORTIONS.indexOf(data.portion) >= 0 ? data.portion : 'Regular';
     var tags = (Array.isArray(data.tags) ? data.tags : []).filter(function (t) { return ME_TAGS.indexOf(t) >= 0; }).slice(0, 4);
     var rec = { id: newId('lm', now), at: now.toISOString(), date: isDate(data.date) ? data.date : iso(now), who: 'me', meal: meal, text: text, portion: portion, tags: tags };
+    if (data.recipeId && typeof data.recipeId === 'string') rec.recipeId = data.recipeId.slice(0, 60);
+    if (CN && data.nutri) { var cn = CN.cleanNutri(data.nutri); if (cn) rec.nutri = cn; }
     insertLog(state, rec);
     return rec;
   }
@@ -942,8 +945,56 @@
     var ate = CHILD_ATE.indexOf(data.ate) >= 0 ? data.ate : 'About half';
     var note = String(data.note || '').trim().slice(0, 200);
     var rec = { id: newId('lc', now), at: now.toISOString(), date: isDate(data.date) ? data.date : iso(now), who: 'child', meal: meal, offered: offered, ate: ate, note: note };
+    if (data.recipeId && typeof data.recipeId === 'string') rec.recipeId = data.recipeId.slice(0, 60);
+    if (CN && data.nutri) { var cn = CN.cleanNutri(data.nutri); if (cn) rec.nutri = cn; }
     insertLog(state, rec);
     return rec;
+  }
+
+  /* Custom user-saved foods (for 1-tap logging of household staples & Mama's dishes). */
+  function addCustomFood(state, item, now) {
+    if (!CN || !item || typeof item.name !== 'string' || !item.name.trim()) return null;
+    var nutri = CN.cleanNutri(item.nutri || item);
+    if (!nutri) return null;
+    if (!Array.isArray(state.customFoods)) state.customFoods = [];
+    var name = item.name.trim().slice(0, 80);
+    var serving = String(item.serving || '1 serving').trim().slice(0, 40) || '1 serving';
+    var k = norm(name);
+    var existing = state.customFoods.filter(function (x) { return x && norm(x.name) === k; })[0];
+    if (existing) { existing.name = name; existing.serving = serving; existing.nutri = nutri; return existing; }
+    var rec = { id: newId('cf', now || new Date()), name: name, serving: serving, nutri: nutri };
+    state.customFoods.unshift(rec);
+    if (state.customFoods.length > 60) state.customFoods.length = 60;
+    return rec;
+  }
+
+  function removeCustomFood(state, id) {
+    if (!Array.isArray(state.customFoods)) return false;
+    var n0 = state.customFoods.length;
+    state.customFoods = state.customFoods.filter(function (x) { return x && x.id !== id; });
+    if (!state.customFoods.length) delete state.customFoods;
+    return (state.customFoods ? state.customFoods.length : 0) !== n0;
+  }
+
+  /* Customizable daily targets for 'me' or 'child' (falls back to general everyday reference defaults). */
+  function setTargets(state, who, vals) {
+    if (!CN || (who !== 'me' && who !== 'child')) return null;
+    if (!state.targets || typeof state.targets !== 'object') state.targets = {};
+    state.targets[who] = CN.cleanTargets(vals, who);
+    return state.targets[who];
+  }
+
+  function resetTargets(state, who) {
+    if (!state || !state.targets || typeof state.targets !== 'object') return;
+    if (who === 'me' || who === 'child') delete state.targets[who];
+    if (!Object.keys(state.targets).length) delete state.targets;
+  }
+
+  function dailyNutrition(state, who, now, opts) {
+    if (!CN) return null;
+    now = now || new Date();
+    var dateIso = typeof now === 'string' && isDate(now) ? now : iso(now);
+    return CN.dailyNutrition(state, who, dateIso, Object.assign({ addDays: addDays, recipes: RECIPES }, opts || {}));
   }
 
   function removeLog(state, id) {
@@ -1001,7 +1052,7 @@
             d.plan.days[day][meal] = {
               recipeId: typeof m.recipeId === 'string' ? m.recipeId.slice(0, 60) : null,
               title: typeof m.title === 'string' ? m.title.slice(0, 120) : '',
-              status: ['planned', 'made', 'mama', 'custom'].indexOf(m.status) >= 0 ? m.status : 'planned',
+              status: ['planned', 'made', 'mama', 'custom', 'skipped'].indexOf(m.status) >= 0 ? m.status : 'planned',
               note: typeof m.note === 'string' ? m.note.slice(0, 200) : ''
             };
           });
@@ -1018,21 +1069,27 @@
     (Array.isArray(s.logs) ? s.logs : []).slice(0, 400).forEach(function (x) {
       if (!x || !isDate(x.date) || isNaN(Date.parse(x.at))) return;
       if (x.who === 'child' && typeof x.offered === 'string' && x.offered.trim()) {
-        d.logs.push({
+        var cRec = {
           id: String(x.id || newId('lc')).slice(0, 40), at: new Date(x.at).toISOString(), date: x.date, who: 'child',
           meal: ALL_MEALS.indexOf(x.meal) >= 0 ? x.meal : 'lunch',
           offered: x.offered.trim().slice(0, 300),
           ate: CHILD_ATE.indexOf(x.ate) >= 0 ? x.ate : 'About half',
           note: typeof x.note === 'string' ? x.note.trim().slice(0, 200) : ''
-        });
+        };
+        if (typeof x.recipeId === 'string' && x.recipeId) cRec.recipeId = x.recipeId.slice(0, 60);
+        if (CN && x.nutri) { var cn1 = CN.cleanNutri(x.nutri); if (cn1) cRec.nutri = cn1; }
+        d.logs.push(cRec);
       } else if (x.who === 'me' && typeof x.text === 'string' && x.text.trim()) {
-        d.logs.push({
+        var mRec = {
           id: String(x.id || newId('lm')).slice(0, 40), at: new Date(x.at).toISOString(), date: x.date, who: 'me',
           meal: ALL_MEALS.indexOf(x.meal) >= 0 ? x.meal : 'dinner',
           text: x.text.trim().slice(0, 300),
           portion: PORTIONS.indexOf(x.portion) >= 0 ? x.portion : 'Regular',
           tags: (Array.isArray(x.tags) ? x.tags : []).filter(function (t) { return ME_TAGS.indexOf(t) >= 0; }).slice(0, 4)
-        });
+        };
+        if (typeof x.recipeId === 'string' && x.recipeId) mRec.recipeId = x.recipeId.slice(0, 60);
+        if (CN && x.nutri) { var cn2 = CN.cleanNutri(x.nutri); if (cn2) mRec.nutri = cn2; }
+        d.logs.push(mRec);
       }
     });
     if (s.aiRecipes && typeof s.aiRecipes === 'object') {
@@ -1057,6 +1114,23 @@
     if (s.lastPhoto && typeof s.lastPhoto === 'object') {
       var pi = cleanPhotoItems(s.lastPhoto.items);
       if (pi.length) d.lastPhoto = { at: typeof s.lastPhoto.at === 'string' && !isNaN(Date.parse(s.lastPhoto.at)) ? s.lastPhoto.at : new Date().toISOString(), summary: String(s.lastPhoto.summary || '').slice(0, 300), items: pi };
+    }
+    if (CN && Array.isArray(s.customFoods)) {
+      var cfs = [];
+      s.customFoods.slice(0, 60).forEach(function (cf) {
+        if (!cf || typeof cf.name !== 'string' || !cf.name.trim()) return;
+        var nu = CN.cleanNutri(cf.nutri);
+        if (!nu) return;
+        cfs.push({ id: String(cf.id || newId('cf')).slice(0, 40), name: cf.name.trim().slice(0, 80), serving: String(cf.serving || '1 serving').trim().slice(0, 40) || '1 serving', nutri: nu });
+      });
+      if (cfs.length) d.customFoods = cfs;
+    }
+    if (CN && s.targets && typeof s.targets === 'object') {
+      var tg = {};
+      ['me', 'child'].forEach(function (w) {
+        if (s.targets[w] && typeof s.targets[w] === 'object') tg[w] = CN.cleanTargets(s.targets[w], w);
+      });
+      if (Object.keys(tg).length) d.targets = tg;
     }
     return d;
   }
@@ -1085,6 +1159,8 @@
     ensureWeekPlan: ensureWeekPlan, markSlot: markSlot, swapSlot: swapSlot, applyAiPlan: applyAiPlan,
     shoppingList: shoppingList, toggleBought: toggleBought,
     logMe: logMe, logChild: logChild, removeLog: removeLog, dayLogs: dayLogs, childSummary: childSummary,
+    addCustomFood: addCustomFood, removeCustomFood: removeCustomFood, setTargets: setTargets, resetTargets: resetTargets,
+    dailyNutrition: dailyNutrition, nutri: CN,
     sameFood: sameFood, cleanPhotoItems: cleanPhotoItems, validate: validate
   };
   root.CookCore = api;

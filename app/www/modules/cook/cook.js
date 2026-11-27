@@ -6,6 +6,7 @@
   var K = window.CookCore, V = window.CookViews, $ = WL.$, $$ = WL.$$;
   var store = WL.store('wl.cook.v1', K.defaults);
   var S = store.load(), view = null, curTab = '', pantryCat = 'all';
+  var targetWho = 'me', targetRange = 'day', foodKeyFn = null, foodTrigger = null;
   var planBusy = false, photoBusy = false, photoErr = '', planErr = '';
 
   function save() { store.save(S); }
@@ -179,8 +180,154 @@
       realNow: rn, logNow: now(), childLabel: childLabel, pers: pers,
       wk: curTab === '' ? workoutInfo(rn) : null,
       askable: askable, queuedFor: queuedFor, pantryCat: pantryCat,
+      targetWho: targetWho, targetRange: targetRange,
       planBusy: planBusy, planErr: planErr, photoBusy: photoBusy, photoErr: photoErr
     };
+  }
+
+  /* ---- Closable Quick-Add Food Picker modal (for Me or {child}) ---- */
+  function closeFoodModal(noFocus) {
+    var m = document.getElementById('ck-food-modal');
+    if (m) m.remove();
+    if (foodKeyFn) { document.removeEventListener('keydown', foodKeyFn); foodKeyFn = null; }
+    var tr = foodTrigger; foodTrigger = null;
+    if (!noFocus && tr && tr.isConnected && tr.focus) try { tr.focus(); } catch (e) {}
+  }
+  function openFoodModal(who, opts) {
+    opts = opts || {};
+    closeFoodModal(true);
+    var CN = K.nutri; if (!CN) return;
+    foodTrigger = opts.trigger || null;
+    var picked = [], activeCat = 'all', query = '';
+    var modal = document.createElement('div');
+    modal.id = 'ck-food-modal';
+    modal.className = 'wl-modal ui';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'ck-food-h');
+    var esc = WL.esc, whoName = who === 'child' ? childLabel() : 'Me';
+
+    function pickedTotals() {
+      var tot = CN.zeroNutri();
+      var scale = who === 'child' ? CN.CHILD_PORTION_BASE : 1;
+      picked.forEach(function (p) { CN.addNutri(tot, p.food.nutri, p.qty * scale); });
+      return CN.roundNutri(tot);
+    }
+    function pickedLabel() {
+      return picked.map(function (p) { return (p.qty > 1 ? p.qty + '× ' : '') + p.food.name; }).join(', ');
+    }
+    function renderBody() {
+      var hits = CN.searchFoods(query, activeCat, S.customFoods).slice(0, 30);
+      var tot = pickedTotals();
+      var cats = [['all', 'All']].concat(S.customFoods && S.customFoods.length ? [['custom', 'My foods']] : []).concat(CN.FOOD_CATS);
+      var h = '<div class="row" style="margin-bottom:4px"><h3 class="grow" id="ck-food-h" style="margin:0">Pick foods for ' + esc(whoName) + '</h3>' +
+        '<button class="link" id="ck-food-x" type="button" aria-label="Close">\u2715</button></div>' +
+        '<label class="sr" for="ck-food-q">Search foods</label>' +
+        '<input type="search" id="ck-food-q" placeholder="Search foods (e.g. egg, banana, tinola, rice)..." value="' + esc(query) + '" autocomplete="off">' +
+        '<div class="chips" id="ck-food-cats" style="margin:8px 0">' + cats.map(function (c) {
+          return '<button class="chip" type="button" data-fcat="' + esc(c[0]) + '" aria-pressed="' + (activeCat === c[0]) + '">' + esc(c[1]) + '</button>';
+        }).join('') + '</div>';
+      if (picked.length) {
+        h += '<div class="card" id="ck-food-picked" style="margin:6px 0 8px;padding:10px 12px">' +
+          '<div class="meta"><b>Selected:</b> ' + esc(pickedLabel()) + '</div>' +
+          '<div class="meta" style="margin-top:2px">~' + tot.kcal + ' kcal · ' + tot.pro + ' g protein · ' + tot.carb + ' g carbs · ' + tot.fat + ' g fat' +
+          (who === 'child' ? ' (offered; scaled by what she eats)' : '') + '</div>' +
+          '<div class="row" style="margin-top:6px"><button class="primary" type="button" id="ck-food-log">Log now</button>' +
+          '<button type="button" id="ck-food-fill">Add to box</button>' +
+          '<button class="link" type="button" id="ck-food-clear">Clear</button></div></div>';
+      }
+      h += '<div id="ck-food-results">' + (hits.length ? hits.map(function (f) {
+        var mult = who === 'child' ? CN.CHILD_PORTION_BASE : 1;
+        var k = Math.round(f.nutri.kcal * mult), pr = Math.round(f.nutri.pro * mult);
+        return '<div class="ck-food-row"><div class="grow"><b>' + esc(f.name) + '</b><div class="meta">' + esc(f.serving) + ' · ~' + k + ' kcal · ' + pr + ' g pro</div></div>' +
+          '<button class="chip" type="button" data-fadd="' + esc(f.id) + '">+ Add</button></div>';
+      }).join('') : '<p class="meta">No matching foods — save your own below.</p>') + '</div>';
+
+      h += '<details id="ck-cf-add" style="margin-top:8px"><summary class="meta">+ Save a custom food (1-tap forever)</summary>' +
+        '<label for="ck-cf-name">Food name</label><input type="text" id="ck-cf-name" placeholder="e.g. Mama’s chicken sopas">' +
+        '<div class="row" style="margin-top:6px"><input type="text" id="ck-cf-serv" class="grow" placeholder="Serving (e.g. 1 bowl)" aria-label="Serving size">' +
+        '<input type="number" id="ck-cf-kcal" class="ck-custom-min" min="0" placeholder="kcal" aria-label="Calories"></div>' +
+        '<div class="row" style="margin-top:6px">' +
+        '<input type="number" id="ck-cf-pro" class="ck-custom-min" min="0" placeholder="Pro g" aria-label="Protein grams">' +
+        '<input type="number" id="ck-cf-carb" class="ck-custom-min" min="0" placeholder="Carb g" aria-label="Carbs grams">' +
+        '<input type="number" id="ck-cf-fat" class="ck-custom-min" min="0" placeholder="Fat g" aria-label="Fat grams"></div>' +
+        '<div class="row" style="margin-top:8px"><button class="primary" type="button" id="ck-cf-save">Save food</button></div></details>' +
+        '<div class="row" style="margin-top:10px"><button id="ck-food-close" type="button">Close</button></div>';
+      return h;
+    }
+
+    function wireModal() {
+      var box = $('#ck-food-sheet', modal); if (!box) return;
+      var x = $('#ck-food-x', box); if (x) x.onclick = function () { closeFoodModal(); };
+      var cl = $('#ck-food-close', box); if (cl) cl.onclick = function () { closeFoodModal(); };
+      var q = $('#ck-food-q', box);
+      if (q) q.oninput = function () {
+        query = q.value;
+        var pos = q.selectionStart;
+        box.innerHTML = renderBody();
+        wireModal();
+        var q2 = $('#ck-food-q', box);
+        if (q2) { q2.focus(); try { q2.setSelectionRange(pos, pos); } catch (e) {} }
+      };
+      $$('[data-fcat]', box).forEach(function (b) {
+        b.onclick = function () { activeCat = b.dataset.fcat; box.innerHTML = renderBody(); wireModal(); };
+      });
+      $$('[data-fadd]', box).forEach(function (b) {
+        b.onclick = function () {
+          var id = b.dataset.fadd;
+          var all = CN.searchFoods('', 'all', S.customFoods);
+          var f = all.filter(function (x) { return x.id === id; })[0];
+          if (!f) return;
+          var ex = picked.filter(function (p) { return p.food.id === id; })[0];
+          if (ex) ex.qty++; else picked.push({ food: f, qty: 1 });
+          box.innerHTML = renderBody(); wireModal();
+        };
+      });
+      var clr = $('#ck-food-clear', box);
+      if (clr) clr.onclick = function () { picked = []; box.innerHTML = renderBody(); wireModal(); };
+      var fillBtn = $('#ck-food-fill', box);
+      if (fillBtn) fillBtn.onclick = function () {
+        var txt = pickedLabel();
+        if (opts.onFill) opts.onFill(txt, pickedTotals());
+        closeFoodModal();
+      };
+      var logBtn = $('#ck-food-log', box);
+      if (logBtn) logBtn.onclick = function () {
+        var txt = pickedLabel(), tot = pickedTotals();
+        if (opts.onLog) opts.onLog(txt, tot);
+        closeFoodModal(true);
+      };
+      var cfSave = $('#ck-cf-save', box);
+      if (cfSave) cfSave.onclick = function () {
+        var nm = $('#ck-cf-name', box), kc = $('#ck-cf-kcal', box);
+        var rec = K.addCustomFood(S, {
+          name: nm ? nm.value : '',
+          serving: ($('#ck-cf-serv', box) && $('#ck-cf-serv', box).value) || '1 serving',
+          kcal: kc ? +kc.value : 0,
+          pro: +($('#ck-cf-pro', box) && $('#ck-cf-pro', box).value || 0),
+          carb: +($('#ck-cf-carb', box) && $('#ck-cf-carb', box).value || 0),
+          fat: +($('#ck-cf-fat', box) && $('#ck-cf-fat', box).value || 0)
+        });
+        if (!rec) { if (nm) nm.focus(); WL.toast('Enter a food name and calories'); return; }
+        save();
+        picked.push({ food: { id: 'custom:' + rec.id, name: rec.name, serving: rec.serving, nutri: rec.nutri }, qty: 1 });
+        activeCat = 'custom'; query = '';
+        box.innerHTML = renderBody(); wireModal();
+        WL.toast('Saved ' + rec.name);
+      };
+    }
+
+    modal.innerHTML = '<div class="card wl-modal-box" id="ck-food-sheet">' + renderBody() + '</div>';
+    document.body.appendChild(modal);
+    modal.onclick = function (e) { if (e.target === modal) closeFoodModal(); };
+    wireModal();
+    foodKeyFn = function (ev) {
+      if (!modal.isConnected) { closeFoodModal(true); return; }
+      if (ev.key === 'Escape') { ev.preventDefault(); closeFoodModal(); }
+    };
+    document.addEventListener('keydown', foodKeyFn);
+    var q0 = $('#ck-food-q', modal);
+    if (q0) try { q0.focus(); } catch (e) {}
   }
 
   function render() {
@@ -233,6 +380,30 @@
           save(); render(); WL.toast('Saved');
         };
       });
+      $$('[data-ck-mama-pick]', view).forEach(function (b) {
+        b.onclick = function () {
+          var p = b.dataset.ckMamaPick.split('|');
+          K.markSlot(S, tIso, p[0], 'mama', p[1], d);
+          save(); render(); WL.toast('Saved: ' + p[1]);
+        };
+      });
+      $$('[data-ck-skip]', view).forEach(function (b) {
+        b.onclick = function () {
+          K.markSlot(S, tIso, b.dataset.ckSkip, 'skipped', '', d);
+          save(); render(); WL.toast('Skipped — shopping list updated');
+        };
+      });
+      $$('[data-ck-logmeal]', view).forEach(function (b) {
+        b.onclick = function () {
+          var meal = b.dataset.ckLogmeal;
+          var slot = S.plan && S.plan.days && S.plan.days[tIso] && S.plan.days[tIso][meal];
+          if (!slot) return;
+          var text = slot.status === 'mama' ? (slot.note || 'Mama’s cooking') : (slot.title || '');
+          if (!text) return;
+          K.logMe(S, { date: tIso, meal: meal, text: text, portion: 'Regular', tags: slot.status === 'mama' ? ['Mama cooked'] : [], recipeId: slot.status === 'made' ? slot.recipeId : undefined }, d);
+          save(); render(); WL.toast('Logged ' + text + ' to food log');
+        };
+      });
       $$('[data-ck-reset]', view).forEach(function (b) {
         b.onclick = function () { K.markSlot(S, tIso, b.dataset.ckReset, 'planned', '', d); save(); render(); };
       });
@@ -255,8 +426,33 @@
           save(); render();
         };
       });
+      $$('[data-wk-skip]', view).forEach(function (b) {
+        b.onclick = function () {
+          var p = b.dataset.wkSkip.split('|');
+          var cur = S.plan && S.plan.days && S.plan.days[p[0]] && S.plan.days[p[0]][p[1]];
+          K.markSlot(S, p[0], p[1], cur && cur.status === 'skipped' ? 'planned' : 'skipped', '', d);
+          save(); render();
+        };
+      });
     } else if (curTab === 'log') {
+      // Target graph controls (Me / {child}, Day / 7-day avg, Customize targets)
+      $$('[data-ck-twho]', view).forEach(function (b) {
+        b.onclick = function () { targetWho = b.dataset.ckTwho; render(); };
+      });
+      $$('[data-ck-trange]', view).forEach(function (b) {
+        b.onclick = function () { targetRange = b.dataset.ckTrange; render(); };
+      });
+      var ts = $('#ck-t-save', view);
+      if (ts) ts.onclick = function () {
+        var vals = {};
+        $$('[data-ck-tval]', view).forEach(function (inp) { vals[inp.dataset.ckTval] = +inp.value; });
+        K.setTargets(S, targetWho, vals); save(); render(); WL.toast('Saved targets');
+      };
+      var tr = $('#ck-t-reset', view);
+      if (tr) tr.onclick = function () { K.resetTargets(S, targetWho); save(); render(); WL.toast('Targets reset to defaults'); };
+
       var cMeal = 'lunch', cAte = 'About half', mMeal = 'dinner', mPort = 'Regular', mTags = [];
+      var cPickedNutri = null, mPickedNutri = null;
       $$('[data-cmeal]', view).forEach(function (b) { b.onclick = function () { cMeal = b.dataset.cmeal; $$('[data-cmeal]', view).forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
       $$('[data-cate]', view).forEach(function (b) { b.onclick = function () { cAte = b.dataset.cate; $$('[data-cate]', view).forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
       $$('[data-mmeal]', view).forEach(function (b) { b.onclick = function () { mMeal = b.dataset.mmeal; $$('[data-mmeal]', view).forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
@@ -266,23 +462,65 @@
         if (idx >= 0) mTags.splice(idx, 1); else mTags.push(tg);
         b.setAttribute('aria-pressed', mTags.indexOf(tg) >= 0);
       }; });
+      function appendFood(inp, item) {
+        if (!inp) return;
+        var cur = inp.value.trim();
+        inp.value = cur ? cur + ', ' + item : item;
+      }
+      $$('[data-cquick]', view).forEach(function (b) {
+        b.onclick = function () { cPickedNutri = null; appendFood($('#ck-c-offered', view), b.dataset.cquick); };
+      });
+      $$('[data-mquick]', view).forEach(function (b) {
+        b.onclick = function () { mPickedNutri = null; appendFood($('#ck-m-text', view), b.dataset.mquick); };
+      });
+      var cPick = $('#ck-c-pick', view);
+      if (cPick) cPick.onclick = function () {
+        openFoodModal('child', {
+          trigger: cPick,
+          onFill: function (txt, tot) { var inp = $('#ck-c-offered', view); if (inp) inp.value = txt; cPickedNutri = tot; },
+          onLog: function (txt, tot) {
+            K.logChild(S, { date: tIso, meal: cMeal, offered: txt, ate: cAte, note: ($('#ck-c-note', view) && $('#ck-c-note', view).value) || '', nutri: tot }, d);
+            targetWho = 'child'; save(); render(); WL.toast('Saved ' + childLabel() + '’s meal');
+          }
+        });
+      };
+      var mPick = $('#ck-m-pick', view);
+      if (mPick) mPick.onclick = function () {
+        openFoodModal('me', {
+          trigger: mPick,
+          onFill: function (txt, tot) { var inp = $('#ck-m-text', view); if (inp) inp.value = txt; mPickedNutri = tot; },
+          onLog: function (txt, tot) {
+            K.logMe(S, { date: tIso, meal: mMeal, text: txt, portion: mPort, tags: mTags, nutri: tot }, d);
+            targetWho = 'me'; save(); render(); WL.toast('Saved your meal');
+          }
+        });
+      };
+      var cIn = $('#ck-c-offered', view); if (cIn) cIn.oninput = function () { cPickedNutri = null; };
+      var mIn = $('#ck-m-text', view); if (mIn) mIn.oninput = function () { mPickedNutri = null; };
       var day = (S.plan && S.plan.days && S.plan.days[tIso]) || {};
       var dinnerTitle = (day.dinner && day.dinner.title) || '';
-      var cs = $('#ck-c-same', view); if (cs) cs.onclick = function () { $('#ck-c-offered', view).value = dinnerTitle + ' (soft, unsalted)'; };
-      var ms = $('#ck-m-same', view); if (ms) ms.onclick = function () { $('#ck-m-text', view).value = dinnerTitle; };
-      var mf = $('#ck-m-mama-fill', view); if (mf) mf.onclick = function () { $('#ck-m-text', view).value = 'Mama’s cooking: '; $('#ck-m-text', view).focus(); };
+      var cs = $('#ck-c-same', view); if (cs) cs.onclick = function () { cPickedNutri = null; $('#ck-c-offered', view).value = dinnerTitle + ' (soft, unsalted)'; };
+      var ms = $('#ck-m-same', view); if (ms) ms.onclick = function () { mPickedNutri = null; $('#ck-m-text', view).value = dinnerTitle; };
+      var mf = $('#ck-m-mama-fill', view); if (mf) mf.onclick = function () { mPickedNutri = null; $('#ck-m-text', view).value = 'Mama’s cooking: '; $('#ck-m-text', view).focus(); };
       $('#ck-c-save', view).onclick = function () {
         var inp = $('#ck-c-offered', view), note = $('#ck-c-note', view);
-        if (!K.logChild(S, { date: tIso, meal: cMeal, offered: inp.value, ate: cAte, note: note.value }, d)) { inp.focus(); return; }
-        save(); render(); WL.toast('Saved ' + childLabel() + '’s meal');
+        if (!K.logChild(S, { date: tIso, meal: cMeal, offered: inp.value, ate: cAte, note: note.value, nutri: cPickedNutri }, d)) { inp.focus(); return; }
+        targetWho = 'child'; save(); render(); WL.toast('Saved ' + childLabel() + '’s meal');
       };
       $('#ck-m-save', view).onclick = function () {
         var inp = $('#ck-m-text', view);
-        if (!K.logMe(S, { date: tIso, meal: mMeal, text: inp.value, portion: mPort, tags: mTags }, d)) { inp.focus(); return; }
-        save(); render(); WL.toast('Saved your meal');
+        if (!K.logMe(S, { date: tIso, meal: mMeal, text: inp.value, portion: mPort, tags: mTags, nutri: mPickedNutri }, d)) { inp.focus(); return; }
+        targetWho = 'me'; save(); render(); WL.toast('Saved your meal');
       };
       $$('.ck-log-del', view).forEach(function (b) { b.onclick = function () { K.removeLog(S, b.dataset.id); save(); render(); }; });
     } else if (curTab === 'pantry') {
+      $$('[data-pquick]', view).forEach(function (b) {
+        b.onclick = function () {
+          var p = b.dataset.pquick.split('|');
+          var rec = K.addPantryItem(S, { name: p[0], cat: p[1], status: 'plenty', expiresInDays: +p[2] }, d);
+          if (rec) { save(); render(); WL.toast('Added ' + rec.name + ' to fridge'); }
+        };
+      });
       var list = K.shoppingList(S, d);
       $$('[data-buy]', view).forEach(function (b) {
         b.onclick = function () {
@@ -339,15 +577,25 @@
     return V.cardHtml(S, { realNow: d, childLabel: childLabel });
   }
 
+  var prevBackCook = window.FCBack;
+  window.FCBack = function () {
+    if (WL.darkScreen && WL.darkScreen.lit && WL.darkScreen.lit()) return prevBackCook ? prevBackCook() : true;
+    if (document.getElementById('ck-food-modal')) { closeFoodModal(); return true; }
+    return prevBackCook ? prevBackCook() : false;
+  };
+  window.addEventListener('hashchange', function () { closeFoodModal(true); });
+
   WL.register({
     id: 'cook', title: 'Cooking', short: 'Cook', icon: '🍳', nav: true, storageKeys: [store.key],
     route: function (parts, v) {
       view = v;
+      closeFoodModal(true);
       var t = (parts && parts[0]) || '';
       curTab = ['week', 'log', 'pantry'].indexOf(t) >= 0 ? t : '';
       if (curTab !== 'pantry') pantryCat = 'all';
       render();
     },
+    leave: function () { closeFoodModal(true); },
     card: card,
     validate: function (k, raw) { try { var s = K.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); }

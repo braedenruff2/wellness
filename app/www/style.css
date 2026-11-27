@@ -224,3 +224,12 @@ summary { min-height: 44px; box-sizing: border-box; padding: 10px 0; cursor: poi
 .ck-slot { border-top: 1px solid var(--line); padding: 10px 0; }
 .ck-slot:first-child { border-top: 0; padding-top: 0; }
 .ck-custom-min { width: 5.5em; text-align: center; }
+/* Cronometer-style daily nutrition target bars */
+.ck-tbar { margin: 8px 0; }
+.ck-tbar-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: .92em; font-variant-numeric: tabular-nums; }
+.ck-track { height: 10px; border-radius: 6px; background: var(--line); overflow: hidden; margin-top: 4px; position: relative; }
+.ck-fill { height: 100%; border-radius: 6px; background: var(--accent); transition: width .2s ease; }
+.ck-fill.ck-hit { background: var(--good); }
+.ck-fill.ck-over { background: var(--warn); }
+.ck-food-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.ck-food-row:first-child { border-top: 0; }
