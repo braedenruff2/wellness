@@ -116,6 +116,13 @@
       };
     });
   }
+  /* A real situation he started writing but never sent (saved as he types): said plainly, so it isn't forgotten. */
+  function draftWaiting() {
+    if (String(S.realDraft || '').trim().length < 20) return false;
+    if (waiting && waiting.kind === 'real') return false;
+    if (S.pending && S.pending.task === 'coach-advice') return false;
+    return !(pc.queued && pc.queued().some(function (x) { return x.task === 'coach-advice'; }));
+  }
   function hasQueuedScenario() {
     return !!(pc.queued && pc.queued().some(function (x) { return x.task === 'coach-scenario'; }));
   }
@@ -161,7 +168,8 @@
     h += '<div id="co-teach-wrap">' + teachHtml() + '</div>';
     if (!waiting) h += '<div class="card ui"><h3>Something happening with ' + esc(S.child.name || 'her') + '?</h3><p class="meta">Describe a real situation you’re dealing with: what she does, when, what you’ve tried. Claude checks current guidance for her age and gives you steps, words to say, and why.</p>' +
       '<label class="sr" for="co-real">Your situation</label><textarea id="co-real" rows="5" placeholder="e.g. She screams when I put her in the car seat, every time, since last week. I’ve tried…">' + esc(S.realDraft || '') + '</textarea>' +
-      '<div class="row" style="margin-top:8px"><button class="primary" id="co-real-go"' + (askable() ? '' : ' disabled') + '>Get advice</button></div></div>';
+      '<div class="row" style="margin-top:8px"><button class="primary" id="co-real-go"' + (askable() ? '' : ' disabled') + '>Get advice</button>' +
+      (draftWaiting() ? '<span class="meta" id="co-real-saved">Saved on this phone, not sent yet</span>' : '') + '</div></div>';
     h += '<div id="co-worked-wrap">' + workedHtml() + '</div>';
     var last = S.history.slice().reverse();
     if (last.length) {
@@ -186,6 +194,11 @@
     }
     view.innerHTML = mainHtml();
     wire();
+    if (parts[0] === 'real') { // Home's "Finish and send": straight to the saved question
+      var box = $('#co-real'), go = $('#co-real-go');
+      if (box && box.scrollIntoView) try { box.scrollIntoView({ block: 'center' }); } catch (e) {}
+      if (go && !go.disabled) go.focus(); else if (box) box.focus();
+    }
   }
 
   function wireSetup() {
@@ -392,6 +405,7 @@
         : '<a class="btn' + (done ? '' : ' primary') + '" href="#coach">Open</a>';
     return '<div class="meta ui">Parenting practice</div><h3>' + title + '</h3>' +
       (last ? '<p class="meta ui">Last: ' + last.result.score + '/10 in ' + esc(last.skill) + ' · ' + st.length + ' skill' + (st.length === 1 ? '' : 's') + ' practised</p>' : '') +
+      (draftWaiting() ? '<p class="ui" id="co-draft-line">Your question is saved, not sent yet. <a class="link" href="#coach/real">Finish and send</a></p>' : '') +
       (function () { var ts = K.tips(S, null, 50).filter(function (x) { return !tipFlagged(x.id); }); return ts[0] && !S.current ? '<p class="ui" id="co-tip">Try this week: ' + esc(ts[0].text) + '</p>' : ''; })() +
       '<div class="row ui">' + actions + '</div>';
   }
