@@ -340,6 +340,21 @@ t('stats / dueCards / weeklySummary across Halifax DST (1 Nov 2026, 8 Mar 2027) 
     assert.strictEqual(sum.stats.weekLessons, 3); assert.strictEqual(sum.lessonsDone.length, 5);
   }
 });
+t('weeklySummary.slipKinds: per kind, slips in the last 14 days and exercises still wrong on the newest answer', () => {
+  const s = T.defaults(), pk = { id: '2026-11-25' }, L = { day: 2, words: [] };
+  const h = { type: 'type', prompt: "I'm not tired.", answer: 'Hindi ako pagod.', accept: ['hindi ako pagod'] };
+  const g = { type: 'type', prompt: 'I want to study Tagalog.', answer: 'Gusto kong mag-aral ng Tagalog.' };
+  const d = (dd, hh) => new Date(2026, 10, dd, hh);
+  T.recordAnswer(s, pk, L, h, false, d(26, 17), 'Hindi akong pagod');
+  T.recordAnswer(s, pk, L, h, true, d(27, 9), 'Hindi ako pagod');   // fixed since
+  T.recordAnswer(s, pk, L, g, false, d(26, 18), 'gusto ko mag-aral ng tagalog');
+  T.recordAnswer(s, pk, L, g, false, d(1, 18), 'gusto ko mag-aral ng tagalog'); // over 14 days before: not counted
+  const k = T.weeklySummary(s, [pk], d(28, 12)).slipKinds;
+  assert.deepStrictEqual(Object.keys(k).sort(), ['extralinker', 'linker']);
+  assert.strictEqual(k.extralinker.slips, 1); assert.strictEqual(k.extralinker.stillWrong, 0);
+  assert.strictEqual(k.linker.slips, 1); assert.strictEqual(k.linker.stillWrong, 1);
+  assert.ok(/missing linker/.test(k.linker.about));
+});
 t('check: a dropped hyphen is forgiven ("magaral" for "mag-aral"), a changed verb form is not', () => {
   const g = { type: 'type', prompt: 'I want to study Tagalog.', answer: 'Gusto kong mag-aral ng Tagalog.', accept: ['gusto kong mag aral ng tagalog'] };
   assert.strictEqual(T.check(g, 'gusto kong magaral ng tagalog'), true);

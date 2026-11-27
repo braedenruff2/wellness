@@ -395,6 +395,24 @@
     return st.known + ' words you know well, ' + st.words + ' met so far. Try one new phrase on the family this week.';
   }
 
+  function slipKinds(state, now) {
+    var since = (now || new Date()).getTime() - 14 * 864e5, out = {}, newest = {};
+    state.answers.forEach(function (a) {
+      var t = Date.parse(a.at); if (!(t >= since)) return;
+      var k = a.pack + '/' + a.day + '/' + a.prompt;
+      if (!newest[k] || t >= newest[k].t) newest[k] = { t: t, ok: a.ok };
+    });
+    state.answers.forEach(function (a) {
+      var t = Date.parse(a.at); if (!(t >= since) || a.ok || HINT_KINDS.indexOf(a.hint) < 0) return;
+      var o = out[a.hint] = out[a.hint] || { slips: 0, stillWrong: 0, about: HINT_ABOUT[a.hint] || '', _ex: {} };
+      o.slips++;
+      var k = a.pack + '/' + a.day + '/' + a.prompt;
+      if (!o._ex[k]) { o._ex[k] = 1; if (newest[k] && !newest[k].ok) o.stillWrong++; }
+    });
+    Object.keys(out).forEach(function (k) { delete out[k]._ex; });
+    return out;
+  }
+
   /* What the next Wednesday's run reads to tailor the next week (shared through the "Send my week" file). */
   function weeklySummary(state, packs, now) {
     var st = stats(state, now);
@@ -405,6 +423,8 @@
       missed: Object.keys(wrongPrompts).sort(function (a, b) { return wrongPrompts[b] - wrongPrompts[a]; }).slice(0, 15),
       // the specific slips the app recognised (word order, a short word out of second place, a missing linker), newest last
       hints: state.answers.slice(-300).filter(function (a) { return a.hint; }).slice(-20).map(function (a) { return { kind: a.hint, about: HINT_ABOUT[a.hint] || '', prompt: a.prompt, given: a.given || '' }; }),
+      // per kind over the last 14 days: how many slips, and on how many exercises the newest answer is still wrong
+      slipKinds: slipKinds(state, now),
       packs: packs.map(function (p) { return p.id; }) };
   }
 
