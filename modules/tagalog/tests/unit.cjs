@@ -301,6 +301,34 @@ t('linkerHint: an extra -ng on a short word ("Hindi akong pagod") gets "no linke
   const d = { type: 'type', prompt: 'p', answer: 'Pagod ako ngayon.' };
   assert.ok(/^Almost: no linker here \(ako, not akong\)\./.test(T.linkerHint(d, 'pagod akong ngayon')));
 });
+t('stats / dueCards / weeklySummary across Halifax DST (1 Nov 2026, 8 Mar 2027) and on an earlier day', () => {
+  const pk = { id: '2026-10-28' }, L = (day) => ({ day, words: [{ tl: 'w' + day, en: 'e' + day }] }), ex = { prompt: 'p', type: 'mc' };
+  for (const [y, m, d] of [[2026, 10, 1], [2027, 2, 14]]) { // the Sunday the clocks change, and the Sunday after spring-forward week
+    const s = T.defaults(), at = (dd, h, mi) => new Date(y, m, d + dd, h, mi || 0);
+    T.finishLesson(s, pk, L(1), at(-7, 23, 50)); // the day before the 7-day window: not this week
+    T.finishLesson(s, pk, L(2), at(-6, 0, 10));  // first minute of the window
+    T.finishLesson(s, pk, L(3), at(0, 1, 30));   // the change night, 01:30
+    T.finishLesson(s, pk, L(4), at(0, 23, 59));
+    T.finishLesson(s, pk, L(5), at(1, 0, 5));    // tomorrow: not yet on this day
+    T.recordAnswer(s, pk, L(3), ex, true, at(0, 1, 30));
+    T.recordAnswer(s, pk, L(3), ex, false, at(-7, 23, 59)); // outside the window
+    const st = T.stats(s, at(0, 12));
+    assert.strictEqual(st.weekLessons, 3, 'window ' + y + '-' + (m + 1) + '-' + d);
+    assert.strictEqual(st.lessonsDone, 4, 'done by the end of that day (lesson 5 is tomorrow)');
+    assert.strictEqual(st.weekAccuracy, 1);
+    assert.strictEqual(st.weekDays, 2, 'days -6 and 0 (lesson 1 day is outside, lesson 5 is tomorrow)');
+    // an earlier day: nothing after it counts
+    const early = T.stats(s, at(-6, 9));
+    assert.strictEqual(early.lessonsDone, 2); assert.strictEqual(early.weekLessons, 2, 'its own 7 days hold lessons 1 and 2');
+    // cards made on the change day are due the next local day, not before
+    const c4 = s.cards.w4;
+    assert.strictEqual(c4.due, T.iso ? T.iso(at(1, 12)) : c4.due);
+    assert.ok(!T.dueCards(s, at(0, 23, 59)).includes('w4'));
+    assert.ok(T.dueCards(s, at(1, 0, 1)).includes('w4'));
+    const sum = T.weeklySummary(s, [pk], at(0, 12));
+    assert.strictEqual(sum.stats.weekLessons, 3); assert.strictEqual(sum.lessonsDone.length, 5);
+  }
+});
 t('check: a dropped hyphen is forgiven ("magaral" for "mag-aral"), a changed verb form is not', () => {
   const g = { type: 'type', prompt: 'I want to study Tagalog.', answer: 'Gusto kong mag-aral ng Tagalog.', accept: ['gusto kong mag aral ng tagalog'] };
   assert.strictEqual(T.check(g, 'gusto kong magaral ng tagalog'), true);

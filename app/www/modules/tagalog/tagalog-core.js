@@ -354,7 +354,9 @@
     var weekAns = state.answers.filter(function (a) { var d = iso(new Date(a.at)); return d >= from && d <= today; }); // local days, like the rest
     var days = {}; Object.keys(state.done).forEach(function (k) { var d = iso(new Date(state.done[k])); if (d >= from && d <= today) days[d] = 1; });
     weekAns.forEach(function (a) { days[iso(new Date(a.at))] = 1; });
-    return { words: keys.length, known: known, due: dueCards(state, now).length, lessonsDone: Object.keys(state.done).length,
+    // lessons done by the end of that day: an earlier day (Log for an earlier day) doesn't count later lessons
+    var doneBy = Object.keys(state.done).filter(function (k) { return iso(new Date(state.done[k])) <= today; }).length;
+    return { words: keys.length, known: known, due: dueCards(state, now).length, lessonsDone: doneBy,
       weekLessons: Object.keys(state.done).filter(function (k) { var d = iso(new Date(state.done[k])); return d >= from && d <= today; }).length,
       weekDays: Object.keys(days).length, weekAccuracy: weekAns.length ? weekAns.filter(function (a) { return a.ok; }).length / weekAns.length : null };
   }
