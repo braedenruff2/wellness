@@ -290,6 +290,10 @@ t('linkerHint: an extra -ng on a short word ("Hindi akong pagod") gets "no linke
   assert.strictEqual(T.linkerHint(h, 'Hindi po akong pagod').indexOf('after hindi') > 0, true, 'po between: still after hindi');
   const s = { type: 'type', prompt: "She hasn't slept yet.", answer: 'Hindi pa siya natutulog.', accept: ['hindi pa siya natutulog', 'hindi pa siya tulog'] };
   assert.ok(/siya, not siyang, after hindi/.test(T.linkerHint(s, 'Hindi pa siyang tulog')), 'matches the accepted "tulog" form');
+  // a different verb too ("tulog" for "natutulog", no accept for it): the linker slip is still named
+  const s2 = { type: 'type', prompt: "She hasn't slept yet.", answer: 'Hindi pa siya natutulog.', accept: ['hindi pa siya natutulog'] };
+  assert.ok(/^Almost: no linker here \(siya, not siyang, after hindi\).*Hindi pa siya natutulog\.$/.test(T.linkerHint(s2, 'Hindi pa siyang tulog')));
+  assert.strictEqual(T.linkerHint(s2, 'hindi pa siya tulog'), '', 'no linker slip: nothing specific');
   // the word really takes -ng here: no "extra" hint (and the missing-linker hint still works)
   const k = { type: 'type', prompt: 'p', answer: 'Palagi kaming naglalaro.' };
   assert.strictEqual(T.linkerHint(k, 'Palagi kaming naglalaro'), '');

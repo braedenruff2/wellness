@@ -145,6 +145,18 @@
         }
       }
     }
+    // "hindi akong ..." / "hindi pa siyang ...": after hindi the short word never takes -ng, whatever else differs,
+    // when the lesson's answer has hindi (pa/na/po) + that short word
+    var hi = gw.indexOf('hindi') >= 0 ? gw.indexOf('hindi') : gw.indexOf('di');
+    if (hi >= 0) {
+      var j2 = hi + 1; while (j2 < gw.length && ['pa', 'na', 'po'].indexOf(gw[j2]) >= 0) j2++;
+      var gp = gw[j2] || '', base = gp.replace(/ng$/, '');
+      if (gp !== base && PRON.indexOf(base) >= 0) {
+        var ans = normHo(ex.answer).split(' ');
+        if (ans.indexOf(base) >= 0 && (ans.indexOf('hindi') >= 0 || ans.indexOf('di') >= 0) && ans.indexOf(gp) < 0)
+          return 'Almost: no linker here (' + base + ', not ' + gp + ', after hindi). The -ng only links a describing word like palagi or gusto to what follows (palagi siyang masaya): ' + ex.answer;
+      }
+    }
     return '';
   }
 
