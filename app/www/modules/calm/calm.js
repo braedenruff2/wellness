@@ -67,8 +67,8 @@
     return '<div class="row" id="c-exact" style="justify-content:center;gap:6px;margin:2px 0 6px">' +
       '<label class="meta" for="c-exact-m">Exact timer</label>' +
       '<input type="number" id="c-exact-m" class="ck-custom-min" min="' + (withSecs ? 0 : 1) + '" max="120" inputmode="numeric" placeholder="min" aria-label="Exact minutes">' +
-      (withSecs ? '<span class="meta">:</span><input type="number" id="c-exact-s" class="ck-custom-min" min="0" max="59" inputmode="numeric" placeholder="sec" aria-label="Exact seconds">' : '<span class="meta">min</span>') +
-      '</div>';
+      (withSecs ? '<span class="meta">:</span><input type="number" id="c-exact-s" class="ck-custom-min" min="0" max="3599" inputmode="numeric" placeholder="sec" aria-label="Exact seconds">' : '<span class="meta">min</span>') +
+      '</div><p class="meta ui" id="c-exact-note" aria-live="polite" style="text-align:center;margin:0 0 6px" hidden></p>';
   }
   function lengthChips(p) {
     var ls = lengths(p); if (!ls.length) return '';
@@ -347,13 +347,25 @@
       $('#c-pp').textContent = beginLabel(p);
     }; });
     function applyExact() {
-      var em = $('#c-exact-m'), es = $('#c-exact-s');
-      var m = em ? Math.max(0, Math.min(120, Math.floor(+em.value || 0))) : 0;
-      var s = es ? Math.max(0, Math.min(59, Math.floor(+es.value || 0))) : 0;
-      var tot = m * 60 + s;
-      if (p.path && m < 1) return;
-      if (tot < 10) return;
+      var em = $('#c-exact-m'), es = $('#c-exact-s'), note = $('#c-exact-note');
+      var say = function (t) { if (note) { note.textContent = t || ''; note.hidden = !t; } };
+      var m = em ? Math.max(0, Math.floor(+em.value || 0)) : 0;
+      var s = es ? Math.max(0, Math.floor(+es.value || 0)) : 0;
+      // 75 seconds is 1:15 (not 0:59); at most 120 minutes
+      var tot = Math.min(120 * 60, m * 60 + s);
+      var empty = (!em || em.value === '') && (!es || es.value === '');
+      if (empty || tot === 0) {
+        // cleared: back to the length chips' choice, not the last number typed
+        if (pick && pick.id === p.id && pick.secs) pick = null;
+        say('');
+        $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', String(+x.dataset.len === mins(p))); });
+        $('#c-pp').textContent = beginLabel(p);
+        return;
+      }
+      if (p.path && tot < 60) { say('A sit is at least 1 minute.'); return; }
+      if (tot < 10) { say('At least 10 seconds.'); return; }
       pick = { id: p.id, m: tot / 60, secs: tot };
+      say(s >= 60 || m * 60 + s > tot ? '= ' + fmtTimer(tot) : '');
       $$('#c-len [data-len]').forEach(function (x) { x.setAttribute('aria-pressed', String(+x.dataset.len * 60 === tot)); });
       $('#c-pp').textContent = beginLabel(p);
     }

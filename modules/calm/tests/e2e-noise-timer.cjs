@@ -37,6 +37,24 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(saved, 'white');
   });
 
+  await t.step('Exact timer: 75 s is 1:15 (not 0:59), under 10 s says so, a cleared field goes back to the chosen length', async () => {
+    await page.goto(base + '#calm/s/timer');
+    await page.waitForSelector('#c-exact-m');
+    const before = await page.textContent('#c-pp');
+    await page.fill('#c-exact-s', '75');
+    assert.strictEqual(await page.textContent('#c-pp'), '▶ Begin · 1:15');
+    assert.strictEqual(await page.textContent('#c-exact-note'), '= 1:15');
+    await page.fill('#c-exact-s', '5');
+    assert.strictEqual(await page.textContent('#c-exact-note'), 'At least 10 seconds.');
+    assert.strictEqual(await page.textContent('#c-pp'), '▶ Begin · 1:15', 'too short: the last good time stays');
+    await page.fill('#c-exact-s', '');
+    assert.strictEqual(await page.textContent('#c-pp'), before, 'cleared: back to the length chips');
+    assert.strictEqual(await page.isHidden('#c-exact-note'), true);
+    await page.fill('#c-exact-m', '200');
+    assert.strictEqual(await page.textContent('#c-pp'), '▶ Begin · 120 min', 'at most 120 minutes');
+    await page.fill('#c-exact-m', '');
+  });
+
   await t.step('Quiet timer: exact custom minutes + seconds (1m 30s), looping white noise on play/pause/resume/finish, and exact mm:ss countdown', async () => {
     await page.goto(base + '#calm/s/timer');
     await page.waitForSelector('#c-exact-m');
