@@ -202,6 +202,12 @@ const FAKE_DRIVE = `
     assert.ok(errText.includes('refused writes'), errText);
     assert.strictEqual(await page.evaluate(() => WL.driveSync.peekAnswer('req-99').answer.headline), 'Kept even on write error');
     await page.evaluate(() => { window.__drive.failWrite = null; WL.driveSync.takeAnswer('req-99'); });
+    // the next sync that works clears the error line (task 341)
+    const w0 = await page.evaluate(() => window.__drive.writes);
+    await page.click('#wl-sync-now');
+    await page.waitForFunction((w) => window.__drive.writes > w, w0);
+    await page.waitForFunction(() => !document.getElementById('wl-sync-err'));
+    assert.strictEqual(await page.evaluate(() => WL.driveSync.status().error), '', 'no error kept');
   });
 
   await t.step('answers Google Sheet (CSV export): reads rows, merges answers + acked, handles Drive export refusal plainly', async () => {
