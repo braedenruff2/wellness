@@ -295,7 +295,7 @@
     var a = String(x.about).replace(/^guide:/, ''), m;
     if (/^tip:/.test(a)) return x.part === 'coach' ? 'A parenting tip' : x.part === 'tagalog' ? 'A Tagalog lesson tip' : 'A tip';
     if ((m = /^lesson:([0-9-]+)\/(\d+)/.exec(a))) return 'Tagalog lesson ' + m[2] + ' (week of ' + m[1] + ')';
-    if ((m = /^day:(\d+):?(\w*)/.exec(a))) return 'Faith day ' + m[1] + (m[2] ? ' (' + m[2] + ')' : '');
+    if ((m = /^day:(\d+):?(\w*)(?:@r(\d+))?/.exec(a))) return 'Faith day ' + m[1] + (m[2] ? ' (' + m[2] + ')' : '') + (m[3] ? ', walk ' + m[3] : '');
     if (/^ex:/.test(a)) return a.slice(3);
     if (/^plan:/.test(a)) return 'Your weekly plan (' + label(x.part) + ')';
     if (/^advice:/.test(a)) return 'Advice on Home';

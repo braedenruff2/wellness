@@ -115,12 +115,14 @@
     var h = '<div class="meta ui">Day ' + d.n + (week ? ' \u00b7 Week ' + week.n + ': ' + esc(week.title) : '') + (done ? ' \u00b7 <span class="tick">\u2713 done</span>' : '') + '</div>';
     h += '<h1>' + esc(d.title) + '</h1>';
     h += '<p class="meta ui">' + esc(d.intro) + '</p>';
-    var showThink = !(window.WLMe && WLMe.flagged && WLMe.flagged('faith', 'day:' + d.n + ':think'));
-    var showPractice = !(window.WLMe && WLMe.flagged && WLMe.flagged('faith', 'day:' + d.n + ':practice'));
+    // "Not for me" on a day's Think / Practice is for this walk of the path: walking it again shows them afresh
+    var fk = function (what) { return 'day:' + d.n + ':' + what + ((S.round || 1) > 1 ? '@r' + S.round : ''); };
+    var showThink = !(window.WLMe && WLMe.flagged && WLMe.flagged('faith', fk('think')));
+    var showPractice = !(window.WLMe && WLMe.flagged && WLMe.flagged('faith', fk('practice')));
     h += '<div class="chips jump ui"><button class="chip" data-jump="pray-card">Pray</button>' + (showPractice ? '<button class="chip" data-jump="practice">Practice</button>' : '') + '<button class="chip" data-jump="write">Write</button></div>';
     h += '<div class="card" id="reading"><h2>Read</h2>' + passageHtml(d) +
       '<div class="row ui"><button id="listen">\u25B6 Listen</button><span class="meta">' + esc(CONTENT.translation) + '</span></div></div>';
-    function fit(what, text) { return window.WLMe ? '<div class="ui" style="text-align:right">' + WLMe.fitLink('faith', 'day:' + d.n + ':' + what, text) + '</div>' : ''; }
+    function fit(what, text) { return window.WLMe ? '<div class="ui" style="text-align:right">' + WLMe.fitLink('faith', fk(what), text) + '</div>' : ''; }
     if (showThink) h += '<div class="card" id="reflect"><h2>Think</h2>' + d.reflection.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') + fit('think', d.reflection.join(' ')) + '</div>';
     h += '<div class="card" id="pray-card"><h2>Pray</h2><p class="key">' + esc(d.keyVerse) + '</p>' +
       '<a class="btn primary big ui" href="#faith/session/day/' + d.n + '">Guided prayer \u00b7 about ' + (+S.settings.minutes) + ' min</a>' + shortTonight(d) +
