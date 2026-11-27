@@ -465,4 +465,7 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 357. (done 27 Nov, Claude; was Claude's 350) Tagalog: every bundled type/build answer and accept variant checks right with no slip hint; unit.
 358. (done 27 Nov, Claude; was Claude's 351) Parenting: Home's card shows the first step of advice he asked for, for 3 days (CoachCore.recentAdvice); unit + e2e-draft.
 359. (done 27 Nov, Claude; was Claude's 352) Parenting advice screen asks "Did you try it with her?" from day 2; sent with later requests (tipNotes real:<id>); unit + e2e-draft.
+360. (done 27 Nov, Claude; was Claude's 353) Parenting Past practice shows whether asked-for advice worked (realTried via WLMe.answers); e2e-draft.
+361. (done 27 Nov, Claude; was Claude's 354) e2e: the note-for-autopilot draft (wl.notes.draft) never goes into a backup or the sync file.
+362. (done 27 Nov, Claude; was Claude's 355) Home's Parenting card with the advice step and the saved question: contrast in 3 themes, 44 px, at 1.3; e2e-draft.
 NOTE 27 Nov (Claude): both agents numbered new tasks 349-352 at the same time. New tasks: take the next number after the highest in this file AND in the other agent's latest log.
