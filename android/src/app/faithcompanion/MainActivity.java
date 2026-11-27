@@ -2,6 +2,7 @@ package app.faithcompanion;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
 import android.content.Context;
 import android.content.IntentFilter;
 import android.database.Cursor;
@@ -123,6 +124,9 @@ public class MainActivity extends Activity {
                         if (camUri != null) {
                             Intent cam = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                             cam.putExtra(MediaStore.EXTRA_OUTPUT, camUri);
+                            // the camera app may write the photo (it is started from the chooser, so say it here)
+                            cam.setClipData(ClipData.newRawUri("", camUri));
+                            cam.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
                             if (cam.resolveActivity(getPackageManager()) != null) {
                                 cameraPhotoUri = camUri;
                                 Intent chooser = Intent.createChooser(pick, "Choose or take a photo");
@@ -304,7 +308,8 @@ public class MainActivity extends Activity {
             Uri u = res == RESULT_OK && data != null ? data.getData() : null;
             if (u == null && res == RESULT_OK && cameraPhotoUri != null) {
                 u = cameraPhotoUri;
-            } else if (cameraPhotoUri != null) {
+            } else if (cameraPhotoUri != null && !cameraPhotoUri.equals(u)) {
+                // a picked file (or cancel): the empty camera row goes; never the photo a camera app handed back as u
                 try { getContentResolver().delete(cameraPhotoUri, null, null); } catch (Exception ignored) { }
             }
             cameraPhotoUri = null;

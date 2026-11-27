@@ -11,6 +11,12 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Android 11+ hides other apps from resolveActivity(): without this the fridge photo chooser never offers the camera -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+    </queries>
     <application
         android:label="Wellness"
         android:icon="@mipmap/ic_launcher"
