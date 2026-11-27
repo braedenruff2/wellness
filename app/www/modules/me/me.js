@@ -292,9 +292,20 @@
      screens no longer show marked items at all). */
   function aboutText(x) {
     if (x.shown) return x.shown;
-    var a = String(x.about).replace(/^guide:/, '');
-    if (/^tip:/.test(a)) return x.part === 'coach' ? 'a parenting tip' : 'a tip';
-    return a.replace(/^ex:/, '').replace(/^day:(\d+).*/, 'Faith day $1').replace(/[-_:]+/g, ' ');
+    var a = String(x.about).replace(/^guide:/, ''), m;
+    if (/^tip:/.test(a)) return x.part === 'coach' ? 'A parenting tip' : x.part === 'tagalog' ? 'A Tagalog lesson tip' : 'A tip';
+    if ((m = /^lesson:([0-9-]+)\/(\d+)/.exec(a))) return 'Tagalog lesson ' + m[2] + ' (week of ' + m[1] + ')';
+    if ((m = /^day:(\d+):?(\w*)/.exec(a))) return 'Faith day ' + m[1] + (m[2] ? ' (' + m[2] + ')' : '');
+    if (/^ex:/.test(a)) return a.slice(3);
+    if (/^plan:/.test(a)) return 'Your weekly plan (' + label(x.part) + ')';
+    if (/^advice:/.test(a)) return 'Advice on Home';
+    if (a === 'balance') return 'The Move balance note';
+    if (a === 'roughrest') return 'Rest after a rough night';
+    if (x.part === 'calm' && window.CalmCore && CalmCore.PRACTICES) {
+      var p = CalmCore.PRACTICES.filter(function (q) { return q.id === a; })[0];
+      if (p) return p.title;
+    }
+    return a.replace(/[-_:]+/g, ' ');
   }
   function hiddenHtml() {
     var xs = K.hiddenList(S, Date.now());

@@ -46,6 +46,21 @@ const W = require('../../../tests/lib/web.cjs');
     await t.noOverflow(['#settings']);
     assert.deepStrictEqual(t.errors, []);
   });
+  await t.step('items saved without their words get a readable name', async () => {
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+      const at = new Date().toISOString();
+      const mk = (part, about) => ({ id: part + '/notfit/' + about + '/1', at, part, about, kind: 'notfit', a: { reasons: [] } });
+      me.feedback = [mk('calm', 'ground'), mk('tagalog', 'lesson:2026-11-25/3'), mk('tagalog', 'tip:2026-11-25/3'), mk('coach', 'tip:abc'), mk('faith', 'day:4:think'), mk('workout', 'ex:Pushups'), mk('workout', 'balance'), mk('calm', 'plan:2026-11-21T04:19')];
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#settings'); await page.reload();
+    await page.click('#me-hidden summary');
+    const items = await page.$$eval('#me-hidden li', (ls) => ls.map((l) => l.textContent.replace(/Bring back$/, '').trim()));
+    const want = ['Calm: Your weekly plan (Calm)', 'Move: The Move balance note', 'Move: Pushups', 'Faith: Faith day 4 (think)', 'Parenting: A parenting tip', 'Tagalog: A Tagalog lesson tip', 'Tagalog: Tagalog lesson 3 (week of 2026-11-25)'];
+    for (const w of want) assert.ok(items.includes(w), w + ' in ' + JSON.stringify(items));
+    assert.ok(items.some((x) => /^Calm: Grounding|^Calm: 5-4-3-2-1/i.test(x)) && !items.includes('Calm: ground'), 'Calm practice by its title: ' + JSON.stringify(items));
+  });
   for (const theme of ['light', 'dark', 'night']) {
     for (const ts of [1, 1.3]) {
       await t.step(theme + ' at text size ' + ts + ': Hidden list readable (AA, 3:1 at night) and its buttons 44 px', async () => {
