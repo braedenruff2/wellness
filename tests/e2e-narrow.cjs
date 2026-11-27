@@ -23,8 +23,17 @@ const W = require('./lib/web.cjs');
         { id: 't3', text: 'Order filters', due: '2026-11-27', repeat: null, at: null, done: null, created: '2026-11-25T14:00:00.000Z' }
       ]
     }));
+    // Cooking at its fullest: something to use soon, breakfast made, lunch cooked by Mama with a long name
+    if (window.CookCore) {
+      const K = window.CookCore, ck = K.defaults(), now = new Date();
+      K.addPantryItem(ck, { name: 'boneless skinless chicken thighs from the market', qty: 6, unit: 'pcs', cat: 'meat', expiresInDays: 1 }, now);
+      K.ensureWeekPlan(ck, now);
+      K.markSlot(ck, K.iso(now), 'breakfast', 'made', '', now);
+      K.markSlot(ck, K.iso(now), 'lunch', 'mama', 'Ginisang monggo with malunggay and a big pot of rice for everyone', now);
+      localStorage.setItem('wl.cook.v1', JSON.stringify(ck));
+    }
   }, theme);
-  const CARDS = ['calm', 'workout', 'tagalog', 'faith', 'todo', 'me'];
+  const CARDS = ['calm', 'workout', 'tagalog', 'faith', 'todo', 'me', 'cook'];
   for (const theme of ['light', 'dark', 'night']) {
     await t.step(theme + ': 320 px, text 1.3: every card present, nothing overflows or is clipped', async () => {
       await page.goto(base + '#home'); await seed(theme); await page.reload();
