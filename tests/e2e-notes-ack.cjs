@@ -52,11 +52,26 @@ const FAKE = `
     const st = await page.$$eval('.wl-note-state', (e) => e.map((x) => x.textContent));
     assert.strictEqual(st[0], 'Waiting for the next autopilot run');
     assert.ok(/^✓ Read by the autopilot \(/.test(st[1]), st[1]);
+    // deleting: the read one goes at once; the unread one asks for a second tap
+    const delBtns = await page.$$('.wl-note-del');
+    assert.strictEqual(delBtns.length, 2);
+    await page.click('.wl-note-del[data-id="n2"]');
+    assert.strictEqual(await page.textContent('.wl-note-del[data-id="n2"]'), 'Not read yet: tap again to delete');
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.notes.v1')).notes.length), 2, 'not yet');
     await page.keyboard.press('Escape');
     await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-when');
     assert.ok((await page.textContent('#wl-sync-when')).includes('1 note for the autopilot not read yet'));
     await page.evaluate(() => WL.driveSync.sync());
     assert.ok(((JSON.parse(await page.evaluate(() => window.__drive.content)).acked) || []).includes('notes-ack-20261127150000'), 'acked so the next run drops the row');
+  });
+  await t.step('a read note deletes with one tap; an unread one with two', async () => {
+    await page.goto(base + '#home'); await page.waitForSelector('.home-card');
+    await page.click('[data-wl-note]'); await page.waitForSelector('#wl-note-sheet'); await page.click('#wl-note-list summary');
+    await page.click('.wl-note-del[data-id="n1"]');
+    assert.deepStrictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.notes.v1')).notes.map((n) => n.id)), ['n2']);
+    await page.click('.wl-note-del[data-id="n2"]'); await page.click('.wl-note-del[data-id="n2"]');
+    assert.deepStrictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.notes.v1')).notes.length), 0);
+    await page.keyboard.press('Escape');
   });
   await t.step('with neither Drive sync nor the PC link, the sheet says the note waits on the phone', async () => {
     const p2 = await t.ctx.newPage();

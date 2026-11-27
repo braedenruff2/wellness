@@ -125,6 +125,12 @@
     function wireList() {
       $$('.wl-note-del', wrap).forEach(function (b) {
         b.onclick = function () {
+          // a note the autopilot hasn't read yet: a second tap deletes it (no system dialog)
+          var n0 = S.notes.filter(function (x) { return x && x.id === b.dataset.id; })[0];
+          if (n0 && !n0.read && b.dataset.sure !== '1') {
+            b.dataset.sure = '1'; b.textContent = 'Not read yet: tap again to delete'; b.setAttribute('aria-label', 'Not read by the autopilot yet. Tap again to delete');
+            return;
+          }
           remove(S, b.dataset.id); save();
           var lw = $('#wl-note-list-wrap', wrap);
           if (lw) { lw.innerHTML = listHtml(); var det = $('#wl-note-list', lw); if (det) det.open = true; wireList(); }
