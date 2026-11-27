@@ -177,6 +177,44 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.clock.runFor(3000);
     assert.ok(!(await page.isVisible('#restbar')), '#restbar hides cleanly after returning past expiry');
   });
+  await t.step('Pushups harder progressions have two separate checkboxes in Setup and step through advice cleanly', async () => {
+    await page.goto(base + '#workout/settings');
+    await page.waitForSelector('[data-hard="Pushups"][data-hard-step="1"]');
+    const p1 = page.locator('[data-hard="Pushups"][data-hard-step="1"]');
+    const p2 = page.locator('[data-hard="Pushups"][data-hard-step="2"]');
+    assert.strictEqual(await page.locator('[data-hard="Pushups"]').count(), 2, 'two separate Pushups checkboxes');
+    assert.ok((await p1.locator('xpath=ancestor::label').textContent()).includes('3-sec lowering on every rep'));
+    assert.ok((await p2.locator('xpath=ancestor::label').textContent()).includes('feet on a chair'));
+    assert.strictEqual(await p1.isChecked(), false);
+    assert.strictEqual(await p2.isChecked(), false);
+
+    // Tick step 1 only -> stays checked; step 2 unchecked; saved as step 1
+    await p1.check();
+    assert.strictEqual(await p1.isChecked(), true);
+    assert.strictEqual(await p2.isChecked(), false);
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')).next.Pushups), '3-sec lowering on every rep');
+
+    // Untick step 1 -> clears; tick step 2 directly -> checks both step 1 and step 2
+    await p1.uncheck();
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')).next.Pushups), undefined);
+    await p2.check();
+    assert.strictEqual(await p1.isChecked(), true, 'checking step 2 also checks step 1');
+    assert.strictEqual(await p2.isChecked(), true);
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')).next.Pushups), 'feet on a chair');
+
+    // Untick step 2 -> drops cleanly back to step 1
+    await p2.uncheck();
+    assert.strictEqual(await p1.isChecked(), true);
+    assert.strictEqual(await p2.isChecked(), false);
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')).next.Pushups), '3-sec lowering on every rep');
+
+    // Untick step 1 -> unchecks both cleanly
+    await p2.check();
+    await p1.uncheck();
+    assert.strictEqual(await p1.isChecked(), false);
+    assert.strictEqual(await p2.isChecked(), false);
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')).next.Pushups), undefined);
+  });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#workout', '#workout/history', '#workout/settings']);
     assert.deepStrictEqual(t.errors, []);

@@ -15,7 +15,7 @@
      load: how much to add when the dumbbells can change (lb per dumbbell).  side: true = each side counts separately. */
   var EX = {
     'Bulgarian Split Squats': { track: 'reps', range: [8, 15], side: true, hard: '3-sec lowering + 1-sec pause at the bottom', load: 5, cue: 'Back foot on a chair. Most weight on the front leg; knee tracks over toes.' },
-    'Pushups': { track: 'reps', range: [8, 20], hard: '3-sec lowering on every rep, then feet on a chair', cue: 'Body in one line, elbows about 45° from your sides, chest to a fist’s height from the floor.' },
+    'Pushups': { track: 'reps', range: [8, 20], hard: ['3-sec lowering on every rep', 'feet on a chair'], cue: 'Body in one line, elbows about 45° from your sides, chest to a fist’s height from the floor.' },
     'One-Arm Rows': { track: 'reps', range: [10, 20], side: true, hard: '2-sec squeeze at the top + 3-sec lowering', load: 5, cue: 'Hand and knee on a chair, flat back, pull the dumbbell to your hip.' },
     'Overhead Press': { track: 'reps', range: [10, 20], hard: '1.5 reps (extra half rep at the bottom)', load: 5, cue: 'Standing, ribs down, squeeze your glutes; press straight up.' },
     'Plank': { track: 'sec', range: [30, 90], hard: 'RKC plank: squeeze glutes, pull elbows toward toes', cue: 'Elbows under shoulders, straight line from head to heels.' },
@@ -345,6 +345,33 @@
     return vals.length >= item.sets && vals.every(function (v) { return +v >= e.range[1]; });
   }
 
+  function hardSteps(name) {
+    var e = EX[name];
+    if (!e || !e.hard) return [];
+    return Array.isArray(e.hard) ? e.hard.slice() : [e.hard];
+  }
+  function hardLevel(state, name) {
+    var steps = hardSteps(name), cur = state && state.next && state.next[name];
+    if (!steps.length || !cur) return 0;
+    var idx = steps.indexOf(cur);
+    if (idx >= 0) return idx + 1;
+    // Backwards compatibility: older saves stored multi-step progressions joined by ", then "
+    if (steps.length > 1 && cur === steps.join(', then ')) return steps.length;
+    return 0;
+  }
+  function nextHard(state, name) {
+    var steps = hardSteps(name), lvl = hardLevel(state, name);
+    return steps[lvl] || null;
+  }
+  function setHard(state, name, level) {
+    var steps = hardSteps(name);
+    if (!state.next) state.next = {};
+    var lvl = Math.max(0, Math.min(steps.length, Math.floor(+level) || 0));
+    if (lvl <= 0) delete state.next[name];
+    else state.next[name] = steps[lvl - 1];
+    return lvl;
+  }
+
   /* What to do this time, in plain words. */
   function advice(state, item, lastPerf) {
     var e = EX[item.ex]; if (!e) return '';
@@ -358,7 +385,8 @@
         var w = (+lastPerf.w || 10) + e.load;
         return target + '. ' + lastTxt + '. ⬆ You hit the top on every set: go up to ' + w + ' lb and aim for the bottom of the range again.';
       }
-      if (e.hard && state.next[item.ex] !== e.hard) return target + '. ' + lastTxt + '. ⬆ Ready for harder: ' + e.hard + '.';
+      var nh = nextHard(state, item.ex);
+      if (nh) return target + '. ' + lastTxt + '. ⬆ Ready for harder: ' + nh + '.';
       return target + '. ' + lastTxt + '. ⬆ Top of the range: add a set or slow the lowering to 3–4 seconds.';
     }
     var lowest = Math.min.apply(null, lastPerf.sets.map(Number));
@@ -671,7 +699,7 @@
 
   var api = { fourWeeks: fourWeeks, SORE_LEVELS: SORE_LEVELS, askSore: askSore, setSore: setSore, soreOn: soreOn, targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, activeTime: activeTime, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
-    last: last, bestSet: bestSet, ready: ready, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
+    last: last, bestSet: bestSet, ready: ready, hardSteps: hardSteps, hardLevel: hardLevel, nextHard: nextHard, setHard: setHard, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     AGE_NORMS: AGE_NORMS, cleanAge: cleanAge, ageBracket: ageBracket, benchmark: benchmark, weeklyTrend: weeklyTrend, exerciseSeries: exerciseSeries,
     validate: validate, iso: iso };
   root.WorkoutCore = api;

@@ -466,9 +466,13 @@
       '<button id="wo-age-save">Save</button>' + (S.age ? '<button class="link" id="wo-age-clear">Clear</button>' : '') + '</div>' +
       '<p class="meta" style="margin:.4em 0 0">Stays only on this phone. Shows an age-group average line on Move Progress graphs (general fitness reference, not medical advice).</p></div>';
     h += '<div class="card ui"><h3>Harder versions you’ve switched to</h3><p class="meta">When the app says “ready for harder” and you make the switch, tick it so it stops suggesting it.</p><ul class="list">' +
-      Object.keys(W.EX).filter(function (n) { return W.EX[n].hard; }).map(function (n) {
-        var on = S.next[n] === W.EX[n].hard;
-        return '<li><label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" data-hard="' + esc(n) + '" style="margin-top:4px;min-width:20px;min-height:20px"' + (on ? ' checked' : '') + '> <span class="grow"><b>' + esc(n) + '</b><br><span class="meta">' + esc(W.EX[n].hard) + '</span></span></label></li>';
+      Object.keys(W.EX).filter(function (n) { return W.hardSteps(n).length; }).map(function (n) {
+        var steps = W.hardSteps(n), lvl = W.hardLevel(S, n);
+        return steps.map(function (step, idx) {
+          var stepNum = idx + 1, on = lvl >= stepNum;
+          var title = steps.length > 1 ? n + ' (step ' + stepNum + ')' : n;
+          return '<li><label class="row" style="flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" data-hard="' + esc(n) + '" data-hard-step="' + stepNum + '" style="margin-top:4px;min-width:20px;min-height:20px"' + (on ? ' checked' : '') + '> <span class="grow"><b>' + esc(title) + '</b><br><span class="meta">' + esc(step) + '</span></span></label></li>';
+        }).join('');
       }).join('') + '</ul></div>';
     h += '<div class="card ui"><h3>Bring in your Google Sheet</h3><p class="meta">In the sheet, open the Log tab, then File › Download › CSV. Pick that file here. Your past sets become “last time” numbers and progress.</p>' +
       '<label class="btn" for="wo-csv">Import the Log CSV</label><input type="file" id="wo-csv" accept=".csv,text/csv,text/plain" class="sr">' +
@@ -492,7 +496,17 @@
     };
     var ageClr = $('#wo-age-clear');
     if (ageClr) ageClr.onclick = function () { delete S.age; save(); WL.toast('Age cleared'); route(['settings']); };
-    $$('[data-hard]').forEach(function (c) { c.onchange = function () { var n = c.dataset.hard; if (c.checked) S.next[n] = W.EX[n].hard; else delete S.next[n]; save(); }; });
+    $$('[data-hard]').forEach(function (c) {
+      c.onchange = function () {
+        var n = c.dataset.hard, step = +c.dataset.hardStep || 1;
+        W.setHard(S, n, c.checked ? step : step - 1);
+        save();
+        var lvl = W.hardLevel(S, n);
+        $$('[data-hard]').forEach(function (other) {
+          if (other.dataset.hard === n) other.checked = lvl >= (+other.dataset.hardStep || 1);
+        });
+      };
+    });
     var f = $('#wo-csv');
     if (f) f.onchange = function () {
       var file = f.files && f.files[0]; f.value = ''; if (!file) return;

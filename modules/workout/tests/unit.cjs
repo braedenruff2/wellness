@@ -639,4 +639,29 @@ t('a workout from 23:30 Sunday to 00:20 Monday counts for Sunday everywhere (las
     assert.ok(!/Done for today/.test(W.coach(s, mon)), W.coach(s, mon));
   }
 });
+t('Pushups two-step harder progression: steps through 3-sec lowering then feet on a chair, and stays compatible with legacy saves', () => {
+  assert.deepStrictEqual(W.hardSteps('Pushups'), ['3-sec lowering on every rep', 'feet on a chair']);
+  assert.deepStrictEqual(W.hardSteps('Walk'), []);
+  const s = W.defaults(), it = W.PROGRAM.A.items[1], top = { sets: [20, 20, 20], w: null };
+  assert.strictEqual(W.hardLevel(s, 'Pushups'), 0);
+  assert.ok(/Ready for harder: 3-sec lowering on every rep\./.test(W.advice(s, it, top)), W.advice(s, it, top));
+  W.setHard(s, 'Pushups', 1);
+  assert.strictEqual(s.next.Pushups, '3-sec lowering on every rep');
+  assert.strictEqual(W.hardLevel(s, 'Pushups'), 1);
+  assert.ok(/Ready for harder: feet on a chair\./.test(W.advice(s, it, top)), W.advice(s, it, top));
+  W.setHard(s, 'Pushups', 2);
+  assert.strictEqual(s.next.Pushups, 'feet on a chair');
+  assert.strictEqual(W.hardLevel(s, 'Pushups'), 2);
+  assert.ok(/add a set or slow/.test(W.advice(s, it, top)), W.advice(s, it, top));
+  // Stepping back from 2 -> 1 -> 0
+  W.setHard(s, 'Pushups', 1);
+  assert.strictEqual(s.next.Pushups, '3-sec lowering on every rep');
+  W.setHard(s, 'Pushups', 0);
+  assert.strictEqual(s.next.Pushups, undefined);
+  // Legacy combined string in older backups maps to full level 2
+  const legacy = W.validate({ sessions: [], next: { Pushups: '3-sec lowering on every rep, then feet on a chair' } });
+  assert.strictEqual(W.hardLevel(legacy, 'Pushups'), 2);
+  assert.strictEqual(W.nextHard(legacy, 'Pushups'), null);
+  assert.ok(/add a set or slow/.test(W.advice(legacy, it, top)));
+});
 console.log(n + ' workout unit tests passed');
