@@ -214,13 +214,13 @@
      it can be blanked too and never carries over to the next food: "2 eggs rice" is 2 eggs and 1 rice). A typed cup /
      tbsp / tsp amount is measured against the food's own serving when that is a cup / tbsp / tsp too ("2 tbsp
      hummus" is one 2-tbsp serving); otherwise the number counts servings, as before. */
-  var NUM_RE = /(?:^|[\s,+&(])(\d+\s+\d\/\d|\d+\/\d+|\d+(?:\.\d+)?|½|¼|¾|half|quarter)\s*(?:(?:an?)\s+)?(x|×|pcs?|pieces?|slices?|cups?|tbsps?|tablespoons?|tsps?|teaspoons?|scoops?|bowls?)?\s*(?:of)?$/i;
+  var NUM_RE = /(?:^|[\s,+&(])(\d+\s+(?:\d\/\d|[½¼¾])|\d+\/\d+|\d+(?:\.\d+)?|½|¼|¾|half|quarter)\s*(?:(?:an?)\s+)?(x|×|pcs?|pieces?|slices?|cups?|tbsps?|tablespoons?|tsps?|teaspoons?|scoops?|bowls?)?\s*(?:of)?$/i;
   function parseNum(t) {
     t = String(t).toLowerCase();
     if (t === 'half' || t === '½') return 0.5;
     if (t === 'quarter' || t === '¼') return 0.25;
     if (t === '¾') return 0.75;
-    var mixed = /^(\d+)\s+(\d)\/(\d)$/.exec(t); if (mixed) return +mixed[1] + (+mixed[3] ? mixed[2] / mixed[3] : 0);
+    var mixed = /^(\d+)\s+(\d\/\d|[½¼¾])$/.exec(t); if (mixed) return +mixed[1] + parseNum(mixed[2]);
     var fr = /^(\d+)\/(\d+)$/.exec(t); if (fr) return +fr[2] ? fr[1] / fr[2] : NaN;
     return parseFloat(t);
   }
@@ -233,7 +233,7 @@
     return 0;
   }
   function servingTbsp(serving) {
-    var m = /^\s*(\d+\s+\d\/\d|\d+\/\d+|\d+(?:\.\d+)?)\s*(cups?|tbsps?|tsps?)\b/i.exec(String(serving || ''));
+    var m = /^\s*(\d+\s+(?:\d\/\d|[½¼¾])|\d+\/\d+|\d+(?:\.\d+)?|½|¼|¾|half|quarter)\s*(cups?|tbsps?|tablespoons?|tsps?|teaspoons?)\b/i.exec(String(serving || ''));
     return m ? tbspOf(parseNum(m[1]), m[2]) : 0;
   }
   function countAt(text, idx, serving) {

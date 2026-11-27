@@ -539,4 +539,19 @@ t('396: typed cup / tbsp / tsp amounts are measured against the food\'s own serv
   assert.strictEqual(Math.round(CN.estimateEntry({ who: 'me', text: '1 cup sopas', portion: 'Regular' }, cf, K.RECIPES).nutri.kcal), 200);
 });
 
+t('400: servingTbsp handles unicode fractions & full unit words, and NUM_RE handles mixed unicode fractions', () => {
+  const CN = K.nutri, F = CN.FOOD_BY;
+  const me = (text, cf) => Math.round(CN.estimateEntry({ who: 'me', text, portion: 'Regular' }, cf || [], K.RECIPES).nutri.kcal);
+  assert.strictEqual(me('1 ½ cups rice'), Math.round(F.rice.nutri.kcal * 1.5), 'mixed unicode fraction');
+  assert.strictEqual(me('2 ¼ tbsp peanut butter'), Math.round(F.pb.nutri.kcal * 2.25), 'mixed quarter unicode fraction');
+  const cfs = [
+    { id: 'c1', name: 'Tahini dip', serving: '2 tablespoons', nutri: { kcal: 120 } },
+    { id: 'c2', name: 'Chia pudding', serving: '½ cup', nutri: { kcal: 180 } },
+    { id: 'c3', name: 'Honey glaze', serving: '1 teaspoon', nutri: { kcal: 20 } }
+  ];
+  assert.strictEqual(me('2 tbsp tahini dip', cfs), 120, '2 tablespoons serving matches 2 tbsp');
+  assert.strictEqual(me('1 cup chia pudding', cfs), 360, '½ cup serving scales 2x for 1 cup');
+  assert.strictEqual(me('1 tbsp honey glaze', cfs), 60, '1 teaspoon serving scales 3x for 1 tbsp');
+});
+
 console.log(n + ' cook unit tests passed');
