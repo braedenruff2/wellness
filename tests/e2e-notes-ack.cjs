@@ -28,7 +28,11 @@ const FAKE = `
     await page.click('#wl-note-list summary');
     const st = await page.$$eval('.wl-note-state', (e) => e.map((x) => x.textContent));
     assert.deepStrictEqual(st, ['Waiting for the next autopilot run', 'Waiting for the next autopilot run']);
+    assert.ok((await page.textContent('#wl-note-where')).includes('synced via Drive'), 'sync is on');
     await page.keyboard.press('Escape');
+    await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-when');
+    assert.ok((await page.textContent('#wl-sync-when')).includes('2 notes for the autopilot not read yet'));
+    await page.goto(base + '#home'); await page.waitForSelector('.home-card');
   });
   await t.step('the cloud run\'s ack arrives with a sync: n1 is read, n2 still waiting, and the ack is taken once', async () => {
     await page.evaluate(() => WL.driveSync.sync());
@@ -49,8 +53,17 @@ const FAKE = `
     assert.strictEqual(st[0], 'Waiting for the next autopilot run');
     assert.ok(/^✓ Read by the autopilot \(/.test(st[1]), st[1]);
     await page.keyboard.press('Escape');
+    await page.goto(base + '#settings'); await page.waitForSelector('#wl-sync-when');
+    assert.ok((await page.textContent('#wl-sync-when')).includes('1 note for the autopilot not read yet'));
     await page.evaluate(() => WL.driveSync.sync());
     assert.ok(((JSON.parse(await page.evaluate(() => window.__drive.content)).acked) || []).includes('notes-ack-20261127150000'), 'acked so the next run drops the row');
+  });
+  await t.step('with neither Drive sync nor the PC link, the sheet says the note waits on the phone', async () => {
+    const p2 = await t.ctx.newPage();
+    await p2.goto(base + '#home'); await p2.waitForSelector('.home-card');
+    await p2.click('[data-wl-note]'); await p2.waitForSelector('#wl-note-where');
+    assert.ok((await p2.textContent('#wl-note-where')).includes('The autopilot sees it once Drive sync (Settings) or the PC link is on.'));
+    await p2.close();
   });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('notes ack');

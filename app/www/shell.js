@@ -486,6 +486,8 @@
     var extra = [];
     if (s.pendingRequests) extra.push(s.pendingRequests + ' waiting for cloud');
     if (s.pendingAnswers) extra.push(s.pendingAnswers + ' cloud ' + (s.pendingAnswers === 1 ? 'answer' : 'answers') + ' ready');
+    var un = window.WLNotes && WL.notes && WL.notes.state ? WLNotes.unread(WL.notes.state()).length : 0;
+    if (un) extra.push(un + (un === 1 ? ' note' : ' notes') + ' for the autopilot not read yet');
     h += '<p class="meta">Syncing to <b>' + esc(s.name) + '</b> (on open and leaving the app, at most every 30 min).</p>' +
       '<p class="meta" id="wl-sync-when">' + (s.busy ? 'Syncing…' : 'Last synced: ' + esc(when)) + (extra.length ? ' · ' + esc(extra.join(' · ')) : '') + '</p>';
     if (s.error) h += '<p class="no" id="wl-sync-err">' + esc(s.error) + '</p>';

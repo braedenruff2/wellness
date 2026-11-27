@@ -92,6 +92,14 @@
       }).join('') + '</ul></details>';
   }
 
+  /* Where a note goes: with Drive sync or the PC link on, to the next autopilot run; otherwise it waits on the phone. */
+  function whereText() {
+    var on = false;
+    try { var st = WL.driveSync && WL.driveSync.status && WL.driveSync.status(); on = !!(st && st.configured); } catch (e) {}
+    try { if (!on && WL.pc && WL.pc.ready && WL.pc.ready()) on = true; } catch (e) {}
+    return on ? 'Saved on this phone and synced via Drive / PC link so Claude &amp; Gemini see it next run.'
+      : 'Saved on this phone. The autopilot sees it once Drive sync (Settings) or the PC link is on.';
+  }
   function open(trigger, whereOverride) {
     close();
     var where = whereOverride || location.hash || '#home';
@@ -104,7 +112,7 @@
     wrap.setAttribute('aria-labelledby', 'wl-note-h');
     wrap.innerHTML = '<div class="card wl-modal-box" id="wl-note-sheet">' +
       '<div class="row" style="margin-bottom:4px"><h3 class="grow" id="wl-note-h" style="margin:0">Note for the next autopilot run</h3><button class="link" id="wl-note-x" type="button" aria-label="Close">✕</button></div>' +
-      '<p class="meta" style="margin:0 0 8px">About: <b>' + esc(where) + '</b>. Saved on this phone and synced via Drive / PC link so Claude &amp; Gemini see it next run.</p>' +
+      '<p class="meta" id="wl-note-where" style="margin:0 0 8px">About: <b>' + esc(where) + '</b>. ' + whereText() + '</p>' +
       '<div class="chips" id="wl-note-tags" style="margin-bottom:8px">' + TAGS.map(function (t) {
         return '<button class="chip" type="button" data-ntag="' + esc(t) + '" aria-pressed="' + (t === pickedTag) + '">' + esc(t) + '</button>';
       }).join('') + '</div>' +
