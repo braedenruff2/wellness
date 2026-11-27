@@ -160,6 +160,38 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.waitForSelector('#ck-ai-plan');
     await page.click('#ck-ai-plan');
     await page.waitForFunction(() => document.getElementById('view').textContent.includes('Garlic lemon chicken'));
+
+    // Stale cloud cook-plan answer (dates from last week) does not write stale dates or falsely toast success
+    await page.evaluate(() => {
+      window.__toasts = [];
+      const origToast = WL.toast;
+      WL.toast = function (m) { window.__toasts.push(m); return origToast(m); };
+      const staleAns = {
+        'req-stale-plan': {
+          task: 'cook-plan',
+          answer: {
+            note: 'Old week note',
+            days: [{ date: '2026-11-16', dinner: { title: 'Stale Last-Week Stew', steps: ['a'], ingredients: ['beef'] } }]
+          }
+        }
+      };
+      let taken = false;
+      const origDs = WL.driveSync;
+      WL.driveSync = Object.assign({}, origDs || {}, {
+        answers: () => (taken ? {} : staleAns),
+        takeAnswer: (id) => { if (id === 'req-stale-plan') taken = true; }
+      });
+      WL.pc.deliver();
+      WL.driveSync = origDs;
+      WL.toast = origToast;
+    });
+    await page.waitForFunction(() => /another week or incomplete/i.test(document.getElementById('view').textContent));
+    const staleState = await page.evaluate(() => ({
+      plan: JSON.parse(localStorage.getItem('wl.cook.v1')).plan,
+      toasts: window.__toasts
+    }));
+    assert.strictEqual(staleState.plan.days['2026-11-16'], undefined, 'stale date not written into this week plan');
+    assert.ok(!staleState.toasts.some((m) => /arrived|Updated/i.test(m)), 'no false success toast: ' + JSON.stringify(staleState.toasts));
   });
 
   await t.step('no overflow or tiny tap targets at 320 px and text size 1.3 across all Cooking tabs', async () => {

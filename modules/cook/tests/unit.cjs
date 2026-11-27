@@ -306,4 +306,36 @@ t('earlier-day food logs stay newest-first chronologically, and toggleBought pru
   }
   assert.strictEqual(Object.keys(s.bought).length, 4, 'bought map stays capped at 4 newest weeks');
 });
+t('applyAiPlan week-boundary guard: rejects last week\'s dates on Monday and skips out-of-week entries', () => {
+  const mon = new Date(2026, 10, 30, 9, 0); // Mon 2026-11-30 (week 2026-11-30..2026-12-06)
+  const s = K.defaults();
+  K.ensureWeekPlan(s, mon);
+  const before = JSON.parse(JSON.stringify(s.plan));
+  const stale = {
+    note: 'Stale note from last week',
+    days: [
+      { date: '2026-11-23', dinner: { title: 'Old Mon', steps: ['a'], ingredients: ['rice'] } },
+      { date: '2026-11-29', dinner: { title: 'Old Sun', steps: ['a'], ingredients: ['rice'] } }
+    ]
+  };
+  assert.strictEqual(K.applyAiPlan(s, stale, mon), false, 'all out-of-week dates rejected');
+  assert.deepStrictEqual(s.plan, before, 'this week plan untouched');
+  assert.deepStrictEqual(s.aiRecipes, {}, 'no stale aiRecipes created');
+  assert.strictEqual(K.applyAiPlan(s, { note: 'empty', days: [] }, mon), false, 'empty days rejected');
+  assert.strictEqual(K.applyAiPlan(s, { days: [{ date: '2026-11-30', dinner: { title: '   ' } }] }, mon), false, 'blank meals rejected');
+
+  // Mixed plan (last Sunday + this Monday): skips last Sunday, applies this Monday
+  const mixed = {
+    note: 'Fresh week',
+    days: [
+      { date: '2026-11-29', dinner: { title: 'Stale Sun', steps: ['a'], ingredients: ['rice'] } },
+      { date: '2026-11-30', dinner: { title: 'Fresh Mon Curry', steps: ['Simmer'], ingredients: ['chicken'] } }
+    ]
+  };
+  assert.strictEqual(K.applyAiPlan(s, mixed, mon), true);
+  assert.strictEqual(s.plan.source, 'ai');
+  assert.strictEqual(s.plan.days['2026-11-29'], undefined, 'out-of-week Sunday not written');
+  assert.strictEqual(s.aiRecipes['ai-2026-11-29-dinner'], undefined, 'out-of-week AI recipe not written');
+  assert.strictEqual(s.plan.days['2026-11-30'].dinner.title, 'Fresh Mon Curry');
+});
 console.log(n + ' cook unit tests passed');

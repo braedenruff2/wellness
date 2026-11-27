@@ -99,7 +99,7 @@
     WL.pc.ask('cook-plan', input).then(function (ans) {
       planBusy = false;
       if (K.applyAiPlan(S, ans, realNow())) { save(); WL.toast('Updated this week’s meal plan'); }
-      else planErr = 'Claude’s reply didn’t include a 7-day plan. Try again.';
+      else planErr = 'Claude’s reply didn’t include meals for this week. Try again.';
       render();
     }, function (e) {
       planBusy = false;
@@ -157,6 +157,7 @@
     WL.pc.onCloudAnswer('cook-plan', function (e, ans) {
       if (!e && K.applyAiPlan(S, ans, realNow())) { planErr = ''; save(); WL.toast('Your cloud meal plan arrived'); }
       else if (e) planErr = e;
+      else planErr = 'That cloud meal plan was for another week or incomplete. Ask again for this week’s plan.';
       if (view && /^#cook/.test(location.hash)) render();
     });
     WL.pc.onCloudAnswer('cook-photo', function (e, ans) {

@@ -765,20 +765,34 @@
     return day[meal];
   }
 
-  /* Apply an AI weekly meal plan (from cook-plan task), preserving already made / mama-cooked slots. */
+  function usableMeal(m) {
+    return (typeof m === 'string' && !!m.trim()) || (!!m && typeof m === 'object' && typeof m.title === 'string' && !!m.title.trim());
+  }
+
+  /* Apply an AI weekly meal plan (from cook-plan task), preserving already made / mama-cooked slots.
+     Only accepts meals whose dates fall within the current week (weekDays(now)) so a stale cloud answer
+     arriving after Monday never writes last week's dates into this week's plan or falsely reports success. */
   function applyAiPlan(state, ans, now) {
     if (!ans || typeof ans !== 'object' || !Array.isArray(ans.days)) return false;
     now = now || new Date();
-    ensureWeekPlan(state, now);
     var days = weekDays(now);
+    if (state.plan && isDate(state.plan.week) && state.plan.week > days[0]) return false;
+    var valid = [];
     ans.days.forEach(function (d, idx) {
       if (!d || typeof d !== 'object') return;
       var date = isDate(d.date) ? d.date : days[idx];
-      if (!date) return;
+      if (!date || days.indexOf(date) < 0) return;
+      if (!MEALS.some(function (meal) { return usableMeal(d[meal]); })) return;
+      valid.push({ date: date, day: d });
+    });
+    if (!valid.length) return false;
+    ensureWeekPlan(state, now);
+    valid.forEach(function (entry) {
+      var date = entry.date, d = entry.day;
       var curDay = state.plan.days[date] = state.plan.days[date] || {};
       MEALS.forEach(function (meal) {
         var m = d[meal];
-        if (!m) return;
+        if (!usableMeal(m)) return;
         if (curDay[meal] && (curDay[meal].status === 'made' || curDay[meal].status === 'mama')) return;
         if (typeof m === 'string' && m.trim()) {
           curDay[meal] = { recipeId: null, title: m.trim().slice(0, 120), status: 'planned', note: '' };
