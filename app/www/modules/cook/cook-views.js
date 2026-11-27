@@ -171,7 +171,7 @@
         (slot.status !== 'mama' ? '<button type="button" data-ck-mama="' + meal + '">Mama cooked</button>' : '') +
         (slot.status === 'planned' ? '<button class="link" type="button" data-ck-skip="' + meal + '">Not making</button><button class="link" type="button" data-ck-swap="' + meal + '">Swap</button>' : '') +
         (slot.status === 'made' || slot.status === 'mama' ? '<button type="button" data-ck-logmeal="' + meal + '">Log to food log</button><button class="link" type="button" data-ck-reset="' + meal + '">Back to plan</button>' : '') +
-        '</div></div>';
+        '</div>' + tlOffer(r, slot) + '</div>';
     });
 
     h += '<div class="row ui" style="margin-top:4px"><a class="btn primary" href="#cook/log">Log food &amp; targets</a><a class="btn" href="#cook/pantry">Fridge &amp; shopping list</a></div>';
@@ -397,7 +397,27 @@
       '<div class="row ui"><a class="btn primary" href="#cook">Today’s meals</a><a class="btn" href="#cook/log">Log food</a><a class="btn" href="#cook/pantry">Fridge &amp; list</a></div>';
   }
 
+  /* His Tagalog data as stored (only cards are added to it, nothing else is rewritten). */
+  function tlState() {
+    if (!root.TagalogCore) return null;
+    try {
+      var raw = localStorage.getItem('wl.tagalog.v1'), st = raw ? JSON.parse(raw) : root.TagalogCore.defaults();
+      if (!st || typeof st !== 'object') return null;
+      if (!st.cards || typeof st.cards !== 'object') st.cards = {};
+      return st;
+    } catch (e) { return null; }
+  }
+  /* After he made a Filipino dish: its Tagalog words can join his Tagalog review (the ones he doesn't have yet). */
+  function tlOffer(r, slot) {
+    if (!r || slot.status !== 'made' || !Array.isArray(r.words) || !r.words.length || !root.TagalogCore) return '';
+    var st = tlState(); if (!st) return '';
+    var fresh = r.words.filter(function (w) { return !st.cards[w.tl]; });
+    if (!fresh.length) return '<p class="meta ui ck-tl-added">' + esc(r.words.map(function (w) { return w.tl; }).join(', ')) + ': in your Tagalog review ✓</p>';
+    return '<div class="row ui" style="margin-top:6px"><button type="button" data-ck-tl-add="' + esc(r.id) + '">Add ' + fresh.length + ' Tagalog word' + (fresh.length === 1 ? '' : 's') + ' to my review</button></div>';
+  }
+
   root.CookViews = {
+    tlState: tlState, tlOffer: tlOffer,
     subnav: subnav, dayHeading: dayHeading, expiryBadge: expiryBadge, recipeDetailsHtml: recipeDetailsHtml,
     targetsCardHtml: targetsCardHtml, todayHtml: todayHtml, weekHtml: weekHtml, logHtml: logHtml, pantryHtml: pantryHtml, cardHtml: cardHtml
   };

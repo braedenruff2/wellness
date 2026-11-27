@@ -446,4 +446,13 @@ t('Cronometer nutrition targets & estimator: counts, no double-count, portions, 
   const bar = CN.estimateEntry({ who: 'me', text: 'half mini bar (oat)', portion: 'Regular' }, s2.customFoods);
   assert.strictEqual(Math.round(bar.nutri.kcal), 75, 'half mini bar (oat) scaled accurately');
 });
+t('AI plan: a Filipino dish may carry its Tagalog words (cleaned, at most 8); junk words are dropped; validate keeps them', () => {
+  const s = K.defaults(), now = new Date(2026, 10, 26, 12);
+  K.applyAiPlan(s, { days: [{ dinner: { title: 'Bistek', steps: ['a'], ingredients: ['beef'], words: [{ tl: 'Baka', en: 'beef' }, { tl: 'kalamansi', en: 'calamansi lime' }, { tl: '<b>x</b>', en: 'bad' }, { tl: 'sibuyas', en: '' }, null] } }, { lunch: { title: 'Rice', steps: ['a'] } }] }, now);
+  const r = Object.values(s.aiRecipes).find((x) => x.title === 'Bistek');
+  assert.deepStrictEqual(r.words, [{ tl: 'baka', en: 'beef' }, { tl: 'kalamansi', en: 'calamansi lime' }]);
+  assert.ok(!('words' in Object.values(s.aiRecipes).find((x) => x.title === 'Rice')));
+  const v = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.deepStrictEqual(Object.values(v.aiRecipes).find((x) => x.title === 'Bistek').words, r.words);
+});
 console.log(n + ' cook unit tests passed');

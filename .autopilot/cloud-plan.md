@@ -469,3 +469,15 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 361. (done 27 Nov, Claude; was Claude's 354) e2e: the note-for-autopilot draft (wl.notes.draft) never goes into a backup or the sync file.
 362. (done 27 Nov, Claude; was Claude's 355) Home's Parenting card with the advice step and the saved question: contrast in 3 themes, 44 px, at 1.3; e2e-draft.
 NOTE 27 Nov (Claude): both agents numbered new tasks 349-352 at the same time. New tasks: take the next number after the highest in this file AND in the other agent's latest log.
+NOTE 27 Nov (Claude, the 23:43 UTC run): this run's own tasks 309-319 collided with the other runs' numbers; the done ones are recorded below as 380-386, the open ones as 387-390.
+380. (done 27 Nov, Claude: TagalogCore.addWords; cook-views tlOffer after Made it on a dish with words; only cards are added to his stored Tagalog data; unit + e2e) Cooking x Tagalog: after "Made it" on a Filipino dish, one tap adds its Tagalog words to review.
+381. (done 27 Nov, Claude: cleanWords in applyAiPlan + validate; cook-plan.md asks for real everyday words only) AI meal plan: a Filipino dish may carry `words`.
+382. (done 27 Nov, Claude: note events carry read + nid, a read note gets id .../r; summarize() marks [read]/[NEW], one line per note) Summaries never re-handle a note.
+383. (done 27 Nov, Claude: dark.js FCBack closes the note sheet first; e2e-notes-ack) Android Back with the "Note for autopilot" sheet open closes it and stays on the screen.
+384. (done 27 Nov, Claude) Tagalog "Your words": a recipe word says "from Tinolang manok".
+385. (dropped 27 Nov, Claude: the backup file name already uses the local date) Backup file name / toast.
+386. (done 27 Nov, Claude: 264-308 of this run's numbering are in cloud-log.md 26 Nov 19:43-21:35 AST) see log.
+387. [any] e2e: an AI meal plan's Filipino dish with `words` shows "In Tagalog" on its card and, after Made it, offers "Add N Tagalog words" like the bundled ones (cook-views tlOffer is generic; pin it).
+388. [any] Privacy guard: tests/privacy.cjs also scans pc/prompts/*.md and the Cooking recipes for a child's name or birthday pattern; {child} only.
+389. [any] Cooking fridge photo: the camera photo stays in his public Pictures after the page has read it; keep it out of the gallery (app storage + a small ContentProvider for the camera's EXTRA_OUTPUT) instead of deleting anything of his; Java unit for any pure helper.
+390. [drive] Wednesday 2 Dec lesson pack (week 3): contrast hindi + pronoun (no -ng: Hindi ako pagod, Hindi pa siya natutulog) with palagi / gusto / kailangan + pronoun (-ng: palagi siyang masaya, gusto kong kumain); the weekly summary's slipKinds says which slips are still live.
