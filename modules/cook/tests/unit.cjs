@@ -455,4 +455,28 @@ t('AI plan: a Filipino dish may carry its Tagalog words (cleaned, at most 8); ju
   const v = K.validate(JSON.parse(JSON.stringify(s)));
   assert.deepStrictEqual(Object.values(v.aiRecipes).find((x) => x.title === 'Bistek').words, r.words);
 });
+t('392: a count never carries to the next food; a recipe title keeps the other foods; picker logs scale with portion; 7-day average skips days with no estimate', () => {
+  const CN = K.nutri, F = CN.FOOD_BY, me = (text, o) => CN.estimateEntry(Object.assign({ who: 'me', text, portion: 'Regular' }, o || {}), [], K.RECIPES).nutri.kcal;
+  assert.strictEqual(Math.round(me('2 eggs rice')), 2 * F.egg.nutri.kcal + F.rice.nutri.kcal, '"2 eggs rice" is 2 eggs + 1 rice');
+  assert.strictEqual(Math.round(me('3 eggs, rice')), 3 * F.egg.nutri.kcal + F.rice.nutri.kcal);
+  assert.strictEqual(Math.round(me('half avocado toast')), Math.round(0.5 * F.avocado.nutri.kcal + F.toast.nutri.kcal), 'half applies to the avocado only');
+  assert.strictEqual(Math.round(me('rice 2 eggs')), 2 * F.egg.nutri.kcal + F.rice.nutri.kcal);
+  // the child's "Fill from dinner" + a chip: the recipe and the banana both count
+  const ad = K.RECIPES.find((r) => r.id === 'adobo'), ch = (t) => CN.estimateEntry({ who: 'child', offered: t, ate: 'All' }, [], K.RECIPES).nutri.kcal;
+  const alone = ch(ad.title + ' (soft, unsalted)'), withBanana = ch(ad.title + ' (soft, unsalted), Banana');
+  assert.ok(alone > 0 && Math.abs(withBanana - alone - ch('Banana')) < 0.5, 'adobo + banana = adobo + banana (' + alone + ', ' + withBanana + ')');
+  assert.strictEqual(Math.round(me(ad.title)), CN.RECIPE_NUTRI.adobo.kcal, 'a recipe title alone is that recipe, once');
+  // picker logs (saved numbers) follow Small / Large like typed meals
+  const n = { kcal: 144, pro: 12 };
+  assert.ok(me('x', { nutri: n, portion: 'Large' }) > 144 && me('x', { nutri: n, portion: 'Small' }) < 144 && me('x', { nutri: n }) === 144);
+  // 7-day average: a day with only "Mama's cooking" (no estimate) doesn't halve the average
+  const s = K.defaults();
+  K.logMe(s, { date: '2026-11-25', meal: 'lunch', text: 'rice', portion: 'Regular' }, now);
+  K.logMe(s, { date: '2026-11-26', meal: 'dinner', text: 'Mama’s cooking', portion: 'Regular' }, now);
+  const w = K.dailyNutrition(s, 'me', '2026-11-26', { range: '7d' });
+  assert.strictEqual(w.totals.kcal, F.rice.nutri.kcal, 'averaged over the one day with an estimate');
+  assert.strictEqual(w.days, 1);
+  assert.strictEqual(w.unmatched, 1);
+});
+
 console.log(n + ' cook unit tests passed');

@@ -207,18 +207,23 @@
     return list;
   }
 
-  /* Estimate multiplier immediately before a matched food phrase (e.g. "2 eggs", "half avocado", "1.5 cups rice"). */
-  function countBefore(text, idx) {
-    var pre = text.slice(Math.max(0, idx - 18), idx).trim();
-    if (/\b(?:half|1\/2)\s*(?:an?|of)?$/i.test(pre)) return 0.5;
-    if (/\b(?:quarter|1\/4)\s*(?:an?|of)?$/i.test(pre)) return 0.25;
+  /* Estimate multiplier immediately before a matched food phrase (e.g. "2 eggs", "half avocado", "1.5 cups rice"):
+     { n, len } where len is how many characters before the phrase the count takes (so it can be blanked too and never
+     carries over to the next food: "2 eggs rice" is 2 eggs and 1 rice). */
+  function countAt(text, idx) {
+    var raw = text.slice(Math.max(0, idx - 18), idx), pre = raw.replace(/\s+$/, ''), tail = raw.length - pre.length;
+    var h = /\b(?:half|1\/2)\s*(?:an?|of)?$/i.exec(pre);
+    if (h) return { n: 0.5, len: h[0].length + tail };
+    var q = /\b(?:quarter|1\/4)\s*(?:an?|of)?$/i.exec(pre);
+    if (q) return { n: 0.25, len: q[0].length + tail };
     var m = /(?:^|[\s,+&(])(\d+(?:\.\d+)?)\s*(?:x|×|pcs?|pieces?|slices?|cups?|tbsp|scoops?|bowls?)?$/i.exec(pre);
     if (m) {
       var n = parseFloat(m[1]);
-      if (isFinite(n) && n > 0 && n <= 8) return n;
+      if (isFinite(n) && n > 0 && n <= 8) return { n: n, len: m[0].replace(/^[\s,+&(]/, '').length + tail };
     }
-    return 1;
+    return { n: 1, len: 0 };
   }
+  function countBefore(text, idx) { return countAt(text, idx).n; }
 
   /* Estimate nutrition from a logged meal entry (or plain text). Returns { nutri, matched }. */
   function estimateEntry(entry, customFoods, recipes) {
@@ -230,7 +235,8 @@
     // Explicit nutrition saved on the log (e.g. from Quick-Add Food Picker or custom numbers)
     if (entry.nutri && typeof entry.nutri === 'object') {
       var direct = zeroNutri();
-      addNutri(direct, entry.nutri, entry.who === 'child' ? scale : 1);
+      // the picker saved the amounts he chose; Small / Large (or how much {child} ate) scales them like a typed meal
+      addNutri(direct, entry.nutri, scale);
       return { nutri: direct, matched: true };
     }
 
@@ -244,21 +250,23 @@
     var rawText = String(entry.who === 'child' ? entry.offered : entry.text || '').toLowerCase();
     if (!rawText.trim()) return { nutri: zeroNutri(), matched: false };
 
-    // Check if the text exactly matches a built-in recipe title
-    if (Array.isArray(recipes)) {
-      for (var ri = 0; ri < recipes.length; ri++) {
-        var r = recipes[ri];
-        if (r && r.title && RECIPE_NUTRI[r.id] && rawText.indexOf(r.title.toLowerCase()) >= 0) {
-          var rOut = zeroNutri();
-          addNutri(rOut, RECIPE_NUTRI[r.id], entry.who === 'child' ? scale * CHILD_PORTION_BASE : scale);
-          return { nutri: rOut, matched: true };
-        }
-      }
-    }
-
     var patterns = buildPatterns(customFoods);
     var work = rawText;
     var tot = zeroNutri(), seenIds = {}, matched = 0;
+    // A built-in recipe title counts as that recipe (once); the rest of the text ("..., Banana") still counts as foods.
+    if (Array.isArray(recipes)) {
+      for (var ri = 0; ri < recipes.length; ri++) {
+        var r = recipes[ri];
+        if (!r || !r.title || !RECIPE_NUTRI[r.id]) continue;
+        var ti = work.indexOf(r.title.toLowerCase());
+        if (ti < 0) continue;
+        addNutri(tot, RECIPE_NUTRI[r.id], 1);
+        matched++;
+        work = work.slice(0, ti) + ' '.repeat(r.title.length) + work.slice(ti + r.title.length);
+        // its title words ("chicken", "rice") are part of the recipe: blank a "(soft, unsalted)" note too
+        work = work.replace(/\(\s*soft,?\s*unsalted\s*\)/g, function (x) { return ' '.repeat(x.length); });
+      }
+    }
     for (var i = 0; i < patterns.length; i++) {
       var p = patterns[i];
       if (seenIds[p.id]) continue;
@@ -268,10 +276,12 @@
         seenIds[p.id] = 1;
         matched++;
         var phraseIdx = m.index + m[1].length;
-        var mult = countBefore(work, phraseIdx);
-        addNutri(tot, p.nutri, mult);
-        // Blank matched span so sub-phrases (like "butter" inside "peanut butter") never double-count
-        work = work.slice(0, phraseIdx) + ' '.repeat(m[2].length) + work.slice(phraseIdx + m[2].length);
+        var c = countAt(work, phraseIdx);
+        addNutri(tot, p.nutri, c.n);
+        // Blank the matched span and its count, so sub-phrases ("butter" inside "peanut butter") never double-count and
+        // "2 eggs rice" never reads the 2 as the rice's count
+        var from = phraseIdx - c.len;
+        work = work.slice(0, from) + ' '.repeat(c.len + m[2].length) + work.slice(phraseIdx + m[2].length);
       }
     }
     if (!matched) return { nutri: zeroNutri(), matched: false };
@@ -294,9 +304,10 @@
     var targets = cleanTargets(state && state.targets && state.targets[who], who);
     var totals = zeroNutri(), daysSeen = {}, matchedCount = 0, unmatchedCount = 0;
     logs.forEach(function (entry) {
-      daysSeen[entry.date] = 1;
       var est = estimateEntry(entry, state && state.customFoods, opts.recipes);
       if (est.matched) {
+        // only days with an estimate count toward the 7-day average ("Mama's cooking" alone is unknown, not zero)
+        daysSeen[entry.date] = 1;
         matchedCount++;
         addNutri(totals, est.nutri, 1);
       } else {
