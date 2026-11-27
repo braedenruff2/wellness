@@ -687,6 +687,7 @@
       });
     });
     if (wantProtein && r.workoutFit) s += 3;
+    if (wantProtein && r.mins >= 45) s -= 4; // a workout day is no day for an hour at the stove
     s -= (usedCounts[r.id] || 0) * 5; // encourage variety across the week
     return s;
   }
@@ -708,7 +709,7 @@
       if (!slot) return;
       MEALS.forEach(function (m) { if (slot[m] && slot[m].recipeId) used[slot[m].recipeId] = (used[slot[m].recipeId] || 0) + 1; });
     });
-    var todayIso = iso(now);
+    var todayIso = iso(now), p0 = wk.split('-'), weekNo = Math.round(Date.UTC(+p0[0], +p0[1] - 1, +p0[2]) / (7 * 864e5)); // a different order each week
     days.forEach(function (d, dayIdx) {
       var cur = state.plan.days[d] = state.plan.days[d] || {};
       var workoutDay = Array.isArray(opts.workoutDays) ? opts.workoutDays.indexOf(dayIdx) >= 0 : (dayIdx === 0 || dayIdx === 2 || dayIdx === 4);
@@ -719,7 +720,7 @@
         pool.sort(function (a, b) {
           var sa = scoreRecipe(a, boostSoon ? soonNames : [], workoutDay, used);
           var sb = scoreRecipe(b, boostSoon ? soonNames : [], workoutDay, used);
-          return sb - sa || ((RECIPES.indexOf(a) + dayIdx) % pool.length) - ((RECIPES.indexOf(b) + dayIdx) % pool.length);
+          return sb - sa || ((RECIPES.indexOf(a) + dayIdx + weekNo) % pool.length) - ((RECIPES.indexOf(b) + dayIdx + weekNo) % pool.length);
         });
         var pick = pool[0];
         used[pick.id] = (used[pick.id] || 0) + 1;

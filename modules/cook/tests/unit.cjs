@@ -265,4 +265,19 @@ t('Filipino family dishes: there, beginner-sized, {child} served before fish sau
   }
   assert.ok(K.sameFood('pork', 'pork shoulder') && K.sameFood('pork belly', 'pork') && !K.sameFood('pork', 'fish sauce'));
 });
+t('offline week plans: a recipe at most twice a week, no 45+ min dish on a workout day, and the weeks differ', () => {
+  const seen = new Set();
+  for (let w = 0; w < 8; w++) {
+    const s = K.defaults(), now = new Date(2026, 10, 23 + 7 * w, 9);
+    K.ensureWeekPlan(s, now);
+    const cnt = {};
+    K.weekDays(now).forEach((d, i) => ['breakfast', 'lunch', 'dinner'].forEach((m) => {
+      const x = s.plan.days[d][m]; cnt[x.recipeId] = (cnt[x.recipeId] || 0) + 1;
+      if ([0, 2, 4].includes(i)) assert.ok(K.recipeById(s, x.recipeId).mins < 45, 'week ' + w + ' ' + d + ' ' + m + ': ' + x.recipeId);
+    }));
+    assert.ok(Object.values(cnt).every((c) => c <= 2), JSON.stringify(cnt));
+    seen.add(JSON.stringify(K.weekDays(now).map((d) => s.plan.days[d].dinner.recipeId)));
+  }
+  assert.ok(seen.size >= 4, 'dinners vary from week to week: ' + seen.size);
+});
 console.log(n + ' cook unit tests passed');
