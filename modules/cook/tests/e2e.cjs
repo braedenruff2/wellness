@@ -40,11 +40,17 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(salmonAfter.status, 'out');
     assert.strictEqual(salmonAfter.qty, 0);
 
-    // Mark lunch Mama cooked (with prompt)
-    const onDialog = async (d) => { await d.accept('Chicken tinola'); };
-    page.once('dialog', onDialog);
+    // Mark lunch Mama cooked: one tap (no system dialog), then what she made in the card's own field
+    let dialogs = 0; const onDialog = (d) => { dialogs++; d.dismiss(); }; page.on('dialog', onDialog);
     await page.click('[data-ck-mama="lunch"]');
-    await page.waitForFunction(() => document.querySelector('[data-ck-meal="lunch"]').textContent.includes('Chicken tinola'));
+    await page.waitForSelector('#ck-mama-lunch');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'ck-mama-lunch', 'focus goes to the optional field');
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-11-26'].lunch.status), 'mama');
+    await page.fill('#ck-mama-lunch', 'Chicken tinola');
+    await page.press('#ck-mama-lunch', 'Enter');
+    await page.waitForFunction(() => document.querySelector('[data-ck-meal="lunch"] h3').textContent.includes('Chicken tinola'));
+    assert.strictEqual(await page.inputValue('#ck-mama-lunch'), 'Chicken tinola', 'kept in the field');
+    page.off('dialog', onDialog); assert.strictEqual(dialogs, 0, 'no window.prompt');
   });
 
   await t.step('Food log: log {child} Offered vs Actually ate + Me meal, view Ate well lately, delete log', async () => {
@@ -166,7 +172,6 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#cook');
     await page.waitForSelector('[data-ck-mama]');
     const meal = await page.getAttribute('[data-ck-mama]', 'data-ck-mama');
-    page.once('dialog', (dl) => dl.accept(''));
     await page.click('[data-ck-mama="' + meal + '"]');
     await page.waitForFunction((m) => { const s = JSON.parse(localStorage.getItem('wl.cook.v1')); return s.plan.days['2026-11-26'][m].status === 'mama'; }, meal);
     const before = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan);

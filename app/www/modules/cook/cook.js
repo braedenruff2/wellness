@@ -123,7 +123,11 @@
       h += '<div class="card" data-ck-meal="' + meal + '">' +
         '<div class="meta ui">' + esc(K.MEAL_LABEL[meal]) + statusBadge + '</div>' +
         '<h3 style="margin:.2em 0">' + esc(slot.status === 'mama' ? (slot.note || 'Mama’s cooking') : (slot.title || 'Open slot')) + '</h3>' +
-        (slot.status !== 'mama' ? recipeDetailsHtml(r) : (slot.title ? '<p class="meta ui">Original plan (' + esc(slot.title) + ') moved off the shopping list.</p>' : '')) +
+        (slot.status !== 'mama' ? recipeDetailsHtml(r) : (slot.title ? '<p class="meta ui">Original plan (' + esc(slot.title) + ') moved off the shopping list.</p>' : '') +
+          // what she made (optional), right on the card: no system dialog
+          '<form class="row ui ck-mama-form" data-ck-mama-form="' + meal + '" style="margin-top:6px"><label class="sr" for="ck-mama-' + meal + '">What did Mama cook? (optional)</label>' +
+          '<input type="text" class="grow" id="ck-mama-' + meal + '" maxlength="200" placeholder="What did Mama cook? (optional)" value="' + esc(slot.note || '') + '" autocomplete="off">' +
+          '<button type="submit">Save</button></form>') +
         '<div class="row ui" style="margin-top:8px">' +
         (slot.status !== 'made' && slot.status !== 'mama' ? '<button class="primary" type="button" data-ck-made="' + meal + '">Made it ✓</button>' : '') +
         (slot.status !== 'mama' ? '<button type="button" data-ck-mama="' + meal + '">Mama cooked</button>' : '<button type="button" data-ck-reset="' + meal + '">Back to plan</button>') +
@@ -443,10 +447,17 @@
       $$('[data-ck-mama]', view).forEach(function (b) {
         b.onclick = function () {
           var meal = b.dataset.ckMama;
-          var dish = window.prompt ? window.prompt('What did Mama cook? (optional)', '') : '';
-          if (dish === null) return;
-          K.markSlot(S, tIso, meal, 'mama', dish, d);
+          K.markSlot(S, tIso, meal, 'mama', '', d);
           save(); render(); WL.toast('Marked Mama cooked — shopping list updated');
+          var inp = $('#ck-mama-' + meal, view); if (inp) inp.focus();
+        };
+      });
+      $$('[data-ck-mama-form]', view).forEach(function (f) {
+        f.onsubmit = function (e) {
+          e.preventDefault();
+          var meal = f.dataset.ckMamaForm, inp = $('#ck-mama-' + meal, view);
+          K.markSlot(S, tIso, meal, 'mama', inp ? inp.value.trim() : '', d);
+          save(); render(); WL.toast('Saved');
         };
       });
       $$('[data-ck-reset]', view).forEach(function (b) {
