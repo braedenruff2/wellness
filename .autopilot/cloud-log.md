@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-26 21:15-21:35 AST (same run, continued; APK 0.1.20261127.0131, real key, cert 6795e499...)
+- Done 293 (Tagalog weekly summary: slips per kind + still wrong), 295 (an unread note takes a second tap to delete), 294 (Home Cooking card at its fullest at 320 px), 296 (Filipino recipes show their Tagalog words with 🔊), 297 (offline plan: no 45+ min dish on a workout day, weeks differ), 308 (the soft bell dips background noise), 300 (bug: AI recipes piled up forever; each AI plan keeps the plan's + newest 40; Cooking pages in e2e-perf). 292, 307 existed.
+- Tested: full suite at 6b10c2a (103 suites, none skipped; this APK's code).
+- Check on the phone: Cooking > a Filipino dish > How to make it > In Tagalog 🔊; interval bell over brown noise.
+
 ## 2026-11-26 21:00-21:15 AST (same run, continued; APK 0.1.20261127.0111, real key, cert 6795e499...)
 - Done 289 (Cooking: six Filipino family dishes, {child}'s portion before the fish sauce / salty mix; pork cuts match pork), 290 (e2e: a call pauses the Quiet timer and a guided prayer), 288 (e2e: extra linker in lesson 2 -> hint + Watch for next time).
 - Tested: full suite at 964af4b (103 suites, none skipped; this APK's code).
