@@ -24,7 +24,7 @@ const parts = {
   'wl.coach.v1': { v: CO.validate, use: (s) => { CO.skillStats(s); CO.doneToday(s, now); CO.scenarioDue(s, now); CO.tips(s, null, 50); } },
   'wl.me.v1': { v: ME.validate, use: (s) => { ME.guidance(s, now); ME.hiddenList(s, now.getTime()); ME.rough(s, now); } },
   'wl.todo.v1': { v: TD.validate, use: (s) => { TD.groups(s, now); TD.reminders && TD.reminders(s, now); TD.tidy(s, now); } },
-  'wl.cook.v1': { v: CK.validate, use: (s) => { CK.ensureWeekPlan(s, now); CK.expiringSoon(s, now, 5); } },
+  'wl.cook.v1': { v: CK.validate, use: (s) => { CK.ensureWeekPlan(s, now); CK.expiringSoon(s, now, 5); CK.shoppingList(s, now); CK.childSummary(s, now); CK.dailyNutrition(s, 'me', CK.iso(now)); CK.dailyNutrition(s, 'child', CK.iso(now), { range: '7d' }); } },
   'wl.notes.v1': { v: NT.validate, use: (s) => { NT.unread(s); } },
   'fc.v1': { v: (s) => { try { return FC.importData(JSON.stringify({ app: 'faith-companion', state: s })); } catch (e) { if (/not a|backup|file/i.test(e.message)) return null; throw e; } }, use: (s) => { FC.currentDay(s, 120); } },
 };

@@ -49,6 +49,11 @@ function simulate(days) {
     // an AI week plan now and then (the newest 40 AI recipes are kept)
     if (d % 7 === 0) CK.applyAiPlan(ck, { note: words(20), days: CK.weekDays(at(12)).map((date) => ({ date, dinner: { title: 'AI dinner ' + date, mins: 25, protein: '~30 g', babyNote: words(10), tip: words(10), ingredients: [{ name: 'chicken thighs', qty: 4, unit: 'pcs', cat: 'meat' }, { name: 'rice', qty: 1, unit: 'cup', cat: 'pantry' }], steps: [words(12), words(12), words(12)] } })) }, at(12));
     CK.markSlot(ck, WK.iso(at(18)), 'dinner', 'made', '', at(19));
+    if (d % 4 === 0) CK.markSlot(ck, WK.iso(at(12)), 'lunch', 'skipped', '', at(12));
+    if (d === 0) {
+      CK.addCustomFood(ck, { name: 'Sopas (bowl)', serving: '1 bowl', kcal: 360, pro: 26, carb: 38, fat: 10 });
+      CK.setTargets(ck, 'me', { kcal: 2300, pro: 130 });
+    }
     if (d % 3 === 0) NT.add(nt, 'note ' + d + ' ' + words(30), '#home', 'Idea', at(22, 10));
   }
   return { 'wl.tagalog.v1': tg, 'wl.coach.v1': co, 'fc.v1': fc, 'wl.calm.v1': ca, 'wl.workout.v1': wk, 'wl.me.v1': me, 'wl.todo.v1': td, 'wl.cook.v1': ck, 'wl.notes.v1': nt };

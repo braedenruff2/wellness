@@ -239,8 +239,11 @@
       h += '<div id="ck-food-results">' + (hits.length ? hits.map(function (f) {
         var mult = who === 'child' ? CN.CHILD_PORTION_BASE : 1;
         var k = Math.round(f.nutri.kcal * mult), pr = Math.round(f.nutri.pro * mult);
+        var delBtn = f.cat === 'custom'
+          ? '<button class="link" type="button" data-fdel="' + esc(f.id.slice(7)) + '" aria-label="Remove ' + esc(f.name) + '">Remove</button>'
+          : '';
         return '<div class="ck-food-row"><div class="grow"><b>' + esc(f.name) + '</b><div class="meta">' + esc(f.serving) + ' · ~' + k + ' kcal · ' + pr + ' g pro</div></div>' +
-          '<button class="chip" type="button" data-fadd="' + esc(f.id) + '">+ Add</button></div>';
+          delBtn + '<button class="chip" type="button" data-fadd="' + esc(f.id) + '">+ Add</button></div>';
       }).join('') : '<p class="meta">No matching foods — save your own below.</p>') + '</div>';
 
       h += '<details id="ck-cf-add" style="margin-top:8px"><summary class="meta">+ Save a custom food (1-tap forever)</summary>' +
@@ -281,6 +284,17 @@
           var ex = picked.filter(function (p) { return p.food.id === id; })[0];
           if (ex) ex.qty++; else picked.push({ food: f, qty: 1 });
           box.innerHTML = renderBody(); wireModal();
+        };
+      });
+      $$('[data-fdel]', box).forEach(function (b) {
+        b.onclick = function () {
+          var cid = b.dataset.fdel;
+          if (!K.removeCustomFood(S, cid)) return;
+          save();
+          picked = picked.filter(function (p) { return p.food.id !== 'custom:' + cid; });
+          if (activeCat === 'custom' && !(S.customFoods && S.customFoods.length)) activeCat = 'all';
+          box.innerHTML = renderBody(); wireModal();
+          WL.toast('Removed custom food');
         };
       });
       var clr = $('#ck-food-clear', box);
@@ -457,21 +471,38 @@
         };
       });
     } else if (curTab === 'log') {
-      // Target graph controls (Me / {child}, Day / 7-day avg, Customize targets)
-      $$('[data-ck-twho]', view).forEach(function (b) {
-        b.onclick = function () { targetWho = b.dataset.ckTwho; render(); };
-      });
-      $$('[data-ck-trange]', view).forEach(function (b) {
-        b.onclick = function () { targetRange = b.dataset.ckTrange; render(); };
-      });
-      var ts = $('#ck-t-save', view);
-      if (ts) ts.onclick = function () {
-        var vals = {};
-        $$('[data-ck-tval]', view).forEach(function (inp) { vals[inp.dataset.ckTval] = +inp.value; });
-        K.setTargets(S, targetWho, vals); save(); render(); WL.toast('Saved targets');
-      };
-      var tr = $('#ck-t-reset', view);
-      if (tr) tr.onclick = function () { K.resetTargets(S, targetWho); save(); render(); WL.toast('Targets reset to defaults'); };
+      // Target graph controls (Me / {child}, Day / 7-day avg, Customize targets) redraw only #ck-targets-wrap
+      // so typed meal drafts in #ck-c-offered / #ck-m-text and open #ck-micro state stay intact.
+      function redrawTargets(focusSel) {
+        var wrap = $('#ck-targets-wrap', view);
+        if (!wrap) { render(); return; }
+        var microOpen = !!($('#ck-micro', wrap) && $('#ck-micro', wrap).open);
+        wrap.innerHTML = V.targetsCardHtml(S, viewCtx());
+        if (microOpen) { var m = $('#ck-micro', wrap); if (m) m.open = true; }
+        wireTargets();
+        if (focusSel) {
+          var target = $(focusSel, wrap);
+          if (target && target.focus) try { target.focus(); } catch (e) {}
+        }
+      }
+      function wireTargets() {
+        var wrap = $('#ck-targets-wrap', view) || view;
+        $$('[data-ck-twho]', wrap).forEach(function (b) {
+          b.onclick = function () { targetWho = b.dataset.ckTwho; redrawTargets('[data-ck-twho="' + targetWho + '"]'); };
+        });
+        $$('[data-ck-trange]', wrap).forEach(function (b) {
+          b.onclick = function () { targetRange = b.dataset.ckTrange; redrawTargets('[data-ck-trange="' + targetRange + '"]'); };
+        });
+        var ts = $('#ck-t-save', wrap);
+        if (ts) ts.onclick = function () {
+          var vals = {};
+          $$('[data-ck-tval]', wrap).forEach(function (inp) { vals[inp.dataset.ckTval] = +inp.value; });
+          K.setTargets(S, targetWho, vals); save(); redrawTargets(); WL.toast('Saved targets');
+        };
+        var tr = $('#ck-t-reset', wrap);
+        if (tr) tr.onclick = function () { K.resetTargets(S, targetWho); save(); redrawTargets(); WL.toast('Targets reset to defaults'); };
+      }
+      wireTargets();
 
       var cMeal = 'lunch', cAte = 'About half', mMeal = 'dinner', mPort = 'Regular', mTags = [];
       var cPickedNutri = null, mPickedNutri = null;

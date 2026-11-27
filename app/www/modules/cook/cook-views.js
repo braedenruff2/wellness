@@ -224,7 +224,7 @@
     var cSum = K.childSummary(S, d);
 
     var h = subnav('log') + '<h1>Food log &amp; targets</h1>';
-    h += targetsCardHtml(S, ctx);
+    h += '<div id="ck-targets-wrap">' + targetsCardHtml(S, ctx) + '</div>';
 
     // Child food log: Offered vs Actually ate (1-tap quick-add + searchable food picker)
     h += '<div class="card ui" id="ck-log-child"><h3>What ' + esc(cName) + ' ate</h3>' +

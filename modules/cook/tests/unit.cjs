@@ -433,5 +433,17 @@ t('Cronometer nutrition targets & estimator: counts, no double-count, portions, 
   const vClean = K.validate(JSON.parse(JSON.stringify(v)));
   assert.strictEqual(vClean.customFoods, undefined, 'empty customFoods omitted from saved state');
   assert.strictEqual(vClean.targets, undefined, 'default targets omitted from saved state');
+
+  // Task 353: custom food names ending in non-letters (%, !, )) still compute exact phraseIdx & countBefore
+  const s2 = K.defaults();
+  K.addCustomFood(s2, { name: 'Milk 2%', serving: '1 cup', kcal: 120, pro: 8, carb: 12, fat: 5 });
+  K.addCustomFood(s2, { name: 'PB&J!', serving: '1 sandwich', kcal: 300, pro: 10, carb: 40, fat: 12 });
+  K.addCustomFood(s2, { name: 'Mini bar (oat)', serving: '1 bar', kcal: 150, pro: 5, carb: 20, fat: 6 });
+  const m2 = CN.estimateEntry({ who: 'me', text: '2 milk 2% and egg', portion: 'Regular' }, s2.customFoods);
+  assert.strictEqual(Math.round(m2.nutri.kcal), 2 * 120 + CN.FOOD_BY.egg.nutri.kcal, '2 milk 2% + egg scaled accurately');
+  const pbj = CN.estimateEntry({ who: 'me', text: '2 pb&j!!', portion: 'Regular' }, s2.customFoods);
+  assert.strictEqual(Math.round(pbj.nutri.kcal), 600, '2 pb&j!! with trailing matching char scaled accurately');
+  const bar = CN.estimateEntry({ who: 'me', text: 'half mini bar (oat)', portion: 'Regular' }, s2.customFoods);
+  assert.strictEqual(Math.round(bar.nutri.kcal), 75, 'half mini bar (oat) scaled accurately');
 });
 console.log(n + ' cook unit tests passed');

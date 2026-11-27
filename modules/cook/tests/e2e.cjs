@@ -442,6 +442,40 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.waitForFunction(() => !document.getElementById('ck-food-modal'));
     assert.ok((await page.textContent('#ck-log-list')).includes('Protein bar'));
 
+    // Task 353: custom food Remove button inside #ck-food-modal is >= 44px tall and cleans both customFoods & picked
+    await page.click('#ck-m-pick');
+    await page.waitForSelector('#ck-food-modal');
+    await page.click('#ck-food-cats [data-fcat="custom"]');
+    await page.waitForSelector('#ck-food-results [data-fdel]');
+    const fdelBox = await page.locator('#ck-food-results [data-fdel]').first().boundingBox();
+    assert.ok(fdelBox && fdelBox.height >= 44, 'custom food Remove button >= 44px tall: ' + JSON.stringify(fdelBox));
+    await page.click('#ck-food-results [data-fadd^="custom:"]');
+    await page.waitForSelector('#ck-food-picked');
+    await page.click('#ck-food-results [data-fdel]');
+    await page.waitForFunction(() => !document.getElementById('ck-food-picked') && !document.querySelector('#ck-food-results [data-fdel]'));
+    assert.strictEqual(await page.evaluate(() => (JSON.parse(localStorage.getItem('wl.cook.v1')).customFoods || []).length), 0, 'custom food deleted from storage');
+    await page.click('#ck-food-close');
+    await page.waitForFunction(() => !document.getElementById('ck-food-modal'));
+
+    // Task 354: toggling Me/{child} and Day/7-day avg redraws only #ck-targets-wrap, preserving drafts, #ck-micro open state & chip focus
+    await page.fill('#ck-c-offered', 'Draft toddler pears');
+    await page.fill('#ck-m-text', 'Draft adult stir-fry');
+    await page.click('#ck-micro summary');
+    assert.strictEqual(await page.evaluate(() => document.getElementById('ck-micro').open), true);
+    await page.click('#ck-targets [data-ck-twho="child"]');
+    assert.strictEqual(await page.inputValue('#ck-c-offered'), 'Draft toddler pears', '#ck-c-offered draft preserved');
+    assert.strictEqual(await page.inputValue('#ck-m-text'), 'Draft adult stir-fry', '#ck-m-text draft preserved');
+    assert.strictEqual(await page.evaluate(() => document.getElementById('ck-micro').open), true, '#ck-micro stayed open');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-ck-twho')), 'child', 'focus restored to child toggle');
+    await page.click('#ck-targets [data-ck-trange="7d"]');
+    assert.strictEqual(await page.inputValue('#ck-c-offered'), 'Draft toddler pears');
+    assert.strictEqual(await page.evaluate(() => document.getElementById('ck-micro').open), true, '#ck-micro stayed open on range switch');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-ck-trange')), '7d', 'focus restored to 7d toggle');
+    await page.click('#ck-targets [data-ck-trange="day"]');
+    await page.click('#ck-targets [data-ck-twho="me"]');
+    await page.fill('#ck-c-offered', '');
+    await page.fill('#ck-m-text', '');
+
     // {child} target graph + quick chip + Food Picker modal Add to box + Escape / FCBack close
     await page.click('#ck-c-pick');
     await page.waitForSelector('#ck-food-modal');

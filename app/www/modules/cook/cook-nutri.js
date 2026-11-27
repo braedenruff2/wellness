@@ -262,16 +262,16 @@
     for (var i = 0; i < patterns.length; i++) {
       var p = patterns[i];
       if (seenIds[p.id]) continue;
-      var re = new RegExp('(?:^|[^a-z])(' + escRe(p.phrase) + ')(?:$|[^a-z])', 'i');
+      var re = new RegExp('(^|[^a-z])(' + escRe(p.phrase) + ')(?:$|[^a-z])', 'i');
       var m = re.exec(work);
       if (m) {
         seenIds[p.id] = 1;
         matched++;
-        var phraseIdx = m.index + (m[0].length - m[1].length - (m[0].slice(-1) !== m[1].slice(-1) ? 1 : 0));
+        var phraseIdx = m.index + m[1].length;
         var mult = countBefore(work, phraseIdx);
         addNutri(tot, p.nutri, mult);
         // Blank matched span so sub-phrases (like "butter" inside "peanut butter") never double-count
-        work = work.slice(0, m.index) + ' '.repeat(m[0].length) + work.slice(m.index + m[0].length);
+        work = work.slice(0, phraseIdx) + ' '.repeat(m[2].length) + work.slice(phraseIdx + m[2].length);
       }
     }
     if (!matched) return { nutri: zeroNutri(), matched: false };
