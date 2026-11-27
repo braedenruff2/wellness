@@ -286,7 +286,21 @@
     var n = $('#co-new'); if (n) n.onclick = newScenario;
     var g = $('#co-grade'); if (g) g.onclick = function () { gradeIt($('#co-answer').value); };
     var a = $('#co-answer'); if (a) a.oninput = function () { S.current.answer = a.value.slice(0, 4000); save(); };
-    var rl = $('#co-real'); if (rl) rl.oninput = function () { S.realDraft = rl.value.slice(0, 3000); save(); };
+    function syncRealSaved() {
+      var show = draftWaiting(), el = $('#co-real-saved');
+      if (show && !el) {
+        var go = $('#co-real-go');
+        if (go && go.parentNode) {
+          var sp = document.createElement('span');
+          sp.className = 'meta'; sp.id = 'co-real-saved';
+          sp.textContent = 'Saved on this phone, not sent yet';
+          go.parentNode.appendChild(sp);
+        }
+      } else if (!show && el) {
+        el.remove();
+      }
+    }
+    var rl = $('#co-real'); if (rl) rl.oninput = function () { S.realDraft = rl.value.slice(0, 3000); save(); syncRealSaved(); };
     var rg = $('#co-real-go'); if (rg) rg.onclick = function () { askReal($('#co-real').value); };
     var sk = $('#co-skip'); if (sk) sk.onclick = function () { if (!askable()) return; S.current = null; save(); newScenario(); };
     var tp = $('#co-tips'); if (tp) tp.addEventListener('click', function (e) {

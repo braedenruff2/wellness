@@ -17,6 +17,15 @@ const DRAFT = 'She cries every time I put her down in the crib unless she is alr
     assert.strictEqual(await page.locator('#co-draft-line').count(), 0);
     await page.goto(base + '#coach');
     assert.strictEqual(await page.locator('#co-real-saved').count(), 0);
+    // Live sync while typing in #co-real: appears at 20+ chars and disappears when cleared below 20 chars without reload
+    await page.fill('#co-real', DRAFT);
+    assert.strictEqual(await page.locator('#co-real-saved').count(), 1, '#co-real-saved appears live at 20+ chars');
+    assert.ok(/not sent yet/.test(await page.textContent('#co-real-saved')));
+    await page.fill('#co-real', 'too short');
+    assert.strictEqual(await page.locator('#co-real-saved').count(), 0, '#co-real-saved hides live below 20 chars');
+    await page.fill('#co-real', '                         ');
+    assert.strictEqual(await page.locator('#co-real-saved').count(), 0, 'whitespace-only draft stays hidden');
+    await page.fill('#co-real', '');
   });
   await t.step('a real draft: Home says it is saved, not sent; Finish and send opens it with Get advice focused', async () => {
     await page.evaluate((d) => { const s = JSON.parse(localStorage.getItem('wl.coach.v1')); s.realDraft = d; localStorage.setItem('wl.coach.v1', JSON.stringify(s)); }, DRAFT);
