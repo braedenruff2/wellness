@@ -403,6 +403,24 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('[data-ck-logmeal="breakfast"]');
     await page.waitForSelector('#ck-today-targets');
     assert.ok((await page.textContent('#ck-today-targets')).includes('kcal'), 'today target summary appears after logging');
+    // 393: logged once; the card says so instead of offering a second copy
+    await page.waitForSelector('[data-ck-logged="breakfast"]');
+    assert.strictEqual(await page.$('[data-ck-logmeal="breakfast"]'), null, 'no second Log button');
+    const bLogs = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).logs.filter((x) => x.who === 'me' && x.date === '2026-11-26' && x.meal === 'breakfast'));
+    assert.strictEqual(bLogs.length, 1, JSON.stringify(bLogs));
+    // 393: "Use today's dinner" never fills a dinner marked Not making
+    if (await page.$('[data-ck-reset="dinner"]')) await page.click('[data-ck-reset="dinner"]');
+    await page.waitForSelector('[data-ck-skip="dinner"]');
+    await page.click('[data-ck-skip="dinner"]');
+    await page.waitForFunction(() => document.querySelector('[data-ck-meal="dinner"]').textContent.includes('Not making'));
+    await page.goto(base + '#cook/log');
+    await page.waitForSelector('#ck-m-text');
+    assert.strictEqual(await page.$('#ck-m-same'), null, 'no "Use today’s dinner" for a skipped dinner');
+    assert.strictEqual(await page.$('#ck-c-same'), null);
+    await page.goto(base + '#cook');
+    await page.waitForSelector('[data-ck-reset="dinner"]');
+    await page.click('[data-ck-reset="dinner"]');
+    await page.waitForSelector('[data-ck-skip="dinner"]');
 
     // Week tab: Skip hides recipe preview & Swap; Undo skip restores it
     await page.goto(base + '#cook/week');

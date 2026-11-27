@@ -170,7 +170,7 @@
         (slot.status === 'planned' ? '<button class="primary" type="button" data-ck-made="' + meal + '">Made it ✓</button>' : '') +
         (slot.status !== 'mama' ? '<button type="button" data-ck-mama="' + meal + '">Mama cooked</button>' : '') +
         (slot.status === 'planned' ? '<button class="link" type="button" data-ck-skip="' + meal + '">Not making</button><button class="link" type="button" data-ck-swap="' + meal + '">Swap</button>' : '') +
-        (slot.status === 'made' || slot.status === 'mama' ? '<button type="button" data-ck-logmeal="' + meal + '">Log to food log</button><button class="link" type="button" data-ck-reset="' + meal + '">Back to plan</button>' : '') +
+        (slot.status === 'made' || slot.status === 'mama' ? (K.slotLogged(S, tIso, meal) ? '<span class="tick" data-ck-logged="' + meal + '">✓ In your food log</span>' : '<button type="button" data-ck-logmeal="' + meal + '">Log to food log</button>') + '<button class="link" type="button" data-ck-reset="' + meal + '">Back to plan</button>' : '') +
         '</div>' + tlOffer(r, slot) + '</div>';
     });
 
@@ -219,7 +219,7 @@
   function logHtml(S, ctx) {
     var K = root.CookCore, d = ctx.logNow, tIso = K.iso(d);
     var day = (S.plan && S.plan.days && S.plan.days[tIso]) || {};
-    var dinnerTitle = (day.dinner && day.dinner.title) || '';
+    var dinnerFood = K.slotFood(S, tIso, 'dinner'), dinnerTitle = dinnerFood ? dinnerFood.text : '';
     var cName = ctx.childLabel();
     var cSum = K.childSummary(S, d);
 

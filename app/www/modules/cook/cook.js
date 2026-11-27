@@ -416,13 +416,12 @@
       });
       $$('[data-ck-logmeal]', view).forEach(function (b) {
         b.onclick = function () {
-          var meal = b.dataset.ckLogmeal;
-          var slot = S.plan && S.plan.days && S.plan.days[tIso] && S.plan.days[tIso][meal];
-          if (!slot) return;
-          var text = slot.status === 'mama' ? (slot.note || 'Mama’s cooking') : (slot.title || '');
-          if (!text) return;
-          K.logMe(S, { date: tIso, meal: meal, text: text, portion: 'Regular', tags: slot.status === 'mama' ? ['Mama cooked'] : [], recipeId: slot.status === 'made' ? slot.recipeId : undefined }, d);
-          save(); render(); WL.toast('Logged ' + text + ' to food log');
+          var meal = b.dataset.ckLogmeal, f = K.slotFood(S, tIso, meal);
+          if (!f) return;
+          // once per meal: a second tap (or a re-render) never adds a copy
+          if (K.slotLogged(S, tIso, meal)) { WL.toast('Already in today’s food log'); return; }
+          K.logMe(S, { date: tIso, meal: meal, text: f.text, portion: 'Regular', tags: f.tags, recipeId: f.recipeId }, d);
+          save(); render(); WL.toast('Logged ' + f.text + ' to food log');
         };
       });
       $$('[data-ck-reset]', view).forEach(function (b) {
@@ -557,8 +556,8 @@
       };
       var cIn = $('#ck-c-offered', view); if (cIn) cIn.oninput = function () { cPickedNutri = null; };
       var mIn = $('#ck-m-text', view); if (mIn) mIn.oninput = function () { mPickedNutri = null; };
-      var day = (S.plan && S.plan.days && S.plan.days[tIso]) || {};
-      var dinnerTitle = (day.dinner && day.dinner.title) || '';
+      // today's dinner as food: never a "Not making" dinner, and what Mama made rather than the planned recipe
+      var dinner = K.slotFood(S, tIso, 'dinner'), dinnerTitle = dinner ? dinner.text : '';
       var cs = $('#ck-c-same', view); if (cs) cs.onclick = function () { cPickedNutri = null; $('#ck-c-offered', view).value = dinnerTitle + ' (soft, unsalted)'; };
       var ms = $('#ck-m-same', view); if (ms) ms.onclick = function () { mPickedNutri = null; $('#ck-m-text', view).value = dinnerTitle; };
       var mf = $('#ck-m-mama-fill', view); if (mf) mf.onclick = function () { mPickedNutri = null; $('#ck-m-text', view).value = 'Mama’s cooking: '; $('#ck-m-text', view).focus(); };

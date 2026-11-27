@@ -938,6 +938,22 @@
     return rec;
   }
 
+  /* What a day's meal slot means as food, for the food log: { text, recipeId?, tags } or null. A "Not making" slot is
+     nothing; a Mama-cooked one is what she made (or "Mama’s cooking"), never the recipe that was planned. */
+  function slotFood(state, date, meal) {
+    var slot = state && state.plan && state.plan.days && state.plan.days[date] && state.plan.days[date][meal];
+    if (!slot || slot.status === 'skipped') return null;
+    if (slot.status === 'mama') return { text: slot.note || 'Mama’s cooking', tags: ['Mama cooked'] };
+    if (!slot.title) return null;
+    return { text: slot.title, recipeId: slot.status === 'made' && slot.recipeId ? slot.recipeId : undefined, tags: [] };
+  }
+  /* His food log already has this slot's meal (same day, meal and text): "Log to food log" adds it once. */
+  function slotLogged(state, date, meal) {
+    var f = slotFood(state, date, meal);
+    if (!f) return false;
+    var t = f.text.toLowerCase();
+    return (state.logs || []).some(function (x) { return x && x.who === 'me' && x.date === date && x.meal === meal && String(x.text || '').toLowerCase() === t; });
+  }
   function logChild(state, data, now) {
     now = now || new Date();
     var offered = String(data && data.offered || '').trim().slice(0, 300);
@@ -1169,7 +1185,7 @@
     shoppingList: shoppingList, toggleBought: toggleBought,
     logMe: logMe, logChild: logChild, removeLog: removeLog, dayLogs: dayLogs, childSummary: childSummary,
     addCustomFood: addCustomFood, removeCustomFood: removeCustomFood, setTargets: setTargets, resetTargets: resetTargets,
-    dailyNutrition: dailyNutrition, nutri: CN,
+    dailyNutrition: dailyNutrition, nutri: CN, slotFood: slotFood, slotLogged: slotLogged,
     sameFood: sameFood, cleanPhotoItems: cleanPhotoItems, validate: validate
   };
   root.CookCore = api;

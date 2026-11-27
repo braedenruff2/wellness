@@ -479,4 +479,26 @@ t('392: a count never carries to the next food; a recipe title keeps the other f
   assert.strictEqual(w.unmatched, 1);
 });
 
+t('393: slotFood / slotLogged: a skipped dinner is no food, Mama-cooked is what she made, a logged slot is logged once', () => {
+  const s = K.defaults();
+  K.ensureWeekPlan(s, now);
+  const date = '2026-11-26', planned = s.plan.days[date].dinner.title;
+  assert.ok(planned && K.slotFood(s, date, 'dinner').text === planned);
+  K.markSlot(s, date, 'dinner', 'skipped', '', now);
+  assert.strictEqual(K.slotFood(s, date, 'dinner'), null, 'Not making: nothing to log or fill');
+  assert.strictEqual(K.slotLogged(s, date, 'dinner'), false);
+  K.markSlot(s, date, 'dinner', 'mama', 'Sinigang na baboy', now);
+  assert.deepStrictEqual(K.slotFood(s, date, 'dinner'), { text: 'Sinigang na baboy', tags: ['Mama cooked'] }, 'what Mama made, not the planned recipe');
+  K.markSlot(s, date, 'dinner', 'mama', '', now);
+  assert.strictEqual(K.slotFood(s, date, 'dinner').text, 'Mama’s cooking');
+  K.markSlot(s, date, 'dinner', 'made', undefined, now);
+  const f = K.slotFood(s, date, 'dinner');
+  assert.strictEqual(f.text, planned);
+  assert.ok(f.recipeId, 'made: the recipe goes with the log');
+  assert.strictEqual(K.slotLogged(s, date, 'dinner'), false);
+  K.logMe(s, { date, meal: 'dinner', text: f.text, portion: 'Regular', recipeId: f.recipeId }, now);
+  assert.strictEqual(K.slotLogged(s, date, 'dinner'), true);
+  assert.strictEqual(K.slotLogged(s, '2026-11-27', 'dinner'), false, 'another day is not logged');
+});
+
 console.log(n + ' cook unit tests passed');
