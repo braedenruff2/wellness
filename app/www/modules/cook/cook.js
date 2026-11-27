@@ -154,8 +154,8 @@
 
   // Handle cloud answers arriving later via Drive sync
   if (WL.pc && WL.pc.onCloudAnswer) {
-    WL.pc.onCloudAnswer('cook-plan', function (e, ans) {
-      if (!e && K.applyAiPlan(S, ans, realNow())) { planErr = ''; save(); WL.toast('Your cloud meal plan arrived'); }
+    WL.pc.onCloudAnswer('cook-plan', function (e, ans, meta, info) {
+      if (!e && K.applyAiPlan(S, ans, realNow(), info && info.at)) { planErr = ''; save(); WL.toast('Your cloud meal plan arrived'); }
       else if (e) planErr = e;
       else planErr = 'That cloud meal plan was for another week or incomplete. Ask again for this week’s plan.';
       if (view && /^#cook/.test(location.hash)) render();

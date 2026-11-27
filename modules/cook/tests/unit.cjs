@@ -338,4 +338,17 @@ t('applyAiPlan week-boundary guard: rejects last week\'s dates on Monday and ski
   assert.strictEqual(s.aiRecipes['ai-2026-11-29-dinner'], undefined, 'out-of-week AI recipe not written');
   assert.strictEqual(s.plan.days['2026-11-30'].dinner.title, 'Fresh Mon Curry');
 });
+t('applyAiPlan: days without dates fill this week by order only when the plan was asked for this week', () => {
+  const mon = new Date(2026, 10, 30, 9), lastWeek = new Date(2026, 10, 27, 20);
+  const plan = { days: [{ dinner: { title: 'Rice bowl', steps: ['Cook rice'], ingredients: ['rice'] } }] };
+  const s1 = K.defaults();
+  assert.strictEqual(K.applyAiPlan(s1, plan, mon, lastWeek.toISOString()), false, 'asked last week: refused');
+  const s2 = K.defaults();
+  assert.strictEqual(K.applyAiPlan(s2, plan, mon, new Date(2026, 10, 30, 8).toISOString()), true, 'asked this week: Monday');
+  assert.strictEqual(s2.plan.days['2026-11-30'].dinner.title, 'Rice bowl');
+  const s3 = K.defaults();
+  assert.strictEqual(K.applyAiPlan(s3, plan, mon), true, 'no request time (asked just now from the PC): by order');
+  const s4 = K.defaults();
+  assert.strictEqual(K.applyAiPlan(s4, { days: [{ date: '2026-12-01', dinner: plan.days[0].dinner }] }, mon, lastWeek.toISOString()), true, 'dated days still count');
+});
 console.log(n + ' cook unit tests passed');
