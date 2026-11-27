@@ -161,6 +161,43 @@ const CHILD = { child: { name: 'Mila', birth: '2025-11-24' }, history: [], curre
     await p2.close();
   });
 
+  await t.step('PC not paired, Drive sync on: the day\'s scenario is queued once; cancelling it stops it for the day', async () => {
+    const p2 = await page.context().newPage();
+    await p2.clock.install({ time: new Date(2026, 10, 22, 9, 0) });
+    await p2.addInitScript(() => {
+      const d = window.__drive = { content: '', writes: 0 };
+      window.FCAndroid = {
+        pcStatus: () => '{"paired":false}',
+        pcRequest: (id) => Promise.resolve().then(() => window.FCPcDone(id, false, 'not paired')),
+        syncStatus: () => JSON.stringify({ configured: true, name: 'wellness-sync.json', lastSync: 0, error: '', busy: false }),
+        syncRead: (id) => Promise.resolve().then(() => window.FCSyncDone(id, true, d.content)),
+        syncWrite: (id, text) => { d.writes++; Promise.resolve().then(() => { d.content = text; window.FCSyncDone(id, true, ''); }); }
+      };
+    });
+    await p2.goto(base + '#home');
+    await p2.evaluate((s) => localStorage.setItem('wl.coach.v1', JSON.stringify(s)), CHILD);
+    await p2.reload();
+    await p2.clock.runFor(15000);
+    const queued = () => p2.evaluate(() => WL.pc.queued().filter((x) => x.task === 'coach-scenario').length);
+    assert.strictEqual(await queued(), 1, 'queued for the cloud');
+    assert.strictEqual(await p2.evaluate(() => JSON.parse(localStorage.getItem('wl.coach.v1')).autoTried), '2026-11-22');
+    await p2.clock.runFor(31 * 60000);
+    assert.strictEqual(await queued(), 1, 'not queued again');
+    await p2.goto(base + '#coach');
+    await p2.waitForSelector('[data-cloud-cancel]');
+    await p2.click('[data-cloud-cancel]');
+    await p2.clock.runFor(1000);
+    assert.strictEqual(await queued(), 0, 'cancelled');
+    assert.strictEqual(await p2.evaluate(() => JSON.parse(localStorage.getItem('wl.coach.v1')).autoCancelled), '2026-11-22');
+    await p2.goto(base + '#home');
+    await p2.clock.runFor(31 * 60000);
+    assert.strictEqual(await queued(), 0, 'not queued again the same day after a cancel');
+    await p2.clock.setSystemTime(new Date(2026, 10, 23, 9, 0));
+    await p2.clock.runFor(16 * 60000);
+    assert.strictEqual(await queued(), 1, 'the next day: queued again');
+    await p2.close();
+  });
+
   await t.step('no console errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('coach auto browser');
 })().catch((e) => { console.error(e); process.exit(1); });
