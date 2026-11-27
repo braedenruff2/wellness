@@ -267,6 +267,62 @@ const W = require('../../../tests/lib/web.cjs');
     await p2.close();
   });
 
+  await t.step('autoScenario queues via Drive sync when unpaired, Cancel sets autoCancelled, and never interrupts #co-real typing', async () => {
+    const p2 = await page.context().newPage();
+    await p2.clock.install({ time: new Date(2026, 10, 22, 9, 0) });
+    await p2.addInitScript(() => {
+      window.__driveWrites = 0;
+      window.FCAndroid = {
+        pcStatus: () => '{"paired":false}',
+        syncStatus: () => JSON.stringify({ configured: true, name: 'wellness-sync.json', lastSync: Date.now(), error: '', busy: false, answersConfigured: true, answersName: 'wellness-answers', answersError: '' }),
+        syncRead: (id) => Promise.resolve().then(() => window.FCSyncDone(id, true, '')),
+        syncReadAnswers: (id) => Promise.resolve().then(() => window.FCSyncDone(id, true, '')),
+        syncWrite: (id) => { window.__driveWrites++; Promise.resolve().then(() => window.FCSyncDone(id, true, '')); }
+      };
+    });
+    await p2.goto(base + '#home');
+    await p2.evaluate(() => {
+      localStorage.setItem('wl.coach.v1', JSON.stringify({ child: { name: 'Mila', birth: '2025-11-24' }, history: [], current: null, pending: null, teach: {} }));
+    });
+    // While actively typing in #co-real on #coach, autoScenario does not interrupt or queue
+    await p2.goto(base + '#coach');
+    await p2.reload();
+    await p2.waitForSelector('#co-real');
+    await p2.click('#co-real');
+    await p2.keyboard.type('She pushes her cup off the tray at lunch');
+    await p2.clock.runFor(13000);
+    assert.strictEqual(await p2.evaluate(() => WL.driveSync.requests().filter((r) => r.task === 'coach-scenario').length), 0, 'no cloud auto-queue while typing in #co-real');
+    assert.strictEqual(await p2.inputValue('#co-real'), 'She pushes her cup off the tray at lunch', 'draft text undisturbed');
+    // Leaving #coach to #home lets autoScenario queue through Drive sync when unpaired
+    await p2.goto(base + '#home');
+    await p2.clock.runFor(16 * 60000);
+    await p2.waitForFunction(() => WL.driveSync.requests().some((r) => r.task === 'coach-scenario'));
+    assert.ok((await p2.textContent('#wl-today')).includes('Parenting: scenario on the way'), 'Home today list reflects queued scenario');
+    // Cancel queued auto-scenario on #coach -> sets autoCancelled and prevents same-day re-queue
+    await p2.goto(base + '#coach');
+    await p2.waitForSelector('#co-queued [data-cloud-cancel]');
+    await p2.click('#co-queued [data-cloud-cancel]');
+    await p2.waitForFunction(() => !document.getElementById('co-queued'));
+    const afterCancel = await p2.evaluate(() => JSON.parse(localStorage.getItem('wl.coach.v1')));
+    assert.strictEqual(afterCancel.autoCancelled, '2026-11-22', 'Cancel records autoCancelled for today');
+    assert.strictEqual(await p2.evaluate(() => WL.driveSync.requests().filter((r) => r.task === 'coach-scenario').length), 0, 'queued scenario request removed');
+    // Even if autoTried were absent, autoCancelled prevents re-queuing on the same day
+    await p2.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.coach.v1'));
+      delete s.autoTried;
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      WL.modules.coach.reload();
+    });
+    await p2.goto(base + '#home');
+    await p2.clock.runFor(16 * 60000);
+    assert.strictEqual(await p2.evaluate(() => WL.driveSync.requests().filter((r) => r.task === 'coach-scenario').length), 0, 'autoCancelled blocks same-day re-queue');
+    // Next day, autoScenario queues normally again
+    await p2.clock.setSystemTime(new Date(2026, 10, 23, 9, 0));
+    await p2.clock.runFor(16 * 60000);
+    await p2.waitForFunction(() => WL.driveSync.requests().some((r) => r.task === 'coach-scenario'));
+    await p2.close();
+  });
+
   await t.step('no overflow, no console errors', async () => {
     await t.noOverflow(['#coach', '#coach/setup', '#coach/h/h1', '#coach/h/h2']);
     assert.deepStrictEqual(t.errors, []);
