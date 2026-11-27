@@ -45,6 +45,9 @@ function simulate(days) {
     // Cooking: meals logged for him and {child}, the fridge topped up weekly, a plan slot marked
     ['breakfast', 'lunch', 'dinner'].forEach((m, i) => { CK.logMe(ck, { text: words(6), meal: m, portion: 'Regular', tags: ['Veggies'] }, at(8 + 5 * i)); CK.logChild(ck, { offered: words(5), meal: m, ate: 'Most of it', note: words(4) }, at(8 + 5 * i, 10)); });
     if (d % 7 === 0) ['chicken', 'milk', 'spinach', 'rice'].forEach((n) => CK.addPantryItem(ck, { name: n, qty: 2, unit: 'pcs' }, at(12)));
+    if (d < 150) CK.addPantryItem(ck, { name: 'pantry item ' + d, qty: 1, unit: 'pcs', cat: 'pantry', expiresInDays: 30 }, at(12)); // a full pantry (150)
+    // an AI week plan now and then (the newest 40 AI recipes are kept)
+    if (d % 7 === 0) CK.applyAiPlan(ck, { note: words(20), days: CK.weekDays(at(12)).map((date) => ({ date, dinner: { title: 'AI dinner ' + date, mins: 25, protein: '~30 g', babyNote: words(10), tip: words(10), ingredients: [{ name: 'chicken thighs', qty: 4, unit: 'pcs', cat: 'meat' }, { name: 'rice', qty: 1, unit: 'cup', cat: 'pantry' }], steps: [words(12), words(12), words(12)] } })) }, at(12));
     CK.markSlot(ck, WK.iso(at(18)), 'dinner', 'made', '', at(19));
     if (d % 3 === 0) NT.add(nt, 'note ' + d + ' ' + words(30), '#home', 'Idea', at(22, 10));
   }

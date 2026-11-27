@@ -809,7 +809,21 @@
     if (typeof ans.note === 'string') state.plan.note = ans.note.trim().slice(0, 600);
     state.plan.source = 'ai';
     state.plan.updated = now.toISOString();
+    pruneAi(state);
     return true;
+  }
+
+  /* AI recipes kept: the ones the plan uses, then the newest (ids ai-<YYYY-MM-DD>-<meal>), at most 40, so a year of
+     weekly AI plans doesn't fill the phone (the same rule validate() uses on a restore). */
+  function aiKeep(plan, recipes) {
+    var inPlan = {};
+    Object.keys((plan && plan.days) || {}).forEach(function (day) { MEALS.forEach(function (m) { var x = plan.days[day] && plan.days[day][m]; if (x && x.recipeId) inPlan[x.recipeId] = 1; }); });
+    return Object.keys(recipes || {}).sort(function (a, b) { return (inPlan[b] || 0) - (inPlan[a] || 0) || (a < b ? 1 : a > b ? -1 : 0); }).slice(0, 40);
+  }
+  function pruneAi(state) {
+    if (!state.aiRecipes) return;
+    var keep = {}; aiKeep(state.plan, state.aiRecipes).forEach(function (k) { keep[k] = 1; });
+    Object.keys(state.aiRecipes).forEach(function (k) { if (!keep[k]) delete state.aiRecipes[k]; });
   }
 
   /* ---- Shopping list for the remaining planned meals this week ---- */
@@ -985,10 +999,8 @@
       }
     });
     if (s.aiRecipes && typeof s.aiRecipes === 'object') {
-      // the ones this plan uses first, then the newest (ids are ai-<YYYY-MM-DD>-<meal>), so a restore keeps this week's
-      var inPlan = {};
-      Object.keys(d.plan.days).forEach(function (day) { MEALS.forEach(function (m) { var x = d.plan.days[day][m]; if (x && x.recipeId) inPlan[x.recipeId] = 1; }); });
-      Object.keys(s.aiRecipes).sort(function (a, b) { return (inPlan[b] || 0) - (inPlan[a] || 0) || (a < b ? 1 : a > b ? -1 : 0); }).slice(0, 40).forEach(function (k) {
+      // the ones this plan uses first, then the newest, so a restore keeps this week's
+      aiKeep(d.plan, s.aiRecipes).forEach(function (k) {
         var r = s.aiRecipes[k];
         if (!r || typeof r.title !== 'string' || !r.title.trim()) return;
         d.aiRecipes[k] = {

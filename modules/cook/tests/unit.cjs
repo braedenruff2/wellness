@@ -284,4 +284,14 @@ t('offline week plans: a recipe at most twice a week, no 45+ min dish on a worko
   }
   assert.ok(seen.size >= 4, 'dinners vary from week to week: ' + seen.size);
 });
+t('weekly AI plans for months keep at most 40 AI recipes, always the ones this week uses', () => {
+  const s = K.defaults();
+  for (let w = 0; w < 10; w++) {
+    const now = new Date(2026, 10, 23 + 7 * w, 9);
+    K.applyAiPlan(s, { days: K.weekDays(now).map((date) => ({ date, lunch: { title: 'L ' + date, steps: ['a'], ingredients: ['rice'] }, dinner: { title: 'D ' + date, steps: ['a'], ingredients: ['rice'] } })) }, now);
+    const ids = Object.keys(s.aiRecipes);
+    assert.ok(ids.length <= 40, 'week ' + w + ': ' + ids.length);
+    K.weekDays(now).forEach((d) => ['lunch', 'dinner'].forEach((m) => assert.ok(s.aiRecipes[s.plan.days[d][m].recipeId], 'kept ' + d + ' ' + m)));
+  }
+});
 console.log(n + ' cook unit tests passed');
