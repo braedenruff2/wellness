@@ -206,6 +206,7 @@ t('teachForAge, setTeach, doneToday, doneInLast, and validate persistence', () =
   const s = K.defaults();
   assert.strictEqual(K.teachForAge(s, new Date(2026, 10, 20)), null, 'no birthday -> null');
   assert.ok(K.TEACH.some((x) => x.id === 'opencup' && x.from === 6), 'open cup starts at 6 months');
+  assert.ok(K.TEACH.some((x) => x.id === 'sleepnear' && x.from <= 12 && x.to >= 15), 'falling asleep in the crib is offered at 12-15 months');
   // 11-month-old: open cup is in "now", bottle transition/spoon are in "next" (12m), tummy time (0-6m) is in "earlier"
   s.child.birth = '2025-12-15';
   const now11 = new Date(2026, 10, 20); // 11 months

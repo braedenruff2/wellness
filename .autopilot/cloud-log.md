@@ -15,6 +15,7 @@
 - Done 336 (Home Parenting card's Finish and send is a 44 px button; checked at 320 px / 1.3), 337 (Hidden list: newest 50 + Show all). Added 334-337.
 - Done 334: a note for the autopilot typed but not saved comes back next time (tag kept, Clear it); e2e-notes-draft.
 - Done 338: tests/validate-fuzz.cjs (every store's restore check fed damaged copies of a month: never throws, stays usable, stable); nothing found. Added 338-341.
+- Done 342: Parenting "What to teach now" has "Falling asleep in the crib with you nearby" (9-24 months; a gentle step-by-step approach, general guidance). 339, 340 dropped (exist).
 - Checked, not a bug: body.hide-bar after leaving an open workout (route() resets body classes).
 - Done 325: an unsent Parenting question (draft kept as he types) says "Saved on this phone, not sent yet" on #coach, and Home's Parenting card adds "Finish and send" (#coach/real, Get advice focused); e2e-draft.
 - Added tasks 320-325.
