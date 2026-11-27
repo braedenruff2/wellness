@@ -1,5 +1,20 @@
 # Cloud log
 
+## 2026-11-27 14:43-15:30 AST (run after the usage reset; APK 0.1.20261127.1924, real key, cert 6795e499...)
+- Cross-review: an independent subagent read Gemini's Cooking nutrition / skip / modal work (4088e53, c351e93, db5cb80 via the PC's "Update" commits, plus 2f64c37, 7260ca1, 11bd0bc). 10 confirmed bugs, none crashing; fixed with tests as tasks 392-397:
+  - bug: "2 eggs rice" counted the rice twice / cause: blanking a matched food kept its count, which the next food read as its own / fixed: countAt blanks the count too / test: cook unit 392.
+  - bug: a recipe title in an entry ("Chicken adobo ... (soft, unsalted), Banana") dropped every other food / fixed: the recipe adds and is blanked, the rest still counts / test: 392.
+  - bug: picked foods for Me ignored Small/Large / fixed: scale like typed meals / test: 392. bug: the 7-day average counted days whose only entry had no estimate ("Mama's cooking") / fixed: only days with an estimate / test: 392.
+  - bug: "Log to food log" added a copy on every tap / fixed: CookCore.slotLogged, the card says "In your food log" / test: unit + e2e 393. bug: "Use today's dinner" filled a "Not making" dinner, and the planned recipe when Mama cooked / fixed: CookCore.slotFood / test: 393.
+  - bug: custom foods "Milk 2" / "Milk 2%" (or two non-Latin names) overwrote each other / fixed: key = case/space-insensitive name / test: 394.
+  - bug: 7 recipe nutrition profiles had ids no recipe uses and 9 recipes had none (snack-eggs logged 84 kcal from a title guess) / fixed: renamed + 4 new rough profiles / test: 395 (every recipe has one, none orphaned).
+  - bug: "1/2 cup rice" / "2 tbsp hummus" counted servings, not the amount / fixed: cup/tbsp/tsp and 1/2, 1 1/2, ½ measured against the food's serving / test: 396.
+  - bug: focus fell to <body> after + Add / chips / Remove in the food picker and Practising in the milestones window, and Tab left aria-modal dialogs / fixed: shell.js WL.focusKey / refocus / trapTab (cook, coach, calm, notes modals) / test: cook + coach e2e 397.
+- Done 391: Tagalog hint when po/pa/na/ba comes after ako/siya/kayo ("nag-aaral pa ako po" -> "short words like po come before ako"); a hyphenated first word (nag-aaral) no longer hides the short-word hint (orderHint compares on normJoin words). Unit.
+- Reviewed Gemini's e6fdb60 (Pushups harder steps as two checkboxes): fine.
+- Tested: full suite after the rebase onto e6fdb60 (113 suites, none skipped); APK built from that commit.
+- Check on the phone: Cooking > Made it > Log to food log once (then "In your food log"); food log "1/2 cup rice"; Tagalog lesson with "Nag-aaral pa po ako" built wrong shows the po hint.
+
 ## 2026-11-27 13:45 AST (end of the run that started 26 Nov 19:43; APK 0.1.20261127.1745, real key, cert 6795e499...)
 - Other runs (Gemini and a second Claude run) pushed many commits meanwhile, incl. Gemini's cook-views.js split and the same task numbers. This run's last commits were replayed on top: recipe-word offer moved into cook-views.js, a unit lost in the conflict restored, its plan entries renumbered 380-390.
 - Done (plan 380-384): after Made it on a Filipino dish, one tap adds its Tagalog words to review; AI plans may carry Tagalog words (cleaned); notes reach summaries as [NEW]/[read]; Android Back closes the note sheet; Your words says "from Tinolang manok".
