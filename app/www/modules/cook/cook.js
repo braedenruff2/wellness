@@ -411,27 +411,49 @@
         b.onclick = function () { var s = K.swapSlot(S, tIso, b.dataset.ckSwap, null, d); save(); render(); if (s) WL.toast('Swapped to ' + s.title); };
       });
     } else if (curTab === 'week') {
+      function rerenderWeek(focusSel) {
+        var openSlots = [];
+        $$('[data-wk-slot]', view).forEach(function (el) {
+          var det = el.querySelector('details');
+          if (det && det.open) openSlots.push(el.dataset.wkSlot);
+        });
+        render();
+        openSlots.forEach(function (key) {
+          var det = $('[data-wk-slot="' + key + '"] details', view);
+          if (det) det.open = true;
+        });
+        if (focusSel) {
+          var target = $(focusSel, view);
+          if (target && target.focus) try { target.focus(); } catch (e) {}
+        }
+      }
       var rg = $('#ck-regen', view);
       if (rg) rg.onclick = function () { K.ensureWeekPlan(S, d, { force: true }); save(); render(); WL.toast('Refreshed plan (using expiring foods first)'); };
       var ap = $('#ck-ai-plan', view);
       if (ap) ap.onclick = askAiPlan;
       $$('[data-wk-swap]', view).forEach(function (b) {
-        b.onclick = function () { var p = b.dataset.wkSwap.split('|'); K.swapSlot(S, p[0], p[1], null, d); save(); render(); };
+        b.onclick = function () {
+          var key = b.dataset.wkSwap, p = key.split('|');
+          K.swapSlot(S, p[0], p[1], null, d); save();
+          rerenderWeek('[data-wk-swap="' + key + '"]');
+        };
       });
       $$('[data-wk-mama]', view).forEach(function (b) {
         b.onclick = function () {
-          var p = b.dataset.wkMama.split('|');
+          var key = b.dataset.wkMama, p = key.split('|');
           var cur = S.plan && S.plan.days && S.plan.days[p[0]] && S.plan.days[p[0]][p[1]];
           K.markSlot(S, p[0], p[1], cur && cur.status === 'mama' ? 'planned' : 'mama', '', d);
-          save(); render();
+          save();
+          rerenderWeek('[data-wk-mama="' + key + '"]');
         };
       });
       $$('[data-wk-skip]', view).forEach(function (b) {
         b.onclick = function () {
-          var p = b.dataset.wkSkip.split('|');
+          var key = b.dataset.wkSkip, p = key.split('|');
           var cur = S.plan && S.plan.days && S.plan.days[p[0]] && S.plan.days[p[0]][p[1]];
           K.markSlot(S, p[0], p[1], cur && cur.status === 'skipped' ? 'planned' : 'skipped', '', d);
-          save(); render();
+          save();
+          rerenderWeek('[data-wk-skip="' + key + '"]');
         };
       });
     } else if (curTab === 'log') {

@@ -272,11 +272,37 @@ const Wb = require('../../../tests/lib/web.cjs');
     }, slotSel);
     assert.strictEqual(check320.over, 0, '#cook/week expanded overflow: ' + check320.over);
     assert.deepStrictEqual(check320.small, [], '#cook/week expanded small/cut targets: ' + JSON.stringify(check320.small));
-    // Marking the slot Mama hides the recipe preview; Undo Mama restores it
+    // Expand another slot's preview and verify Swap / Mama / Skip preserve open <details> & restore focus
+    const otherSel = '[data-wk-slot="2026-11-26|lunch"]';
+    if (await page.$(otherSel + ' summary')) await page.click(otherSel + ' summary');
+    else {
+      await page.click('[data-wk-mama="2026-11-26|lunch"]');
+      await page.waitForSelector(otherSel + ' summary');
+      await page.click(otherSel + ' summary');
+    }
+    assert.strictEqual(await page.$eval(otherSel + ' details', (el) => el.open), true, 'other preview opened');
+    await page.click('[data-wk-swap="2026-11-26|dinner"]');
+    assert.strictEqual(await page.$eval(otherSel + ' details', (el) => el.open), true, 'Swap keeps other preview open');
+    assert.strictEqual(await page.$eval(slotSel + ' details', (el) => el.open), true, 'Swap keeps swapped slot preview open');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-wk-swap')), '2026-11-26|dinner', 'Swap restores focus');
+
+    // Marking the slot Mama hides the recipe preview while keeping other previews open & restoring focus; Undo Mama restores it
     await page.click('[data-wk-mama="2026-11-26|dinner"]');
     assert.strictEqual(await page.$(slotSel + ' details'), null, 'Mama slot hides recipe preview');
+    assert.strictEqual(await page.$eval(otherSel + ' details', (el) => el.open), true, 'Mama keeps other preview open');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-wk-mama')), '2026-11-26|dinner', 'Mama restores focus');
     await page.click('[data-wk-mama="2026-11-26|dinner"]');
     await page.waitForSelector(slotSel + ' details');
+    assert.strictEqual(await page.$eval(otherSel + ' details', (el) => el.open), true, 'Undo Mama keeps other preview open');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-wk-mama')), '2026-11-26|dinner', 'Undo Mama restores focus');
+    // Skip / Undo skip also preserve other open previews & restore focus
+    await page.click('[data-wk-skip="2026-11-26|dinner"]');
+    assert.strictEqual(await page.$eval(otherSel + ' details', (el) => el.open), true, 'Skip keeps other preview open');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-wk-skip')), '2026-11-26|dinner', 'Skip restores focus');
+    await page.click('[data-wk-skip="2026-11-26|dinner"]');
+    await page.waitForSelector(slotSel + ' details');
+    assert.strictEqual(await page.$eval(otherSel + ' details', (el) => el.open), true, 'Undo skip keeps other preview open');
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-wk-skip')), '2026-11-26|dinner', 'Undo skip restores focus');
   });
 
   await t.step('Fridge category filter chips appear at 10+ items, filter accurately, and stay clean at 320 px / 1.3x', async () => {
