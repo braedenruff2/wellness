@@ -68,10 +68,12 @@
   var WL = root.WL, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   var store = WL.store(KEY, defaults);
   var S = store.load();
-  var keyFn = null, lastTrigger = null;
+  var keyFn = null, lastTrigger = null, listeners = [];
 
-  function save() { store.save(S); }
+  function notify() { listeners.forEach(function (fn) { try { fn(S); } catch (e) {} }); }
+  function save() { store.save(S); notify(); }
   function reload() { S = store.load(); }
+  function onChange(fn) { if (typeof fn === 'function') listeners.push(fn); }
 
   function close(trigger) {
     if (keyFn) { document.removeEventListener('keydown', keyFn); keyFn = null; }
@@ -197,7 +199,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hookAck); else setTimeout(hookAck, 0);
 
   WL.notes = {
-    open: open, close: close, reload: reload,
+    open: open, close: close, reload: reload, onChange: onChange,
     state: function () { return S; },
     validateRaw: function (raw) { try { var v = validate(JSON.parse(raw)); return v ? JSON.stringify(v) : null; } catch (e) { return null; } }
   };

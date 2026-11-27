@@ -73,6 +73,43 @@ const FAKE = `
     assert.deepStrictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.notes.v1')).notes.length), 0);
     await page.keyboard.press('Escape');
   });
+  await t.step('Settings > Sync refreshes unread note count live on save, notes-ack, and delete', async () => {
+    await page.goto(base + '#settings');
+    await page.waitForSelector('#wl-sync-when');
+    assert.ok(!(await page.textContent('#wl-sync-when')).includes('not read yet'), 'starts at 0 unread');
+
+    // Save two notes while staying on #settings
+    await page.click('#wl-bar-note');
+    await page.waitForSelector('#wl-note-in');
+    await page.fill('#wl-note-in', 'First live settings note');
+    await page.click('#wl-note-save');
+    await page.waitForFunction(() => document.getElementById('wl-sync-when').textContent.includes('1 note for the autopilot not read yet'));
+
+    await page.click('#wl-bar-note');
+    await page.waitForSelector('#wl-note-in');
+    await page.fill('#wl-note-in', 'Second live settings note');
+    await page.click('#wl-note-save');
+    await page.waitForFunction(() => document.getElementById('wl-sync-when').textContent.includes('2 notes for the autopilot not read yet'));
+
+    // Deliver notes-ack for one note while staying on #settings (no navigation or reload)
+    const ids = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.notes.v1')).notes.map((n) => n.id));
+    await page.evaluate((ackId) => {
+      const f = JSON.parse(window.__drive.content || '{}');
+      f.answers = Object.assign(f.answers || {}, { 'notes-ack-live': { task: 'notes-ack', answer: { ids: [ackId], at: '2026-11-27T16:00:00.000Z' } } });
+      window.__drive.content = JSON.stringify(f);
+      return WL.driveSync.sync();
+    }, ids[1]);
+    await page.waitForFunction(() => document.getElementById('wl-sync-when').textContent.includes('1 note for the autopilot not read yet'));
+
+    // Delete the remaining unread note while staying on #settings -> count drops to 0 immediately
+    await page.click('#wl-bar-note');
+    await page.waitForSelector('#wl-note-sheet');
+    await page.click('#wl-note-list summary');
+    await page.click('.wl-note-del[data-id="' + ids[0] + '"]');
+    await page.click('.wl-note-del[data-id="' + ids[0] + '"]');
+    await page.waitForFunction(() => !document.getElementById('wl-sync-when').textContent.includes('not read yet'));
+    await page.keyboard.press('Escape');
+  });
   await t.step('with neither Drive sync nor the PC link, the sheet says the note waits on the phone', async () => {
     const p2 = await t.ctx.newPage();
     await p2.goto(base + '#home'); await p2.waitForSelector('.home-card');

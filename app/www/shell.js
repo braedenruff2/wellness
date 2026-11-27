@@ -710,6 +710,7 @@
       if (WL.driveSync.onRestore) WL.driveSync.onRestore(handleDriveRestore);
       WL.driveSync.start();
     }
+    if (WL.notes && WL.notes.onChange) WL.notes.onChange(redrawSync);
     route();
   }
 
