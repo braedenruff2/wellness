@@ -323,6 +323,141 @@
         'Place eggs in a pot, cover with water, bring to a boil, then turn off heat, cover, and wait 10 minutes.',
         'Run under cold water for 2 minutes so they peel easily; slice cucumber alongside.'
       ]
+    },
+    // Filipino family dishes (everyday home versions, beginner steps)
+    {
+      id: 'tinola', title: 'Tinolang manok (chicken & ginger soup)', meal: 'dinner', mins: 35, effort: 'easy', filipino: true,
+      protein: '~30 g protein', workoutFit: true,
+      babyNote: 'Ladle {child}’s bowl before adding fish sauce: shred her chicken off the bone, mash the soft chayote, and leave out the ginger slices.',
+      tip: 'Cook the ginger and garlic until they smell strong before the chicken goes in; that is where the flavour comes from.',
+      ingredients: [
+        { name: 'chicken thighs', qty: 6, unit: 'pcs', cat: 'meat', shelfDays: 3 },
+        { name: 'ginger', qty: 1, unit: 'thumb', cat: 'produce', shelfDays: 21 },
+        { name: 'onion', qty: 1, unit: 'pcs', cat: 'produce', shelfDays: 21 },
+        { name: 'garlic', qty: 3, unit: 'cloves', cat: 'produce', shelfDays: 21 },
+        { name: 'chayote', qty: 1, unit: 'pcs', cat: 'produce', shelfDays: 14 },
+        { name: 'spinach', qty: 2, unit: 'cups', cat: 'produce', shelfDays: 4 },
+        { name: 'fish sauce', qty: 1, unit: 'tbsp', cat: 'pantry', shelfDays: 365 }
+      ],
+      steps: [
+        'Slice the ginger into thin coins, dice the onion and crush the garlic. Peel the chayote (sayote) and cut it into wedges.',
+        'Heat 1 tbsp oil in a pot over medium heat. Cook ginger, onion and garlic for 2 minutes until they smell strong.',
+        'Add the chicken and stir for 5 minutes until the outside turns white.',
+        'Pour in 6 cups of water, bring to a boil, then simmer covered for 20 minutes.',
+        'Add the chayote and simmer 5–8 minutes until a fork slides in easily. Stir in the spinach (or malunggay leaves) for the last minute.',
+        'Take {child}’s portion out first, then season the pot with fish sauce (patis) and pepper to taste.'
+      ]
+    },
+    {
+      id: 'arroz-caldo', title: 'Arroz caldo (chicken rice porridge)', meal: 'breakfast', mins: 40, effort: 'batch', filipino: true,
+      protein: '~22 g protein', workoutFit: false,
+      babyNote: 'Arroz caldo is soft enough for {child} as it is: take her bowl before the fish sauce, shred the chicken finely, and pick out the ginger.',
+      tip: 'Keep stirring now and then once it thickens so the rice doesn’t stick to the bottom. It thickens more as it cools: add hot water to loosen leftovers.',
+      ingredients: [
+        { name: 'rice', qty: 1, unit: 'cup', cat: 'pantry', shelfDays: 365 },
+        { name: 'chicken thighs', qty: 3, unit: 'pcs', cat: 'meat', shelfDays: 3 },
+        { name: 'ginger', qty: 1, unit: 'thumb', cat: 'produce', shelfDays: 21 },
+        { name: 'onion', qty: 1, unit: 'pcs', cat: 'produce', shelfDays: 21 },
+        { name: 'garlic', qty: 4, unit: 'cloves', cat: 'produce', shelfDays: 21 },
+        { name: 'eggs', qty: 2, unit: 'pcs', cat: 'dairy', shelfDays: 21 },
+        { name: 'fish sauce', qty: 1, unit: 'tbsp', cat: 'pantry', shelfDays: 365 }
+      ],
+      steps: [
+        'Hard-boil the eggs (10 minutes in boiling water), then cool and peel them. Rinse the rice once.',
+        'Heat 1 tbsp oil in a pot. Cook sliced ginger, diced onion and half the garlic for 2 minutes.',
+        'Add the chicken and stir for 5 minutes, then add the rice and stir for 1 minute.',
+        'Pour in 7 cups of water, bring to a boil, then simmer on low for 25–30 minutes, stirring now and then, until the rice is soft and thick.',
+        'Meanwhile fry the rest of the garlic in a little oil until golden, for the top.',
+        'Take {child}’s bowl out, then season the pot with fish sauce. Serve yours with halved eggs and fried garlic on top.'
+      ]
+    },
+    {
+      id: 'monggo', title: 'Ginisang monggo (mung bean stew)', meal: 'lunch', mins: 45, effort: 'batch', filipino: true,
+      protein: '~20 g protein', workoutFit: true,
+      babyNote: 'The beans cook down soft and mashable: take {child}’s portion before the fish sauce and mash it a little with a fork.',
+      tip: 'Mung beans need no soaking; they are done when they split open and turn creamy.',
+      ingredients: [
+        { name: 'mung beans', qty: 1, unit: 'cup', cat: 'pantry', shelfDays: 365 },
+        { name: 'onion', qty: 1, unit: 'pcs', cat: 'produce', shelfDays: 21 },
+        { name: 'garlic', qty: 3, unit: 'cloves', cat: 'produce', shelfDays: 21 },
+        { name: 'tomato', qty: 2, unit: 'pcs', cat: 'produce', shelfDays: 5 },
+        { name: 'spinach', qty: 2, unit: 'cups', cat: 'produce', shelfDays: 4 },
+        { name: 'fish sauce', qty: 1, unit: 'tbsp', cat: 'pantry', shelfDays: 365 }
+      ],
+      steps: [
+        'Rinse the mung beans, then simmer them in 5 cups of water for 30–35 minutes until they split and soften.',
+        'In a pan, cook diced onion, garlic and chopped tomatoes in 1 tbsp oil for 4 minutes until soft.',
+        'Stir the onion mix into the beans and simmer 5 more minutes. Add water if it gets too thick.',
+        'Stir in the spinach (or malunggay) for the last minute.',
+        'Take {child}’s portion out, then season the pot with fish sauce and pepper.'
+      ]
+    },
+    {
+      id: 'sinigang', title: 'Sinigang na baboy (sour pork soup)', meal: 'dinner', mins: 60, effort: 'batch', filipino: true,
+      protein: '~28 g protein', workoutFit: true,
+      babyNote: 'Take out soft pork and radish for {child} before the sour mix and fish sauce go in (the mix is salty), and cut them small.',
+      tip: 'Simmer the pork low and slow until it is tender; the vegetables go in only at the end so they stay bright.',
+      ingredients: [
+        { name: 'pork shoulder', qty: 500, unit: 'g', cat: 'meat', shelfDays: 3 },
+        { name: 'tomato', qty: 2, unit: 'pcs', cat: 'produce', shelfDays: 5 },
+        { name: 'onion', qty: 1, unit: 'pcs', cat: 'produce', shelfDays: 21 },
+        { name: 'radish', qty: 1, unit: 'pcs', cat: 'produce', shelfDays: 10 },
+        { name: 'green beans', qty: 1, unit: 'cup', cat: 'produce', shelfDays: 5 },
+        { name: 'kangkong', qty: 1, unit: 'bunch', cat: 'produce', shelfDays: 3 },
+        { name: 'tamarind soup mix', qty: 1, unit: 'pack', cat: 'pantry', shelfDays: 365 },
+        { name: 'fish sauce', qty: 1, unit: 'tbsp', cat: 'pantry', shelfDays: 365 }
+      ],
+      steps: [
+        'Cut the pork into bite-size cubes. Quarter the tomatoes and onion; slice the radish (labanos) into rounds; cut the green beans short.',
+        'Put the pork, tomatoes and onion in a pot with 8 cups of water. Bring to a boil and skim off the foam.',
+        'Simmer covered on low for 40–45 minutes until the pork is tender.',
+        'Add the radish and cook 5 minutes, then the green beans for 3 minutes.',
+        'Take {child}’s portion out now. Then stir in the tamarind soup mix, add the kangkong (or spinach) for 1 minute, and season with fish sauce to taste.'
+      ]
+    },
+    {
+      id: 'adobo', title: 'Chicken adobo (adobong manok)', meal: 'dinner', mins: 45, effort: 'easy', filipino: true,
+      protein: '~32 g protein', workoutFit: true,
+      babyNote: 'Adobo sauce is salty: give {child} a little shredded chicken with plenty of plain rice, and only a spoon of the sauce.',
+      tip: 'Let the vinegar boil for a few minutes before you stir it in; it softens the sharp smell.',
+      ingredients: [
+        { name: 'chicken thighs', qty: 6, unit: 'pcs', cat: 'meat', shelfDays: 3 },
+        { name: 'garlic', qty: 6, unit: 'cloves', cat: 'produce', shelfDays: 21 },
+        { name: 'soy sauce', qty: 0.33, unit: 'cup', cat: 'pantry', shelfDays: 365 },
+        { name: 'vinegar', qty: 0.33, unit: 'cup', cat: 'pantry', shelfDays: 365 },
+        { name: 'bay leaves', qty: 3, unit: 'pcs', cat: 'pantry', shelfDays: 365 },
+        { name: 'rice', qty: 1.5, unit: 'cups', cat: 'pantry', shelfDays: 365 }
+      ],
+      steps: [
+        'Start the rice. Crush the garlic.',
+        'Brown the chicken in 1 tbsp oil, skin side down, for 5 minutes. Add the garlic for 1 minute.',
+        'Add the soy sauce, the vinegar, the bay leaves, a few peppercorns or ground pepper, and 1 cup of water. Let it boil 3 minutes without stirring.',
+        'Cover and simmer on low for 25–30 minutes, turning the chicken once, until it is cooked through and tender.',
+        'Take the lid off and simmer 5 more minutes so the sauce thickens. Take out the bay leaves and serve over rice.'
+      ]
+    },
+    {
+      id: 'pancit', title: 'Pancit bihon (rice noodles with chicken & vegetables)', meal: 'lunch', mins: 30, effort: 'easy', filipino: true,
+      protein: '~24 g protein', workoutFit: true,
+      babyNote: 'Cut {child}’s noodles short with kitchen scissors (long noodles are hard for her to manage) and take her portion before the last soy sauce.',
+      tip: 'Soak the noodles in warm water first; in the pan they only need to drink up the broth.',
+      ingredients: [
+        { name: 'rice noodles', qty: 250, unit: 'g', cat: 'pantry', shelfDays: 365 },
+        { name: 'chicken thighs', qty: 2, unit: 'pcs', cat: 'meat', shelfDays: 3 },
+        { name: 'cabbage', qty: 2, unit: 'cups', cat: 'produce', shelfDays: 14 },
+        { name: 'carrot', qty: 1, unit: 'pcs', cat: 'produce', shelfDays: 14 },
+        { name: 'onion', qty: 1, unit: 'pcs', cat: 'produce', shelfDays: 21 },
+        { name: 'garlic', qty: 3, unit: 'cloves', cat: 'produce', shelfDays: 21 },
+        { name: 'low-sodium chicken broth', qty: 2, unit: 'cups', cat: 'pantry', shelfDays: 180 },
+        { name: 'soy sauce', qty: 2, unit: 'tbsp', cat: 'pantry', shelfDays: 365 }
+      ],
+      steps: [
+        'Soak the rice noodles (bihon) in warm water for 10 minutes, then drain. Slice the chicken thin; shred the cabbage; cut the carrot into thin sticks.',
+        'Cook onion and garlic in 1 tbsp oil for 2 minutes, add the chicken and cook 5 minutes until white all through.',
+        'Add the carrot and cabbage and stir for 2 minutes.',
+        'Pour in the broth and 1 tbsp soy sauce, bring to a boil, then add the noodles and toss for 3–4 minutes until the liquid is soaked up.',
+        'Take {child}’s portion out, then season the rest with the last soy sauce and a squeeze of calamansi or lemon.'
+      ]
     }
   ];
 
@@ -352,7 +487,7 @@
     if (w.endsWith('s') && w.length > 3 && !w.endsWith('ss')) return w.slice(0, -1);
     return w;
   }
-  var CUTS = ['thighs', 'breasts', 'drumsticks', 'wings', 'legs', 'fillets', 'mince', 'strips', 'pieces', 'chunks', 'cubes', 'florets', 'leaves', 'slices', 'steaks', 'boneless', 'skinless', 'cloves', 'bulbs', 'heads', 'cans', 'tins', 'jars', 'packs', 'bags', 'bunches'].map(stem);
+  var CUTS = ['thighs', 'breasts', 'drumsticks', 'wings', 'legs', 'fillets', 'mince', 'strips', 'pieces', 'chunks', 'cubes', 'florets', 'leaves', 'slices', 'steaks', 'boneless', 'skinless', 'cloves', 'bulbs', 'heads', 'cans', 'tins', 'jars', 'packs', 'bags', 'bunches', 'shoulder', 'belly', 'loin', 'tenderloin', 'chops', 'ribs'].map(stem);
   // a word before a food that makes it a different food: peanut butter, sweet potato, oat milk, cream cheese, bell
   // pepper, egg noodles (but "sweet onion", "corn tortillas", "baking potatoes" are still onion, tortilla, potato)
   var OTHER_FOOD = { butter: ['peanut', 'almond', 'cashew', 'nut', 'apple', 'cocoa', 'shea'], milk: ['oat', 'soy', 'rice', 'almond', 'coconut', 'cashew'],

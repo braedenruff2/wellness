@@ -253,4 +253,16 @@ t('toddler portions: eggs cooked through, light tuna, low-sodium broth, no cucum
     if (r.ingredients.some((i) => /broth|stock/.test(i.name))) assert.ok(r.ingredients.some((i) => /low-sodium/.test(i.name)), r.id + ': low-sodium broth');
   }
 });
+t('Filipino family dishes: there, beginner-sized, {child} served before fish sauce / salty seasoning, pork cuts match "pork"', () => {
+  const ids = ['tinola', 'arroz-caldo', 'monggo', 'sinigang', 'adobo', 'pancit'];
+  for (const id of ids) {
+    const r = K.recipeById(K.defaults(), id);
+    assert.ok(r && r.filipino, id);
+    assert.ok(r.steps.length >= 4 && r.steps.length <= 7 && r.mins <= 60, id + ' beginner-sized');
+    const salty = r.ingredients.some((i) => /fish sauce|soy sauce|soup mix/.test(i.name));
+    if (salty) assert.ok(/before|salty|only a spoon/.test(r.babyNote), id + ': her portion before the salty part');
+    assert.ok(!/whole nut|popcorn|honey/i.test(r.babyNote), id);
+  }
+  assert.ok(K.sameFood('pork', 'pork shoulder') && K.sameFood('pork belly', 'pork') && !K.sameFood('pork', 'fish sauce'));
+});
 console.log(n + ' cook unit tests passed');
