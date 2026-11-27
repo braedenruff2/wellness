@@ -245,6 +245,38 @@ public class MainActivity extends Activity {
 
     /** True while a guided session is on screen (the page says so): an update never cuts one off. */
     private volatile boolean sessionBusy;
+    /** During a guided prayer or a Calm sit the app holds audio focus (other apps duck, they don't stop), so a phone
+        call or another app taking the sound pauses the session, as unplugged headphones already do. */
+    private android.media.AudioFocusRequest focusReq;
+    /** Only a phone or video call pauses (ringing, in a call): the app's own voice or a page sound taking focus never
+        does, so a session can't pause itself. */
+    static boolean pausesOn(int focusChange, int audioMode) {
+        boolean lost = focusChange == AudioManager.AUDIOFOCUS_LOSS || focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT;
+        return lost && (audioMode == AudioManager.MODE_RINGTONE || audioMode == AudioManager.MODE_IN_CALL || audioMode == AudioManager.MODE_IN_COMMUNICATION);
+    }
+    private void pauseIfCall(int ch, AudioManager am) {
+        if (pausesOn(ch, am.getMode()) && web != null) web.evaluateJavascript("window.FCPauseSession&&FCPauseSession()", null);
+    }
+    private void sessionFocus(boolean on) {
+        try {
+            AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+            if (am == null) return;
+            if (on && focusReq == null) {
+                focusReq = new android.media.AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                    .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
+                    .setOnAudioFocusChangeListener(ch -> {
+                        // the ring can start a moment after the focus goes: look again after a second
+                        pauseIfCall(ch, am);
+                        if (web != null) web.postDelayed(() -> { if (sessionBusy) pauseIfCall(ch, am); }, 1000);
+                    })
+                    .build();
+                am.requestAudioFocus(focusReq);
+            } else if (!on && focusReq != null) {
+                am.abandonAudioFocusRequest(focusReq);
+                focusReq = null;
+            }
+        } catch (Exception ignored) { focusReq = null; }
+    }
     private final Updater.Listener updateListener = () -> runOnUiThread(() -> { if (web != null) web.evaluateJavascript("window.FCUpdateState&&FCUpdateState()", null); });
 
     @Override protected void onResume() {
@@ -290,6 +322,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        sessionFocus(false);
         destroyed = true;
         ttsReady = false;
         pending.clear();
@@ -615,7 +648,10 @@ public class MainActivity extends Activity {
                 catch (Exception ignored) { }
             });
         }
-        @JavascriptInterface public void setBusy(boolean busy) { sessionBusy = busy; }
+        @JavascriptInterface public void setBusy(boolean busy) {
+            boolean was = sessionBusy; sessionBusy = busy;
+            if (busy != was) runOnUiThread(() -> sessionFocus(busy));
+        }
 
         /** The rest timer's end, for when the screen is off (ms from now; 0 cancels). */
         @JavascriptInterface public void restAlarm(double ms, String label) {
