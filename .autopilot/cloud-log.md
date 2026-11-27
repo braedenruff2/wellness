@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-26 21:00-21:15 AST (same run, continued; APK 0.1.20261127.0111, real key, cert 6795e499...)
+- Done 289 (Cooking: six Filipino family dishes, {child}'s portion before the fish sauce / salty mix; pork cuts match pork), 290 (e2e: a call pauses the Quiet timer and a guided prayer), 288 (e2e: extra linker in lesson 2 -> hint + Watch for next time).
+- Tested: full suite at 964af4b (103 suites, none skipped; this APK's code).
+- Check on the phone: Cooking > Week: the Filipino dishes come up in the plan; recipe steps read well.
+
 ## 2026-11-26 20:15-21:00 AST (same run, continued; APK 0.1.20261127.0057, real key, cert 6795e499...)
 - Done 258 (Tagalog stats/dueCards/weeklySummary across DST in 4 zones; lessonsDone on an earlier day counts only lessons done by then), 265 (Calm exact timer: 75 s = 1:15, 120 min cap, plain "At least 10 seconds." / "A sit is at least 1 minute.", cleared or too short -> back to the chip), 266 (Cooking plan/fridge/shopping always use today; only the food log uses the earlier day), 267 (photo answers: amount kept, damaged answers render safely, nothing usable says so), 272 (notes for the autopilot: "Read by the autopilot" via `cloud-answer.cjs ack-notes` -> notes-ack row), 275 (audio focus while in-session; a ringing/ongoing call pauses a prayer or sit), 277, 280 (Mama cooked: one tap + inline optional field, no window.prompt), 281 (to-dos tidy on app start), 283, 259, 285, 286 (extralinker slip kind), 287 (note sheet says where it goes; Settings shows unread notes). Also: the no-linker hint after hindi when the rest differs.
 - Independent review of 260-281 (subagent) -> 282: sameFood false negatives (blueberries/berries, garlic cloves, "onion, diced", sweet onion) fixed with specific different-food pairs; recipe name "canned tuna" kept (Bought ticks); Week tab "Today" from the real date; exact-timer note hidden on Begin / chip.
