@@ -21,6 +21,8 @@
   function walkScreen(on) {
     if (on === walking) return;
     walking = on;
+    document.body.classList.toggle('hide-bar', on);
+    if (on && WL.notes && WL.notes.close) WL.notes.close();
     WL.keepAwake(on);
     if (!WL.darkScreen) return;
     if (on && S.settings.walkDark !== false) WL.darkScreen.start({ id: 'tl-dark', label: 'Dark screen while you listen. Tap to show the lesson.', after: 15000 });

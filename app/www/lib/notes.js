@@ -68,7 +68,7 @@
   var WL = root.WL, esc = WL.esc, $ = WL.$, $$ = WL.$$;
   var store = WL.store(KEY, defaults);
   var S = store.load();
-  var keyFn = null;
+  var keyFn = null, lastTrigger = null;
 
   function save() { store.save(S); }
   function reload() { S = store.load(); }
@@ -77,7 +77,9 @@
     if (keyFn) { document.removeEventListener('keydown', keyFn); keyFn = null; }
     var old = $('#wl-note-modal');
     if (old) old.remove();
-    if (trigger && trigger.isConnected && trigger.focus) try { trigger.focus(); } catch (e) {}
+    var target = trigger || lastTrigger;
+    lastTrigger = null;
+    if (target && target.isConnected && target.focus) try { target.focus(); } catch (e) {}
   }
 
   function listHtml() {
@@ -102,6 +104,7 @@
   }
   function open(trigger, whereOverride) {
     close();
+    lastTrigger = trigger || null;
     var where = whereOverride || location.hash || '#home';
     var pickedTag = 'Idea';
     var wrap = document.createElement('div');
@@ -175,6 +178,13 @@
     open(b, b.dataset.wlNote && b.dataset.wlNote !== '1' ? b.dataset.wlNote : (location.hash || '#home'));
   });
   window.addEventListener('hashchange', function () { close(); });
+  // Android Back (MainActivity.goBack -> window.FCBack): light a dark screen first, else close an open note sheet
+  var prevBack = root.FCBack;
+  root.FCBack = function () {
+    if (prevBack && prevBack()) return true;
+    if ($('#wl-note-modal')) { close(); return true; }
+    return false;
+  };
   // a cloud run says which notes it has read (an answers-sheet row, task notes-ack); pc.js loads after this file
   function hookAck() {
     if (!WL.pc || !WL.pc.onCloudAnswer) return;

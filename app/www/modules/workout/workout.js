@@ -142,7 +142,11 @@
     t(); clockTimer = setInterval(t, 1000);
   }
 
-  function renderToday() { view.innerHTML = today(); wireToday(); showRest(); clock(); }
+  function renderToday() {
+    var open = !!W.openSession(S, now());
+    document.body.classList.toggle('hide-bar', open);
+    view.innerHTML = today(); wireToday(); showRest(); clock();
+  }
 
   function wireToday() {
     $$('[data-day]').forEach(function (b) { b.onclick = function () { dayChoice = b.dataset.day; renderToday(); }; });

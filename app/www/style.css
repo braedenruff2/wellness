@@ -89,7 +89,7 @@ nav#tabs {
 nav#tabs a { flex: 1; text-align: center; padding: 8px 0 10px; color: var(--soft); text-decoration: none; font-size: 13px; min-height: 56px; }
 nav#tabs a .ico { display: block; font-size: 20px; line-height: 1.2; }
 nav#tabs a[aria-current="page"] { color: var(--accent); font-weight: 600; }
-body.in-session nav#tabs, body.in-session #wl-bar { display: none; }
+body.in-session nav#tabs, body.in-session #wl-bar, body.hide-bar #wl-bar { display: none; }
 body.in-session { padding-bottom: 0; }
 .c-dark { position: fixed; inset: 0; background: #000; z-index: 9999; cursor: pointer; }
 #toast {
