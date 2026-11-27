@@ -346,6 +346,7 @@ req("POST", "/v1/activity", {"events": [sit(1, 6, "count", 3, ["Nothing much"]),
 cline = [l for l in W.summarize(7).splitlines() if l.startswith("- calm:")][0]
 check("summary: meditation-path sits per stage, attention, obstacles", "meditation-path sits: count 2, follow 1" in cline
       and "attention mostly steady in 2 of 3 rated sits (1 mostly lost in thought)" in cline and "got in the way: Sleepy 2, Restless 1" in cline, cline)
+check("summary: the newest sit in the app's words", "last sit: follow 20 min, mostly steady, in the way: Sleepy, Restless" in cline, cline)
 check("summary: no time-of-day line with all sits in the morning", "steadiest sits" not in cline, cline)
 req("POST", "/v1/activity", {"events": [sit(4, 23, "follow", 1, ["Sleepy"]), sit(5, 22, "follow", 1, [])]}, token=token)
 cline2 = [l for l in W.summarize(7).splitlines() if l.startswith("- calm:")][0]
