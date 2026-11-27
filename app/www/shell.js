@@ -729,7 +729,43 @@
   };
   window.FCPauseSession = function () { if (current && current.pause) current.pause(); };
 
+  /* Modals redraw their box with innerHTML: focusKey() names the focused control (#id or its data-* values) so
+     refocus() can put focus back on the same control afterwards instead of losing it to <body>; trapTab() keeps Tab /
+     Shift+Tab inside an aria-modal dialog (TalkBack and a keyboard never wander into the page behind it). */
+  function focusKey(el) {
+    if (!el || el === document.body || !el.getAttribute) return '';
+    if (el.id) return '#' + (window.CSS && CSS.escape ? CSS.escape(el.id) : el.id);
+    var sel = '';
+    for (var i = 0; i < el.attributes.length; i++) {
+      var a = el.attributes[i];
+      // every data-* value, so the Practising and Got it buttons of one item stay apart
+      if (/^data-/.test(a.name)) sel += '[' + a.name + '="' + String(a.value).replace(/["\\]/g, '\\$&') + '"]';
+    }
+    return sel ? el.tagName.toLowerCase() + sel : '';
+  }
+  function focusables(box) {
+    return [].slice.call(box.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])'))
+      .filter(function (e) { return e.offsetParent !== null || e === document.activeElement; });
+  }
+  function refocus(box, key, fallback) {
+    var el = null;
+    try { el = key ? box.querySelector(key) : null; } catch (e) { el = null; }
+    if (!el && fallback) { try { el = typeof fallback === 'string' ? box.querySelector(fallback) : fallback; } catch (e) { el = null; } }
+    if (!el) el = focusables(box)[0] || null;
+    if (el && el.focus) try { el.focus(); } catch (e) {}
+    return el;
+  }
+  function trapTab(modal) {
+    modal.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Tab') return;
+      var f = focusables(modal); if (!f.length) return;
+      var first = f[0], last = f[f.length - 1], a = document.activeElement;
+      if (ev.shiftKey && (a === first || !modal.contains(a))) { ev.preventDefault(); last.focus(); }
+      else if (!ev.shiftKey && (a === last || !modal.contains(a))) { ev.preventDefault(); first.focus(); }
+    });
+  }
   window.WL = {
+    focusKey: focusKey, refocus: refocus, trapTab: trapTab,
     register: register, start: start, route: route, logNow: logNow, logDay: getLogDay, setLogDay: setLogDay, store: store, $: $, $$: $$, esc: esc, toast: toast, isoDate: isoDate,
     speech: speech, bell: bell, softBell: softBell, tick: tick, keepAwake: keepAwake, dimScreen: dimScreen, darkScreen: darkScreen, wordsSeconds: wordsSeconds, applyLook: applyLook, themeNow: themeNow,
     refreshToday: refreshToday, saveFile: saveFile, native: native, modules: modules, backupObj: backupObj, backupText: backupText, restoreText: restoreText

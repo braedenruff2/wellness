@@ -466,6 +466,15 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.waitForSelector('#ck-food-results [data-fadd="salmon"]');
     await page.click('#ck-food-results [data-fadd="salmon"]');
     await page.waitForSelector('#ck-food-picked');
+    // 397: after + Add redraws the box, focus is back on that same + Add button (not <body>)
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.getAttribute('data-fadd')), 'salmon');
+    // 397: Tab and Shift+Tab stay inside the dialog
+    for (let i = 0; i < 40; i++) {
+      await page.keyboard.press('Tab');
+      assert.ok(await page.evaluate(() => !!document.activeElement.closest('#ck-food-modal')), 'Tab left the dialog after ' + (i + 1));
+    }
+    await page.keyboard.press('Shift+Tab');
+    assert.ok(await page.evaluate(() => !!document.activeElement.closest('#ck-food-modal')));
     await page.click('#ck-cf-add summary');
     await page.fill('#ck-cf-name', 'Protein bar');
     await page.fill('#ck-cf-kcal', '200');

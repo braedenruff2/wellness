@@ -195,6 +195,12 @@ const W = require('../../../tests/lib/web.cjs');
     // Toggle Practising -> launcher summary behind updates, persists across reload
     await page.click('#co-teach [data-teach-id="opencup"][data-teach-val="doing"]');
     assert.strictEqual(await page.getAttribute('#co-teach [data-teach-id="opencup"][data-teach-val="doing"]', 'aria-pressed'), 'true');
+    // 397: focus stays on that same Practising button after the redraw (not <body>, not its Got it neighbour)
+    assert.deepStrictEqual(await page.evaluate(() => [document.activeElement.dataset.teachId, document.activeElement.dataset.teachVal]), ['opencup', 'doing']);
+    for (let i = 0; i < 30; i++) {
+      await page.keyboard.press('Tab');
+      assert.ok(await page.evaluate(() => !!document.activeElement.closest('#co-teach-modal')), 'Tab left the milestones dialog');
+    }
     assert.ok((await page.textContent('#co-teach-card')).includes('1 practising'), 'launcher card updates live');
     await page.click('#co-teach-next summary');
     assert.ok((await page.textContent('#co-teach-next')).includes('Transition off bottles to cups'), 'upcoming skills shown in Coming up next');

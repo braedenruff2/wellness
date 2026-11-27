@@ -132,6 +132,7 @@
       '<div class="row" style="margin-top:8px"><button class="primary" id="wl-note-save" type="button">Save note</button><button id="wl-note-close" type="button">Cancel</button></div>' +
       '<div id="wl-note-list-wrap">' + listHtml() + '</div></div>';
     document.body.appendChild(wrap);
+    if (window.WL && WL.trapTab) WL.trapTab(wrap);
 
     function wireList() {
       $$('.wl-note-del', wrap).forEach(function (b) {

@@ -191,6 +191,7 @@
     modal.setAttribute('aria-labelledby', 'c-all-h');
     modal.innerHTML = '<div class="card wl-modal-box" id="c-all-sheet">' + allPracticesHtml() + '</div>';
     document.body.appendChild(modal);
+    if (WL.trapTab) WL.trapTab(modal);
     modal.onclick = function (e) { if (e.target === modal) closeAllModal(); };
     var x = $('#c-all-x', modal); if (x) x.onclick = function () { closeAllModal(); };
     var cl = $('#c-all-close', modal); if (cl) cl.onclick = function () { closeAllModal(); };

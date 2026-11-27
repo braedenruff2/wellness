@@ -136,10 +136,12 @@
     function redraw() {
       var openNext = !!($('#co-teach-next', box) && $('#co-teach-next', box).open);
       var openEarlier = !!($('#co-teach-earlier', box) && $('#co-teach-earlier', box).open);
-      var sy = box.scrollTop;
+      var sy = box.scrollTop, fk = WL.focusKey(document.activeElement);
       box.innerHTML = teachModalBodyHtml(openNext, openEarlier);
       box.scrollTop = sy;
       wireTeachModal(modal);
+      // focus back on the same Practising / Got it button (or the close button), never lost to <body>
+      WL.refocus(box, fk, '#co-teach-x');
       var wrap = $('#co-teach-wrap');
       if (wrap) { wrap.innerHTML = teachLauncherHtml(); wireTeach(); }
     }
@@ -174,6 +176,7 @@
     modal.setAttribute('aria-labelledby', 'co-teach-h');
     modal.innerHTML = '<div class="card wl-modal-box" id="co-teach">' + body + '</div>';
     document.body.appendChild(modal);
+    WL.trapTab(modal);
     modal.onclick = function (e) { if (e.target === modal) closeTeachModal(); };
     wireTeachModal(modal);
     teachKeyFn = function (ev) {

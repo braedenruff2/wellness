@@ -261,6 +261,8 @@
 
     function wireModal() {
       var box = $('#ck-food-sheet', modal); if (!box) return;
+      // redraw the box and keep focus on the control he used (or the search box when it went away)
+      function redraw(fallback) { var k = WL.focusKey(document.activeElement); box.innerHTML = renderBody(); wireModal(); WL.refocus(box, k, fallback || '#ck-food-q'); }
       var x = $('#ck-food-x', box); if (x) x.onclick = function () { closeFoodModal(); };
       var cl = $('#ck-food-close', box); if (cl) cl.onclick = function () { closeFoodModal(); };
       var q = $('#ck-food-q', box);
@@ -273,7 +275,7 @@
         if (q2) { q2.focus(); try { q2.setSelectionRange(pos, pos); } catch (e) {} }
       };
       $$('[data-fcat]', box).forEach(function (b) {
-        b.onclick = function () { activeCat = b.dataset.fcat; box.innerHTML = renderBody(); wireModal(); };
+        b.onclick = function () { activeCat = b.dataset.fcat; redraw(); };
       });
       $$('[data-fadd]', box).forEach(function (b) {
         b.onclick = function () {
@@ -283,7 +285,7 @@
           if (!f) return;
           var ex = picked.filter(function (p) { return p.food.id === id; })[0];
           if (ex) ex.qty++; else picked.push({ food: f, qty: 1 });
-          box.innerHTML = renderBody(); wireModal();
+          redraw();
         };
       });
       $$('[data-fdel]', box).forEach(function (b) {
@@ -293,12 +295,12 @@
           save();
           picked = picked.filter(function (p) { return p.food.id !== 'custom:' + cid; });
           if (activeCat === 'custom' && !(S.customFoods && S.customFoods.length)) activeCat = 'all';
-          box.innerHTML = renderBody(); wireModal();
+          redraw();
           WL.toast('Removed custom food');
         };
       });
       var clr = $('#ck-food-clear', box);
-      if (clr) clr.onclick = function () { picked = []; box.innerHTML = renderBody(); wireModal(); };
+      if (clr) clr.onclick = function () { picked = []; redraw(); };
       var fillBtn = $('#ck-food-fill', box);
       if (fillBtn) fillBtn.onclick = function () {
         var txt = pickedLabel();
@@ -326,13 +328,14 @@
         save();
         picked.push({ food: { id: 'custom:' + rec.id, name: rec.name, serving: rec.serving, nutri: rec.nutri }, qty: 1 });
         activeCat = 'custom'; query = '';
-        box.innerHTML = renderBody(); wireModal();
+        redraw('#ck-food-log');
         WL.toast('Saved ' + rec.name);
       };
     }
 
     modal.innerHTML = '<div class="card wl-modal-box" id="ck-food-sheet">' + renderBody() + '</div>';
     document.body.appendChild(modal);
+    WL.trapTab(modal);
     modal.onclick = function (e) { if (e.target === modal) closeFoodModal(); };
     wireModal();
     foodKeyFn = function (ev) {
