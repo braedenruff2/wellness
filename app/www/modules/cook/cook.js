@@ -10,7 +10,10 @@
   var planBusy = false, photoBusy = false, photoErr = '', planErr = '';
 
   function save() { store.save(S); }
+  // the food log records on the day picked in "Log for an earlier day"; the meal plan, fridge and shopping list are
+  // always about now (an earlier day must never re-plan the week or mark last week's meals)
   function now() { return WL.logNow ? WL.logNow() : new Date(); }
+  function realNow() { return new Date(); }
   function childName() { return (window.WLPersonal && WLPersonal.childName ? WLPersonal.childName() : '') || ''; }
   function childLabel() { return childName() || 'your daughter'; }
   function pers(text) {
@@ -83,7 +86,7 @@
 
   /* ---- Tab 1: Today (#cook) ---- */
   function todayHtml() {
-    var d = now(), tIso = K.iso(d);
+    var d = realNow(), tIso = K.iso(d);
     K.ensureWeekPlan(S, d);
     save();
     var soon = K.expiringSoon(S, d, 3);
@@ -135,7 +138,7 @@
 
   /* ---- Tab 2: Week (#cook/week) ---- */
   function weekHtml() {
-    var d = now(), days = K.weekDays(d);
+    var d = realNow(), days = K.weekDays(d);
     K.ensureWeekPlan(S, d);
     save();
     var q = queuedFor('cook-plan');
@@ -228,7 +231,7 @@
 
   /* ---- Tab 4: Fridge, Pantry & Shopping List (#cook/pantry) ---- */
   function pantryHtml() {
-    var d = now(), list = K.shoppingList(S, d), items = K.sortedPantry(S, d);
+    var d = realNow(), list = K.shoppingList(S, d), items = K.sortedPantry(S, d);
     var pq = queuedFor('cook-photo');
 
     var h = subnav('pantry') + '<h1>Fridge &amp; shopping list</h1>';
@@ -338,7 +341,7 @@
   function askAiPlan() {
     if (planBusy || !WL.pc) return;
     planBusy = true; planErr = ''; render();
-    var d = now(), wk = workoutInfo(d);
+    var d = realNow(), wk = workoutInfo(d);
     var input = {
       weekStart: K.weekDays(d)[0],
       expiring: K.expiringSoon(S, d, 5).map(function (x) { return { name: x.item.name, daysLeft: x.daysLeft, qty: x.item.qty, unit: x.item.unit }; }),
@@ -350,7 +353,7 @@
     };
     WL.pc.ask('cook-plan', input).then(function (ans) {
       planBusy = false;
-      if (K.applyAiPlan(S, ans, now())) { save(); WL.toast('Updated this week’s meal plan'); }
+      if (K.applyAiPlan(S, ans, realNow())) { save(); WL.toast('Updated this week’s meal plan'); }
       else planErr = 'Claude’s reply didn’t include a 7-day plan. Try again.';
       render();
     }, function (e) {
@@ -392,7 +395,7 @@
   // Handle cloud answers arriving later via Drive sync
   if (WL.pc && WL.pc.onCloudAnswer) {
     WL.pc.onCloudAnswer('cook-plan', function (e, ans) {
-      if (!e && K.applyAiPlan(S, ans, now())) { save(); WL.toast('Your cloud meal plan arrived'); }
+      if (!e && K.applyAiPlan(S, ans, realNow())) { save(); WL.toast('Your cloud meal plan arrived'); }
       else if (e) planErr = e;
       if (view && /^#cook/.test(location.hash)) render();
     });
@@ -412,7 +415,7 @@
   }
 
   function wire() {
-    var d = now(), tIso = K.iso(d);
+    var d = curTab === 'log' ? now() : realNow(), tIso = K.iso(d);
     if (curTab === '') {
       $$('[data-use-recipe]', view).forEach(function (b) {
         b.onclick = function () {
@@ -534,7 +537,7 @@
   }
 
   function card() {
-    var d = now(), tIso = K.iso(d);
+    var d = realNow(), tIso = K.iso(d);
     K.ensureWeekPlan(S, d);
     var day = (S.plan && S.plan.days && S.plan.days[tIso]) || {};
     var hr = d.getHours();

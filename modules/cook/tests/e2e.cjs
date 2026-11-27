@@ -149,6 +149,30 @@ const Wb = require('../../../tests/lib/web.cjs');
     }
   });
 
+  await t.step('Log for an earlier day in last week: #cook/log and #cook leave this week\'s plan and marks alone', async () => {
+    await page.goto(base + '#cook');
+    await page.waitForSelector('[data-ck-mama]');
+    const meal = await page.getAttribute('[data-ck-mama]', 'data-ck-mama');
+    page.once('dialog', (dl) => dl.accept(''));
+    await page.click('[data-ck-mama="' + meal + '"]');
+    await page.waitForFunction((m) => { const s = JSON.parse(localStorage.getItem('wl.cook.v1')); return s.plan.days['2026-11-26'][m].status === 'mama'; }, meal);
+    const before = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan);
+    await page.goto(base + '#home');
+    await page.selectOption('#wl-logday', '2026-11-22'); // Sunday, last week
+    for (const h of ['#cook/log', '#cook', '#cook/week', '#cook/pantry']) { await page.goto(base + h); await page.waitForSelector('.cook-sub, #view h1'); }
+    await page.goto(base + '#cook'); await page.waitForSelector('[data-ck-meal]');
+    const during = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan);
+    assert.ok(!during.days['2026-11-22'], 'no stray Sunday in this week\'s plan');
+    assert.strictEqual(during.week, before.week, 'still this week\'s plan');
+    assert.strictEqual(during.days['2026-11-26'][meal].status, 'mama');
+    await page.goto(base + '#home');
+    if (await page.isVisible('#logday-back')) await page.click('#logday-back');
+    await page.goto(base + '#cook');
+    await page.waitForSelector('[data-ck-meal]');
+    const after = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan);
+    assert.deepStrictEqual(after.days['2026-11-26'], before.days['2026-11-26']);
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('cook e2e');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
