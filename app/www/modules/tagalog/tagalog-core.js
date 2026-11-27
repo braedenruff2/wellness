@@ -118,6 +118,51 @@
     return '';
   }
 
+  /* Linker helpers for linkerHint(): missing -ng / na, extra -ng on a pronoun, or extra -ng after hindi. */
+  var LINK_PARTICLES = ['pa', 'na', 'po'];
+  function noLinkerMsg(base, afterHindi, show) {
+    return 'Almost: no linker here (' + base + ', not ' + base + 'ng' + (afterHindi ? ', after hindi' : '') +
+      '). The -ng only links a describing word like palagi or gusto to what follows (palagi siyang masaya): ' + show;
+  }
+  function missingLinkerIn(cw, gw, show) {
+    // -ng joined to the word: same number of words, one differs only by its -ng ending
+    if (cw.length === gw.length) {
+      var diff = [];
+      for (var k = 0; k < cw.length; k++) if (cw[k] !== gw[k]) diff.push(k);
+      if (diff.length === 1 && cw[diff[0]] === gw[diff[0]] + 'ng' && gw[diff[0]].length >= 2)
+        return 'Almost: add the linker -ng (' + cw[diff[0]] + '): ' + show;
+    }
+    // na between two words
+    if (cw.length === gw.length + 1) {
+      for (var j = 1; j < cw.length - 1; j++) {
+        if (cw[j] === 'na' && cw.slice(0, j).concat(cw.slice(j + 1)).join(' ') === gw.join(' '))
+          return 'Almost: add the linker na (' + cw[j - 1] + ' na ' + cw[j + 1] + '): ' + show;
+      }
+    }
+    return '';
+  }
+  function extraLinkerIn(cw, gw, show) {
+    // an extra -ng on a short word that needs none: "Hindi akong pagod" for "Hindi ako pagod"
+    if (cw.length !== gw.length) return '';
+    var diff = [];
+    for (var k = 0; k < cw.length; k++) if (cw[k] !== gw[k]) diff.push(k);
+    if (diff.length !== 1 || gw[diff[0]] !== cw[diff[0]] + 'ng' || PRON.indexOf(cw[diff[0]]) < 0) return '';
+    var w0 = cw[diff[0]], prev = cw.slice(0, diff[0]).filter(function (w) { return LINK_PARTICLES.indexOf(w) < 0; }).pop();
+    return noLinkerMsg(w0, prev === 'hindi' || prev === 'di', show);
+  }
+  function hindiExtraLinker(ex, gw) {
+    // "hindi akong ..." / "hindi pa siyang ...": after hindi the short word never takes -ng, whatever else differs,
+    // when the lesson's answer has hindi (pa/na/po) + that short word
+    var hi = gw.indexOf('hindi') >= 0 ? gw.indexOf('hindi') : gw.indexOf('di');
+    if (hi < 0) return '';
+    var j = hi + 1; while (j < gw.length && LINK_PARTICLES.indexOf(gw[j]) >= 0) j++;
+    var gp = gw[j] || '', base = gp.replace(/ng$/, '');
+    if (gp === base || PRON.indexOf(base) < 0) return '';
+    var ans = normHo(ex.answer).split(' ');
+    if (ans.indexOf(base) >= 0 && (ans.indexOf('hindi') >= 0 || ans.indexOf('di') >= 0) && ans.indexOf(gp) < 0)
+      return noLinkerMsg(base, true, ex.answer);
+    return '';
+  }
   /* Right except a missing linker: "gusto ko bumili" for "gusto kong bumili", "apat buwan" for "apat na buwan". */
   function linkerHint(ex, given) {
     if (!ex || !ex.answer || ex.type !== 'type' || check(ex, given)) return '';
@@ -126,38 +171,10 @@
     var cands = [ex.answer].concat(ex.accept || []);
     for (var i = 0; i < cands.length; i++) {
       var cw = normHo(cands[i]).split(' '), show = i === 0 ? ex.answer : cands[i];
-      // -ng joined to the word: same number of words, one differs only by its -ng ending
-      if (cw.length === gw.length) {
-        var diff = [];
-        for (var k = 0; k < cw.length; k++) if (cw[k] !== gw[k]) diff.push(k);
-        if (diff.length === 1 && cw[diff[0]] === gw[diff[0]] + 'ng' && gw[diff[0]].length >= 2) return 'Almost: add the linker -ng (' + cw[diff[0]] + '): ' + show;
-        // an extra -ng on a short word that needs none: "Hindi akong pagod" for "Hindi ako pagod"
-        if (diff.length === 1 && gw[diff[0]] === cw[diff[0]] + 'ng' && PRON.indexOf(cw[diff[0]]) >= 0) {
-          var w0 = cw[diff[0]], prev = cw.slice(0, diff[0]).filter(function (w) { return ['pa', 'na', 'po'].indexOf(w) < 0; }).pop();
-          return 'Almost: no linker here (' + w0 + ', not ' + w0 + 'ng' + (prev === 'hindi' || prev === 'di' ? ', after hindi' : '') +
-            '). The -ng only links a describing word like palagi or gusto to what follows (palagi siyang masaya): ' + show;
-        }
-      }
-      // na between two words
-      if (cw.length === gw.length + 1) {
-        for (var j = 1; j < cw.length - 1; j++) {
-          if (cw[j] === 'na' && cw.slice(0, j).concat(cw.slice(j + 1)).join(' ') === gw.join(' ')) return 'Almost: add the linker na (' + cw[j - 1] + ' na ' + cw[j + 1] + '): ' + show;
-        }
-      }
+      var h = missingLinkerIn(cw, gw, show) || extraLinkerIn(cw, gw, show);
+      if (h) return h;
     }
-    // "hindi akong ..." / "hindi pa siyang ...": after hindi the short word never takes -ng, whatever else differs,
-    // when the lesson's answer has hindi (pa/na/po) + that short word
-    var hi = gw.indexOf('hindi') >= 0 ? gw.indexOf('hindi') : gw.indexOf('di');
-    if (hi >= 0) {
-      var j2 = hi + 1; while (j2 < gw.length && ['pa', 'na', 'po'].indexOf(gw[j2]) >= 0) j2++;
-      var gp = gw[j2] || '', base = gp.replace(/ng$/, '');
-      if (gp !== base && PRON.indexOf(base) >= 0) {
-        var ans = normHo(ex.answer).split(' ');
-        if (ans.indexOf(base) >= 0 && (ans.indexOf('hindi') >= 0 || ans.indexOf('di') >= 0) && ans.indexOf(gp) < 0)
-          return 'Almost: no linker here (' + base + ', not ' + gp + ', after hindi). The -ng only links a describing word like palagi or gusto to what follows (palagi siyang masaya): ' + ex.answer;
-      }
-    }
-    return '';
+    return hindiExtraLinker(ex, gw);
   }
 
   /* Right except the verb's repeated syllable (Tagalog's "is doing / will do" form): "gusto kong mag-aaral" for

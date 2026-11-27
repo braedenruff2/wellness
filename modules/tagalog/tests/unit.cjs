@@ -553,4 +553,84 @@ t('validate keeps the day a card was last reviewed (card.last); drops a bad one'
   assert.strictEqual(v.cards.tubig.last, '2026-11-26');
   assert.ok(!('last' in v.cards.gatas));
 });
+t('linkerHint parity: split helpers match original three-branch behaviour across every bundled pack and fixtures', () => {
+  const fs = require('fs'), path = require('path'), dir = path.join(__dirname, '..', 'packs');
+  const PRON = ['ako', 'ka', 'siya', 'kami', 'tayo', 'sila', 'kayo', 'ko', 'mo', 'niya', 'namin', 'natin', 'nila', 'ninyo'];
+  const normHo = (s) => T.norm(s).replace(/\bho\b/g, 'po');
+  // Reference copy of the original monolithic linkerHint for exact parity verification
+  function refLinkerHint(ex, given) {
+    if (!ex || !ex.answer || ex.type !== 'type' || T.check(ex, given)) return '';
+    const gw = normHo(given).split(' ').filter(Boolean);
+    if (gw.length < 2) return '';
+    const cands = [ex.answer].concat(ex.accept || []);
+    for (let i = 0; i < cands.length; i++) {
+      const cw = normHo(cands[i]).split(' '), show = i === 0 ? ex.answer : cands[i];
+      if (cw.length === gw.length) {
+        const diff = [];
+        for (let k = 0; k < cw.length; k++) if (cw[k] !== gw[k]) diff.push(k);
+        if (diff.length === 1 && cw[diff[0]] === gw[diff[0]] + 'ng' && gw[diff[0]].length >= 2) return 'Almost: add the linker -ng (' + cw[diff[0]] + '): ' + show;
+        if (diff.length === 1 && gw[diff[0]] === cw[diff[0]] + 'ng' && PRON.indexOf(cw[diff[0]]) >= 0) {
+          const w0 = cw[diff[0]], prev = cw.slice(0, diff[0]).filter((w) => ['pa', 'na', 'po'].indexOf(w) < 0).pop();
+          return 'Almost: no linker here (' + w0 + ', not ' + w0 + 'ng' + (prev === 'hindi' || prev === 'di' ? ', after hindi' : '') +
+            '). The -ng only links a describing word like palagi or gusto to what follows (palagi siyang masaya): ' + show;
+        }
+      }
+      if (cw.length === gw.length + 1) {
+        for (let j = 1; j < cw.length - 1; j++) {
+          if (cw[j] === 'na' && cw.slice(0, j).concat(cw.slice(j + 1)).join(' ') === gw.join(' ')) return 'Almost: add the linker na (' + cw[j - 1] + ' na ' + cw[j + 1] + '): ' + show;
+        }
+      }
+    }
+    const hi = gw.indexOf('hindi') >= 0 ? gw.indexOf('hindi') : gw.indexOf('di');
+    if (hi >= 0) {
+      let j2 = hi + 1; while (j2 < gw.length && ['pa', 'na', 'po'].indexOf(gw[j2]) >= 0) j2++;
+      const gp = gw[j2] || '', base = gp.replace(/ng$/, '');
+      if (gp !== base && PRON.indexOf(base) >= 0) {
+        const ans = normHo(ex.answer).split(' ');
+        if (ans.indexOf(base) >= 0 && (ans.indexOf('hindi') >= 0 || ans.indexOf('di') >= 0) && ans.indexOf(gp) < 0)
+          return 'Almost: no linker here (' + base + ', not ' + gp + ', after hindi). The -ng only links a describing word like palagi or gusto to what follows (palagi siyang masaya): ' + ex.answer;
+      }
+    }
+    return '';
+  }
+  const cases = [];
+  for (const f of fs.readdirSync(dir).filter((x) => /^\d{4}-\d\d-\d\d\.json$/.test(x))) {
+    const p = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+    for (const l of p.lessons) for (const ex of l.exercises) {
+      if (ex.type !== 'type' || !ex.answer) continue;
+      for (const a of [ex.answer].concat(ex.accept || [])) {
+        cases.push([ex, a]);
+        const ws = normHo(a).split(' ');
+        ws.forEach((w, idx) => {
+          if (w.endsWith('ng') && w.length >= 4) { const m = ws.slice(); m[idx] = w.slice(0, -2); cases.push([ex, m.join(' ')]); }
+          if (w === 'na' && idx > 0 && idx < ws.length - 1) { const m = ws.slice(0, idx).concat(ws.slice(idx + 1)); cases.push([ex, m.join(' ')]); }
+          if (PRON.indexOf(w) >= 0) {
+            const m = ws.slice(); m[idx] = w + 'ng'; cases.push([ex, m.join(' ')]);
+            const m2 = m.slice(); m2[m2.length - 1] = 'ibangsalita'; cases.push([ex, m2.join(' ')]);
+          }
+        });
+      }
+    }
+  }
+  // Fixture cases covering all three branches + non-triggers
+  const fixtures = [
+    [{ type: 'type', answer: 'Gusto kong mag-aral ng Tagalog.' }, 'gusto ko mag-aral ng tagalog'],
+    [{ type: 'type', answer: 'Apat na buwan akong naka-leave.' }, 'apat buwan akong naka leave'],
+    [{ type: 'type', answer: 'Hindi ako pagod.', accept: ['hindi po ako pagod', 'di ako pagod'] }, 'Hindi akong pagod'],
+    [{ type: 'type', answer: 'Hindi ako pagod.', accept: ['hindi po ako pagod', 'di ako pagod'] }, 'di akong pagod'],
+    [{ type: 'type', answer: 'Hindi ako pagod.', accept: ['hindi po ako pagod', 'di ako pagod'] }, 'Hindi po akong pagod'],
+    [{ type: 'type', answer: 'Hindi pa siya natutulog.' }, 'Hindi pa siyang tulog'],
+    [{ type: 'type', answer: 'Pagod ako ngayon.' }, 'pagod akong ngayon'],
+    [{ type: 'type', answer: 'Malaki ang bahay.' }, 'malaki ang bahayng'],
+    [{ type: 'type', answer: 'Palagi kaming naglalaro.' }, 'palagi kami naglalaro'],
+    [{ type: 'type', answer: 'Salamat po.' }, 'salamat']
+  ];
+  let hits = 0;
+  for (const [ex, g] of cases.concat(fixtures)) {
+    const got = T.linkerHint(ex, g), exp = refLinkerHint(ex, g);
+    assert.strictEqual(got, exp, 'mismatch for "' + g + '" on "' + ex.answer + '"');
+    if (got) hits++;
+  }
+  assert.ok(cases.length >= 20 && hits >= 10, 'tested real pack mutations + fixtures: ' + cases.length + ' cases, ' + hits + ' hints');
+});
 console.log(n + ' tagalog unit tests passed');
