@@ -206,6 +206,11 @@
     return input;
   }
   function askable() { return pc.canAsk ? pc.canAsk() : pc.ready(); }
+  // his "Did you try it" answer on advice he asked for, for the Past practice list
+  function realTried(id) {
+    var a = window.WLMe && WLMe.answers ? WLMe.answers('coach', 'real:' + id) : null;
+    return a && a.tried && a.tried !== 'Not yet' ? ' · ' + esc(a.tried) : '';
+  }
   function mainHtml() {
     var can = K.canText(S);
     var h = '<h1>Parenting practice</h1><div class="row ui" style="margin-bottom:8px"><span class="meta grow">' + esc(S.child.name || 'Your daughter') + ' is ' + esc(K.ageText(S.child.birth)) + '.' +
@@ -249,7 +254,7 @@
         (last.length > 5 ? '<label class="sr" for="co-hist-search">Search past practice</label><input type="search" id="co-hist-search" placeholder="Search past practice" autocomplete="off" style="margin-bottom:8px"><span class="meta" id="co-hist-found"></span>' : '') +
         '<ul class="list" id="co-hist-list">' + last.map(function (x, i) {
           var extra = i >= 20;
-          return '<li data-skill="' + esc(x.skill || '') + '"' + (extra ? ' data-extra="1"' : '') + (extra && !showAllHist ? ' hidden' : '') + '><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.title) + '</a><span class="meta">' + (x.kind === 'real' ? 'your situation' : x.result && x.result.score != null ? x.result.score + '/10' : '') + '</span></li>';
+          return '<li data-skill="' + esc(x.skill || '') + '"' + (extra ? ' data-extra="1"' : '') + (extra && !showAllHist ? ' hidden' : '') + '><a class="grow" href="#coach/h/' + esc(x.id) + '">' + esc(x.title) + '</a><span class="meta">' + (x.kind === 'real' ? 'your situation' + realTried(x.id) : x.result && x.result.score != null ? x.result.score + '/10' : '') + '</span></li>';
         }).join('') + '</ul>' + (!showAllHist && last.length > 20 ? '<button class="link" id="co-hist-more">Show all (' + last.length + ')</button>' : '') + '</div>';
     }
     return h + progressHtml();

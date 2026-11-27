@@ -133,6 +133,8 @@ const DRAFT = 'She cries every time I put her down in the crib unless she is alr
     await page.click('.me-ask[data-about="real:r1"] [data-me-a][data-v="Sort of"]');
     const fb = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.me.v1')).feedback.filter((f) => f.about === 'real:r1').map((f) => f.a.tried));
     assert.deepStrictEqual(fb, ['Sort of'], 'his answer saved');
+    await page.goto(base + '#coach');
+    assert.ok(/your situation · Sort of/.test(await page.textContent('#co-hist-list')), 'shown in Past practice');
     await page.clock.setSystemTime(new Date(2026, 10, 25, 9, 0));
     await page.goto(base + '#home'); await page.reload();
     assert.strictEqual(await page.locator(card + ' #co-advice-step').count(), 0, 'gone after 3 days');
