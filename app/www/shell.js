@@ -562,12 +562,15 @@
   }
 
   /* One backup file for the whole app: {app:'wellness', stores:{key: json}}. Old Faith Companion backups still restore. */
-  function backupText() {
+  function backupObj() {
     var stores = {};
     order.forEach(function (id) { (modules[id].storageKeys || []).forEach(function (k) { var v = lsGet(k); if (v != null) stores[k] = v; }); });
     var v = lsGet(SKEY); if (v != null) stores[SKEY] = v;
     if (window.WLNotes) { var nv = lsGet(WLNotes.KEY); if (nv != null) stores[WLNotes.KEY] = nv; }
-    return JSON.stringify({ app: 'wellness', exported: new Date().toISOString(), stores: stores }, null, 1);
+    return { app: 'wellness', exported: new Date().toISOString(), stores: stores };
+  }
+  function backupText() {
+    return JSON.stringify(backupObj(), null, 1);
   }
   function validateShell(raw) {
     try {
@@ -725,6 +728,6 @@
   window.WL = {
     register: register, start: start, route: route, logNow: logNow, logDay: getLogDay, setLogDay: setLogDay, store: store, $: $, $$: $$, esc: esc, toast: toast, isoDate: isoDate,
     speech: speech, bell: bell, softBell: softBell, tick: tick, keepAwake: keepAwake, dimScreen: dimScreen, darkScreen: darkScreen, wordsSeconds: wordsSeconds, applyLook: applyLook, themeNow: themeNow,
-    refreshToday: refreshToday, saveFile: saveFile, native: native, modules: modules, backupText: backupText, restoreText: restoreText
+    refreshToday: refreshToday, saveFile: saveFile, native: native, modules: modules, backupObj: backupObj, backupText: backupText, restoreText: restoreText
   };
 })();

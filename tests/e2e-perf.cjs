@@ -64,6 +64,63 @@ const { simulate } = require('./lib/year.cjs');
     const slow = Object.entries(times).filter(([, v]) => v > 500);
     assert.deepStrictEqual(slow, [], 'slow pages');
   });
+  await t.step('Drive sync of a heavy year: Home first draw stays under 200 ms at CPU 4x and 30-min throttle skips repeats', async () => {
+    const p2 = await page.context().newPage();
+    const cdp2 = await p2.context().newCDPSession(p2);
+    await p2.clock.install({ time: end });
+    await p2.addInitScript((json) => {
+      if (!sessionStorage.getItem('seeded2')) {
+        for (const [k, v] of Object.entries(json)) localStorage.setItem(k, v);
+        localStorage.setItem('wl.shell.v1', JSON.stringify({ theme: 'light', textSize: 1, since: '2026-11-18T12:00:00.000Z' }));
+        sessionStorage.setItem('seeded2', '1');
+      }
+      window.__drivePerf = { reads: 0, writes: 0, bytes: 0, writeStartAt: 0 };
+      window.FCAndroid = {
+        syncStatus: () => JSON.stringify({ configured: true, name: 'wellness-sync.json', lastSync: 0, error: '', busy: false, answersConfigured: true, answersName: 'wellness-answers', answersError: '' }),
+        syncRead: (id) => { window.__drivePerf.reads++; Promise.resolve().then(() => window.FCSyncDone(id, true, '')); },
+        syncReadAnswers: (id) => { Promise.resolve().then(() => window.FCSyncDone(id, true, '')); },
+        syncWrite: (id, text) => {
+          window.__drivePerf.writes++;
+          window.__drivePerf.bytes = String(text || '').length;
+          window.__drivePerf.writeStartAt = performance.now();
+          Promise.resolve().then(() => window.FCSyncDone(id, true, ''));
+        }
+      };
+    }, json);
+    await cdp2.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    await p2.goto(base + '#home');
+    await p2.waitForSelector('.home-card');
+    // Home's first draw must not be blocked by Drive sync (autoSync is deferred 1.5s after start)
+    const beforeSync = await p2.evaluate(() => ({
+      writes: window.__drivePerf.writes,
+      drawMs: (() => {
+        history.replaceState(null, '', '#settings'); window.dispatchEvent(new HashChangeEvent('hashchange'));
+        history.replaceState(null, '', '#home');
+        const t0 = performance.now(); window.dispatchEvent(new HashChangeEvent('hashchange'));
+        return performance.now() - t0;
+      })()
+    }));
+    assert.strictEqual(beforeSync.writes, 0, 'Drive sync deferred past initial Home draw');
+    assert.ok(beforeSync.drawMs < 200, 'Home draw with Drive sync configured took ' + beforeSync.drawMs.toFixed(0) + ' ms');
+    // Let the 1.5 s autoSync fire and measure the synchronous payload build + Home draw responsiveness
+    const syncTiming = await p2.evaluate(async () => {
+      const t0 = performance.now();
+      await WL.driveSync.sync({ auto: true });
+      const syncMs = performance.now() - t0;
+      // Throttled autoSync immediately after must skip with 0 extra writes
+      const t1 = performance.now();
+      const skipped = await WL.driveSync.sync({ auto: true });
+      const skipMs = performance.now() - t1;
+      return { syncMs, skipMs, skipped: !!(skipped && skipped.skipped), writes: window.__drivePerf.writes, bytes: window.__drivePerf.bytes };
+    });
+    console.log('   Drive sync (year, CPU 4x): Home ' + beforeSync.drawMs.toFixed(0) + ' ms, sync ' + syncTiming.syncMs.toFixed(0) + ' ms (' + (syncTiming.bytes / 1e6).toFixed(2) + ' MB), throttled skip ' + syncTiming.skipMs.toFixed(1) + ' ms');
+    assert.strictEqual(syncTiming.writes, 1, 'wrote once, second autoSync throttled');
+    assert.strictEqual(syncTiming.skipped, true, '30-min throttle skipped repeat write');
+    assert.ok(syncTiming.bytes > 1000000, 'heavy year sync payload built: ' + syncTiming.bytes);
+    assert.ok(syncTiming.syncMs < 200, 'building + dispatching Drive sync payload took ' + syncTiming.syncMs.toFixed(0) + ' ms');
+    await cdp2.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    await p2.close();
+  });
   await t.step('no errors', async () => { await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 }); assert.deepStrictEqual(t.errors, []); });
   await t.close('performance');
 })().catch((e) => { console.error(e); process.exit(1); });

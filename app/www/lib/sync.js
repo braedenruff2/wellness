@@ -177,7 +177,7 @@
       if (myGen !== gen) return null;
       // save received answers and acked ids locally BEFORE writing back to Drive
       store.save(S);
-      var backupObj = JSON.parse(WL.backupText());
+      var backupObj = WL.backupObj ? WL.backupObj() : JSON.parse(WL.backupText());
       var payload = C.buildPayload(backupObj, S, new Date(), extraRequests());
       return callNative('syncWrite', payload);
     }).then(function () {
