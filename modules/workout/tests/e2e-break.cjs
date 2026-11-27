@@ -16,11 +16,14 @@ const Wb = require('../../../tests/lib/web.cjs');
           .map(([i, ex, n, a]) => ({ i, ex, n, val: 8, w: null, at: a })) }];
       localStorage.setItem('wl.workout.v1', JSON.stringify(w));
     });
+    // the clock stands still while the page loads (a slow, busy machine took a second: 56:01)
+    await page.clock.setSystemTime(new Date(2026, 10, 23, 20, 49, 59)); await page.clock.pauseAt(new Date(2026, 10, 23, 20, 50));
     await page.goto(base + '#workout'); await page.reload(); await page.waitForSelector('#sessclock');
     // 14:56 -> 15:45 (49 min) + 20:43 -> 20:50 (7 min)
     assert.strictEqual(await page.textContent('#sessclock'), 'Session 56:00 (not counting the break)');
     await page.clock.runFor(61000);
     assert.strictEqual(await page.textContent('#sessclock'), 'Session 57:01 (not counting the break)');
+    await page.clock.resume();
     await t.noOverflow(['#workout']);
   });
   await t.step('no break: the plain clock', async () => {
