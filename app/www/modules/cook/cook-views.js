@@ -92,8 +92,8 @@
     h += '<details id="ck-tedit" style="margin-top:2px"><summary class="meta">Customize ' + esc(whoLbl) + '’s targets</summary>' +
       '<div class="row" style="flex-wrap:wrap;gap:8px;margin-top:6px">' + editKeys.map(function (k) {
         var meta = K.nutri.NUTRI_META[k];
-        return '<label style="flex:1 1 115px;min-width:110px"><span class="meta">' + esc(meta.label + ' (' + meta.unit + ')') + '</span>' +
-          '<input type="number" min="1" step="' + (k === 'iron' ? '0.5' : '1') + '" data-ck-tval="' + k + '" value="' + esc(dn.targets[k]) + '"></label>';
+        return '<label style="flex:1 1 115px;min-width:0;box-sizing:border-box"><span class="meta">' + esc(meta.label + ' (' + meta.unit + ')') + '</span>' +
+          '<input type="number" style="width:100%;box-sizing:border-box;min-width:0" min="1" step="' + (k === 'iron' ? '0.5' : '1') + '" data-ck-tval="' + k + '" value="' + esc(dn.targets[k]) + '"></label>';
       }).join('') + '</div>' +
       '<div class="row" style="margin-top:8px"><button class="primary" type="button" id="ck-t-save">Save targets</button>' +
       '<button class="link" type="button" id="ck-t-reset">Reset defaults</button></div></details>';

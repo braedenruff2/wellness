@@ -918,8 +918,10 @@ const W = require('./lib/web.cjs');
       await page.goto(base + '#cook'); await page.reload(); await page.waitForSelector('[data-ck-meal]');
       const m = await page.$('[data-ck-mama]');
       if (m) { await m.click(); await page.waitForSelector('.ck-mama-form'); }
+      const sk = await page.$('[data-ck-skip]');
+      if (sk) { await sk.click(); await page.waitForSelector('[data-ck-reset]'); }
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #cook');
-      assert.deepStrictEqual(await small('.ck-mama-form input, .ck-mama-form button, [data-ck-made], [data-ck-mama], [data-ck-reset]'), [], theme + ' #cook targets');
+      assert.deepStrictEqual(await small('.ck-mama-form input, .ck-mama-form button, [data-ck-made], [data-ck-mama], [data-ck-mama-pick], [data-ck-skip], [data-ck-logmeal], [data-ck-reset]'), [], theme + ' #cook targets');
       for (const h of ['#cook/week', '#cook/log', '#cook/pantry']) {
         await page.goto(base + h); await page.waitForTimeout(80);
         if (h === '#cook/week') {
@@ -927,10 +929,27 @@ const W = require('./lib/web.cjs');
           if (sum) await sum.click();
           assert.deepStrictEqual(await small('.ck-slot summary, .ck-slot button'), [], theme + ' #cook/week targets');
         }
+        if (h === '#cook/log') {
+          await page.click('#ck-micro summary');
+          await page.click('#ck-tedit summary');
+          assert.deepStrictEqual(await small('#ck-targets button, #ck-targets summary, #ck-c-quick button, #ck-m-quick button'), [], theme + ' #cook/log targets');
+          assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #cook/log expanded');
+          // Open closable Food Picker modal and verify targets, overflow, and contrast inside modal
+          await page.click('#ck-m-pick');
+          await page.waitForSelector('#ck-food-modal');
+          await page.click('#ck-food-results [data-fadd]');
+          await page.waitForSelector('#ck-food-picked');
+          await page.click('#ck-cf-add summary');
+          assert.deepStrictEqual(await small('#ck-food-modal button, #ck-food-modal summary'), [], theme + ' #ck-food-modal targets');
+          assert.deepStrictEqual((await contrast('#ck-food-modal')).filter((x) => x.r < min), [], theme + ' #ck-food-modal contrast');
+          assert.strictEqual(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), 0, theme + ' #ck-food-modal overflow');
+          await page.click('#ck-food-close');
+          await page.waitForFunction(() => !document.getElementById('ck-food-modal'));
+        }
         assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' ' + h);
       }
       await page.waitForSelector('#ck-pantry-cats');
-      assert.deepStrictEqual(await small('#ck-pantry-cats button'), [], theme + ' #ck-pantry-cats targets');
+      assert.deepStrictEqual(await small('#ck-pantry-cats button, #ck-p-quick button'), [], theme + ' #ck-pantry-cats & #ck-p-quick targets');
       await t.noOverflow(['#cook', '#cook/week', '#cook/log', '#cook/pantry']);
     });
   }

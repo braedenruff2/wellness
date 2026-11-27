@@ -245,12 +245,12 @@
 
       h += '<details id="ck-cf-add" style="margin-top:8px"><summary class="meta">+ Save a custom food (1-tap forever)</summary>' +
         '<label for="ck-cf-name">Food name</label><input type="text" id="ck-cf-name" placeholder="e.g. Mama’s chicken sopas">' +
-        '<div class="row" style="margin-top:6px"><input type="text" id="ck-cf-serv" class="grow" placeholder="Serving (e.g. 1 bowl)" aria-label="Serving size">' +
-        '<input type="number" id="ck-cf-kcal" class="ck-custom-min" min="0" placeholder="kcal" aria-label="Calories"></div>' +
-        '<div class="row" style="margin-top:6px">' +
-        '<input type="number" id="ck-cf-pro" class="ck-custom-min" min="0" placeholder="Pro g" aria-label="Protein grams">' +
-        '<input type="number" id="ck-cf-carb" class="ck-custom-min" min="0" placeholder="Carb g" aria-label="Carbs grams">' +
-        '<input type="number" id="ck-cf-fat" class="ck-custom-min" min="0" placeholder="Fat g" aria-label="Fat grams"></div>' +
+        '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px"><input type="text" id="ck-cf-serv" style="flex:2 1 120px;min-width:0;width:auto;box-sizing:border-box" placeholder="Serving (e.g. 1 bowl)" aria-label="Serving size">' +
+        '<input type="number" id="ck-cf-kcal" style="flex:1 1 78px;min-width:0;width:auto;box-sizing:border-box" min="0" placeholder="kcal" aria-label="Calories"></div>' +
+        '<div class="row" style="flex-wrap:wrap;gap:6px;margin-top:6px">' +
+        '<input type="number" id="ck-cf-pro" style="flex:1 1 72px;min-width:0;width:auto;box-sizing:border-box" min="0" placeholder="Pro g" aria-label="Protein grams">' +
+        '<input type="number" id="ck-cf-carb" style="flex:1 1 72px;min-width:0;width:auto;box-sizing:border-box" min="0" placeholder="Carb g" aria-label="Carbs grams">' +
+        '<input type="number" id="ck-cf-fat" style="flex:1 1 72px;min-width:0;width:auto;box-sizing:border-box" min="0" placeholder="Fat g" aria-label="Fat grams"></div>' +
         '<div class="row" style="margin-top:8px"><button class="primary" type="button" id="ck-cf-save">Save food</button></div></details>' +
         '<div class="row" style="margin-top:10px"><button id="ck-food-close" type="button">Close</button></div>';
       return h;

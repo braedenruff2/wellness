@@ -339,6 +339,116 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual((await page.$$('#ck-pantry-list li')).length, 9);
   });
 
+  await t.step('Flexible schedule ("Not making" skip + Mama quick chips + 1-tap log) on Today and Week', async () => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => { localStorage.setItem('wl.shell.v1', JSON.stringify({ theme: 'light', textSize: 1 })); WL.applyLook(); });
+    await page.goto(base + '#cook');
+    await page.waitForSelector('[data-ck-meal="breakfast"]');
+
+    // Skip breakfast ("Not making") -> collapses card cleanly; Back to plan restores it
+    if (await page.$('[data-ck-reset="breakfast"]')) await page.click('[data-ck-reset="breakfast"]');
+    await page.click('[data-ck-skip="breakfast"]');
+    await page.waitForFunction(() => document.querySelector('[data-ck-meal="breakfast"]').textContent.includes('Not making'));
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-11-26'].breakfast.status), 'skipped');
+    await page.click('[data-ck-reset="breakfast"]');
+    await page.waitForSelector('[data-ck-skip="breakfast"]');
+
+    // Mama cooked -> 1-tap Filipino dish chip -> Log to food log -> updates #ck-today-targets
+    if (await page.$('[data-ck-mama="breakfast"]')) await page.click('[data-ck-mama="breakfast"]');
+    await page.waitForSelector('[data-ck-mama-pick="breakfast|Sinigang na baboy"]');
+    await page.click('[data-ck-mama-pick="breakfast|Sinigang na baboy"]');
+    await page.waitForFunction(() => document.querySelector('[data-ck-meal="breakfast"] h3').textContent.includes('Sinigang'));
+    await page.click('[data-ck-logmeal="breakfast"]');
+    await page.waitForSelector('#ck-today-targets');
+    assert.ok((await page.textContent('#ck-today-targets')).includes('kcal'), 'today target summary appears after logging');
+
+    // Week tab: Skip hides recipe preview & Swap; Undo skip restores it
+    await page.goto(base + '#cook/week');
+    const wkSlot = '[data-wk-slot="2026-11-27|dinner"]';
+    await page.waitForSelector('[data-wk-skip="2026-11-27|dinner"]');
+    await page.click('[data-wk-skip="2026-11-27|dinner"]');
+    await page.waitForFunction((sel) => document.querySelector(sel).textContent.includes('Not making'), wkSlot);
+    assert.strictEqual(await page.$(wkSlot + ' details'), null, 'skipped week slot hides recipe preview');
+    await page.click('[data-wk-skip="2026-11-27|dinner"]');
+    await page.waitForSelector(wkSlot + ' details');
+  });
+
+  await t.step('Cronometer target graphs (Me & {child}, Day/7d, micro, custom targets), quick chips, Food Picker modal, and Pantry 1-tap staples', async () => {
+    await page.goto(base + '#cook/log');
+    await page.waitForSelector('#ck-targets');
+
+    // Quick-add chip + Save updates Me target bars
+    await page.click('#ck-m-quick [data-mquick="2 eggs & toast"]');
+    await page.click('#ck-m-quick [data-mquick="Protein shake"]');
+    assert.ok((await page.inputValue('#ck-m-text')).includes('2 eggs & toast, Protein shake'));
+    await page.click('#ck-m-save');
+    await page.waitForFunction(() => document.querySelector('#ck-targets [data-tbar="kcal"]').textContent.includes('kcal'));
+    const meKcalTxt = await page.textContent('#ck-targets [data-tbar="kcal"]');
+    assert.ok(/\/ 2200 kcal/.test(meKcalTxt), meKcalTxt);
+
+    // Toggle 7-day avg, open More nutrients, customize and reset targets
+    await page.click('[data-ck-trange="7d"]');
+    assert.strictEqual(await page.getAttribute('[data-ck-trange="7d"]', 'aria-pressed'), 'true');
+    await page.click('#ck-micro summary');
+    assert.ok(await page.$('#ck-targets [data-tbar="iron"]'), 'micronutrient bars visible when expanded');
+    await page.click('#ck-tedit summary');
+    await page.fill('#ck-tedit [data-ck-tval="kcal"]', '2400');
+    await page.click('#ck-t-save');
+    await page.waitForFunction(() => document.querySelector('#ck-targets [data-tbar="kcal"]').textContent.includes('/ 2400 kcal'));
+    await page.click('#ck-tedit summary');
+    await page.click('#ck-t-reset');
+    await page.waitForFunction(() => document.querySelector('#ck-targets [data-tbar="kcal"]').textContent.includes('/ 2200 kcal'));
+
+    // Food Picker modal for Me: search, add food, save custom food, Log now
+    await page.click('#ck-m-pick');
+    await page.waitForSelector('#ck-food-modal');
+    await page.fill('#ck-food-q', 'salmon');
+    await page.waitForSelector('#ck-food-results [data-fadd="salmon"]');
+    await page.click('#ck-food-results [data-fadd="salmon"]');
+    await page.waitForSelector('#ck-food-picked');
+    await page.click('#ck-cf-add summary');
+    await page.fill('#ck-cf-name', 'Protein bar');
+    await page.fill('#ck-cf-kcal', '200');
+    await page.fill('#ck-cf-pro', '20');
+    await page.click('#ck-cf-save');
+    await page.waitForFunction(() => document.getElementById('ck-food-picked').textContent.includes('Protein bar'));
+    await page.click('#ck-food-log');
+    await page.waitForFunction(() => !document.getElementById('ck-food-modal'));
+    assert.ok((await page.textContent('#ck-log-list')).includes('Protein bar'));
+
+    // {child} target graph + quick chip + Food Picker modal Add to box + Escape / FCBack close
+    await page.click('#ck-c-pick');
+    await page.waitForSelector('#ck-food-modal');
+    await page.click('#ck-food-cats [data-fcat="produce"]');
+    await page.click('#ck-food-results [data-fadd="broccoli"]');
+    await page.click('#ck-food-fill');
+    await page.waitForFunction(() => !document.getElementById('ck-food-modal'));
+    assert.ok((await page.inputValue('#ck-c-offered')).includes('Broccoli'));
+    await page.click('#ck-c-quick [data-cquick="Banana"]');
+    await page.click('#ck-c-ate [data-cate="Most of it"]');
+    await page.click('#ck-c-save');
+    await page.waitForFunction(() => document.querySelector('[data-ck-twho="child"]').getAttribute('aria-pressed') === 'true');
+    const childBar = await page.textContent('#ck-targets [data-tbar="kcal"]');
+    assert.ok(/\/ 900 kcal/.test(childBar) && !/^Energy0 \/ 900/.test(childBar), childBar);
+
+    // Escape & Android FCBack close modal and restore focus
+    await page.click('#ck-c-pick');
+    await page.waitForSelector('#ck-food-modal');
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.getElementById('ck-food-modal'));
+    assert.strictEqual(await page.evaluate(() => document.activeElement && document.activeElement.id), 'ck-c-pick', 'Escape restores focus to picker button');
+    await page.click('#ck-m-pick');
+    await page.waitForSelector('#ck-food-modal');
+    assert.strictEqual(await page.evaluate(() => window.FCBack()), true, 'FCBack consumes Back when food modal is open');
+    assert.strictEqual(await page.$('#ck-food-modal'), null);
+
+    // Pantry 1-tap staple quick chip adds straight to fridge
+    await page.goto(base + '#cook/pantry');
+    await page.waitForSelector('#ck-p-quick [data-pquick^="Avocado"]');
+    await page.click('#ck-p-quick [data-pquick^="Avocado"]');
+    await page.waitForFunction(() => document.getElementById('ck-pantry-list').textContent.includes('Avocado'));
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('cook e2e');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

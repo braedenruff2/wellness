@@ -351,4 +351,87 @@ t('applyAiPlan: days without dates fill this week by order only when the plan wa
   const s4 = K.defaults();
   assert.strictEqual(K.applyAiPlan(s4, { days: [{ date: '2026-12-01', dinner: plan.days[0].dinner }] }, mon, lastWeek.toISOString()), true, 'dated days still count');
 });
+
+t('skipped ("Not making") meal slot drops from shoppingList and survives plan refresh, AI plan, and validate', () => {
+  const s = K.defaults();
+  K.ensureWeekPlan(s, now);
+  for (const d of ['2026-11-27', '2026-11-28', '2026-11-29']) {
+    for (const m of K.MEALS) K.markSlot(s, d, m, 'skipped', '', now);
+  }
+  K.swapSlot(s, '2026-11-26', 'breakfast', 'eggs-toast', now);
+  K.markSlot(s, '2026-11-26', 'lunch', 'skipped', '', now);
+  K.markSlot(s, '2026-11-26', 'dinner', 'skipped', '', now);
+  const names = K.shoppingList(s, now).map((x) => x.name);
+  assert.ok(names.includes('eggs') && names.includes('spinach'), 'planned breakfast stays on shopping list: ' + names);
+  K.markSlot(s, '2026-11-26', 'breakfast', 'skipped', '', now);
+  assert.deepStrictEqual(K.shoppingList(s, now), [], 'all skipped means empty shopping list');
+
+  K.ensureWeekPlan(s, now, { force: true });
+  assert.strictEqual(s.plan.days['2026-11-26'].dinner.status, 'skipped', 'survives force refresh');
+  K.applyAiPlan(s, { days: [{ date: '2026-11-26', dinner: { title: 'Should not overwrite skipped', steps: ['a'], ingredients: ['rice'] }, lunch: { title: 'Also skipped', steps: ['a'], ingredients: ['rice'] } }] }, now);
+  assert.strictEqual(s.plan.days['2026-11-26'].dinner.status, 'skipped', 'AI plan respects skipped slot');
+  const v = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.plan.days['2026-11-26'].dinner.status, 'skipped', 'validate preserves skipped status');
+});
+
+t('Cronometer nutrition targets & estimator: counts, no double-count, portions, {child} ate scale, 7d avg, custom foods & targets', () => {
+  const CN = K.nutri;
+  assert.ok(CN && CN.FOOD_DB.length >= 35, 'offline food database loaded');
+  // 2 eggs + half avocado + peanut butter (must NOT double-count butter)
+  const e1 = CN.estimateEntry({ who: 'me', text: '2 eggs, half avocado, peanut butter', portion: 'Regular' });
+  assert.strictEqual(e1.matched, true);
+  const expKcal = 2 * CN.FOOD_BY.egg.nutri.kcal + 0.5 * CN.FOOD_BY.avocado.nutri.kcal + CN.FOOD_BY.pb.nutri.kcal;
+  assert.strictEqual(Math.round(e1.nutri.kcal), Math.round(expKcal), 'exact count + no butter double-count');
+
+  // Portion scaling for Me
+  const sm = CN.estimateEntry({ who: 'me', text: 'Chicken & rice', portion: 'Small' });
+  const lg = CN.estimateEntry({ who: 'me', text: 'Chicken & rice', portion: 'Large' });
+  assert.ok(lg.nutri.kcal > sm.nutri.kcal * 1.6, 'Large scales higher than Small');
+
+  // Filipino dish & recipeId matching
+  const fil = CN.estimateEntry({ who: 'me', text: 'Sinigang', portion: 'Regular' });
+  assert.strictEqual(fil.matched, true);
+  assert.ok(fil.nutri.kcal >= 300 && fil.nutri.pro >= 20, 'Filipino dish estimated');
+  const rec = CN.estimateEntry({ who: 'me', recipeId: 'salmon-tray', portion: 'Regular' });
+  assert.strictEqual(rec.nutri.kcal, CN.RECIPE_NUTRI['salmon-tray'].kcal);
+
+  // {child} scaling by Actually ate
+  const cNone = CN.estimateEntry({ who: 'child', offered: 'Banana & oatmeal', ate: 'Refused / none' });
+  const cHalf = CN.estimateEntry({ who: 'child', offered: 'Banana & oatmeal', ate: 'About half' });
+  const cAll = CN.estimateEntry({ who: 'child', offered: 'Banana & oatmeal', ate: 'All + more' });
+  assert.strictEqual(cNone.nutri.kcal, 0, 'Refused / none contributes 0');
+  assert.ok(Math.abs(cHalf.nutri.kcal * 2 - cAll.nutri.kcal) < 1, 'About half is 50% of All + more');
+
+  // State-level dailyNutrition, 7-day average, custom foods, and custom targets round-trip
+  const s = K.defaults();
+  const cf = K.addCustomFood(s, { name: 'Mama chicken sopas', serving: '1 bowl', kcal: 380, pro: 28, carb: 36, fat: 12 });
+  assert.ok(cf && s.customFoods.length === 1);
+  assert.ok(CN.searchFoods('sopas', 'all', s.customFoods).some((f) => f.id === 'custom:' + cf.id));
+  K.logMe(s, { date: '2026-11-26', meal: 'lunch', text: 'Mama chicken sopas', portion: 'Regular' }, now);
+  K.logMe(s, { date: '2026-11-24', meal: 'dinner', text: 'Chicken & rice', portion: 'Regular', nutri: { kcal: 620, pro: 42, carb: 60, fat: 16, fib: 4, iron: 3, ca: 40, vitc: 10, k: 500 } }, now);
+  K.logChild(s, { date: '2026-11-26', meal: 'breakfast', offered: 'Egg & banana', ate: 'Most of it' }, now);
+
+  const meDay = K.dailyNutrition(s, 'me', '2026-11-26', { range: 'day' });
+  assert.strictEqual(meDay.totals.kcal, 380);
+  assert.strictEqual(meDay.totals.pro, 28);
+  const me7d = K.dailyNutrition(s, 'me', '2026-11-26', { range: '7d' });
+  assert.strictEqual(me7d.days, 2, 'averages over logged days only');
+  assert.strictEqual(me7d.totals.kcal, 500, '(380 + 620) / 2');
+
+  const chDay = K.dailyNutrition(s, 'child', '2026-11-26', { range: 'day' });
+  assert.strictEqual(chDay.entries, 1);
+  assert.ok(chDay.totals.kcal > 0 && chDay.bars.length === CN.NUTRI_KEYS.length);
+
+  K.setTargets(s, 'me', { kcal: 2500, pro: 150 });
+  assert.strictEqual(K.dailyNutrition(s, 'me', '2026-11-26').targets.kcal, 2500);
+  const v = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.customFoods.length, 1, 'validate keeps customFoods');
+  assert.strictEqual(v.targets.me.kcal, 2500, 'validate keeps custom targets');
+  assert.strictEqual(K.removeCustomFood(v, cf.id), true);
+  K.resetTargets(v, 'me');
+  assert.strictEqual(K.dailyNutrition(v, 'me', '2026-11-26').targets.kcal, CN.DEFAULT_TARGETS.me.kcal);
+  const vClean = K.validate(JSON.parse(JSON.stringify(v)));
+  assert.strictEqual(vClean.customFoods, undefined, 'empty customFoods omitted from saved state');
+  assert.strictEqual(vClean.targets, undefined, 'default targets omitted from saved state');
+});
 console.log(n + ' cook unit tests passed');

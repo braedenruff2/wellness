@@ -96,7 +96,7 @@
     ['potato', 'Potato', 'produce', '1 medium', 130, 3, 30, 0.2, 3, 1.1, 15, 20, 620, ['potatoes', 'mashed potato', 'roasted potatoes']],
     ['carrot', 'Carrots', 'produce', '1/2 cup', 27, 0.6, 6.4, 0.1, 1.8, 0.2, 22, 4, 205, ['carrots', 'steamed carrots']],
     ['peas', 'Green peas / green beans', 'produce', '1/2 cup', 62, 4.1, 11, 0.3, 4.4, 1.2, 20, 12, 195, ['frozen peas', 'green beans', 'sitaw']],
-    ['tomato', 'Tomato / tomato sauce', 'produce', '1/2 cup', 32, 1.3, 7, 0.2, 1.6, 0.6, 14, 16, 330, ['tomatoes', 'marinara', 'salsa']],
+    ['tomato', 'Tomato / tomato sauce', 'produce', '1/2 cup', 32, 1.3, 7, 0.2, 1.6, 0.6, 14, 16, 330, ['tomatoes', 'pasta sauce', 'salsa']],
     ['cucumber', 'Cucumber / zucchini', 'produce', '1/2 cup', 12, 0.6, 2.5, 0.1, 0.6, 0.2, 10, 4, 110, ['zucchini', 'sayote', 'squash', 'bell pepper']],
     ['corn', 'Corn / edamame', 'produce', '1/2 cup', 95, 5.5, 16, 2, 3, 1.1, 25, 5, 260, ['edamame', 'sweet corn']]
   ];
