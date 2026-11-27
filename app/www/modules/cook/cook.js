@@ -371,11 +371,22 @@
     });
   }
 
+  function clearNativePhoto() {
+    var n = WL.native;
+    if (n && n.clearFridgePhotos) try { n.clearFridgePhotos(); } catch (e) {}
+  }
+
+  function noFoodMessage(ans) {
+    var s = ans && typeof ans.summary === 'string' ? ans.summary.trim() : '';
+    return s || 'No food found — could not identify any food items in that photo.';
+  }
+
   function askPhotoCheck(file, note) {
     if (photoBusy) return;
-    if (!askable()) { photoErr = 'Pair the PC link (Settings › PC link) or turn on Drive sync to check photos with Claude / Gemini.'; render(); return; }
+    if (!askable()) { clearNativePhoto(); photoErr = 'Pair the PC link (Settings › PC link) or turn on Drive sync to check photos with Claude / Gemini.'; render(); return; }
     photoBusy = true; photoErr = ''; render();
     compressImage(file).then(function (b64) {
+      clearNativePhoto();
       var input = {
         imageBase64: b64,
         mime: 'image/jpeg',
@@ -383,15 +394,18 @@
         pantry: (S.pantry || []).slice(0, 40).map(function (x) { return { name: x.name, qty: x.qty, unit: x.unit, status: x.status }; })
       };
       return WL.pc.ask('cook-photo', input);
+    }, function (err) {
+      clearNativePhoto();
+      throw err;
     }).then(function (ans) {
       photoBusy = false;
       var found = ans && K.cleanPhotoItems(ans.items);
       if (found && found.length) {
-        S.lastPhoto = { at: new Date().toISOString(), summary: String(ans.summary || '').slice(0, 300), items: found };
+        S.lastPhoto = { at: new Date().toISOString(), summary: typeof ans.summary === 'string' ? ans.summary.trim().slice(0, 300) : '', items: found };
         save();
         WL.toast('Found ' + S.lastPhoto.items.length + ' item' + (S.lastPhoto.items.length === 1 ? '' : 's'));
       } else {
-        photoErr = (ans && ans.summary) || 'Could not identify any food items in that photo.';
+        photoErr = noFoodMessage(ans);
       }
       render();
     }, function (e) {
@@ -404,17 +418,18 @@
   // Handle cloud answers arriving later via Drive sync
   if (WL.pc && WL.pc.onCloudAnswer) {
     WL.pc.onCloudAnswer('cook-plan', function (e, ans) {
-      if (!e && K.applyAiPlan(S, ans, realNow())) { save(); WL.toast('Your cloud meal plan arrived'); }
+      if (!e && K.applyAiPlan(S, ans, realNow())) { planErr = ''; save(); WL.toast('Your cloud meal plan arrived'); }
       else if (e) planErr = e;
       if (view && /^#cook/.test(location.hash)) render();
     });
     WL.pc.onCloudAnswer('cook-photo', function (e, ans) {
       var found = !e && ans && K.cleanPhotoItems(ans.items);
       if (found && found.length) {
-        S.lastPhoto = { at: new Date().toISOString(), summary: String(ans.summary || '').slice(0, 300), items: found };
+        photoErr = '';
+        S.lastPhoto = { at: new Date().toISOString(), summary: typeof ans.summary === 'string' ? ans.summary.trim().slice(0, 300) : '', items: found };
         save(); WL.toast('Photo inventory result arrived');
       } else if (!e) {
-        photoErr = (ans && typeof ans.summary === 'string' && ans.summary) || 'Could not identify any food items in that photo.';
+        photoErr = noFoodMessage(ans);
       } else if (e) photoErr = e;
       if (view && /^#cook/.test(location.hash)) render();
     });

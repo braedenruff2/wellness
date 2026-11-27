@@ -28,4 +28,9 @@ t('onActivityResult deletes the empty camera row only when it is not the uri han
   const guard = r.slice(0, del).split('\n').slice(-3).join('\n');
   assert.ok(/!cameraPhotoUri\.equals\(u\)/.test(guard), 'guarded by !cameraPhotoUri.equals(u): ' + guard);
 });
+t('temporary fridge photos are tracked and cleaned up on launch and after the page reads them', () => {
+  assert.ok(/FridgePhoto\.createTemp/.test(src), 'creates tracked temp row');
+  assert.ok(/FridgePhoto\.cleanup/.test(src), 'sweeps leftover rows on launch');
+  assert.ok(/public void clearFridgePhotos\(\)/.test(src), 'JS bridge deletes row after reading');
+});
 console.log(n + ' android camera tests passed');

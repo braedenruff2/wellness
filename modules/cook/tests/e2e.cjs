@@ -138,10 +138,22 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(res.imgs, 0); assert.strictEqual(res.x, undefined);
     assert.ok(res.html.includes('&lt;img') && res.html.includes('&lt;b&gt;2') && !/~/.test(res.html), res.html);
     await page.click('#ck-photo-clear');
-    await page.evaluate(() => { const ask = window.WL.pc.ask; window.WL.pc.ask = (task, inp) => task === 'cook-photo' ? Promise.resolve({ items: [null, { name: '' }] }) : ask(task, inp); });
+    await page.evaluate(() => {
+      window.__photoClears = 0;
+      window.WL.native = Object.assign({}, window.WL.native || {}, { clearFridgePhotos: () => { window.__photoClears++; } });
+      const ask = window.WL.pc.ask;
+      window.WL.pc.ask = (task, inp) => task === 'cook-photo' ? Promise.resolve({ summary: { junk: true }, items: [null, { name: '' }] }) : ask(task, inp);
+    });
     await page.setInputFiles('#ck-photo-in', { name: 'fridge3.png', mimeType: 'image/png', buffer: png1x1 });
-    await page.waitForFunction(() => /Could not identify any food/.test(document.getElementById('view').textContent));
+    await page.waitForFunction(() => /No food found/i.test(document.getElementById('view').textContent));
+    const viewTxt = await page.textContent('#view');
+    assert.ok(/No food found/i.test(viewTxt) && /could not identify any food/i.test(viewTxt) && !/Found 0/.test(viewTxt), viewTxt);
     assert.ok(!(await page.$('#ck-photo-res')));
+    assert.strictEqual(await page.evaluate(() => window.__photoClears), 1, 'native clearFridgePhotos called after reading photo');
+    // Also calls clearFridgePhotos if the chosen file cannot be read as an image
+    await page.setInputFiles('#ck-photo-in', { name: 'not-img.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
+    await page.waitForFunction(() => window.__photoClears === 2);
+    assert.ok(/Please choose a photo/.test(await page.textContent('#view')));
 
     // Ask Claude for week plan
     await page.goto(base + '#cook/week');

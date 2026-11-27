@@ -117,10 +117,7 @@ public class MainActivity extends Activity {
                 Intent launch = pick;
                 if (wantImage) {
                     try {
-                        ContentValues cv = new ContentValues();
-                        cv.put(MediaStore.Images.Media.DISPLAY_NAME, "wellness-fridge-" + System.currentTimeMillis() + ".jpg");
-                        cv.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-                        Uri camUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, cv);
+                        Uri camUri = FridgePhoto.createTemp(MainActivity.this);
                         if (camUri != null) {
                             Intent cam = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
                             cam.putExtra(MediaStore.EXTRA_OUTPUT, camUri);
@@ -134,13 +131,14 @@ public class MainActivity extends Activity {
                                 launch = chooser;
                             } else {
                                 getContentResolver().delete(camUri, null, null);
+                                FridgePhoto.untrack(MainActivity.this, camUri);
                             }
                         }
                     } catch (Exception ignored) { cameraPhotoUri = null; }
                 }
                 try { ownScreenOnTop = true; startActivityForResult(launch, PICK_FILE); } catch (Exception e) {
                     ownScreenOnTop = false;
-                    if (cameraPhotoUri != null) { try { getContentResolver().delete(cameraPhotoUri, null, null); } catch (Exception ignored) { } cameraPhotoUri = null; }
+                    if (cameraPhotoUri != null) { try { getContentResolver().delete(cameraPhotoUri, null, null); } catch (Exception ignored) { } FridgePhoto.untrack(MainActivity.this, cameraPhotoUri); cameraPhotoUri = null; }
                     fileCallback = null; cb.onReceiveValue(null); return false;
                 }
                 return true;
@@ -177,6 +175,14 @@ public class MainActivity extends Activity {
             this::done, this::pcLink);
         voices.loadAsync();
         registerReceiver(noisy, new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY));
+        if (saved != null) {
+            String cu = saved.getString("cameraPhotoUri", null);
+            if (cu != null && FridgePhoto.isSafeTrackUri(cu)) cameraPhotoUri = Uri.parse(cu);
+        }
+        // sweep any leftover wellness-fridge-*.jpg rows from an earlier capture or process death
+        final Uri keepAtStart = cameraPhotoUri;
+        final Context appCtx = getApplicationContext();
+        new Thread(() -> FridgePhoto.cleanup(appCtx, keepAtStart, keepAtStart == null ? 0L : 60_000L), "wl-photo-clean").start();
         // after Android recreates the activity (e.g. split screen), come back to the same screen
         if (saved == null || web.restoreState(saved) == null)
             web.loadUrl("file:///android_asset/www/index.html" + startHash(getIntent()));
@@ -311,6 +317,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
+        if (cameraPhotoUri != null) out.putString("cameraPhotoUri", cameraPhotoUri.toString());
         if (web != null) web.saveState(out);
     }
 
@@ -344,6 +351,7 @@ public class MainActivity extends Activity {
             } else if (cameraPhotoUri != null && !cameraPhotoUri.equals(u)) {
                 // a picked file (or cancel): the empty camera row goes; never the photo a camera app handed back as u
                 try { getContentResolver().delete(cameraPhotoUri, null, null); } catch (Exception ignored) { }
+                FridgePhoto.untrack(MainActivity.this, cameraPhotoUri);
             }
             cameraPhotoUri = null;
             fileCallback.onReceiveValue(u == null ? null : new Uri[]{u});
@@ -504,6 +512,13 @@ public class MainActivity extends Activity {
                 else f |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
                 d.setSystemUiVisibility(f);
             });
+        }
+
+        /** Deletes temporary wellness-fridge-*.jpg MediaStore rows once the page has finished reading the photo. */
+        @JavascriptInterface public void clearFridgePhotos() {
+            final Context app = getApplicationContext();
+            final Uri keep = cameraPhotoUri;
+            new Thread(() -> FridgePhoto.cleanup(app, keep, 0L), "wl-photo-clean").start();
         }
 
         /** Saves a backup (or a text export) into Downloads. Returns where it went (shown to him), or "" on failure. */
