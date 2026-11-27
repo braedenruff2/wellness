@@ -1,5 +1,12 @@
 # Cloud log
 
+## 2026-11-27 13:45 AST (end of the run that started 26 Nov 19:43; APK 0.1.20261127.1745, real key, cert 6795e499...)
+- Other runs (Gemini and a second Claude run) pushed many commits meanwhile, incl. Gemini's cook-views.js split and the same task numbers. This run's last commits were replayed on top: recipe-word offer moved into cook-views.js, a unit lost in the conflict restored, its plan entries renumbered 380-390.
+- Done (plan 380-384): after Made it on a Filipino dish, one tap adds its Tagalog words to review; AI plans may carry Tagalog words (cleaned); notes reach summaries as [NEW]/[read]; Android Back closes the note sheet; Your words says "from Tinolang manok".
+- Flake fixed: workout e2e-break read the session clock while the page loaded (56:01 under load); the fake clock now stands still for that check.
+- Tested: full suite at 0e7c34b (113 suites, none skipped; this APK's code).
+- Check on the phone: Cooking > make a Filipino dish > "Add N Tagalog words to my review"; Tagalog > Your words shows them.
+
 ## 2026-11-27 13:15 AST (run2 ends)
 - Run2's last local commits (a second take on 244 and a to-do restore fix) were superseded upstream (year.cjs already makes to-dos; complete() now writes at: null, which fixes the same restore difference), so they were dropped, not pushed. 249 and 251 had already landed. No claims left open.
 
