@@ -442,4 +442,4 @@ rules; Home "today" list (module today()); reviews of every module + Android sid
 334. [any] Note for autopilot sheet: text typed but not saved (app sent to the background, killed, or the sheet closed by Back) is kept as a draft and offered next time the sheet opens; e2e with a reload mid-typing.
 335. [any] e2e-perf: Drive sync of a heavy year (tests/lib/year.cjs, ~3.5 MB file): building the sync JSON and the throttled write (30 min) never block Home's first draw > 200 ms at CPU 4x; fake bridge timing.
 336. (done 27 Nov, Claude: Finish and send is a 44 px button on its own row; e2e-draft step at 320 px / 1.3) e2e-narrow: Home's Parenting card at its fullest (scenario waiting + "Your question is saved, not sent yet" + Try this week tip + Last score) at 320 px / 1.3: nothing cut off, all links 44 px.
-337. [any] Settings "Hidden as not for me": more than 50 marks show the newest 50 and "Show all (N)"; Bring back on the last one removes the card; e2e.
+337. (done 27 Nov, Claude: newest 50 + Show all (N); e2e-hidden) Settings "Hidden as not for me": more than 50 marks show the newest 50 and "Show all (N)"; Bring back on the last one removes the card; e2e.

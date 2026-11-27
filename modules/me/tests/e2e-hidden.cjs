@@ -61,13 +61,31 @@ const W = require('../../../tests/lib/web.cjs');
     for (const w of want) assert.ok(items.includes(w), w + ' in ' + JSON.stringify(items));
     assert.ok(items.some((x) => /^Calm: Grounding|^Calm: 5-4-3-2-1/i.test(x)) && !items.includes('Calm: ground'), 'Calm practice by its title: ' + JSON.stringify(items));
   });
+  await t.step('more than 50 marks: the newest 50, then Show all (N)', async () => {
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1'));
+      me.feedback = Array.from({ length: 60 }, (_, i) => ({ id: 'workout/notfit/ex:E' + i + '/1', at: new Date(2026, 10, 1, 0, i).toISOString(), part: 'workout', about: 'ex:E' + i, kind: 'notfit', a: { reasons: [] }, shown: 'Exercise ' + i }));
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#settings'); await page.reload();
+    await page.click('#me-hidden summary');
+    assert.strictEqual(await page.locator('#me-hidden li:visible').count(), 50);
+    assert.ok((await page.locator('#me-hidden li:visible').first().textContent()).includes('Exercise 59'), 'newest first');
+    assert.strictEqual(await page.textContent('#me-hidden-all'), 'Show all (60)');
+    await page.click('#me-hidden [data-me-unfit]');
+    assert.strictEqual(await page.locator('#me-hidden li:visible').count(), 50, 'one brought back: the next one shows');
+    assert.strictEqual(await page.textContent('#me-hidden-all'), 'Show all (59)');
+    await page.click('#me-hidden-all');
+    assert.strictEqual(await page.locator('#me-hidden li:visible').count(), 59);
+    assert.strictEqual(await page.locator('#me-hidden-all').count(), 0);
+  });
   for (const theme of ['light', 'dark', 'night']) {
     for (const ts of [1, 1.3]) {
       await t.step(theme + ' at text size ' + ts + ': Hidden list readable (AA, 3:1 at night) and its buttons 44 px', async () => {
         await page.evaluate(([ts, theme]) => localStorage.setItem('wl.shell.v1', JSON.stringify({ theme, textSize: ts, since: '2026-10-01T12:00:00.000Z' })), [ts, theme]);
         await page.goto(base + '#settings'); await page.reload(); await page.waitForSelector('#me-hidden');
         await page.click('#me-hidden summary');
-        const small = await page.$$eval('#me-hidden summary, #me-hidden button', (els) => els.map((e) => ({ t: e.textContent.trim().slice(0, 20), h: Math.round(e.getBoundingClientRect().height) })).filter((x) => x.h < 44));
+        const small = await page.$$eval('#me-hidden summary, #me-hidden button', (els) => els.filter((e) => e.offsetParent !== null).map((e) => ({ t: e.textContent.trim().slice(0, 20), h: Math.round(e.getBoundingClientRect().height) })).filter((x) => x.h < 44));
         assert.deepStrictEqual(small, [], 'tap targets');
         const low = await page.evaluate(() => {
           const rgb = (s) => (s.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);

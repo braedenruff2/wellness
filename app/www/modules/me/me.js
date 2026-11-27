@@ -312,12 +312,14 @@
     if (!xs.length) return '';
     return '<details class="card ui" id="me-hidden"><summary>Hidden as “not for me” (' + xs.length + ')</summary>' +
       '<p class="meta">They stay out of the app’s screens and suggestions. Bring one back if you tapped it by mistake.</p><ul class="me-g">' +
-      xs.map(function (x) {
-        return '<li><span class="meta">' + esc(label(x.part)) + ':</span> ' + esc(aboutText(x).slice(0, 140)) +
+      xs.map(function (x, i) {
+        return '<li' + (i >= 50 ? ' hidden data-me-more="1"' : '') + '><span class="meta">' + esc(label(x.part)) + ':</span> ' + esc(aboutText(x).slice(0, 140)) +
           ' <button class="link" data-me-unfit="1" data-part="' + esc(x.part) + '" data-about="' + esc(x.about) + '">Bring back</button></li>';
-      }).join('') + '</ul></details>';
+      }).join('') + '</ul>' + (xs.length > 50 ? '<button class="link" id="me-hidden-all">Show all (' + xs.length + ')</button>' : '') + '</details>';
   }
   document.addEventListener('click', function (e) {
+    var all = e.target.closest && e.target.closest('#me-hidden-all');
+    if (all) { $$('#me-hidden [data-me-more]').forEach(function (li) { li.hidden = false; }); all.remove(); return; }
     var b = e.target.closest && e.target.closest('[data-me-unfit]');
     if (!b) return;
     K.unFit(S, b.dataset.part, b.dataset.about); save();
@@ -325,6 +327,8 @@
     if (li) li.remove();
     if (box) {
       var left = box.querySelectorAll('li').length, sm = box.querySelector('summary');
+      var more = box.querySelector('li[data-me-more][hidden]'); if (more) { more.hidden = false; more.removeAttribute('data-me-more'); }
+      var sa = box.querySelector('#me-hidden-all'); if (sa && !box.querySelector('li[hidden]')) sa.remove(); else if (sa) sa.textContent = 'Show all (' + left + ')';
       if (!left) box.remove(); else if (sm) sm.textContent = 'Hidden as “not for me” (' + left + ')';
     }
     WL.toast('Brought back');
