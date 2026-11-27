@@ -327,6 +327,7 @@
     // Filipino family dishes (everyday home versions, beginner steps)
     {
       id: 'tinola', title: 'Tinolang manok (chicken & ginger soup)', meal: 'dinner', mins: 35, effort: 'easy', filipino: true,
+      words: [{ tl: 'manok', en: 'chicken' }, { tl: 'luya', en: 'ginger' }, { tl: 'sayote', en: 'chayote' }, { tl: 'malunggay', en: 'moringa leaves' }, { tl: 'sabaw', en: 'soup, broth' }, { tl: 'patis', en: 'fish sauce' }],
       protein: '~30 g protein', workoutFit: true,
       babyNote: 'Ladle {child}’s bowl before adding fish sauce: shred her chicken off the bone, mash the soft chayote, and leave out the ginger slices.',
       tip: 'Cook the ginger and garlic until they smell strong before the chicken goes in; that is where the flavour comes from.',
@@ -350,6 +351,7 @@
     },
     {
       id: 'arroz-caldo', title: 'Arroz caldo (chicken rice porridge)', meal: 'breakfast', mins: 40, effort: 'batch', filipino: true,
+      words: [{ tl: 'lugaw', en: 'rice porridge' }, { tl: 'bigas', en: 'uncooked rice' }, { tl: 'itlog', en: 'egg' }, { tl: 'bawang', en: 'garlic' }, { tl: 'luya', en: 'ginger' }],
       protein: '~22 g protein', workoutFit: false,
       babyNote: 'Arroz caldo is soft enough for {child} as it is: take her bowl before the fish sauce, shred the chicken finely, and pick out the ginger.',
       tip: 'Keep stirring now and then once it thickens so the rice doesn’t stick to the bottom. It thickens more as it cools: add hot water to loosen leftovers.',
@@ -373,6 +375,7 @@
     },
     {
       id: 'monggo', title: 'Ginisang monggo (mung bean stew)', meal: 'lunch', mins: 45, effort: 'batch', filipino: true,
+      words: [{ tl: 'monggo', en: 'mung beans' }, { tl: 'kamatis', en: 'tomato' }, { tl: 'sibuyas', en: 'onion' }, { tl: 'bawang', en: 'garlic' }, { tl: 'ginisa', en: 'sautéed' }],
       protein: '~20 g protein', workoutFit: true,
       babyNote: 'The beans cook down soft and mashable: take {child}’s portion before the fish sauce and mash it a little with a fork.',
       tip: 'Mung beans need no soaking; they are done when they split open and turn creamy.',
@@ -394,6 +397,7 @@
     },
     {
       id: 'sinigang', title: 'Sinigang na baboy (sour pork soup)', meal: 'dinner', mins: 60, effort: 'batch', filipino: true,
+      words: [{ tl: 'baboy', en: 'pork' }, { tl: 'maasim', en: 'sour' }, { tl: 'sampalok', en: 'tamarind' }, { tl: 'labanos', en: 'radish' }, { tl: 'sitaw', en: 'string beans' }, { tl: 'kangkong', en: 'water spinach' }],
       protein: '~28 g protein', workoutFit: true,
       babyNote: 'Take out soft pork and radish for {child} before the sour mix and fish sauce go in (the mix is salty), and cut them small.',
       tip: 'Simmer the pork low and slow until it is tender; the vegetables go in only at the end so they stay bright.',
@@ -417,6 +421,7 @@
     },
     {
       id: 'adobo', title: 'Chicken adobo (adobong manok)', meal: 'dinner', mins: 45, effort: 'easy', filipino: true,
+      words: [{ tl: 'manok', en: 'chicken' }, { tl: 'toyo', en: 'soy sauce' }, { tl: 'suka', en: 'vinegar' }, { tl: 'dahon ng laurel', en: 'bay leaves' }, { tl: 'paminta', en: 'pepper' }, { tl: 'kanin', en: 'cooked rice' }],
       protein: '~32 g protein', workoutFit: true,
       babyNote: 'Adobo sauce is salty: give {child} a little shredded chicken with plenty of plain rice, and only a spoon of the sauce.',
       tip: 'Let the vinegar boil for a few minutes before you stir it in; it softens the sharp smell.',
@@ -438,6 +443,7 @@
     },
     {
       id: 'pancit', title: 'Pancit bihon (rice noodles with chicken & vegetables)', meal: 'lunch', mins: 30, effort: 'easy', filipino: true,
+      words: [{ tl: 'bihon', en: 'thin rice noodles' }, { tl: 'repolyo', en: 'cabbage' }, { tl: 'karot', en: 'carrot' }, { tl: 'manok', en: 'chicken' }, { tl: 'kalamansi', en: 'calamansi lime' }],
       protein: '~24 g protein', workoutFit: true,
       babyNote: 'Cut {child}’s noodles short with kitchen scissors (long noodles are hard for her to manage) and take her portion before the last soy sauce.',
       tip: 'Soak the noodles in warm water first; in the pan they only need to drink up the broth.',

@@ -264,6 +264,10 @@ t('Filipino family dishes: there, beginner-sized, {child} served before fish sau
     assert.ok(!/whole nut|popcorn|honey/i.test(r.babyNote), id);
   }
   assert.ok(K.sameFood('pork', 'pork shoulder') && K.sameFood('pork belly', 'pork') && !K.sameFood('pork', 'fish sauce'));
+  for (const r of K.RECIPES.filter((x) => x.filipino)) {
+    assert.ok(Array.isArray(r.words) && r.words.length >= 4, r.id + ' has its Tagalog words');
+    for (const w of r.words) assert.ok(/^[a-z ]+$/.test(w.tl) && w.en && w.en.length < 30, r.id + ': ' + JSON.stringify(w));
+  }
 });
 t('offline week plans: a recipe at most twice a week, no 45+ min dish on a workout day, and the weeks differ', () => {
   const seen = new Set();

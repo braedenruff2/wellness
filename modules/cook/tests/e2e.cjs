@@ -191,6 +191,22 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.deepStrictEqual(after.days['2026-11-26'], before.days['2026-11-26']);
   });
 
+  await t.step('a Filipino dish shows its Tagalog words, and 🔊 says them in the Tagalog voice', async () => {
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.cook.v1'));
+      s.plan.days['2026-11-26'].dinner = { recipeId: 'tinola', title: 'Tinolang manok (chicken & ginger soup)', status: 'planned', note: '' };
+      localStorage.setItem('wl.cook.v1', JSON.stringify(s)); WL.modules.cook.reload && WL.modules.cook.reload();
+    });
+    await page.goto(base + '#home'); await page.reload(); await page.goto(base + '#cook');
+    await page.waitForSelector('[data-ck-meal="dinner"] summary');
+    await page.click('[data-ck-meal="dinner"] summary');
+    const txt = await page.textContent('[data-ck-meal="dinner"] .ck-tl');
+    assert.ok(txt.includes('In Tagalog:') && txt.includes('manok') && txt.includes('chicken') && txt.includes('sayote'), txt);
+    await page.evaluate(() => { window.__said = []; WL.speech.speak = (text, done, o) => { window.__said.push([text, o && o.lang]); }; });
+    await page.click('[data-ck-meal="dinner"] [data-tl-say="luya"]');
+    assert.deepStrictEqual(await page.evaluate(() => window.__said), [['luya', 'fil-PH']]);
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('cook e2e');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

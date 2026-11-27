@@ -81,6 +81,9 @@
       '<ol style="margin:0 0 .6em;padding-left:1.3em">' + (r.steps || []).map(function (s) { return '<li style="margin:.3em 0">' + esc(pers(s)) + '</li>'; }).join('') + '</ol>' +
       (r.babyNote ? '<p class="gentle" style="margin:.4em 0"><b>For ' + esc(childLabel()) + ':</b> ' + esc(pers(r.babyNote)) + '</p>' : '') +
       (r.tip ? '<p class="meta" style="margin:.3em 0 0"><b>Beginner tip:</b> ' + esc(pers(r.tip)) + '</p>' : '') +
+      // a Filipino dish: its words in Tagalog, to hear (the Tagalog voice, like the lessons)
+      (Array.isArray(r.words) && r.words.length ? '<div class="ck-tl" style="margin-top:.5em"><p class="meta" style="margin:0 0 .2em"><b>In Tagalog:</b></p><ul class="list">' +
+        r.words.map(function (w) { return '<li class="row"><span class="grow"><b lang="tl">' + esc(w.tl) + '</b> <span class="meta">' + esc(w.en) + '</span></span><button class="link small hear" type="button" data-tl-say="' + esc(w.tl) + '" aria-label="Hear ' + esc(w.tl) + '">🔊</button></li>'; }).join('') + '</ul></div>' : '') +
       '</details>';
   }
 
@@ -425,6 +428,7 @@
 
   function wire() {
     var d = curTab === 'log' ? now() : realNow(), tIso = K.iso(d);
+    $$('[data-tl-say]', view).forEach(function (b) { b.onclick = function () { WL.speech.speak(b.dataset.tlSay, null, { lang: 'fil-PH', rate: 0.8 }); }; });
     if (curTab === '') {
       $$('[data-use-recipe]', view).forEach(function (b) {
         b.onclick = function () {
