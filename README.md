@@ -68,7 +68,8 @@ reads anything they can't (before the downloads, or if something fails).
 - **About you** (`modules/me`, 20 Nov 2026, so guidance fits him instead of being generic): a 20-second daily check-in
   first on Home (sleep, night wakes, energy, mood, the day with her, one line); one-tap questions at the end of a calm
   practice, a workout, a guided prayer, a Tagalog lesson and on Parenting's "This week, try" tips; "Not for me?" (reasons +
-  note) on suggestions and advice; "For you" lines on Home from those answers (rough night, low mood -> talk to someone /
+  note) on suggestions and advice (a marked item leaves the screens; Settings > "Hidden as not for me" brings one back;
+  guidance lines come back after 14 days, a Faith day's parts on the next walk of the path); "For you" lines on Home from those answers (rough night, low mood -> talk to someone /
   811, workout too hard / pain / easy, what helps, a tip that worked); Calm's suggestion uses them (marked-down ones left
   out, liked ones first, short ones after a rough night). Weekly plan: the PC task `weekly-plan` (claude -p, no tools)
   reads 14 days of activity + answers and writes a focus and "why, from your data" per part, shown on Home, #me and each
