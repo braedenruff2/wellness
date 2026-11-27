@@ -1,12 +1,16 @@
 /* Ambient background noise for Calm sits & quiet timer (pure Web Audio API, 100% offline, zero audio files).
-   Kinds: 'off' | 'brown' (warm, deep) | 'pink' (soft rain-like) | 'white'.
+   Kinds: 'off' | 'brown' (warm, deep) | 'pink' (soft rain-like) | 'white' | 'fan' (steady, mid) | 'ocean' (slow swells).
    Uses AudioBufferSourceNode + BiquadFilterNode + GainNode (never OscillatorNode, so bell-tone tests stay untouched). */
 (function (root) {
   'use strict';
-  var KINDS = ['off', 'brown', 'pink', 'white'];
-  var LABELS = { off: 'Off', brown: 'Warm brown', pink: 'Soft rain', white: 'White noise' };
-  var GAIN = { brown: 0.14, pink: 0.08, white: 0.045 };
-  var FREQ = { brown: 420, pink: 1400, white: 4200 };
+  var KINDS = ['off', 'brown', 'pink', 'white', 'fan', 'ocean'];
+  var LABELS = { off: 'Off', brown: 'Warm brown', pink: 'Soft rain', white: 'White noise', fan: 'Fan', ocean: 'Slow waves' };
+  var GAIN = { brown: 0.2, pink: 0.08, white: 0.045, fan: 0.09, ocean: 0.15 };
+  /* Loudness before GAIN (RMS): pink and white as they always were; brown as before (gain moved into GAIN) with fewer clipped peaks. */
+  var LEVEL = { brown: 0.22, pink: 0.19, white: 0.577, fan: 0.22, ocean: 0.16 };
+  var FREQ = { brown: 420, pink: 1400, white: 4200, fan: 900, ocean: 1100 };
+  /* Loop lengths: long enough that the ear can't hear the loop repeat (a 3 s brown loop sounded like a drum beat). */
+  var SECS = { brown: 23, pink: 19, white: 11, fan: 17, ocean: 37 };
 
   var ctx = null, active = null, curKind = 'off';
 
@@ -18,40 +22,73 @@
     return ctx;
   }
 
-  /* Generate a 3-second seamless noise buffer of the requested colour. */
+  /* The samples of one loop of a kind (pure, for tests). Seamless by construction, with no cross-fade: each filter
+     runs over the white noise twice (circularly), so the state the loop starts from is the state it ends in, and
+     the last sample flows into the first like any two neighbours. Level set by RMS, not by the loudest peak. */
+  function samples(kind, rate, secs, rand) {
+    rand = rand || Math.random;
+    var len = Math.max(64, Math.floor((rate || 44100) * (secs || SECS[kind] || 10)));
+    var w = new Float32Array(len), out = new Float32Array(len), i, p;
+    for (i = 0; i < len; i++) w[i] = rand() * 2 - 1;
+    if (kind === 'white') {
+      out.set(w);
+    } else if (kind === 'pink' || kind === 'ocean') {
+      var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0, x;
+      for (p = 0; p < 2; p++) for (i = 0; i < len; i++) {
+        x = w[i];
+        b0 = 0.99886 * b0 + x * 0.0555179;
+        b1 = 0.99332 * b1 + x * 0.0750759;
+        b2 = 0.96900 * b2 + x * 0.1538520;
+        b3 = 0.86650 * b3 + x * 0.3104856;
+        b4 = 0.55000 * b4 + x * 0.5329522;
+        b5 = -0.7616 * b5 - x * 0.0168980;
+        if (p) out[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + x * 0.5362;
+        b6 = x * 0.115926;
+      }
+    } else { // brown (deep) and fan (steady, mid): leaky integration of white noise, then a DC blocker
+      var leak = kind === 'fan' ? 0.9 : 0.98, last = 0;
+      for (p = 0; p < 2; p++) for (i = 0; i < len; i++) {
+        last = leak * last + (1 - leak) * w[i];
+        if (p) out[i] = last;
+      }
+    }
+    if (kind !== 'white') { // a gentle high-pass (~4 Hz), also run circularly: no slow drift that would thump
+      var pole = Math.exp(-2 * Math.PI * 4 / (rate || 44100)), hx = 0, hy = 0, v;
+      for (p = 0; p < 2; p++) for (i = 0; i < len; i++) {
+        v = out[i] - hx + pole * hy; hx = out[i]; hy = v;
+        if (p) w[i] = v; // w (the white noise) is no longer needed: it holds the result
+      }
+      out.set(w);
+    }
+    if (kind === 'ocean') {
+      // slow swells, irregular but periodic over the loop (2, 3 and 5 swells a loop: 7-18 s apart), never silent
+      var T = len, a = rand() * 6.283, b = rand() * 6.283, c = rand() * 6.283, e;
+      var env = function (j) {
+        var ph = 6.283185307 * j / T;
+        e = 0.5 + 0.5 * (0.5 * Math.sin(2 * ph + a) + 0.3 * Math.sin(3 * ph + b) + 0.2 * Math.sin(5 * ph + c));
+        return 0.3 + 0.7 * e * e;
+      };
+      for (var j0 = 0; j0 < len; j0 += 256) { // the swell changes slowly: worked out every 256 samples, joined in straight lines
+        var e0 = env(j0), e1 = env(j0 + 256), n = Math.min(256, len - j0);
+        for (i = 0; i < n; i++) out[j0 + i] *= e0 + (e1 - e0) * i / 256;
+      }
+    }
+    var sum = 0;
+    for (i = 0; i < len; i++) sum += out[i] * out[i];
+    var rms = Math.sqrt(sum / len) || 1, k = (LEVEL[kind] || 0.22) / rms;
+    for (i = 0; i < len; i++) out[i] = Math.max(-1, Math.min(1, out[i] * k));
+    return out;
+  }
+
+  /* Made once per kind and kept (the last 3), so switching sounds during a sit is instant the second time. */
+  var made = [];
   function makeBuffer(c, kind) {
-    var rate = c.sampleRate || 44100, len = Math.floor(rate * 3);
-    var buf = c.createBuffer(1, len, rate), data = buf.getChannelData(0);
-    var i, w;
-    if (kind === 'brown') {
-      var last = 0;
-      for (i = 0; i < len; i++) {
-        w = Math.random() * 2 - 1;
-        last = (last + 0.02 * w) / 1.02;
-        data[i] = Math.max(-1, Math.min(1, last * 3.2));
-      }
-    } else if (kind === 'pink') {
-      var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-      for (i = 0; i < len; i++) {
-        w = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + w * 0.0555179;
-        b1 = 0.99332 * b1 + w * 0.0750759;
-        b2 = 0.96900 * b2 + w * 0.1538520;
-        b3 = 0.86650 * b3 + w * 0.3104856;
-        b4 = 0.55000 * b4 + w * 0.5329522;
-        b5 = -0.7616 * b5 - w * 0.0168980;
-        data[i] = Math.max(-1, Math.min(1, (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.11));
-        b6 = w * 0.115926;
-      }
-    } else {
-      for (i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-    }
-    // Cross-fade the loop ends over 40 ms so looping has zero click
-    var fade = Math.min(Math.floor(rate * 0.04), Math.floor(len / 4));
-    for (i = 0; i < fade; i++) {
-      var k = i / fade;
-      data[i] = data[i] * k + data[len - fade + i] * (1 - k);
-    }
+    var rate = c.sampleRate || 44100;
+    for (var i = 0; i < made.length; i++) if (made[i].kind === kind && made[i].c === c) return made[i].buf;
+    var data = samples(kind, rate);
+    var buf = c.createBuffer(1, data.length, rate);
+    if (buf.copyToChannel) buf.copyToChannel(data, 0); else buf.getChannelData(0).set(data);
+    made.push({ kind: kind, c: c, buf: buf }); if (made.length > 3) made.shift();
     return buf;
   }
 
@@ -112,7 +149,7 @@
     } catch (e) { return false; }
   }
 
-  var api = { KINDS: KINDS, LABELS: LABELS, start: start, stop: stop, duck: duck, current: function () { return curKind; } };
+  var api = { KINDS: KINDS, LABELS: LABELS, samples: samples, start: start, stop: stop, duck: duck, current: function () { return curKind; } };
   root.WLNoise = api;
   if (root.WL) root.WL.noise = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

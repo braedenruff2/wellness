@@ -145,6 +145,42 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off', 'ending sit stops noise');
   });
 
+  await t.step('during a sit the sound can be switched or turned off (the row stays), paused it waits, gone on the questions', async () => {
+    await page.goto(base + '#calm/s/count');
+    await page.waitForSelector('#c-noise-pick');
+    await page.click('#c-noise-pick [data-noise="brown"]');
+    await page.click('#c-pp');
+    await page.clock.runFor(2000);
+    assert.strictEqual(await page.isVisible('#c-noise-row'), true, 'sound choice still on screen during the sit');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'brown');
+    const names = await page.$$eval('#c-noise-pick [data-noise]', (bs) => bs.map((b) => b.textContent));
+    assert.deepStrictEqual(names, ['Off', 'Warm brown', 'Soft rain', 'White noise', 'Fan', 'Slow waves']);
+    await page.click('#c-noise-pick [data-noise="fan"]');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'fan', 'switched at once');
+    assert.strictEqual(await page.getAttribute('#c-noise-pick [data-noise="fan"]', 'aria-pressed'), 'true');
+    await page.click('#c-noise-pick [data-noise="off"]');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off', 'turned off mid-sit');
+    await page.click('#c-noise-pick [data-noise="ocean"]');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'ocean');
+    await page.click('#c-pp'); // pause
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off');
+    await page.click('#c-noise-pick [data-noise="pink"]');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off', 'paused: no sound until Resume');
+    await page.click('#c-pp'); // resume
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'pink', 'Resume plays the newly picked sound');
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).settings.noise);
+    assert.strictEqual(saved, 'pink', 'kept for the next sit');
+    // the dark screen comes over it after 10 s; a tap lights it again and the row is there to tap
+    await page.clock.runFor(11000);
+    await page.waitForSelector('#c-dark');
+    await page.click('#c-dark');
+    await page.click('#c-noise-pick [data-noise="brown"]');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'brown');
+    await page.click('#c-end');
+    await page.waitForSelector('#c-today');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off');
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.step('the soft interval bell dips the background sound so it is heard; nothing to dip when the sound is off', async () => {
     await page.goto(base + '#calm');

@@ -317,7 +317,7 @@
   }
   function timesDone(state, id) { return state.sessions.filter(function (s) { return s.id === id; }).length; }
 
-  var DAILY_GOALS = [1, 5, 10, 15, 20], SIT_LENGTHS = [10, 15, 20, 30], NOISE_KINDS = ['off', 'brown', 'pink', 'white'];
+  var DAILY_GOALS = [1, 5, 10, 15, 20], SIT_LENGTHS = [10, 15, 20, 30], NOISE_KINDS = ['off', 'brown', 'pink', 'white', 'fan', 'ocean'];
   function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10, aim: null, stage: 'count', sitMinutes: 20, dark: true, interval: 0, sitQuiet: false, noise: 'off' } }; }
   /* A quiet sit (settings.sitQuiet): the opening steps up to the main instruction (the first long silence), then
      silence, then the last two closing lines. The silences of the dropped lines go to the main one, so scaleScript

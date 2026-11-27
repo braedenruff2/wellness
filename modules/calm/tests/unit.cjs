@@ -468,12 +468,40 @@ t('pathLate: two late, sleepy, wandering sits in a row -> suggest earlier (or hi
   assert.strictEqual(K.pathLate(v, new Date(2026, 10, 22)), null, 'restless, not sleepy');
 });
 t('ambient noise setting: off by default, valid kinds kept, unknown values reset to off', () => {
-  assert.deepStrictEqual(K.NOISE_KINDS, ['off', 'brown', 'pink', 'white']);
+  assert.deepStrictEqual(K.NOISE_KINDS, ['off', 'brown', 'pink', 'white', 'fan', 'ocean']);
+  assert.deepStrictEqual(K.NOISE_KINDS, require('../../../app/www/lib/noise.js').KINDS, 'the same list as the sound player');
   assert.strictEqual(K.defaults().settings.noise, 'off');
-  for (const kind of ['brown', 'pink', 'white']) {
+  for (const kind of ['brown', 'pink', 'white', 'fan', 'ocean']) {
     assert.strictEqual(K.validate({ sessions: [], settings: { noise: kind } }).settings.noise, kind);
   }
-  assert.strictEqual(K.validate({ sessions: [], settings: { noise: 'ocean' } }).settings.noise, 'off');
+  assert.strictEqual(K.validate({ sessions: [], settings: { noise: 'thunder' } }).settings.noise, 'off');
   assert.strictEqual(K.validate({ sessions: [] }).settings.noise, 'off');
+});
+t('background sounds loop with no seam and no beat (his note: the brown noise had a drum sound)', () => {
+  const N = require('../../../app/www/lib/noise.js');
+  let seed = 7; const rand = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  for (const kind of ['brown', 'pink', 'fan', 'ocean']) {
+    const rate = 8000, x = N.samples(kind, rate, undefined, rand), len = x.length;
+    assert.ok(len / rate >= 15, kind + ': a loop long enough not to be heard repeating (' + (len / rate) + ' s)');
+    // the loop point is like any two neighbouring samples: the jump there is within the normal spread of steps
+    const steps = []; for (let i = 1; i < len; i++) steps.push(Math.abs(x[i] - x[i - 1]));
+    steps.sort((a, b) => a - b);
+    const p999 = steps[Math.floor(steps.length * 0.999)], seam = Math.abs(x[0] - x[len - 1]);
+    assert.ok(seam <= p999, kind + ': seam jump ' + seam.toFixed(4) + ' vs 99.9th pct step ' + p999.toFixed(4));
+    // no level dip at the seam (the old cross-fade dipped every 3 s): the 50 ms either side of the loop point as loud as the rest
+    const win = Math.floor(rate * 0.05), rms = (a) => Math.sqrt(a.reduce((s, v) => s + v * v, 0) / a.length);
+    const around = Array.from(x.slice(len - win)).concat(Array.from(x.slice(0, win))), all = rms(Array.from(x));
+    if (kind !== 'ocean') assert.ok(rms(around) > all * 0.5, kind + ': no dip at the loop point');
+    // no slow drift (a thump): 1-second averages stay near zero
+    for (let s = 0; s + rate <= len; s += rate) {
+      let m = 0; for (let i = s; i < s + rate; i++) m += x[i];
+      assert.ok(Math.abs(m / rate) < all * 0.35, kind + ': 1 s mean ' + (m / rate).toFixed(3) + ' near zero');
+    }
+    assert.ok(x.every((v) => v >= -1 && v <= 1 && Number.isFinite(v)), kind + ': in range');
+  }
+  // the same random numbers: the same sound (pure), and white noise keeps its old level
+  seed = 3; const a = N.samples('brown', 4000, 2, rand); seed = 3; const b = N.samples('brown', 4000, 2, rand);
+  assert.deepStrictEqual(Array.from(a), Array.from(b));
+  assert.deepStrictEqual(Object.keys(N.LABELS), N.KINDS);
 });
 console.log(n + ' calm unit tests passed');

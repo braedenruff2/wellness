@@ -51,7 +51,7 @@
   function quietChip(p) { return Sit.quietChip(S, p); }
   function noiseChips(idAttr) {
     var cur = (S.settings && S.settings.noise) || 'off';
-    var labels = (window.WLNoise && WLNoise.LABELS) || { off: 'Off', brown: 'Warm brown', pink: 'Soft rain', white: 'White noise' };
+    var labels = (window.WLNoise && WLNoise.LABELS) || { off: 'Off', brown: 'Warm brown', pink: 'Soft rain', white: 'White noise', fan: 'Fan', ocean: 'Slow waves' };
     return '<div class="chips" id="' + idAttr + '" role="group" aria-label="Background sound">' + K.NOISE_KINDS.map(function (k) {
       return '<button class="chip" type="button" data-noise="' + k + '" aria-pressed="' + (cur === k) + '">' + esc(labels[k] || k) + '</button>';
     }).join('') + '</div>';
@@ -320,6 +320,7 @@
     var rec = K.record(S, p.id, m, before, null, sessionTime(started)); save(); // saved straight away; "Done" only adds the after rating
     run = { p: p, done: true, mins: m, before: before, rec: rec };
     $('#c-pp').hidden = true; if ($('#c-before')) $('#c-before').hidden = true; $('#c-after').hidden = false;
+    var nr = $('#c-noise-row'); if (nr) nr.hidden = true; // the sound has stopped: no sound choice on the questions
     if (window.WLMe && !p.path) $('#c-after').insertAdjacentHTML('afterbegin', WLMe.askHtml('calm', p.id + '@' + rec.at));
     var td = K.today(S), l = $('#c-label') || $('#c-line');
     if (l && p.path) l.textContent = 'Well done. ' + Math.max(1, Math.round(m)) + ' min of practice.';
@@ -339,7 +340,7 @@
     var lc = $('#c-len'); if (lc) lc.hidden = true;
     var ex = $('#c-exact'); if (ex) ex.hidden = true;
     var exn = $('#c-exact-note'); if (exn) exn.hidden = true;
-    var nr = $('#c-noise-row'); if (nr) nr.hidden = true;
+    // the sound row stays: the sound can be switched or turned off during the sit (his note: a sound he didn't like)
     var qr = $('#c-quiet-row'); if (qr) qr.hidden = true;
     var ft = $('#c-first-tip'); if (ft) ft.hidden = true;
     if ($('#c-before')) $('#c-before').hidden = true;
@@ -428,6 +429,10 @@
     $$('#c-noise-pick [data-noise]').forEach(function (b) { b.onclick = function () {
       S.settings.noise = b.dataset.noise; save();
       $$('#c-noise-pick [data-noise]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+      // during a sit the new sound plays at once (or stops); paused, it waits for Resume
+      if (run && run.p === p && !run.done && !run.paused && run.start && usesAlarm(p) && window.WLNoise) {
+        if (S.settings.noise === 'off') WLNoise.stop(); else WLNoise.start(S.settings.noise);
+      }
     }; });
     var qb = $('#c-quiet');
     if (qb) qb.onclick = function () { S.settings.sitQuiet = !S.settings.sitQuiet; save(); qb.setAttribute('aria-pressed', !!S.settings.sitQuiet); };
