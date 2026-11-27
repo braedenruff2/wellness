@@ -552,7 +552,11 @@
       f._t = setTimeout(function () { if (f.isConnected) { delete f.dataset.sure; f.textContent = 'Turn off Drive sync'; } }, 4000);
     };
   }
-  function redrawSync() { var el = $('#wl-sync'); if (el) { el.outerHTML = syncHtml(); wireSync(); } }
+  function redrawSync() {
+    var el = $('#wl-sync'); if (el) { el.outerHTML = syncHtml(); wireSync(); }
+    var bn = $('#wl-backup'); if (bn && !backupDue()) bn.remove();
+    var sn = $('#wl-sync-nudge'); if (sn && !syncNudge()) sn.remove();
+  }
   // coming back from Android's "Install unknown apps" screen: show the new state
   document.addEventListener('visibilitychange', function () { if (!document.hidden) redrawUpdate(); });
   // an update never installs during a guided prayer or calm session (Android asks the page)

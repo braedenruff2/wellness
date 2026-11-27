@@ -164,8 +164,46 @@ const FAKE_DRIVE = `
     await page.click('#wl-backup a[href="#settings/sync"]');
     await page.waitForSelector('#wl-sync-pick');
   });
+  await t.step('Settings > Sync: failed sync errors clear on next successful sync and Home nudge disappears', async () => {
+    // Also fail answers sheet read so both #wl-sync-err and #wl-sync-ans-err show in Settings
+    await page.evaluate(() => { window.__drive.failAnswers = 'Sheet export failed'; });
+    await page.goto(base + '#settings');
+    await page.waitForSelector('#wl-sync-now');
+    await page.click('#wl-sync-now');
+    await page.waitForSelector('#wl-sync-err');
+    await page.waitForSelector('#wl-sync-ans-err');
+    assert.ok((await page.textContent('#wl-sync-err')).includes('Drive refused'));
+    assert.ok((await page.textContent('#wl-sync-ans-err')).includes('Sheet export failed'));
+    // Bridge recovers -> Sync now clears both errors in Settings and clears Home's stale-sync nudge
+    await page.evaluate(() => { window.__drive.failWrite = null; window.__drive.failAnswers = null; });
+    await page.click('#wl-sync-now');
+    await page.waitForFunction(() => !document.getElementById('wl-sync-err') && !document.getElementById('wl-sync-ans-err'));
+    assert.strictEqual(await page.$('#wl-sync-err'), null, 'sync error cleared after successful sync');
+    assert.strictEqual(await page.$('#wl-sync-ans-err'), null, 'answers error cleared after successful sync');
+    await page.goto(base + '#home');
+    assert.strictEqual(await page.$('#wl-backup'), null, 'Home backup nudge gone after successful sync');
+    assert.strictEqual(await page.$('#wl-sync-nudge'), null, 'Home sync nudge gone');
+    // Live clear on Home: if Home is showing #wl-backup after 15 failing days and a sync succeeds, #wl-backup removes live
+    await page.evaluate(() => { window.__drive.failWrite = 'Offline'; });
+    await page.clock.fastForward(15 * 864e5);
+    await page.evaluate(() => WL.driveSync.sync().catch(() => {}));
+    await page.goto(base + '#settings'); await page.goto(base + '#home');
+    await page.waitForSelector('#wl-backup');
+    await page.evaluate(() => { window.__drive.failWrite = null; return WL.driveSync.sync({ auto: false }); });
+    await page.waitForFunction(() => !document.getElementById('wl-backup'));
+  });
   await t.step('a backup file saved after the last Drive sync: the nudge counts from the backup', async () => {
-    await page.evaluate(() => { const s = JSON.parse(localStorage.getItem('wl.shell.v1')); s.lastBackup = new Date(Date.now() - 14.5 * 864e5).toISOString(); s.nudged = null; localStorage.setItem('wl.shell.v1', JSON.stringify(s)); });
+    await page.evaluate(() => {
+      window.__drive.lastSync = Date.now() - 20 * 864e5;
+      localStorage.setItem('test.drive.lastSync', String(window.__drive.lastSync));
+      const ds = JSON.parse(localStorage.getItem('wl.sync.v1') || '{}');
+      ds.lastSync = new Date(window.__drive.lastSync).toISOString();
+      localStorage.setItem('wl.sync.v1', JSON.stringify(ds));
+      const s = JSON.parse(localStorage.getItem('wl.shell.v1'));
+      s.lastBackup = new Date(Date.now() - 14.5 * 864e5).toISOString();
+      s.nudged = null;
+      localStorage.setItem('wl.shell.v1', JSON.stringify(s));
+    });
     await page.reload();
     await page.goto(base + '#home');
     const txt = await page.textContent('#wl-backup');
