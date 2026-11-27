@@ -608,4 +608,13 @@ t('hiddenList: one row per marked item, newest first; guide lines only for 14 da
   assert.strictEqual(K.answers(s, 'calm', 'body@1').helped, 'A bit', 'quick answers untouched');
   assert.strictEqual(K.unFit(s, 'calm', 'nothing'), 0);
 });
+t('600 answers at most: the oldest quick answers go, an old "Not for me" mark stays', () => {
+  const s = K.defaults();
+  K.notFit(s, 'calm', 'ground', 'Grounding', [], '', D(1, 8));
+  for (let i = 0; i < 620; i++) K.answer(s, 'calm', 'sigh@' + i, 'helped', 'A bit', new Date(2026, 10, 2, 0, i));
+  assert.strictEqual(s.feedback.length, 600);
+  assert.strictEqual(K.flagged(s, 'calm', 'ground'), true, 'mark kept');
+  assert.strictEqual(K.answers(s, 'calm', 'sigh@619').helped, 'A bit', 'newest kept');
+  assert.strictEqual(K.answers(s, 'calm', 'sigh@0').helped, undefined, 'oldest answer dropped');
+});
 console.log(n + ' me unit tests passed');

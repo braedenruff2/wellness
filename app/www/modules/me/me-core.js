@@ -116,7 +116,14 @@
     return n - state.feedback.length;
   }
 
-  function trim(state) { if (state.feedback.length > 600) state.feedback = state.feedback.slice(-600); }
+  /* At most 600 answers: the oldest quick answers go first; "Not for me" marks are kept (they're few, and dropping
+     one would quietly bring back something he hid). */
+  function trim(state) {
+    var over = state.feedback.length - 600;
+    if (over <= 0) return;
+    state.feedback = state.feedback.filter(function (f) { if (over > 0 && !(f && f.kind === 'notfit')) { over--; return false; } return true; });
+    if (state.feedback.length > 600) state.feedback = state.feedback.slice(-600);
+  }
 
   function trimCheckins(state) {
     var days = Object.keys(state.checkins).sort();
