@@ -522,14 +522,18 @@ args = json.load(open(FAKE + ".args"))
 check("cook-photo allows Read tool only", args[args.index("--tools") + 1] == "Read" and args[args.index("--allowedTools") + 1] == "Read", args)
 check("cook-photo cleans up temp image files after job", not any(f.startswith("cook-photo-") for f in os.listdir(W.STATE)))
 st, o, _ = req("POST", "/v1/activity", {"events": [
-    {"id": "note/n1", "at": today + "T15:00:00-04:00", "part": "app", "kind": "autopilot-note", "text": "Add exact timer to Calm", "data": {"where": "#calm", "tag": "Feature"}},
+    {"id": "note/n1", "at": today + "T15:00:00-04:00", "part": "app", "kind": "autopilot-note", "text": "Add exact timer to Calm", "data": {"where": "#calm", "tag": "Feature", "nid": "n1"}},
+    {"id": "note/n1/r", "at": today + "T15:00:00-04:00", "part": "app", "kind": "autopilot-note", "text": "Add exact timer to Calm", "data": {"where": "#calm", "tag": "Feature", "nid": "n1", "read": today + "T20:00:00-04:00"}},
+    {"id": "note/n2", "at": today + "T16:00:00-04:00", "part": "app", "kind": "autopilot-note", "text": "More Filipino recipes", "data": {"where": "#cook", "tag": "Idea", "nid": "n2"}},
     {"id": "cook/m1", "at": today + "T18:00:00-04:00", "part": "cook", "kind": "me-meal", "text": "Baked salmon", "data": {"meal": "dinner", "portion": "Large"}},
     {"id": "cook/c1", "at": today + "T12:00:00-04:00", "part": "cook", "kind": "child-meal", "text": "Soft egg", "data": {"meal": "lunch", "ate": "Most of it"}}
 ]}, token=token)
-check("autopilot notes and cook events accepted", st == 200 and o.get("saved") == 3, (st, o))
+check("autopilot notes and cook events accepted", st == 200 and o.get("saved") == 5, (st, o))
 _sm2 = W.summarize(7)
 check("summary includes cook counts and autopilot notes section",
       "his meals: Baked salmon" in _sm2 and "little one: Soft egg" in _sm2 and "Notes he left for the autopilot" in _sm2 and "Add exact timer to Calm" in _sm2, _sm2)
+check("summary: one line per note, read ones marked, new ones NEW",
+      _sm2.count("Add exact timer to Calm") == 1 and "[read] Add exact timer to Calm" in _sm2 and "[NEW] More Filipino recipes" in _sm2, _sm2)
 
 os.environ["WELLNESS_CLAUDE"] = os.path.join(TMP, "no-such-claude")
 st, r = ask("advice", {})

@@ -236,6 +236,11 @@ t('autopilot notes (wl.notes.v1) and cooking logs (wl.cook.v1) emit activity eve
   assert.ok(A.describe(ev[0]).includes('Add white noise to sits') && A.describe(ev[0]).includes('#calm/s/count'), A.describe(ev[0]));
   assert.ok(A.describe(ev[1]).includes('Soft egg & banana') && A.describe(ev[1]).includes('Most of it'), A.describe(ev[1]));
   assert.ok(A.describe(ev[2]).includes('Baked salmon & spinach') && A.describe(ev[2]).includes('Large'), A.describe(ev[2]));
+  // once the autopilot has read it, the note goes again under a new id with read set (the PC keeps both, the summary marks it)
+  assert.strictEqual(ev[0].data.read, null);
+  N.markRead(ns, [ns.notes[0].id], '2026-11-27T01:00:00.000Z');
+  const e2 = A.collect({ 'wl.notes.v1': ns }, {}, now)[0];
+  assert.strictEqual(e2.id, ev[0].id + '/r'); assert.strictEqual(e2.data.read, '2026-11-27T01:00:00.000Z'); assert.strictEqual(e2.data.nid, ns.notes[0].id);
 });
 t('a "not for me" brought back is sent as removed (fb/<id>/x) so the PC drops the old mark', () => {
   const me = { checkins: {}, feedback: [], unfitted: [{ id: 'calm/notfit/ground/1795', part: 'calm', at: '2026-11-19T10:00:00.000Z' }, { id: 'x', part: 'calm', at: 'bad' }] };

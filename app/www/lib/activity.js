@@ -193,12 +193,12 @@
     (s.notes || []).forEach(function (n) {
       if (!n || !okDate(n.at) || !n.text) return;
       out.push({
-        id: 'app/note/' + n.id,
+        id: 'app/note/' + n.id + (okDate(n.read) ? '/r' : ''), // read by the autopilot: a new id, so the PC gets it too
         at: n.at,
         part: 'app',
         kind: 'autopilot-note',
         text: cut((n.tag ? '[' + n.tag + '] ' : '') + (n.where ? '(' + n.where + ') ' : '') + n.text, 1200),
-        data: { where: n.where || '', tag: n.tag || 'Idea' }
+        data: { where: n.where || '', tag: n.tag || 'Idea', read: okDate(n.read) ? n.read : null, nid: String(n.id) }
       });
     });
   };

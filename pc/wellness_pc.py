@@ -547,10 +547,18 @@ def summarize(days=7, today=None):
             if bits: extra = "; " + "; ".join(bits)
         lines.append(f"- {part}: {kinds(es)} on {d} day(s){extra}")
     notes = [e for e in ev if e["part"] == "app" and e["kind"] == "autopilot-note" and e.get("text")]
+    # one line per note (a read note arrives again under a new id): read ones are marked so no run handles them twice
+    seen_note = {}
+    for e in notes:
+        nid = (e.get("data") or {}).get("nid") or e["id"]
+        if nid not in seen_note or (e.get("data") or {}).get("read"):
+            seen_note[nid] = e
+    notes = sorted(seen_note.values(), key=lambda e: e["at"])
     if notes:
-        lines.append("Notes he left for the autopilot (newest last):")
+        lines.append("Notes he left for the autopilot (newest last; NEW = not read by a run yet):")
         for e in notes[-20:]:
-            lines.append(f"  - {local_day(e['at'])} {e['text']}")
+            mark = "read" if (e.get("data") or {}).get("read") else "NEW"
+            lines.append(f"  - {local_day(e['at'])} [{mark}] {e['text']}")
     # an answer he tapped and then un-tapped arrives as an empty one (newest wins on the PC): nothing to say about it
     fb = [e for e in ev if e["kind"] == "not-for-me" or (e["kind"] == "feedback" and (e.get("text") or ((e.get("data") or {}).get("a") or {})))]
     if fb:
