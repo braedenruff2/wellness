@@ -38,7 +38,7 @@ if 'FAIL-PLEASE' in p:
     print(json.dumps({"type": "result", "subtype": "error_max_turns", "is_error": True, "result": ""})); sys.exit(1)
 if 'REVOKED' in p:
     print(json.dumps({"type": "result", "subtype": "success", "is_error": True, "result": "Failed to authenticate. API Error: 401 OAuth access token has been revoked"})); sys.exit(1)
-if 'SESSION-LIMIT-CLAUDE' in p:
+if 'CLAUDE-SESSION-LIMIT' in p:
     print(json.dumps({"type": "result", "subtype": "success", "is_error": True, "result": "You've hit your session limit · resets 12:40am (America/Halifax)"})); sys.exit(1)
 if 'NOT-JSON' in p:
     print('Invalid API key'); sys.exit(1)
@@ -636,7 +636,7 @@ W.write_json(W.AI_STATE_FILE, {})
 t_hit = datetime.datetime(2026, 11, 26, 22, 50)
 t_before = datetime.datetime(2026, 11, 27, 0, 40)
 t_after = datetime.datetime(2026, 11, 27, 0, 41)
-ans, _, prov = W.run_ai("SESSION-LIMIT-CLAUDE practical coach", "WebSearch,WebFetch", now=t_hit)
+ans, _, prov = W.run_ai("CLAUDE-SESSION-LIMIT practical coach", "WebSearch,WebFetch", now=t_hit)
 check("Session limit falls back to Gemini on same request and stores 00:41 reset",
       prov == "gemini" and ans.get("headline") == "from gemini"
       and W.read_ai_state()["claude_until"].startswith("2026-11-27T00:41:00"),

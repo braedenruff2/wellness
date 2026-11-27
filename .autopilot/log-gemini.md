@@ -334,3 +334,8 @@
 - **Auto-generate daily Parenting scenario**: added `CoachCore.scenarioDue` and `autoTried`/`autoCancelled` validation in `app/www/modules/coach/coach-core.js`, and scheduled `autoScenario()` in `app/www/modules/coach/coach.js` (once per day using the suggested skill when setup is complete, no active scenario exists, none done today, and not already tried/cancelled today).
 - **Tests**: updated and expanded `tests/e2e-shell.cjs`, `tests/e2e-a11y-new.cjs`, `tests/e2e-logday.cjs`, `modules/me/tests/unit.cjs`, `modules/me/tests/e2e.cjs`, `modules/me/tests/e2e-plan.cjs`, `modules/workout/tests/unit.cjs`, `modules/tagalog/tests/unit.cjs`, `modules/tagalog/tests/e2e.cjs`, `modules/coach/tests/unit.cjs`, `modules/coach/tests/e2e.cjs`, and `modules/link/tests/e2e.cjs`; verified full `node tests/run-all.cjs` (all 104 suites passed, 0 skipped).
 - Note: `app/www/` changed since APK `0.1.20261127.0131`, so the next Drive-enabled run should build a fresh signed APK.
+
+## 2026-11-26 23:06 AST (Fix: Gemini backup fallback for Claude session limits)
+- Fixed `pc/wellness_pc.py` `is_usage_limit()` so Claude session-limit errors like `"You've hit your session limit · resets 12:40am (America/Halifax)"` are recognized as `UsageLimitError` and immediately fall back to Gemini (`agy.exe` / `gemini`) on the same request instead of returning an error to the phone.
+- Added `claude_reset_until()` in `pc/wellness_pc.py` to parse short clock-time resets (`resets 12:40am`, `resets 3pm`, or +5 h fallback for session/5-hour limits) so Gemini handles requests until just after the session resets while weekly limits still wait for Wednesday noon.
+- Added unit and end-to-end tests in `pc/test/test_pc.py` and verified `node tests/run-all.cjs` (all 104 suites passed, 0 skipped).
