@@ -868,6 +868,7 @@
       var o = { name: x.name.trim().slice(0, 80) };
       if (x.qty != null && x.qty !== '' && isFinite(+x.qty) && +x.qty > 0) o.qty = Math.round(+x.qty * 100) / 100;
       if (typeof x.unit === 'string' && x.unit.trim()) o.unit = x.unit.trim().slice(0, 20);
+      if (typeof x.amount === 'string' && x.amount.trim()) o.amount = x.amount.trim().slice(0, 80);
       if (STATUS.indexOf(x.status) >= 0) o.status = x.status;
       if (CATS.indexOf(x.cat) >= 0) o.cat = x.cat;
       if (x.expiresInDays != null && x.expiresInDays !== '' && isFinite(+x.expiresInDays) && +x.expiresInDays >= 0) o.expiresInDays = Math.min(365, Math.round(+x.expiresInDays));

@@ -238,6 +238,7 @@ t('validate keeps the AI recipes this week\'s plan uses (and the newest), and a 
   s.lastPhoto = { at: now.toISOString(), summary: 'Fridge', items: [null, { name: 'Milk', qty: '2', unit: 'L', status: 'low', cat: 'dairy', expiresInDays: 4 }, { name: '' }, { name: 'Kale', expiresInDays: 'x' }] };
   const v2 = K.validate(JSON.parse(JSON.stringify(s)));
   assert.deepStrictEqual(v2.lastPhoto.items, [{ name: 'Milk', qty: 2, unit: 'L', status: 'low', cat: 'dairy', expiresInDays: 4 }, { name: 'Kale' }]);
+  assert.deepStrictEqual(K.cleanPhotoItems([{ name: 'Eggs', amount: ' 3 eggs left ' }, 'x']), [{ name: 'Eggs', amount: '3 eggs left' }], 'the plain amount stays');
   assert.strictEqual(v2.lastPhoto.summary, 'Fridge');
   assert.deepStrictEqual(K.validate(JSON.parse(JSON.stringify(v2))).lastPhoto, v2.lastPhoto, 'stable');
 });

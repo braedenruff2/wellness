@@ -265,7 +265,8 @@
       h += '<div id="ck-photo-res" style="margin-top:10px;border-top:1px solid var(--line);padding-top:8px">' +
         '<p style="margin-bottom:4px"><b>Detected from photo:</b> ' + esc(S.lastPhoto.summary || '') + '</p><ul class="me-g">' +
         S.lastPhoto.items.map(function (it) {
-          return '<li><b>' + esc(it.name) + '</b> — ' + esc(it.amount || it.status || 'spotted') + (it.expiresInDays != null ? ' (~' + it.expiresInDays + ' d)' : '') + '</li>';
+          if (!it || typeof it.name !== 'string') return '';
+          return '<li><b>' + esc(it.name) + '</b> — ' + esc(String(it.amount || it.status || 'spotted')) + (isFinite(+it.expiresInDays) && it.expiresInDays != null ? ' (~' + Math.round(+it.expiresInDays) + ' d)' : '') + '</li>';
         }).join('') + '</ul>' +
         '<div class="row" style="margin-top:8px"><button class="primary" id="ck-photo-apply" type="button">Update fridge with these</button><button class="link" id="ck-photo-clear" type="button">Dismiss</button></div></div>';
     }
@@ -377,8 +378,9 @@
       return WL.pc.ask('cook-photo', input);
     }).then(function (ans) {
       photoBusy = false;
-      if (ans && Array.isArray(ans.items) && ans.items.length) {
-        S.lastPhoto = { at: new Date().toISOString(), summary: String(ans.summary || '').slice(0, 300), items: K.cleanPhotoItems(ans.items) };
+      var found = ans && K.cleanPhotoItems(ans.items);
+      if (found && found.length) {
+        S.lastPhoto = { at: new Date().toISOString(), summary: String(ans.summary || '').slice(0, 300), items: found };
         save();
         WL.toast('Found ' + S.lastPhoto.items.length + ' item' + (S.lastPhoto.items.length === 1 ? '' : 's'));
       } else {
@@ -400,9 +402,12 @@
       if (view && /^#cook/.test(location.hash)) render();
     });
     WL.pc.onCloudAnswer('cook-photo', function (e, ans) {
-      if (!e && ans && Array.isArray(ans.items)) {
-        S.lastPhoto = { at: new Date().toISOString(), summary: String(ans.summary || '').slice(0, 300), items: K.cleanPhotoItems(ans.items) };
+      var found = !e && ans && K.cleanPhotoItems(ans.items);
+      if (found && found.length) {
+        S.lastPhoto = { at: new Date().toISOString(), summary: String(ans.summary || '').slice(0, 300), items: found };
         save(); WL.toast('Photo inventory result arrived');
+      } else if (!e) {
+        photoErr = (ans && typeof ans.summary === 'string' && ans.summary) || 'Could not identify any food items in that photo.';
       } else if (e) photoErr = e;
       if (view && /^#cook/.test(location.hash)) render();
     });

@@ -123,6 +123,19 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.waitForFunction(() => !document.getElementById('ck-photo-res'));
     const pNames = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).pantry.map((x) => x.name));
     assert.ok(pNames.includes('milk') && pNames.includes('broccoli'), 'photo items applied to fridge: ' + pNames);
+    // what the page shows keeps the plain "about half left" wording
+    // a damaged answer (null items, HTML in a name, words for days, nothing usable) neither breaks the page nor says "Found 0"
+    await page.evaluate(() => { const ask = window.WL.pc.ask; window.WL.pc.ask = (task, inp) => task === 'cook-photo' ? Promise.resolve({ summary: 'Odd', items: [null, { name: '<img src=x onerror=window.__x=1>', expiresInDays: 'soon', amount: '<b>2</b>' }, 7] }) : ask(task, inp); });
+    await page.setInputFiles('#ck-photo-in', { name: 'fridge2.png', mimeType: 'image/png', buffer: png1x1 });
+    await page.waitForSelector('#ck-photo-res');
+    const res = await page.evaluate(() => ({ html: document.getElementById('ck-photo-res').innerHTML, x: window.__x, imgs: document.querySelectorAll('#ck-photo-res img').length }));
+    assert.strictEqual(res.imgs, 0); assert.strictEqual(res.x, undefined);
+    assert.ok(res.html.includes('&lt;img') && res.html.includes('&lt;b&gt;2') && !/~/.test(res.html), res.html);
+    await page.click('#ck-photo-clear');
+    await page.evaluate(() => { const ask = window.WL.pc.ask; window.WL.pc.ask = (task, inp) => task === 'cook-photo' ? Promise.resolve({ items: [null, { name: '' }] }) : ask(task, inp); });
+    await page.setInputFiles('#ck-photo-in', { name: 'fridge3.png', mimeType: 'image/png', buffer: png1x1 });
+    await page.waitForFunction(() => /Could not identify any food/.test(document.getElementById('view').textContent));
+    assert.ok(!(await page.$('#ck-photo-res')));
 
     // Ask Claude for week plan
     await page.goto(base + '#cook/week');
