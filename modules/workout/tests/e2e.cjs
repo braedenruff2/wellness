@@ -96,10 +96,10 @@ const Wb = require('../../../tests/lib/web.cjs');
   });
   await t.step('import the sheet CSV, then last-time numbers and progress show', async () => {
     const f = path.join(os.tmpdir(), 'wo-log.csv');
-    fs.writeFileSync(f, 'Date,Day,Exercise,Set 1,Set 2,Set 3,Set 4,Weight,Notes\n2026-11-16,Monday,Pushups,18,18,17,,,x\n2026-11-17,Tuesday,Single Leg RDL,15,15,15,,10 lbs,x\n');
+    fs.writeFileSync(f, 'Date,Day,Exercise,Set 1,Set 2,Set 3,Set 4,Weight,Notes\n2026-11-16,Monday,Pushups,18,18,17,,,x\n2026-11-17,Tuesday,Single Leg RDL,15,15,15,,10 lbs,x\n2026-11-17,Tuesday,Plank,45,50,,,,x\n2026-11-17,Tuesday,Walk,25,,,,,x\n');
     await page.goto(base + '#workout/settings');
     await page.setInputFiles('#wo-csv', f);
-    await page.waitForFunction(() => document.getElementById('toast').textContent.includes('Imported 2'));
+    await page.waitForFunction(() => document.getElementById('toast').textContent.includes('Imported 4'));
     await page.goto(base + '#workout');
     await page.click('#wo-ahead');
     assert.strictEqual(await page.textContent('h1'), 'Full body B');
@@ -111,17 +111,25 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.waitForSelector('#wo-chart-card');
     await page.waitForSelector('#wo-ex-svg');
     assert.ok((await page.textContent('#wo-bench-note')).includes('Set your age in Setup'), 'prompts to set age when unset');
-    // Set age in Setup -> age-group average reference line shows on Progress graph
+    // Set age in Setup -> age-group average reference line shows on Progress graph for rep-based and time-based exercises
     await page.goto(base + '#workout/settings');
     await page.fill('#wo-age', '34');
     await page.click('#wo-age-save');
     await page.waitForFunction(() => document.getElementById('toast').textContent.includes('30–39'));
     await page.goto(base + '#workout/history');
     await page.waitForSelector('#wo-ex-svg');
-    assert.ok((await page.textContent('#wo-ex-svg')).includes('Age 30–39 avg: 19 reps'), await page.textContent('#wo-ex-svg'));
+    assert.ok((await page.textContent('#wo-ex-svg .wo-ref-lbl')).includes('Age 30–39 avg: 19 reps'), await page.textContent('#wo-ex-svg'));
     assert.ok((await page.textContent('#wo-bench-note')).includes('Typical 30–39 average: 13–24 reps'), await page.textContent('#wo-bench-note'));
+    // Time-based exercises (Plank in sec, Walk in min) and other rep exercises (Single Leg RDL) all render age-group reference line + band
+    await page.selectOption('#wo-chart-ex', 'Plank');
+    assert.ok((await page.textContent('#wo-ex-svg .wo-ref-lbl')).includes('Age 30–39 avg: 55 sec'), await page.textContent('#wo-ex-svg'));
+    assert.ok((await page.textContent('#wo-bench-note')).includes('Typical 30–39 average: 45–75 sec'), await page.textContent('#wo-bench-note'));
+    assert.strictEqual(await page.locator('#wo-ex-svg rect').count(), 1, 'age-group band renders for Plank');
+    await page.selectOption('#wo-chart-ex', 'Walk');
+    assert.ok((await page.textContent('#wo-ex-svg .wo-ref-lbl')).includes('Age 30–39 avg: 25 min'), await page.textContent('#wo-ex-svg'));
     // Switch exercise via dropdown & "Show on graph" button + toggle volume metric on weighted exercise
     await page.selectOption('#wo-chart-ex', 'Single Leg RDL');
+    assert.ok((await page.textContent('#wo-ex-svg .wo-ref-lbl')).includes('Age 30–39 avg: 11 reps'), await page.textContent('#wo-ex-svg'));
     await page.waitForSelector('[data-wo-metric="volume"]');
     await page.click('[data-wo-metric="volume"]');
     assert.strictEqual(await page.getAttribute('[data-wo-metric="volume"]', 'aria-pressed'), 'true');
@@ -133,14 +141,14 @@ const Wb = require('../../../tests/lib/web.cjs');
     // area filter chips filter exercise progress cards live
     await page.waitForSelector('#wo-areas');
     const allCount = await page.locator('.wo-ex:not([hidden])').count();
-    assert.strictEqual(allCount, 3, 'All shows all 3 exercises (2 legs + 1 push)');
+    assert.strictEqual(allCount, 5, 'All shows all 5 exercises (2 legs + 1 push + 1 core + 1 walk)');
     await page.click('#wo-areas [data-area="push"]');
     assert.strictEqual(await page.locator('.wo-ex:not([hidden])').count(), 1);
     assert.ok((await page.locator('.wo-ex:not([hidden])').first().textContent()).includes('Pushups'));
     await page.click('#wo-areas [data-area="legs"]');
     assert.strictEqual(await page.locator('.wo-ex:not([hidden])').count(), 2);
     await page.click('#wo-areas [data-area=""]');
-    assert.strictEqual(await page.locator('.wo-ex:not([hidden])').count(), 3);
+    assert.strictEqual(await page.locator('.wo-ex:not([hidden])').count(), 5);
   });
   await t.step('after Christmas the Move screen asks about the adjustable dumbbells; "Yes" switches the advice to adding weight', async () => {
     await page.goto(base + '#workout');

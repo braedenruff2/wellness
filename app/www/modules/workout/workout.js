@@ -342,7 +342,7 @@
       var by = yAt(bm.avg).toFixed(1);
       svg += '<line x1="' + left + '" y1="' + by + '" x2="' + right + '" y2="' + by + '" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="5 3"/>';
       var refLbl = bm.kind === 'age' ? 'Age ' + bm.bracket + ' avg: ' + bm.avg + ' ' + bm.unit : 'Target: ' + bm.avg + ' ' + bm.unit;
-      svg += '<text class="wo-ref-lbl" x="' + right + '" y="' + Math.max(11, +by - 4).toFixed(1) + '" text-anchor="end">' + esc(refLbl) + '</text>';
+      svg += '<text class="wo-ref-lbl" x="' + (left + 4) + '" y="' + Math.max(11, +by - 4).toFixed(1) + '" text-anchor="start">' + esc(refLbl) + '</text>';
     }
     if (series.length >= 2) {
       var pts = vals.map(function (v, i) { return xAt(i).toFixed(1) + ',' + yAt(v).toFixed(1); });

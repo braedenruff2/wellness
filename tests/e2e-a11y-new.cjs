@@ -53,7 +53,8 @@ const W = require('./lib/web.cjs');
         id: 's1', date: '2026-11-20', day: 'A', start: '2026-11-20T12:00:00.000Z', end: '2026-11-20T12:25:00.000Z',
         sets: [
           { i: 0, ex: 'Bulgarian Split Squats', n: 1, val: 12, w: 10, at: '2026-11-20T12:05:00.000Z' },
-          { i: 1, ex: 'Pushups', n: 1, val: 10, w: null, at: '2026-11-20T12:10:00.000Z' }
+          { i: 1, ex: 'Pushups', n: 1, val: 10, w: null, at: '2026-11-20T12:10:00.000Z' },
+          { i: 5, ex: 'Plank', n: 1, val: 50, w: null, at: '2026-11-20T12:18:00.000Z' }
         ]
       }],
       rest: { '2026-11-04': { why: 'Busy day', at: '2026-11-04T12:00:00.000Z' }, '2026-11-11': { why: 'Busy day', at: '2026-11-11T12:00:00.000Z' } }
@@ -400,6 +401,21 @@ const W = require('./lib/web.cjs');
         assert.deepStrictEqual(lbl.filter((x) => x.r < min), [], theme + ' ' + sel);
       }
       assert.deepStrictEqual((await contrast('#wo-chart-card')).filter((x) => x.r < min), [], theme + ' #wo-chart-card (incl. #wo-bench-note)');
+      // Task 312: age-group benchmark reference line & bracket label on both rep-based (Pushups) and time-based (Plank) graphs
+      await page.evaluate(() => {
+        const s = JSON.parse(localStorage.getItem('wl.workout.v1'));
+        s.age = 34;
+        localStorage.setItem('wl.workout.v1', JSON.stringify(s));
+        WL.modules.workout.reload();
+      });
+      await page.goto(base + '#workout'); await page.goto(base + '#workout/history'); await page.waitForSelector('#wo-ex-svg .wo-ref-lbl');
+      assert.ok((await page.textContent('#wo-ex-svg .wo-ref-lbl')).includes('Age 30–39 avg: 19 reps'), theme + ' Pushups ref label');
+      assert.deepStrictEqual((await svgContrast('#wo-ex-svg text')).filter((x) => x.r < min), [], theme + ' #wo-ex-svg (Pushups with age)');
+      assert.deepStrictEqual((await contrast('#wo-chart-card')).filter((x) => x.r < min), [], theme + ' #wo-chart-card (Pushups with age)');
+      await page.selectOption('#wo-chart-ex', 'Plank');
+      assert.ok((await page.textContent('#wo-ex-svg .wo-ref-lbl')).includes('Age 30–39 avg: 55 sec'), theme + ' Plank ref label');
+      assert.deepStrictEqual((await svgContrast('#wo-ex-svg text')).filter((x) => x.r < min), [], theme + ' #wo-ex-svg (Plank with age)');
+      assert.deepStrictEqual((await contrast('#wo-chart-card')).filter((x) => x.r < min), [], theme + ' #wo-chart-card (Plank with age)');
       await page.goto(base + '#workout/settings'); await page.waitForSelector('[data-hard]');
       assert.deepStrictEqual((await contrast()).filter((x) => x.r < min), [], theme + ' #workout/settings');
       await page.goto(base + '#faith/journal'); await page.waitForSelector('#j-search');
