@@ -1,5 +1,9 @@
 # Cloud log
 
+## 2026-11-27 21:45-22:15 AST (same run; APK 0.1.20261128.0212, real key, cert 6795e499...)
+- Done 421 (a11y checks for the 27 Nov UI in tests/e2e-a11y-new.cjs: all pass), 425 (path sits get "In your own words": CalmCore.sitNote, #c-sit-note, activity data.note, PC summary "last sit ..., in his words", #c-last-words before the next sit).
+- Added 424 (sick-day follow-up), 425. Tested: full suite after the rebase (118 suites, none skipped); APK verified.
+
 ## 2026-11-27 21:35-21:45 AST (same run; APK 0.1.20261128.0144, real key, cert 6795e499...)
 - Done 420 (no automatic Parenting scenario on a day the check-in note says unwell; #co-sick line; Generate still works; e2e-auto fails without it), 417 (noise.js wake(): a suspended AudioContext resumes on return only while a sound is active), 422 (makeBuffer falls back to an 11 s loop if the long buffer throws).
 - Tested: full suite after the rebase (118 suites, none skipped); APK verified.
