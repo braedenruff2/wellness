@@ -567,7 +567,8 @@
     id: 'workout', title: 'Workout', short: 'Move', icon: '❁', nav: true,
     wireCard: wireCard,
     week: function () {
-      var d = new Date(), n = W.weekStats(S, d).thisWeek, r = W.restThisWeek(S, d).length;
+      // sick days the check-in already names ("N sick days (rest counted)", me module) aren't counted again as chosen rest (473)
+      var M = window.WLMe, d = new Date(), n = W.weekStats(S, d).thisWeek, r = W.restThisWeek(S, d).filter(function (x) { return !(x.why === 'Sick' && M && M.unwellOn && M.unwellOn(x.date)); }).length;
       var t = n ? n + ' workout' + (n === 1 ? '' : 's') : '';
       return r ? (t ? t + ', ' : '') + r + ' rest day' + (r === 1 ? '' : 's') + ' you chose' : t;
     },

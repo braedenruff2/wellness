@@ -198,6 +198,11 @@ const W = require('./lib/web.cjs');
     const w = await page.textContent('#wl-week');
     const n = await page.evaluate(() => MeCore.sickDaysIn(JSON.parse(localStorage.getItem('wl.me.v1')), new Date(), 7));
     assert.ok(n >= 1 && new RegExp(n + ' sick days?\\b \\(rest counted\\)').test(w) && !/missed/i.test(w), n + ': ' + w);
+    // a sick rest on a day the check-in calls sick isn't also "a rest day you chose" (473)
+    const sickRests = await page.evaluate(() => { const w = JSON.parse(localStorage.getItem('wl.workout.v1')); return WorkoutCore.restThisWeek(w, new Date()).filter((x) => x.why === 'Sick' && WLMe.unwellOn(x.date)).length; });
+    const chosen = (w.match(/(\d+) rest days? you chose/) || [0, 0])[1];
+    const all = await page.evaluate(() => WorkoutCore.restThisWeek(JSON.parse(localStorage.getItem('wl.workout.v1')), new Date()).length);
+    assert.strictEqual(+chosen, all - sickRests, w + ' | ' + all + ' rests, ' + sickRests + ' sick');
     assert.deepStrictEqual(t.errors, []);
   });
   await t.close('sick stretch');
