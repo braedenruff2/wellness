@@ -131,6 +131,7 @@
         h += '<div class="card ui" id="ck-today-targets"><div class="row"><span class="meta grow">' + esc(bits.join(' · ')) + '</span><a class="link" href="#cook/log">Targets</a></div></div>';
       }
     }
+    if (ctx.undo) h += '<div class="card ui" id="ck-sick-undo-card">' + undoHtml(ctx) + '</div>';
     if (ctx.sick) {
       var sickOffer = K.sickSoupOffer && K.sickSoupOffer(S, d);
       if (sickOffer) {
@@ -406,6 +407,11 @@
   }
 
   /* ---- Home card ---- */
+  /* Right after a sick-day soup swap: one tap puts the planned dinner back. */
+  function undoHtml(ctx) {
+    var u = ctx && ctx.undo;
+    return u ? '<div class="row ui" id="ck-sick-undo-row" style="margin-bottom:6px"><span class="meta grow">Swapped to ' + esc(u.title) + '.</span><button class="btn" id="ck-sick-undo" type="button" data-sick-undo="1">Undo: back to ' + esc(u.prevTitle) + '</button></div>' : '';
+  }
   function cardHtml(S, ctx) {
     var K = root.CookCore, d = ctx.realNow, tIso = K.iso(d);
     var day = (S.plan && S.plan.days && S.plan.days[tIso]) || {};
@@ -421,7 +427,7 @@
       '<h3>' + esc(headline) + '</h3>' +
       (soon.length ? '<p class="meta ui" style="color:var(--warn)">Use soon: ' + esc(soon.slice(0, 3).map(function (x) { return x.item.name + ' (' + (x.daysLeft <= 0 ? 'today' : x.daysLeft + ' d') + ')'; }).join(', ')) + '</p>'
         : '<p class="meta ui">Beginner recipes, flexible when Mama cooks, food logs &amp; targets for you &amp; ' + esc(ctx.childLabel()) + '.</p>') +
-      (sickOffer ? '<div class="row ui" id="ck-sick-soup-row" style="margin-bottom:6px"><button class="btn" id="ck-sick-soup" type="button" data-sick-soup="' + esc(sickOffer.date + '|' + sickOffer.recipe.id) + '">Swap ' + (sickOffer.isTomorrow ? 'tomorrow’s' : 'tonight’s') + ' dinner for ' + esc(sickOffer.shortName) + '</button></div>' : '') +
+      undoHtml(ctx) + (sickOffer ? '<div class="row ui" id="ck-sick-soup-row" style="margin-bottom:6px"><button class="btn" id="ck-sick-soup" type="button" data-sick-soup="' + esc(sickOffer.date + '|' + sickOffer.recipe.id) + '">Swap ' + (sickOffer.isTomorrow ? 'tomorrow’s' : 'tonight’s') + ' dinner for ' + esc(sickOffer.shortName) + '</button></div>' : '') +
       '<div class="row ui"><a class="btn primary" href="#cook">Today’s meals</a><a class="btn" href="#cook/log">Log food</a><a class="btn" href="#cook/pantry">Fridge &amp; list</a></div>';
   }
 

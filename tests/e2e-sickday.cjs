@@ -73,5 +73,33 @@ const W = require('./lib/web.cjs');
     assert.strictEqual(await page.$('#me-still-unwell'), null);
     assert.deepStrictEqual(t.errors, []);
   });
+  await t.step('445: right after a soup swap, one tap puts the planned dinner back (Home and Cooking)', async () => {
+    await page.fill('#me-ck-note', 'she threw up, all sick again'); await page.press('#me-ck-note', 'Tab');
+    await page.clock.runFor(800);
+    await page.goto(base + '#cook'); await page.waitForSelector('#ck-sick-card'); // a new week: Cooking makes and saves its plan
+    await page.goto(base + '#home'); await page.waitForSelector('#ck-sick-soup');
+    const before = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-11-30'].dinner);
+    await page.click('#ck-sick-soup');
+    await page.waitForSelector('#ck-sick-undo');
+    assert.ok((await page.textContent('#ck-sick-undo')).includes(before.title), await page.textContent('#ck-sick-undo'));
+    await page.click('#ck-sick-undo');
+    await page.waitForFunction(() => !document.querySelector('#ck-sick-undo'));
+    const back = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-11-30'].dinner);
+    assert.deepStrictEqual(back, before, 'exactly as planned');
+    assert.ok(await page.$('#ck-sick-soup'), 'the offer is back');
+    // on Cooking's Today: a chip, then Undo there
+    await page.goto(base + '#cook'); await page.waitForSelector('#ck-sick-card');
+    await page.click('#ck-sick-card [data-sick-soup]');
+    await page.waitForSelector('#ck-sick-undo');
+    await page.click('#ck-sick-undo');
+    await page.waitForSelector('#ck-sick-card');
+    assert.deepStrictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-11-30'].dinner), before);
+    // after 10 minutes the Undo is gone (the swap stays)
+    await page.click('#ck-sick-card [data-sick-soup]'); await page.waitForSelector('#ck-sick-undo');
+    await page.clock.fastForward(11 * 60 * 1000);
+    await page.goto(base + '#home'); await page.waitForSelector('.home-card[data-module="cook"]');
+    assert.strictEqual(await page.$('#ck-sick-undo'), null);
+    assert.deepStrictEqual(t.errors, []);
+  });
   await t.close('sick stretch');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

@@ -768,6 +768,15 @@
     return day[meal];
   }
 
+  /* Undo of a sick-day soup swap: puts the slot back exactly as it was (recipe, status, note), only while the slot
+     still holds the soup it was swapped to. prev is the slot object as it was before the swap (a copy). */
+  function restoreSlot(state, date, meal, prev, swappedTo) {
+    var day = state && state.plan && state.plan.days && state.plan.days[date];
+    if (!day || !prev || MEALS.indexOf(meal) < 0 || !day[meal] || day[meal].recipeId !== swappedTo) return null;
+    day[meal] = JSON.parse(JSON.stringify(prev));
+    return day[meal];
+  }
+
   /* Sick-day soup offer: find the next planned dinner (today, or tomorrow within this week if today's dinner is already
      done/Mama/skipped) that isn't already a soup, and suggest an existing comforting soup (Tinola, Arroz caldo, lentil). */
   function sickSoupOffer(state, now) {
@@ -1252,7 +1261,7 @@
     daysUntilExpiry: daysUntilExpiry, addPantryItem: addPantryItem, updatePantryStatus: updatePantryStatus,
     removePantryItem: removePantryItem, expiringSoon: expiringSoon, sortedPantry: sortedPantry,
     matchExpiring: matchExpiring, deductRecipe: deductRecipe, applyPhotoScan: applyPhotoScan,
-    ensureWeekPlan: ensureWeekPlan, markSlot: markSlot, swapSlot: swapSlot, sickSoupOffer: sickSoupOffer, SOUP_IDS: SOUP_IDS, applyAiPlan: applyAiPlan,
+    ensureWeekPlan: ensureWeekPlan, markSlot: markSlot, swapSlot: swapSlot, restoreSlot: restoreSlot, sickSoupOffer: sickSoupOffer, SOUP_IDS: SOUP_IDS, applyAiPlan: applyAiPlan,
     shoppingList: shoppingList, toggleBought: toggleBought,
     logMe: logMe, logChild: logChild, updateLogNutri: updateLogNutri, removeLog: removeLog, dayLogs: dayLogs, childSummary: childSummary,
     addCustomFood: addCustomFood, removeCustomFood: removeCustomFood, setTargets: setTargets, resetTargets: resetTargets,

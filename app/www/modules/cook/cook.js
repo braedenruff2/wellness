@@ -216,10 +216,28 @@
     });
   }
 
+  /* The last sick-day soup swap, for 10 minutes: one tap puts the planned dinner back (kept in memory only). */
+  var lastSwap = null;
+  function undoNow() {
+    if (!lastSwap || Date.now() - lastSwap.at > 10 * 60 * 1000) { lastSwap = null; return null; }
+    return lastSwap;
+  }
+  function sickSwap(date, recipeId, d) {
+    var day = S.plan && S.plan.days && S.plan.days[date], prev = day && day.dinner ? JSON.parse(JSON.stringify(day.dinner)) : null;
+    var s = K.swapSlot(S, date, 'dinner', recipeId, d);
+    if (!s) return null;
+    lastSwap = prev && prev.recipeId !== s.recipeId ? { date: date, prev: prev, to: s.recipeId, title: s.title, prevTitle: prev.title || 'the planned dinner', at: Date.now() } : null;
+    return s;
+  }
+  function sickUndo() {
+    var u = undoNow(); lastSwap = null;
+    if (!u || !K.restoreSlot(S, u.date, 'dinner', u.prev, u.to)) return null;
+    return u;
+  }
   function viewCtx() {
     var rn = realNow();
     return {
-      realNow: rn, logNow: now(), childLabel: childLabel, pers: pers, sick: isSick(),
+      realNow: rn, logNow: now(), childLabel: childLabel, pers: pers, sick: isSick(), undo: undoNow(),
       wk: curTab === '' ? workoutInfo(rn) : null,
       askable: askable, queuedFor: queuedFor, pantryCat: pantryCat,
       targetWho: targetWho, targetRange: targetRange,
@@ -422,10 +440,13 @@
       $$('[data-sick-soup]', view).forEach(function (b) {
         b.onclick = function () {
           var p = b.dataset.sickSoup.split('|');
-          var s = K.swapSlot(S, p[0], 'dinner', p[1], d);
+          var s = sickSwap(p[0], p[1], d);
           if (!s) return;
           save(); render(); WL.toast('Swapped dinner to ' + s.title);
         };
+      });
+      $$('[data-sick-undo]', view).forEach(function (b) {
+        b.onclick = function () { var u = sickUndo(); save(); render(); if (u) WL.toast('Back to ' + u.prevTitle); };
       });
       $$('[data-ck-made]', view).forEach(function (b) {
         b.onclick = function () {
@@ -732,14 +753,16 @@
   function card() {
     var d = realNow();
     K.ensureWeekPlan(S, d);
-    return V.cardHtml(S, { realNow: d, childLabel: childLabel, sick: isSick() });
+    return V.cardHtml(S, { realNow: d, childLabel: childLabel, sick: isSick(), undo: undoNow() });
   }
   function wireCard(el) {
     el.addEventListener('click', function (e) {
+      var un = e.target.closest && e.target.closest('[data-sick-undo]');
+      if (un) { var u = sickUndo(); save(); el.innerHTML = card(); if (u) WL.toast('Back to ' + u.prevTitle); return; }
       var b = e.target.closest && e.target.closest('[data-sick-soup]');
       if (!b) return;
       var p = b.dataset.sickSoup.split('|'), d = realNow();
-      var s = K.swapSlot(S, p[0], 'dinner', p[1], d);
+      var s = sickSwap(p[0], p[1], d);
       if (!s) return;
       save();
       el.innerHTML = card();

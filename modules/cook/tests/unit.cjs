@@ -684,4 +684,19 @@ t('415: sickSoupOffer picks a comforting soup for today or tomorrow\'s next plan
   s.plan.days['2026-11-29'].dinner = { recipeId: 'sheet-chicken', title: 'Sheet-pan garlic chicken, broccoli & sweet potato', status: 'made', note: '' };
   assert.strictEqual(K.sickSoupOffer(s, sun), null, 'Sunday night after dinner has no tomorrow in this week');
 });
+t('445: restoreSlot puts a swapped dinner back exactly, only while the soup is still there', () => {
+  const s = K.defaults(); const now = new Date(2026, 10, 26, 12);
+  K.ensureWeekPlan(s, now);
+  const day = '2026-11-26'; s.plan.days[day].dinner.note = 'kept';
+  const prev = JSON.parse(JSON.stringify(s.plan.days[day].dinner));
+  const sw = K.swapSlot(s, day, 'dinner', 'tinola', now);
+  assert.strictEqual(sw.recipeId, 'tinola');
+  assert.deepStrictEqual(K.restoreSlot(s, day, 'dinner', prev, 'tinola'), prev);
+  assert.deepStrictEqual(s.plan.days[day].dinner, prev, 'note and status back too');
+  K.swapSlot(s, day, 'dinner', 'tinola', now); K.swapSlot(s, day, 'dinner', 'lentil-soup', now);
+  assert.strictEqual(K.restoreSlot(s, day, 'dinner', prev, 'tinola'), null, 'changed since: left alone');
+  assert.strictEqual(s.plan.days[day].dinner.recipeId, 'lentil-soup');
+  assert.strictEqual(K.restoreSlot(s, '2026-12-25', 'dinner', prev, 'tinola'), null);
+  assert.strictEqual(K.restoreSlot(s, day, 'brunch', prev, 'lentil-soup'), null);
+});
 console.log(n + ' cook unit tests passed');
