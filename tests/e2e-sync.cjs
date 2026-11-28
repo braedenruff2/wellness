@@ -138,10 +138,28 @@ const FAKE_DRIVE = `
     await page.click('#wl-sync-now');
     await page.waitForFunction(() => window.__drive.writes === 2);
 
-    // 31 min later: background auto-sync runs
+    // 31 min later with nothing changed: the auto-sync reads Drive but leaves the file alone (440: no identical
+    // copies in Drive's version history every 30 min)
+    await page.clock.fastForward(31 * 60 * 1000);
+    const reads0 = await page.evaluate(() => window.__drive.reads);
+    await page.evaluate(() => window.FCSaveNow());
+    await page.waitForFunction((r) => window.__drive.reads > r, reads0);
+    await page.waitForTimeout(100);
+    assert.strictEqual(await page.evaluate(() => window.__drive.writes), 2, 'unchanged: no write');
+    assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.sync.v1')).lastAuto), 'it still counts as a sync attempt');
+
+    // 31 min later after something changed (a to-do added): the auto-sync writes
+    await page.evaluate(() => { const k = 'wl.todo.v1', v = JSON.parse(localStorage.getItem(k) || '{"tasks":[]}'); v.tasks = v.tasks || []; v.tasks.push({ id: 'x440', text: 'changed', created: new Date().toISOString() }); localStorage.setItem(k, JSON.stringify(v)); });
     await page.clock.fastForward(31 * 60 * 1000);
     await page.evaluate(() => window.FCSaveNow());
     await page.waitForFunction(() => window.__drive.writes === 3);
+
+    // the file changed in Drive (another device, a restore): the next auto-sync writes even with nothing new here
+    await page.evaluate(() => { window.__drive.content = window.__drive.content.replace('"requests"', '"requests" '); });
+    await page.clock.fastForward(31 * 60 * 1000);
+    await page.evaluate(() => window.FCSaveNow());
+    await page.waitForFunction(() => window.__drive.writes === 4);
+    await page.evaluate(() => { window.__drive.writes = 3; }); // the steps below count from here as before
   });
 
   await t.step('reads cloud answers before writing, keeps them until taken, writes acked ids', async () => {

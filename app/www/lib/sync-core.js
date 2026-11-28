@@ -8,7 +8,7 @@
   var MAX_REQUESTS = 50;
 
   function defaults() {
-    return { requests: [], answers: {}, acked: [], lastSync: null, lastAuto: null, lastError: null, answersError: null };
+    return { requests: [], answers: {}, acked: [], lastSync: null, lastAuto: null, lastError: null, answersError: null, lastWrite: null };
   }
 
   function newId(now) {
@@ -186,6 +186,23 @@
     return JSON.stringify(out, null, 1);
   }
 
+  /* Skipping a write that would change nothing: an automatic sync whose payload (apart from its "exported" time) is
+     what was last written, while Drive's file is still exactly that write, leaves the file alone, so Drive's version
+     history isn't filled with the same copy every 30 minutes. Any other change, a file changed in Drive, or Sync now
+     writes as before. Hashes only (FNV-1a), nothing of the data is kept. */
+  function hash(str) {
+    var h = 0x811c9dc5, s = String(str == null ? '' : str);
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+    return ('0000000' + h.toString(16)).slice(-8) + ':' + s.length.toString(36);
+  }
+  function bodyOf(payload) { return String(payload || '').replace(/\n "exported": "[^"]*",/, ''); }
+  function unchanged(state, remoteText, payload) {
+    var w = state && state.lastWrite;
+    if (!w || typeof remoteText !== 'string' || !remoteText) return false;
+    return hash(remoteText) === w.file && hash(bodyOf(payload)) === w.body;
+  }
+  function noteWrite(state, payload) { state.lastWrite = { file: hash(payload), body: hash(bodyOf(payload)) }; return state.lastWrite; }
+
   function validate(raw) {
     var d = defaults();
     if (!raw || typeof raw !== 'object') return d;
@@ -211,6 +228,8 @@
     if (typeof raw.lastAuto === 'string' && !isNaN(Date.parse(raw.lastAuto))) d.lastAuto = raw.lastAuto;
     if (typeof raw.lastError === 'string' && raw.lastError) d.lastError = raw.lastError.slice(0, 300);
     if (typeof raw.answersError === 'string' && raw.answersError) d.answersError = raw.answersError.slice(0, 300);
+    var lw = raw.lastWrite;
+    if (lw && typeof lw.file === 'string' && typeof lw.body === 'string' && lw.file.length <= 24 && lw.body.length <= 24) d.lastWrite = { file: lw.file, body: lw.body };
     return d;
   }
 
@@ -236,7 +255,7 @@
   }
 
   var api = {
-    AUTO_MS: AUTO_MS, defaults: defaults, autoDue: autoDue, enqueue: enqueue, cancelRequest: cancelRequest,
+    AUTO_MS: AUTO_MS, hash: hash, unchanged: unchanged, noteWrite: noteWrite, defaults: defaults, autoDue: autoDue, enqueue: enqueue, cancelRequest: cancelRequest,
     parseCsv: parseCsv, rowsToAnswers: rowsToAnswers, describeBackup: describeBackup,
     mergeRemote: mergeRemote, takeAnswer: takeAnswer, buildPayload: buildPayload, validate: validate
   };

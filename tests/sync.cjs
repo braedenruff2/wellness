@@ -152,4 +152,26 @@ t('describeBackup validates wellness-sync.json and legacy backups before confirm
   assert.throws(() => C.describeBackup(JSON.stringify({ app: 'wellness', stores: [] })), /not a backup/);
 });
 
+t('440: unchanged / noteWrite: an auto-sync with nothing new (only "exported" differs) and Drive unchanged skips the write', () => {
+  const st = C.defaults();
+  const bk = { app: 'wellness', stores: { 'wl.todo.v1': '{"tasks":[]}' } };
+  const p1 = C.buildPayload(bk, st, new Date('2026-11-28T05:00:00Z'));
+  assert.strictEqual(C.unchanged(st, p1, p1), false, 'never written: write');
+  C.noteWrite(st, p1);
+  const p2 = C.buildPayload(bk, st, new Date('2026-11-28T05:31:00Z'));
+  assert.notStrictEqual(p1, p2, 'the exported time differs');
+  assert.strictEqual(C.unchanged(st, p1, p2), true, 'same data, Drive still has the last write: skip');
+  assert.strictEqual(C.unchanged(st, p1 + ' ', p2), false, 'Drive file changed: write');
+  assert.strictEqual(C.unchanged(st, '', p2), false, 'Drive file empty: write');
+  const p3 = C.buildPayload({ app: 'wellness', stores: { 'wl.todo.v1': '{"tasks":[1]}' } }, st, new Date('2026-11-28T06:00:00Z'));
+  assert.strictEqual(C.unchanged(st, p1, p3), false, 'data changed: write');
+  C.enqueue(st, 'weekly-plan', {}, new Date('2026-11-28T06:00:00Z'));
+  assert.strictEqual(C.unchanged(st, p1, C.buildPayload(bk, st, new Date('2026-11-28T06:01:00Z'))), false, 'a new request: write');
+  const back = C.validate(JSON.parse(JSON.stringify(st)));
+  assert.deepStrictEqual(back.lastWrite, st.lastWrite, 'kept through validate');
+  assert.strictEqual(C.validate({ lastWrite: { file: 'x'.repeat(99), body: 'y' } }).lastWrite, null, 'junk dropped');
+  assert.ok(!/tasks/.test(JSON.stringify(st.lastWrite)), 'hashes only, no data');
+  assert.notStrictEqual(C.hash('ab'), C.hash('ba'));
+});
+
 console.log(n + ' sync tests passed');

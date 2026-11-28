@@ -153,12 +153,13 @@
     if (WL.modules) Object.keys(WL.modules).forEach(function (id) { var m = WL.modules[id]; if (m && m.saveNow) try { m.saveNow(); } catch (e) {} });
     if (opts.auto) { S.lastAuto = now.toISOString(); store.save(S); }
 
-    var fresh = [], myGen = gen, myAnsGen = answersGen;
+    var fresh = [], myGen = gen, myAnsGen = answersGen, remote = null, wrote = false;
     inFlight = Promise.resolve().then(function () {
       emitState();
       return callNative('syncRead');
     }).then(function (remoteText) {
       if (myGen !== gen) return null;
+      remote = remoteText;
       var m = C.mergeRemote(S, remoteText);
       fresh = m.fresh.slice();
       var x = nat();
@@ -179,7 +180,9 @@
       store.save(S);
       var backupObj = WL.backupObj ? WL.backupObj() : JSON.parse(WL.backupText());
       var payload = C.buildPayload(backupObj, S, new Date(), extraRequests());
-      return callNative('syncWrite', payload);
+      if (opts.auto && C.unchanged(S, remote, payload)) return null; // nothing new: Drive already has it
+      wrote = true;
+      return callNative('syncWrite', payload).then(function (r) { C.noteWrite(S, payload); return r; });
     }).then(function () {
       if (myGen !== gen) { inFlight = null; emitState(); return { ok: false, skipped: true }; }
       var doneAt = new Date().toISOString();
@@ -188,7 +191,7 @@
       inFlight = null;
       emitState();
       emitAnswers(fresh);
-      return { ok: true, fresh: fresh, answersError: S.answersError || '' };
+      return { ok: true, fresh: fresh, wrote: wrote, answersError: S.answersError || '' };
     }, function (e) {
       if (myGen !== gen) { inFlight = null; emitState(); return { ok: false, skipped: true }; }
       S.lastError = String((e && e.message) || e || 'Google Drive sync failed.').slice(0, 300);
