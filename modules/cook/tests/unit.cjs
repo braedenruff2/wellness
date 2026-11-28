@@ -601,4 +601,26 @@ t('White / brioche bread default, expanded everyday Western foods, transparent m
   assert.strictEqual(v.logs.find((x) => x.id === lm.id).nutri, undefined, 'null resets to auto-estimate');
 });
 
+t('AI nutrition replies are checked before they are kept; typed numbers need calories or a macro (406)', () => {
+  const CN = require('../../../app/www/modules/cook/cook-nutri.js');
+  const now = new Date(2026, 10, 27, 12);
+  const s = K.defaults();
+  const l = K.logMe(s, { date: '2026-11-27', meal: 'dinner', text: 'grandma casserole', portion: 'Regular' }, now);
+  const ai = (n) => K.updateLogNutri(s, l.id, n, { exact: true, source: 'ai' });
+  assert.strictEqual(ai({ error: 'cannot estimate', vitc: 1 }), null, 'an error reply with a stray number');
+  assert.strictEqual(ai({ kcal: 0, pro: 0, carb: 0, fat: 0, vitc: 3 }), null, 'no calories');
+  assert.strictEqual(ai({ kcal: 15000, pro: 19999 }), null, 'absurd amounts');
+  assert.strictEqual(ai({ kcal: 900, pro: 10, carb: 10, fat: 5 }), null, 'calories far from the macros (125 kcal of macros)');
+  assert.strictEqual(ai({ kcal: 500 }), null, 'calories with no macros');
+  assert.strictEqual(l.nutri, undefined, 'nothing stored by the refused replies');
+  assert.ok(ai({ kcal: 610, pro: 22, carb: 70, fat: 26, fib: 5 }), 'a sensible estimate (602 kcal of macros)');
+  assert.strictEqual(l.nutri.kcal, 610);
+  assert.ok(ai({ kcal: 5, pro: 0.3, carb: 0, fat: 0 }), 'black coffee: tiny numbers are fine');
+  assert.ok(CN.plausibleAi({ kcal: 430, pro: 15, carb: 46, fat: 21 }), 'the e2e reply');
+  // Edit numbers with all four fields cleared (older micros still in the base) is refused
+  K.updateLogNutri(s, l.id, { kcal: 400, pro: 20, carb: 40, fat: 15, fib: 6, iron: 2 }, { exact: true, source: 'manual' });
+  assert.strictEqual(K.updateLogNutri(s, l.id, { kcal: 0, pro: 0, carb: 0, fat: 0, fib: 6, iron: 2 }, { exact: true, source: 'manual' }), null);
+  assert.strictEqual(l.nutri.kcal, 400, 'kept the last good numbers');
+  assert.ok(K.updateLogNutri(s, l.id, { kcal: 0, pro: 12, carb: 0, fat: 0 }, { exact: true, source: 'manual' }), 'protein only is fine');
+});
 console.log(n + ' cook unit tests passed');

@@ -265,6 +265,18 @@
     return any ? o : null;
   }
 
+  /* An AI estimate for one meal, checked before it is kept: no error reply, some calories, sane per-meal amounts,
+     and calories that roughly agree with the macros (4 kcal/g protein and carbs, 9 kcal/g fat). Cleaned, or null. */
+  function plausibleAi(obj) {
+    if (!obj || typeof obj !== 'object' || obj.error) return null;
+    var o = cleanNutri(obj);
+    if (!o || !(o.kcal > 0) || o.kcal > 5000 || o.pro > 400 || o.carb > 600 || o.fat > 300) return null;
+    var m = 4 * o.pro + 4 * o.carb + 9 * o.fat;
+    if (m >= 60 && Math.abs(o.kcal - m) > 0.4 * Math.max(o.kcal, m)) return null;
+    if (m === 0 && o.kcal > 60) return null; // calories with no macros at all: not an estimate to trust
+    return o;
+  }
+
   function addNutri(dst, src, mult) {
     if (!src) return dst;
     mult = mult == null ? 1 : mult;
@@ -509,7 +521,7 @@
     NUTRI_KEYS: NUTRI_KEYS, NUTRI_META: NUTRI_META, DEFAULT_TARGETS: DEFAULT_TARGETS,
     PORTION_SCALE: PORTION_SCALE, CHILD_ATE_SCALE: CHILD_ATE_SCALE, CHILD_PORTION_BASE: CHILD_PORTION_BASE,
     FOOD_CATS: FOOD_CATS, FOOD_DB: FOOD_DB, FOOD_BY: FOOD_BY, RECIPE_NUTRI: RECIPE_NUTRI,
-    zeroNutri: zeroNutri, cleanNutri: cleanNutri, addNutri: addNutri, roundNutri: roundNutri,
+    zeroNutri: zeroNutri, cleanNutri: cleanNutri, plausibleAi: plausibleAi, addNutri: addNutri, roundNutri: roundNutri,
     cleanTargets: cleanTargets, estimateEntry: estimateEntry, dailyNutrition: dailyNutrition, searchFoods: searchFoods
   };
   root.CookNutri = api;

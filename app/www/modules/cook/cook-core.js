@@ -989,8 +989,10 @@
         delete x.nutri; delete x.nutriExact; delete x.nutriNote; delete x.nutriSource;
         return x;
       }
-      var cn = CN ? CN.cleanNutri(nutri) : null;
+      // an AI reply is checked for sense; numbers he types need calories or a macro (not only old micros)
+      var cn = !CN ? null : opts.source === 'ai' ? CN.plausibleAi(nutri) : CN.cleanNutri(nutri);
       if (!cn) return null;
+      if (opts.source === 'manual' && !(cn.kcal > 0 || cn.pro > 0 || cn.carb > 0 || cn.fat > 0)) return null;
       x.nutri = cn;
       if (opts.exact !== false) x.nutriExact = true; else delete x.nutriExact;
       if (typeof opts.note === 'string' && opts.note.trim()) x.nutriNote = opts.note.trim().slice(0, 220); else delete x.nutriNote;
