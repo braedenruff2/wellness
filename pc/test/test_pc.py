@@ -496,6 +496,7 @@ evs = [{"id": "checkin/2026-11-19/e1", "at": "2026-11-19T12:00:00Z", "part": "ch
        {"id": "checkin/2026-11-19/e2", "at": "2026-11-19T12:00:00Z", "part": "checkin", "kind": "checkin", "data": {"sleep": "5–6 h", "wakes": "2"}, "text": "teething-note"},
        {"id": "fb/calm/after/body@x/e5", "at": "2026-11-19T13:00:00Z", "part": "calm", "kind": "feedback", "data": {"about": "body@x", "a": {"helped": "A bit"}}},
        {"id": "fb/calm/after/body@x/e9", "at": "2026-11-19T13:00:00Z", "part": "calm", "kind": "feedback", "data": {"about": "body@x", "a": {"helped": "A lot"}}},
+       {"id": "fb/faith/after/day:10@y/e3", "at": "2026-11-19T13:30:00Z", "part": "faith", "kind": "feedback", "data": {"about": "day:10@y", "a": {}}, "text": "the rest verse stayed with me"},
        {"id": "fb/workout/notfit/coach:A/7", "at": "2026-11-19T14:00:00Z", "part": "workout", "kind": "not-for-me", "data": {"about": "coach:A", "a": {"reasons": ["Too generic"]}}, "text": "shown words | my note"}]
 st, o, _ = req("POST", "/v1/activity", {"events": evs}, token=token)
 check("check-in and answers accepted", st == 200, (st, o))
@@ -503,6 +504,7 @@ sm = W.summarize(14, datetime.date(2026, 11, 20))
 check("summary has the newest check-in only", "sleep 5–6 h" in sm and "sleep 4–5 h" not in sm and "teething-note" in sm, sm)
 check("summary has the newest answer and the not-for-me flag", "helped: A lot" in sm and "helped: A bit" not in sm and "NOT FOR ME" in sm and "my note" in sm, sm)
 check("feedback isn't counted as activity", "1 feedback" not in sm, sm)
+check("his own words with a quick answer are marked as his words (even with no chip picked)", 'answers [day:10@y]  | in his words: "the rest verse stayed with me"' in sm, sm)
 # a "not for me" he brought back (Settings) comes again as <id>/x: the plan stops counting it
 req("POST", "/v1/activity", {"events": [{"id": "fb/calm/notfit/ground/9", "at": "2026-11-19T15:00:00Z", "part": "calm", "kind": "not-for-me", "data": {"about": "ground-unfit-test", "a": {"reasons": []}}},
     {"id": "fb/calm/notfit/ground/9/x", "at": "2026-11-19T16:00:00Z", "part": "calm", "kind": "not-for-me-removed"}]}, token=token)

@@ -567,8 +567,10 @@ def summarize(days=7, today=None):
             d = e.get("data") or {}
             a = d.get("a") or {}
             ans = "; ".join(f"{k}: {', '.join(str(x) for x in v) if isinstance(v, list) else v}" for k, v in a.items()) if isinstance(a, dict) else str(a)
+            # a quick answer's text is his own words (the "In your own words" box); a not-for-me's is what he saw | his note
+            extra = ((f" | {e['text']}" if e["kind"] == "not-for-me" else f" | in his words: \"{e['text']}\"") if e.get("text") else "")
             lines.append(f"  - {local_day(e['at'])} {e['part']} {'NOT FOR ME' if e['kind'] == 'not-for-me' else 'answers'}"
-                         f" [{d.get('about', '')}] {ans}" + (f" | {e['text']}" if e.get("text") else ""))
+                         f" [{d.get('about', '')}] {ans}" + extra)
     last = max(e["at"] for e in ev)
     lines.append(f"Last event: {last}.")
     return "\n".join(lines)
