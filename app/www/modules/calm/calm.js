@@ -58,7 +58,7 @@
   }
   function noiseRow(p) {
     if (!Sit.usesAlarm(p)) return '';
-    return '<div id="c-noise-row" style="text-align:center;margin:4px 0 6px"><div class="meta" style="margin-bottom:4px">Background sound</div>' +
+    return '<div id="c-noise-row" style="text-align:center;margin:4px 0 6px"><div class="meta" style="margin-bottom:4px">Background sound <span aria-hidden="true">·</span> tap one to hear it</div>' +
       noiseChips('c-noise-pick').replace('class="chips"', 'class="chips" style="justify-content:center"') + '</div>';
   }
   function exactTimerRow(p) {
@@ -334,6 +334,7 @@
     run = { p: p, start: Date.now(), pausedFor: 0, paused: false, before: before, total: total, iv: 0 };
     var every = Sit.intervalEvery(S, p);
     WL.keepAwake(true); WL.bell();
+    if (window.WLNoise && WLNoise.previewing && WLNoise.previewing() && !(usesAlarm(p) && S.settings.noise && S.settings.noise !== 'off')) WLNoise.stop();
     if (usesAlarm(p) && window.WLNoise && S.settings.noise && S.settings.noise !== 'off') WLNoise.start(S.settings.noise);
     if (usesAlarm(p)) calmAlarm(total * 1000, alarmLabel(p));
     var pp = $('#c-pp'); pp.textContent = '⏸ Pause'; pp.dataset.state = 'playing';
@@ -432,7 +433,7 @@
       // during a sit the new sound plays at once (or stops); paused, it waits for Resume
       if (run && run.p === p && !run.done && !run.paused && run.start && usesAlarm(p) && window.WLNoise) {
         if (S.settings.noise === 'off') WLNoise.stop(); else WLNoise.start(S.settings.noise);
-      }
+      } else if (!(run && run.start) && window.WLNoise && WLNoise.preview) WLNoise.preview(S.settings.noise); // before a sit: hear a few seconds
     }; });
     var qb = $('#c-quiet');
     if (qb) qb.onclick = function () { S.settings.sitQuiet = !S.settings.sitQuiet; save(); qb.setAttribute('aria-pressed', !!S.settings.sitQuiet); };
@@ -503,6 +504,7 @@
     if (keyHandler) { document.removeEventListener('keydown', keyHandler); keyHandler = null; }
     pick = null;
     saveEarly(); stopRun();
+    if (window.WLNoise && WLNoise.previewing && WLNoise.previewing()) WLNoise.stop(); // a sound being tried stops on leaving
   }
   var prevBackCalm = window.FCBack;
   window.FCBack = function () {
@@ -533,7 +535,7 @@
     $('#ctk').onclick = function () { S.settings.tick = !S.settings.tick; save(); redrawList(true); };
     $('#cdk').onclick = function () { S.settings.dark = S.settings.dark === false; save(); redrawList(true); };
     $$('[data-iv]').forEach(function (b) { b.onclick = function () { S.settings.interval = +b.dataset.iv; save(); redrawList(true); }; });
-    $$('#c-noise [data-noise]').forEach(function (b) { b.onclick = function () { S.settings.noise = b.dataset.noise; save(); redrawList(true); }; });
+    $$('#c-noise [data-noise]').forEach(function (b) { b.onclick = function () { S.settings.noise = b.dataset.noise; save(); if (window.WLNoise && WLNoise.preview) WLNoise.preview(b.dataset.noise); redrawList(true); }; });
     $$('[data-aim]').forEach(function (b) { b.onclick = function () { S.settings.aim = b.dataset.aim; save(); redrawList(!!(det && det.open)); }; });
     $$('[data-stage]').forEach(function (b) { b.onclick = function () { K.setStage(S, b.dataset.stage); save(); WL.toast('Your stage: ' + titleOf(K.stageOf(S))); redrawList(false); }; });
   }

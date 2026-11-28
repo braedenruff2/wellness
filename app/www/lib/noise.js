@@ -12,7 +12,7 @@
   /* Loop lengths: long enough that the ear can't hear the loop repeat (a 3 s brown loop sounded like a drum beat). */
   var SECS = { brown: 23, pink: 19, white: 11, fan: 17, ocean: 37 };
 
-  var ctx = null, active = null, curKind = 'off';
+  var ctx = null, active = null, curKind = 'off', previewT = null;
 
   function getCtx() {
     var AC = root.AudioContext || root.webkitAudioContext;
@@ -93,6 +93,7 @@
   }
 
   function stop() {
+    clearTimeout(previewT); previewT = null;
     curKind = 'off';
     if (!active) return;
     var a = active; active = null;
@@ -108,6 +109,7 @@
   }
 
   function start(kind) {
+    clearTimeout(previewT); previewT = null; // a sit starting during a preview keeps the sound going
     if (KINDS.indexOf(kind) < 0 || kind === 'off') { stop(); return false; }
     if (active && curKind === kind) return true;
     stop();
@@ -149,7 +151,15 @@
     } catch (e) { return false; }
   }
 
-  var api = { KINDS: KINDS, LABELS: LABELS, samples: samples, start: start, stop: stop, duck: duck, current: function () { return curKind; } };
+  /* A few seconds of a sound so it can be chosen before a sit (it fades out by itself; start() keeps it going). */
+  function preview(kind, secs) {
+    if (KINDS.indexOf(kind) < 0 || kind === 'off') { stop(); return false; }
+    if (!start(kind)) return false;
+    previewT = setTimeout(function () { previewT = null; stop(); }, (secs || 4) * 1000);
+    return true;
+  }
+
+  var api = { KINDS: KINDS, LABELS: LABELS, samples: samples, preview: preview, previewing: function () { return !!previewT; }, start: start, stop: stop, duck: duck, current: function () { return curKind; } };
   root.WLNoise = api;
   if (root.WL) root.WL.noise = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

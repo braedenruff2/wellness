@@ -181,6 +181,43 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off');
   });
 
+  await t.step('410: before a sit, tapping a sound plays a few seconds of it; Begin keeps it going; leaving stops it; Off is silent', async () => {
+    await page.goto(base + '#calm/s/count');
+    await page.waitForSelector('#c-noise-pick');
+    assert.ok((await page.textContent('#c-noise-row')).includes('tap one to hear it'));
+    await page.click('#c-noise-pick [data-noise="ocean"]');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'ocean', 'heard at once');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.previewing()), true);
+    await page.clock.runFor(4500);
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off', 'stops by itself after ~4 s');
+    await page.click('#c-noise-pick [data-noise="fan"]');
+    await page.clock.runFor(1000);
+    await page.click('#c-pp'); // Begin during the preview
+    await page.clock.runFor(6000);
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'fan', 'the sit keeps the sound');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.previewing()), false);
+    await page.click('#c-end'); await page.waitForSelector('#c-today');
+    // leaving mid-preview stops it
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-noise-pick');
+    await page.click('#c-noise-pick [data-noise="pink"]');
+    await page.goto(base + '#home'); await page.waitForSelector('.home-card');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off', 'left the sit screen: silent');
+    // a sound picked, then Off before Begin: nothing plays in the sit
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-noise-pick');
+    await page.click('#c-noise-pick [data-noise="brown"]');
+    await page.click('#c-noise-pick [data-noise="off"]');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off');
+    await page.click('#c-pp'); await page.clock.runFor(5000);
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off');
+    await page.click('#c-end'); await page.waitForSelector('#c-today');
+    // Calm settings: a sound chip plays a sample too
+    await page.click('#c-settings summary'); await page.waitForSelector('#c-noise');
+    await page.click('#c-noise [data-noise="white"]');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'white');
+    await page.clock.runFor(4500);
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off');
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.step('the soft interval bell dips the background sound so it is heard; nothing to dip when the sound is off', async () => {
     await page.goto(base + '#calm');
