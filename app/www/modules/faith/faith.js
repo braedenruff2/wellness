@@ -202,13 +202,14 @@
     return late.length === 2 && late.every(function (f) { return f.a.felt === 'Hard to focus'; });
   }
   function shortTonight(d) {
-    if (!lateNow() || !(S.settings.minutes > 2)) return '';
+    var sick = !!(window.WLMe && WLMe.unwell && WLMe.unwell()); // a sick day (his check-in): offered at any hour
+    if (!(lateNow() || sick) || !(S.settings.minutes > 2)) return '';
     var full = sessionScript('day', d.n, 2), mins = full ? Math.max(2, Math.round(C.scriptLength(full.steps, S.settings.rate) / 60)) : 2;
     var M = window.WLMe, lastLate = M ? M.state().feedback.filter(function (f) {
       var h = new Date(f.at).getHours(); return f.part === 'faith' && f.kind === 'after' && (h >= 21 || h < 5);
     }).sort(function (a, b) { return (Date.parse(a.at) || 0) - (Date.parse(b.at) || 0); }).slice(-1)[0] : null;
-    var why = lastLate && lastLate.a && lastLate.a.felt === 'Hard to focus' ? 'Focus was hard last time this late.' : 'Tired?';
-    return '<div class="row ui" id="fc-short-wrap" style="margin:6px 0 0;gap:4px 8px"><span class="meta">' + why + '</span><a class="link" href="#faith/session/day/' + d.n + '" id="fc-short" data-n="' + d.n + '">A shorter one tonight (about ' + mins + ' min)</a></div>';
+    var why = sick ? 'Sick today: a short prayer is plenty, and resting counts too.' : lastLate && lastLate.a && lastLate.a.felt === 'Hard to focus' ? 'Focus was hard last time this late.' : 'Tired?';
+    return '<div class="row ui" id="fc-short-wrap" style="margin:6px 0 0;gap:4px 8px"><span class="meta">' + why + '</span><a class="link" href="#faith/session/day/' + d.n + '" id="fc-short" data-n="' + d.n + '">A shorter one ' + (lateNow() ? 'tonight' : 'today') + ' (about ' + mins + ' min)</a></div>';
   }
 
   function sessionScript(kind, id, forceMin) {

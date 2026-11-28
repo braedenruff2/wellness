@@ -74,5 +74,21 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(/^My journal \(Wellness app\)/.test(txt) && txt.includes('Grateful for a quiet evening.'), txt.slice(0, 300));
   });
   await t.step('no overflow, no errors', async () => { await t.noOverflow(['#faith/today', '#faith/settings']); assert.deepStrictEqual(t.errors, []); });
+  await t.step('458: on a sick day (his check-in) the shorter prayer is offered at midday too, saying why', async () => {
+    await page.click('#end').catch(() => {});
+    await page.clock.setSystemTime(new Date(2026, 10, 23, 13, 0));
+    await page.goto(base + '#faith/pray'); await page.click('[data-min="5"]'); // back to his usual length
+    await page.goto(base + '#faith/today'); await page.reload(); await page.waitForSelector('#pray-card');
+    assert.strictEqual(await page.$('#fc-short'), null, 'a well day at midday: not offered');
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[],"checkins":{}}'); me.checkins = me.checkins || {};
+      me.checkins['2026-11-23'] = { note: 'all sick, sore throat', at: new Date(2026, 10, 23, 9).toISOString() };
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.reload(); await page.waitForSelector('#pray-card');
+    await page.waitForSelector('#fc-short');
+    assert.ok(/Sick today: a short prayer is plenty/.test(await page.textContent('#fc-short-wrap')), await page.textContent('#fc-short-wrap'));
+    assert.ok(/A shorter one today/.test(await page.textContent('#fc-short')));
+  });
   await t.close('faith short tonight');
 })().catch((e) => { console.error(e); process.exit(1); });
