@@ -172,7 +172,7 @@
     var days = Object.keys(state.checkins).sort();
     while (days.length > 120) delete state.checkins[days.shift()];
   }
-  function hasCheckin(c) { return !!c && (!!c.note || CHECKIN.some(function (q) { return c[q.k] != null; })); }
+  function hasCheckin(c) { return !!c && (!!c.note || !!c.stillUnwell || CHECKIN.some(function (q) { return c[q.k] != null; })); }
 
   /* Daily check-in, one tap per question (tap again to clear). */
   function checkin(state, day, k, v, now) {
@@ -199,6 +199,20 @@
     trimCheckins(state);
     return c;
   }
+  /* Follow-up on the next 2 days after an unwell day: "Still unwell?" ('Yes' | 'Better now'; tap again clears). */
+  function setStillUnwell(state, day, val, now) {
+    if (!WLD.isDate(day)) return null;
+    if (val !== 'Yes' && val !== 'Better now' && val !== '' && val != null) return null;
+    now = now || new Date();
+    var c = state.checkins[day];
+    if ((!val || (c && c.stillUnwell === val)) && !c) return null;
+    c = c || (state.checkins[day] = { at: now.toISOString() });
+    if (!val || c.stillUnwell === val) delete c.stillUnwell; else c.stillUnwell = val;
+    c.edited = now.toISOString();
+    if (!hasCheckin(c)) delete state.checkins[day];
+    trimCheckins(state);
+    return c;
+  }
   function checkinDone(c) { return !!c && CHECKIN.every(function (q) { return c[q.k] != null; }); }
 
   /* Today's check-in, and whether it's a rough day (little sleep or a broken night). */
@@ -211,7 +225,19 @@
     var rest = t.replace(/\bsick (of|and tired)\b/ig, '').replace(/\b(not|isn['’]?t|aren['’]?t|no longer) (sick|ill|unwell)\b/ig, '');
     return UNWELL.test(rest);
   }
-  function unwell(state, now) { var c = state.checkins[iso(now || new Date())]; return !!(c && c.note && noteUnwell(c.note)); }
+  function dayUnwell(c) {
+    if (!c) return false;
+    if (c.stillUnwell === 'Yes') return true;
+    return !!(c.note && noteUnwell(c.note));
+  }
+  function unwell(state, now) { return dayUnwell(state.checkins[iso(now || new Date())]); }
+  /* Ask "Still unwell?" (Yes / Better now) for the next 2 calendar days after an unwell day, unless he already tapped "Better now" yesterday. */
+  function askStillUnwell(state, now) {
+    var t = iso(now || new Date()), c1 = state.checkins[WLD.addDays(t, -1)], c2 = state.checkins[WLD.addDays(t, -2)];
+    if (dayUnwell(c1)) return true;
+    if (c1 && c1.stillUnwell === 'Better now') return false;
+    return dayUnwell(c2);
+  }
   function rough(state, now) {
     var c = state.checkins[iso(now || new Date())];
     if (!c) return false;
@@ -346,8 +372,8 @@
     state.feedback.forEach(function (f) { if (f && f.kind === 'notfit' && /^guide:/.test(f.about) && inRange(f, sinceMs, nowMs)) hidden[f.about.slice(6)] = 1; });
     var today = state.checkins[iso(now)], week = recentCheckins(state, now, 7);
     if (rough(state, now)) out.push({ key: 'rough', part: 'home', text: 'Rough night. Keep today small: the one-minute reset, a shorter workout (or rest), and lie down when she naps if you can.' });
-    // today's explicit check-in note (sick/teething or busy day) belongs near the top so multi-day trends never hide it on Home
-    if (today && today.note && (noteUnwell(today.note) || /\b(teeth|teething)\b/i.test(today.note))) out.push({ key: 'sick', part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
+    // today's explicit check-in note (sick/teething or busy day) or "Still unwell? Yes" belongs near the top so multi-day trends never hide it on Home
+    if (unwell(state, now) || (today && today.note && /\b(teeth|teething)\b/i.test(today.note))) out.push({ key: 'sick', part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
     else if (today && today.note && /\b(family|party|parties|visit|visits|visiting|visitors|guests|busy|hosting|birthday)\b/i.test(today.note)) out.push({ key: 'busyday', part: 'home', text: 'A full day with people around: keep it small. The one-minute reset between things, and a rest day from Move is fine (it won’t count as missed).' });
     var low = week.filter(function (c) { return c.mood === 'Low'; }).length;
     if (low >= 4) out.push({ key: 'lowmood', part: 'home', text: 'Your mood has been low on ' + low + ' of the last ' + week.length + ' check-ins. That’s worth sharing with someone you trust, or your doctor; 811 can help too.' });
@@ -494,6 +520,7 @@
       var o = { at: cut(c.at || '', 40) };
       CHECKIN.forEach(function (q) { if (q.opts.indexOf(c[q.k]) >= 0) o[q.k] = c[q.k]; });
       if (c.note) o.note = cut(c.note, 600); if (c.edited) o.edited = cut(c.edited, 40);
+      if (c.stillUnwell === 'Yes' || c.stillUnwell === 'Better now') o.stillUnwell = c.stillUnwell;
       if (hasCheckin(o)) d.checkins[k] = o;
     });
     trimCheckins(d);
@@ -531,7 +558,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, afterNote: afterNote, afterNoteOf: afterNoteOf, afterNoteByPrefix: afterNoteByPrefix, checkinDone: checkinDone, rough: rough, unwell: unwell, noteUnwell: noteUnwell, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
+    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, setStillUnwell: setStillUnwell, afterNote: afterNote, afterNoteOf: afterNoteOf, afterNoteByPrefix: afterNoteByPrefix, checkinDone: checkinDone, rough: rough, unwell: unwell, askStillUnwell: askStillUnwell, noteUnwell: noteUnwell, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

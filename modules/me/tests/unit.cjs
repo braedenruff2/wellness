@@ -664,4 +664,32 @@ t('419: afterNoteOf prefix lookup matches day:N / day:N@... without matching day
   assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:10', { prefix: true }), 'day ten note');
   assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:2', { prefix: true }), '', 'no note for day 2');
 });
+t('424: multi-day sick check-in asks "Still unwell?" for next 2 days; Yes keeps sick mode without a note; Better now clears it', () => {
+  const s = K.defaults();
+  assert.strictEqual(K.askStillUnwell(s, D(20, 9)), false);
+  K.checkinNote(s, '2026-11-20', 'sore throat and fever', D(20, 9));
+  assert.strictEqual(K.unwell(s, D(20, 12)), true);
+  assert.strictEqual(K.askStillUnwell(s, D(20, 12)), false, 'not on the first sick day itself');
+  assert.strictEqual(K.askStillUnwell(s, D(21, 9)), true, 'day +1 asks');
+  assert.strictEqual(K.askStillUnwell(s, D(22, 9)), true, 'day +2 asks');
+  assert.strictEqual(K.askStillUnwell(s, D(23, 9)), false, 'day +3 stops asking');
+
+  // Tapping Yes on day +1 keeps sick-day mode (unwell + sick guidance) without typing a note
+  K.setStillUnwell(s, '2026-11-21', 'Yes', D(21, 9));
+  assert.strictEqual(K.unwell(s, D(21, 15)), true, 'Yes keeps unwell true without note');
+  assert.ok(K.guidance(s, D(21, 15), 5).some((g) => g.key === 'sick'), 'sick guidance fires without note');
+  assert.strictEqual(K.askStillUnwell(s, D(23, 9)), true, 'day +2 after Yes still asks');
+  // Validate preserves stillUnwell
+  const v = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.checkins['2026-11-21'].stillUnwell, 'Yes');
+  assert.strictEqual(K.unwell(v, D(21, 15)), true);
+
+  // Tapping Better now on day +2 turns sick mode off and stops asking on day +3
+  K.setStillUnwell(v, '2026-11-22', 'Better now', D(22, 9));
+  assert.strictEqual(K.unwell(v, D(22, 15)), false, 'Better now ends sick mode');
+  assert.strictEqual(K.askStillUnwell(v, D(23, 9)), false, 'Better now yesterday stops asking today');
+  // Tapping the same chip again clears it cleanly
+  K.setStillUnwell(v, '2026-11-22', 'Better now', D(22, 10));
+  assert.strictEqual(v.checkins['2026-11-22'], undefined, 'empty check-in cleaned up');
+});
 console.log(n + ' me unit tests passed');

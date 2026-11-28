@@ -123,9 +123,23 @@
     var box = n.closest('.me-ask'); if (!box) return;
     if (K.afterNote(S, box.dataset.part, box.dataset.about, n.value, now(), new Date()) || !n.value.trim()) save();
   });
+  /* Refresh Home cards that react to sick-day mode (Move, Cooking, Parenting) when "Still unwell?" changes. */
+  function refreshSickCards() {
+    ['workout', 'cook', 'coach'].forEach(function (id) {
+      var el = document.querySelector('.home-card[data-module="' + id + '"]');
+      var m = WL.modules && WL.modules[id];
+      if (el && m && m.card) { el.innerHTML = m.card(); }
+    });
+  }
   document.addEventListener('click', function (e) {
-    var b = e.target.closest && e.target.closest('[data-me-a],[data-me-ck],[data-me-fit],[data-me-plan-dismiss]');
+    var b = e.target.closest && e.target.closest('[data-me-a],[data-me-ck],[data-me-unwell],[data-me-fit],[data-me-plan-dismiss]');
     if (!b) return;
+    if (b.dataset.meUnwell) {
+      var cu = K.setStillUnwell(S, today(), b.dataset.v, new Date()); if (!cu) return; save();
+      $$('[data-me-unwell]').forEach(function (x) { x.setAttribute('aria-pressed', cu.stillUnwell === x.dataset.v); });
+      refreshSickCards();
+      return;
+    }
     if (b.dataset.mePlanDismiss) {
       K.dismissPlan(S, b.dataset.mePlanDismiss); save();
       var box = b.closest('.me-plan, #me-plan-home');
@@ -151,7 +165,10 @@
 
   function checkinHtml(full) {
     var c = S.checkins[today()] || {};
-    return '<div id="me-ck">' + K.CHECKIN.map(function (q) { return chips('data-me-ck="1"', q, c[q.k]); }).join('') +
+    var still = K.askStillUnwell(S, new Date())
+      ? '<div id="me-still-unwell">' + chips('data-me-unwell="1"', { k: 'stillUnwell', q: 'Still unwell?', opts: ['Yes', 'Better now'] }, c.stillUnwell) + '</div>'
+      : '';
+    return '<div id="me-ck">' + still + K.CHECKIN.map(function (q) { return chips('data-me-ck="1"', q, c[q.k]); }).join('') +
       '<label class="sr" for="me-ck-note">Anything else today</label><input id="me-ck-note" type="text" maxlength="600" placeholder="Anything else? e.g. she’s teething (optional)" value="' + esc(c.note || '') + '">' +
       (full ? '' : '<div class="row" style="margin-top:8px"><span class="grow meta">Takes 20 seconds. Only on your phone and your PC.</span><button class="link" id="me-skip">Skip today</button></div>') + '</div>';
   }
@@ -289,7 +306,10 @@
       return c && (K.CHECKIN.some(function (q) { return c[q.k]; }) || c.note);
     }).sort().reverse().slice(0, 7);
     if (shownDays.length) h += '<div class="card ui"><h3>Last 7 check-ins</h3><ul class="me-g">' + shownDays.map(function (d) {
-      var c = S.checkins[d]; return '<li><b>' + esc(d) + '</b> ' + esc(K.CHECKIN.map(function (q) { return c[q.k] ? q.q.split(' ')[0] + ': ' + c[q.k] : ''; }).filter(Boolean).join(' · ')) + (c.note ? ' — ' + esc(c.note) : '') + '</li>';
+      var c = S.checkins[d];
+      var bits = K.CHECKIN.map(function (q) { return c[q.k] ? q.q.split(' ')[0] + ': ' + c[q.k] : ''; }).filter(Boolean);
+      if (c.stillUnwell) bits.push('Still unwell: ' + c.stillUnwell);
+      return '<li><b>' + esc(d) + '</b> ' + esc(bits.join(' · ')) + (c.note ? ' — ' + esc(c.note) : '') + '</li>';
     }).join('') + '</ul></div>';
     // what he wrote in his own words with quick answers (newest first): what the weekly plan reads too
     var PN = { calm: 'Calm', workout: 'Move', faith: 'Faith', coach: 'Parenting', tagalog: 'Tagalog', todo: 'To-do', home: 'Home' };

@@ -175,6 +175,49 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#me-checkin-card [data-me-ck][data-k="sleep"][data-v="7 h+"]');
     assert.strictEqual((await me()).checkins[today].sleep, '7 h+');
   });
+  await t.step('424: after an unwell note, next 2 days ask "Still unwell?" and Yes keeps sick-day mode across Move, Parenting, Cooking & guidance', async () => {
+    // Seed an unwell check-in yesterday (2026-11-20) and set Parenting child birth so Parenting card shows on Home
+    await page.evaluate(() => {
+      const m = JSON.parse(localStorage.getItem('wl.me.v1') || '{"checkins":{},"feedback":[],"skipped":{}}');
+      m.checkins['2026-11-20'] = { sleep: '7 h+', wakes: '0', energy: 'OK', mood: 'Good', day: 'Good', note: 'my throat hurts, caught a cold', at: '2026-11-20T12:00:00.000Z' };
+      ['2026-11-21', '2026-11-22', '2026-11-23'].forEach((d) => { delete m.checkins[d]; if (m.skipped) delete m.skipped[d]; });
+      localStorage.setItem('wl.me.v1', JSON.stringify(m));
+      const co = JSON.parse(localStorage.getItem('wl.coach.v1') || '{}');
+      co.child = Object.assign({ name: '', birth: '2025-09-01', can: [] }, co.child || {});
+      co.current = null;
+      localStorage.setItem('wl.coach.v1', JSON.stringify(co));
+      const wo = JSON.parse(localStorage.getItem('wl.workout.v1') || '{"sessions":[],"rest":{},"next":{}}');
+      if (wo.rest) delete wo.rest['2026-11-21'];
+      wo.sessions = (wo.sessions || []).filter((s) => s.date !== '2026-11-21');
+      localStorage.setItem('wl.workout.v1', JSON.stringify(wo));
+    });
+    await page.clock.setSystemTime(new Date(2026, 10, 21, 10, 0));
+    await page.goto(base + '#home'); await page.reload();
+    await page.waitForSelector('#me-still-unwell');
+    // Tap "Yes" without typing any note -> Move offers Rest today (sick), Parenting shows sick-day pause, Cooking offers soup swap
+    await page.click('#me-still-unwell [data-me-unwell][data-v="Yes"]');
+    await page.waitForSelector('#wo-rough-rest');
+    assert.strictEqual((await page.textContent('#wo-rough-rest')).trim(), 'Rest today (sick)');
+    assert.ok(await page.$('#co-sick'), 'Parenting card shows sick-day pause');
+    // Finish the rest of today's check-in (no note typed) -> For you shows sick guidance
+    for (const [k, v] of [['sleep', '7 h+'], ['wakes', '0'], ['energy', 'OK'], ['mood', 'Good'], ['day', 'Good']]) {
+      await page.click(`[data-me-ck][data-k="${k}"][data-v="${v}"]`);
+    }
+    await page.clock.runFor(600);
+    assert.ok(/A sick or teething day/.test(await page.textContent('.home-card[data-module="me"]')), 'For you shows sick guidance without a note');
+    // Next day (2026-11-22): still asks "Still unwell?"; tapping "Better now" keeps sick mode off
+    await page.clock.setSystemTime(new Date(2026, 10, 22, 10, 0));
+    await page.reload();
+    await page.waitForSelector('#me-still-unwell');
+    await page.click('#me-still-unwell [data-me-unwell][data-v="Better now"]');
+    assert.strictEqual(await page.$('#wo-rough-rest'), null, 'Better now: no Rest today (sick)');
+    assert.strictEqual(await page.$('#co-sick'), null, 'Better now: no Parenting sick pause');
+    // Day after Better now (2026-11-23): no longer asks "Still unwell?"
+    await page.clock.setSystemTime(new Date(2026, 10, 23, 10, 0));
+    await page.reload();
+    await page.waitForSelector('#me-ck');
+    assert.strictEqual(await page.$('#me-still-unwell'), null, 'stops asking after Better now');
+  });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#home', '#me', '#calm', '#workout', '#coach']);
     assert.deepStrictEqual(t.errors, []);
