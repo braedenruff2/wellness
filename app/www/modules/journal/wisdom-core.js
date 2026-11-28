@@ -15,6 +15,8 @@
   }
 
   var idn = 0;
+  /* An id from a backup is used in selectors and data attributes ('a|b' pairs): letters, digits, _ and - only, or a new one. */
+  function safeId(v, at) { return typeof v === 'string' && /^[A-Za-z0-9_-]{1,60}$/.test(v) ? v : newId(new Date(at)); }
   function newId(when) {
     idn++;
     return (when || new Date()).getTime().toString(36) + '-' + idn;
@@ -279,7 +281,7 @@
         if (!sit || !at) return;
         if (!date) date = iso(new Date(at));
         var rec = {
-          id: typeof z.id === 'string' && z.id.trim() ? trim(z.id, 60) : newId(new Date(at)),
+          id: safeId(z.id, at),
           at: at, date: date, situation: sit,
           assuming: typeof z.assuming === 'string' ? trim(z.assuming, 800) : '',
           otherSide: typeof z.otherSide === 'string' ? trim(z.otherSide, 800) : '',
@@ -316,7 +318,7 @@
           }
         }
         d.decisions.push({
-          id: typeof x.id === 'string' && x.id.trim() ? trim(x.id, 60) : newId(new Date(at)),
+          id: safeId(x.id, at),
           at: at, date: date, choice: choice,
           why: typeof x.why === 'string' ? trim(x.why, 800) : '',
           expect: typeof x.expect === 'string' ? trim(x.expect, 800) : '',
@@ -333,7 +335,7 @@
         if (!text || !at) return;
         if (!date) date = iso(new Date(at));
         var rec = {
-          id: typeof p.id === 'string' && p.id.trim() ? trim(p.id, 60) : newId(new Date(at)),
+          id: safeId(p.id, at),
           at: at, date: date, text: text,
           context: typeof p.context === 'string' ? trim(p.context, 800) : '',
           tag: TAGS.indexOf(p.tag) >= 0 ? p.tag : ''

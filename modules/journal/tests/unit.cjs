@@ -97,4 +97,17 @@ t('validate: round-trips clean state, strips corrupt dates/entries, and stays id
   assert.strictEqual(WC.validate({}), null);
 });
 
+t('409: ids from a backup that would break selectors (. : | quotes, spaces) get new safe ids; good ids are kept', () => {
+  const at = '2026-11-20T10:00:00.000Z';
+  const v = WC.validate({
+    zoomouts: [{ id: 'a.b:c', at, situation: 'One' }, { id: 'mx1-2', at, situation: 'Two' }],
+    decisions: [{ id: 'x|y', at, choice: 'Choose', reviewDays: 14 }, { id: '"q"', at, choice: 'Other', reviewDays: 30 }],
+    principles: [{ id: 'has space', at, text: 'Be kind' }]
+  });
+  const ids = [].concat(v.zoomouts, v.decisions, v.principles).map((x) => x.id);
+  assert.strictEqual(ids.length, 5, 'nothing dropped');
+  ids.forEach((id) => assert.ok(/^[A-Za-z0-9_-]+$/.test(id), id));
+  assert.ok(ids.includes('mx1-2'), 'a good id is kept');
+  assert.strictEqual(new Set(ids).size, ids.length, 'no two the same');
+});
 console.log(n + ' journal wisdom unit tests passed');
