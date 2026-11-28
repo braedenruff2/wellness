@@ -1,5 +1,12 @@
 # Cloud log
 
+## 2026-11-27 20:35-21:05 AST (same run; APK 0.1.20261128.0100, real key, cert 6795e499...)
+- Done 401 (e2e: removing a meal logged from the plan brings "Log to food log" back and today's numbers follow; no bug), 402 ("Now doing" names every ticked harder step, "3-sec lowering on every rep + feet on a chair"; WorkoutCore.doingText; unit + e2e), 416 (a cloud run can reply to a note for the autopilot: ack-notes <sync> <work> <replies.json>; the phone shows "Autopilot: ..." under the note, escaped, 300 chars; cloud-answer test + e2e-notes-ack).
+- The answers sheet's notes-ack row now carries replies to the owner's two notes (shown once the phone has this APK).
+- Added 410-416 to the plan. Rotation: stayed on wellness (the PC sleeps around 21:00, Singing Helper work needs it; its open items wait on his TV try).
+- Tested: full suite after the rebase (118 suites, none skipped); APK verified (apksigner, zipalign).
+- Check on the phone: Note for autopilot > Your notes: the two notes show "Autopilot: ..." lines.
+
 ## 2026-11-27 19:42-20:35 AST (run after the usage reset; APK 0.1.20261128.0029, real key, cert 6795e499...)
 - From the owner's two in-app notes (403, 404):
   - bug: Calm's "Warm brown" sound had a beat like a drum / cause: a 3 s noise buffer looping, its cross-faded seam dipping every 3 s / fixed: noise.js samples() runs each filter circularly (two passes, so the loop point is like any two neighbouring samples), a 4 Hz DC blocker, 11-37 s loops, cached per kind / test: calm unit (seam within normal step spread, no level dip, no 1 s drift, loops >= 15 s).
