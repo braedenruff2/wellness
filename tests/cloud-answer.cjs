@@ -13,7 +13,10 @@ const now = new Date('2026-11-21T15:00:00Z');
 const sync = {
   app: 'wellness', exported: now.toISOString(),
   stores: {
-    'wl.me.v1': JSON.stringify({ feedback: [], skipped: {}, plan: null, checkins: { '2026-11-20': { at: '2026-11-20T16:12:01.040Z', sleep: '6–7 h', wakes: '2', energy: 'Low', mood: 'OK', day: 'Busy' } } }),
+    'wl.me.v1': JSON.stringify({ feedback: [], skipped: {}, plan: null, checkins: {
+      '2026-11-20': { at: '2026-11-20T16:12:01.040Z', sleep: '6–7 h', wakes: '2', energy: 'Low', mood: 'OK', day: 'Busy', note: 'Sore throat today' },
+      '2026-11-21': { at: '2026-11-21T13:00:00.000Z', stillUnwell: 'Yes' }
+    } }),
     'wl.calm.v1': JSON.stringify({ sessions: [{ id: 'body', date: '2026-11-19', at: '2026-11-20T01:02:57.519Z', mins: 8.4, before: 1, after: 1 }], settings: {} })
   },
   requests: [
@@ -36,6 +39,7 @@ test('prepare: one prompt per unacked request, same text as the PC link, summary
   const adv = fs.readFileSync(path.join(work, 'r1.prompt.md'), 'utf8');
   assert.ok(/Active on \d+ of \d+ days/.test(adv), adv.slice(0, 600));
   assert.ok(adv.includes('energy Low') && adv.includes('Tired lately'), 'the check-in and his question are in it');
+  assert.ok(adv.includes('still unwell: Yes') && !adv.includes('stillUnwell'), 'multi-day stillUnwell surfaces cleanly in cloud prompts');
   const tl = fs.readFileSync(path.join(work, 'r2.prompt.md'), 'utf8');
   assert.ok(tl.includes('"tubeg"') && tl.includes('"tubig"'));
   assert.ok(!/\{\{[a-z]+\}\}/.test(tl + adv), 'every placeholder filled');

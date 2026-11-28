@@ -437,7 +437,10 @@ def summarize(days=7, today=None):
         es = [e for e in per.get(part, []) if e["kind"] not in ("feedback", "not-for-me")]
         if part == "checkin":
             if es: lines.append("- check-ins (his own words, newest last): " + "; ".join(
-                local_day(e["at"]) + " " + ", ".join(f"{k} {v}" for k, v in (e.get("data") or {}).items())
+                local_day(e["at"]) + " " + ", ".join(
+                    (f"still unwell: {v}" if k == "stillUnwell" else f"{k} {v}")
+                    for k, v in (e.get("data") or {}).items() if v is not None and v != ""
+                )
                 + (f" ({e['text']})" if e.get("text") else "") for e in es[-10:]))
             else: lines.append("- check-ins: none")
             continue

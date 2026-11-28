@@ -506,6 +506,13 @@ st, o, _ = req("POST", "/v1/activity", {"events": evs}, token=token)
 check("check-in and answers accepted", st == 200, (st, o))
 sm = W.summarize(14, datetime.date(2026, 11, 20))
 check("summary has the newest check-in only", "sleep 5–6 h" in sm and "sleep 4–5 h" not in sm and "teething-note" in sm, sm)
+# multi-day sick check-in: stillUnwell surfaces in plain words (even without a repeated note) and newest edit wins
+req("POST", "/v1/activity", {"events": [
+    {"id": "checkin/2026-11-20/e1", "at": "2026-11-20T12:00:00Z", "part": "checkin", "kind": "checkin", "data": {"stillUnwell": "Yes"}},
+    {"id": "checkin/2026-11-21/e1", "at": "2026-11-21T12:00:00Z", "part": "checkin", "kind": "checkin", "data": {"sleep": "7 h+", "stillUnwell": "Yes"}},
+    {"id": "checkin/2026-11-21/e2", "at": "2026-11-21T12:00:00Z", "part": "checkin", "kind": "checkin", "data": {"sleep": "7 h+", "stillUnwell": "Better now"}}]}, token=token)
+sm_sick = W.summarize(14, datetime.date(2026, 11, 21))
+check("summary: multi-day stillUnwell Yes and Better now in plain words", "2026-11-20 still unwell: Yes" in sm_sick and "2026-11-21 sleep 7 h+, still unwell: Better now" in sm_sick and "stillUnwell" not in sm_sick, sm_sick)
 check("summary has the newest answer and the not-for-me flag", "helped: A lot" in sm and "helped: A bit" not in sm and "NOT FOR ME" in sm and "my note" in sm, sm)
 check("feedback isn't counted as activity", "1 feedback" not in sm, sm)
 check("his own words with a quick answer are marked as his words (even with no chip picked)", 'answers [day:10@y]  | in his words: "the rest verse stayed with me"' in sm, sm)
