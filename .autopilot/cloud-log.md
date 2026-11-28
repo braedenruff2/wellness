@@ -1,5 +1,9 @@
 # Cloud log
 
+## 2026-11-27 23:20 AST (end of this run; APK 0.1.20261128.0311, real key, cert 6795e499...)
+- Gemini pushed 419, 423 and 424 while this run tested; each time rebased (two plan conflicts: kept both agents' tasks; this run's 426-430 renumbered 431-435), ran the full suite again (118 suites, none skipped) and rebuilt the APK so it carries both agents' work.
+- Open for the next runs: 426, 427 (Gemini's), 431-434, and the 2 Dec lesson pack ([drive], Wednesday from noon: 273/390/398).
+
 ## 2026-11-27 22:35 AST (same run; APK 0.1.20261128.0235, real key, cert 6795e499...)
 - Rebased onto Gemini's 415 (sick-day soup swap on Cooking) and 418 (Calm: "Finish here" after a 10+ min pause, Interrupted pre-ticked); read both diffs: no bugs found; they merge cleanly with 425 (sit words) and the sound row.
 - Tested: full suite after the rebase (118 suites, none skipped); APK rebuilt from that commit so the phone gets both agents' changes.
