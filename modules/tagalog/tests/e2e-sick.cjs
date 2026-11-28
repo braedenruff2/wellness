@@ -42,6 +42,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#tl-card-listen');
     await page.waitForSelector('#tl-walk[aria-pressed="true"]');
     assert.ok(/Stop listening/.test(await page.textContent('#tl-walk')));
+    assert.strictEqual(await page.evaluate(() => location.hash), '#tagalog/l/2026-11-18/2', 'the hash drops /listen (no restart on coming back)');
     for (let i = 0; i < 400 && (await page.getAttribute('#tl-walk', 'aria-pressed')) === 'true'; i++) await page.clock.runFor(1000);
     const spoken = await page.evaluate(() => window.__spoken.map((x) => x.text));
     const lesson = await page.evaluate(() => TagalogCore.allPacks(JSON.parse(localStorage.getItem('wl.tagalog.v1')), window.TL_PACKS).find((p) => p.id === '2026-11-18').lessons[1]);

@@ -376,7 +376,12 @@
           })();
         };
         runExercises(f.pack, f.lesson);
-        if (parts[3] === 'listen' && wk) wk.click(); // from a sick day's "Listen while resting": straight to listening
+        // from a sick day's "Listen while resting": straight to listening. The hash drops "/listen" first, so coming back
+        // to this screen later (Back, a redraw) doesn't start it again by itself.
+        if (parts[3] === 'listen' && wk) {
+          try { history.replaceState(null, '', location.href.split('#')[0] + '#tagalog/l/' + parts[1] + '/' + parts[2]); } catch (e) {}
+          wk.click();
+        }
         return;
       }
     }
