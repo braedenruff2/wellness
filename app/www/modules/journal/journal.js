@@ -99,6 +99,31 @@
       '<div class="row"><button class="link" type="button" id="j-lb-dismiss" data-id="' + esc(lb.entry.id) + '">Dismiss</button></div></details>';
   }
 
+  /* His own words from quick answers (Faith, Calm, Move, Tagalog, Parenting) and after meditation sits, read-only,
+     newest first, so everything he wrote is in one place; nothing is copied (read from wl.me.v1 / wl.calm.v1). */
+  var WORD_PART = { calm: 'Calm', workout: 'Move', faith: 'Faith', coach: 'Parenting', tagalog: 'Tagalog', todo: 'To-do', home: 'Home' };
+  function ownWords() {
+    var out = [], rd = function (k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+    var me = rd('wl.me.v1'), ca = rd('wl.calm.v1');
+    ((me && me.feedback) || []).forEach(function (f) {
+      if (f && f.kind === 'after' && typeof f.note === 'string' && f.note.trim()) out.push({ at: String(f.edited || f.at || ''), where: WORD_PART[f.part] || String(f.part || ''), text: f.note });
+    });
+    ((ca && ca.sessions) || []).forEach(function (x) {
+      if (x && typeof x.note === 'string' && x.note.trim()) out.push({ at: String(x.rated || x.at || ''), where: 'Calm sit', text: x.note });
+    });
+    return out.sort(function (a, b) { return (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0); });
+  }
+  function ownWordsHtml() {
+    var w = ownWords(); if (!w.length) return '';
+    var show = w.slice(0, 30);
+    return '<details class="card ui" id="j-words"><summary>Your words with quick answers (' + w.length + ')</summary>' +
+      '<p class="meta">What you wrote in the “In your own words” boxes, newest first. Edit them where you wrote them.</p><ul class="list" id="j-words-list">' +
+      show.map(function (x) {
+        var d = Date.parse(x.at), when = isNaN(d) ? '' : new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        return '<li><span class="meta">' + esc(when) + (when ? ' · ' : '') + esc(x.where) + '</span><p style="margin:.2em 0 0">' + esc(x.text) + '</p></li>';
+      }).join('') + '</ul>' + (w.length > show.length ? '<p class="meta">The newest ' + show.length + ' are shown.</p>' : '') + '</details>';
+  }
+
   function screen(tab, sub) {
     var S = state();
     tab = tab || 'all';
@@ -139,6 +164,7 @@
     var items = (S.journal || []).filter(function (e) { return tab === 'all' || e.kind === tab; });
     if (items.length > 5) h += '<div class="ui" style="margin:8px 0"><label class="sr" for="j-search">Search your journal</label><input type="search" id="j-search" placeholder="Search your journal" autocomplete="off"><span class="meta" id="j-found"></span></div>';
     h += items.length ? '<ul class="list card" id="j-list">' + items.map(entryHtml).join('') + '</ul>' : '<p class="meta ui">Nothing here yet.</p>';
+    if (tab === 'all') h += ownWordsHtml();
     h += '<div class="row ui" style="margin-top:10px"><button id="j-export-text">Save my journal as text</button></div>';
     h += '<div class="row ui" style="gap:4px 8px;margin-top:6px"><span class="meta">Looking for your Prayer list?</span><a class="link" href="#faith/prayers">Faith \u203a Prayer list</a></div>';
     return h;

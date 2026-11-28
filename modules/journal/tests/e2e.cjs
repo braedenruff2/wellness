@@ -286,6 +286,28 @@ const W = require('../../../tests/lib/web.cjs');
     assert.ok(wtxt.includes('Personal Principles') && wtxt.includes('Decision Log') && wtxt.includes('Zoom Out Reflections'), wtxt);
   });
 
+  await t.step('439: his words from quick answers and after sits show read-only on All, newest first, escaped', async () => {
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[],"checkins":{}}');
+      me.feedback = me.feedback || [];
+      me.feedback.push({ id: 'faith/after/day:10@x', at: '2026-11-23T23:15:00.000Z', part: 'faith', kind: 'after', about: 'day:10@x', a: { felt: 'Peaceful' }, note: 'The verse about rest <b>stayed</b>' });
+      me.feedback.push({ id: 'workout/after/w@x', at: '2026-11-24T21:18:00.000Z', part: 'workout', kind: 'after', about: 'w@x', a: { hard: 'Just right' } }); // no words: not listed
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+      const c = JSON.parse(localStorage.getItem('wl.calm.v1') || '{"sessions":[],"settings":{}}');
+      c.sessions.push({ id: 'count', date: '2026-11-24', at: '2026-11-24T23:36:00.000Z', rated: '2026-11-24T23:37:00.000Z', mins: 20, focus: 2, hind: ['Interrupted'], note: 'counting got easier after minute 5' });
+      localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+    });
+    await page.goto(base + '#journal'); await page.reload(); await page.waitForSelector('#j-words');
+    assert.ok(/\(2\)/.test(await page.textContent('#j-words summary')), await page.textContent('#j-words summary'));
+    await page.click('#j-words summary');
+    const items = await page.$$eval('#j-words-list li', (ls) => ls.map((l) => l.textContent));
+    assert.strictEqual(items.length, 2);
+    assert.ok(/Calm sit/.test(items[0]) && /minute 5/.test(items[0]), 'newest first: ' + items[0]);
+    assert.ok(/Faith/.test(items[1]) && items[1].includes('<b>stayed</b>'), 'shown as text, not markup: ' + items[1]);
+    assert.strictEqual(await page.$('#j-words-list b'), null);
+    await page.goto(base + '#journal/journal'); await page.waitForSelector('#new-entry');
+    assert.strictEqual(await page.$('#j-words'), null, 'only on All');
+  });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#journal', '#journal/journal', '#journal/awe', '#journal/gratitude', '#journal/wisdom/zoom', '#journal/wisdom/decisions', '#journal/wisdom/principles']);
     assert.deepStrictEqual(t.errors, []);
