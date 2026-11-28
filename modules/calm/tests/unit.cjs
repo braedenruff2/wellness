@@ -544,6 +544,67 @@ t('422: a phone that can\'t make the long loop gets a shorter one, never an erro
   const again = N.makeBuffer(fake, 'ocean');
   assert.strictEqual(again, b, 'kept for next time');
 });
+t('443: the interval bell\'s duck during the 1 s fade-in, or just before a pause, never leaves the sound at a third', () => {
+  // a fake Web Audio clock: AudioParam events are kept and the value at a time is worked out from them
+  const clock = { t: 0 };
+  const param = () => {
+    let ev = [];
+    const at = (T) => {
+      let v = 1, prev = { time: 0, v: 1 };
+      for (const e of ev) {
+        if (e.time <= T) { v = e.v; prev = e; continue; }
+        if (e.ramp) v = prev.v + (e.v - prev.v) * (T - prev.time) / Math.max(1e-9, e.time - prev.time);
+        break;
+      }
+      return v;
+    };
+    return {
+      get value() { return at(clock.t); },
+      setValueAtTime(v, time) { ev.push({ v, time }); ev.sort((a, b) => a.time - b.time); },
+      linearRampToValueAtTime(v, time) { ev.push({ v, time, ramp: true }); ev.sort((a, b) => a.time - b.time); },
+      exponentialRampToValueAtTime(v, time) { ev.push({ v, time, ramp: true }); ev.sort((a, b) => a.time - b.time); },
+      cancelScheduledValues(time) { ev = ev.filter((e) => e.time < time); },
+      at,
+    };
+  };
+  const gains = [];
+  function FakeAC() {
+    this.sampleRate = 8000; this.state = 'running'; this.destination = {};
+    Object.defineProperty(this, 'currentTime', { get: () => clock.t });
+  }
+  FakeAC.prototype.createBuffer = (ch, len) => { const d = new Float32Array(len); return { length: len, getChannelData: () => d }; };
+  FakeAC.prototype.createBufferSource = () => ({ connect() {}, start() {}, stop() {} });
+  FakeAC.prototype.createGain = () => { const g = { gain: param(), connect() {} }; gains.push(g); return g; };
+  FakeAC.prototype.createBiquadFilter = () => ({ frequency: {}, connect() {} });
+  const path = require.resolve('../../../app/www/lib/noise.js');
+  const hadWin = 'window' in global, oldWin = global.window;
+  global.window = { AudioContext: FakeAC };
+  delete require.cache[path];
+  try {
+    const N = require(path);
+    const full = 0.2; // brown at medium
+    assert.strictEqual(N.start('brown'), true);
+    clock.t = 0.3; // part way into the 1 s fade-in
+    assert.strictEqual(N.duck(2.5), true);
+    const g = gains[gains.length - 1].gain;
+    assert.ok(Math.abs(g.at(10) - full) < 1e-9, 'after the bell it is back to full, not a third: ' + g.at(10));
+    assert.ok(g.at(1.5) <= full / 3 + 1e-9, 'quieter while the bell rings');
+    // a duck, then a pause at once, then Resume: the new sound fades in to full
+    clock.t = 20; N.duck(2.5); clock.t = 20.1; N.stop();
+    assert.strictEqual(N.duck(2.5), false, 'nothing playing: a duck does nothing');
+    clock.t = 30; N.start('brown');
+    const g2 = gains[gains.length - 1].gain;
+    assert.notStrictEqual(g2, g, 'a fresh sound');
+    assert.ok(Math.abs(g2.at(40) - full) < 1e-9, 'Resume brings it back at full: ' + g2.at(40));
+    // a volume change during a duck: lands on the new level
+    clock.t = 41; N.duck(2.5); clock.t = 41.5; N.setVolume('soft');
+    assert.ok(Math.abs(g2.at(50) - full * 0.5) < 1e-9, 'soft after the bell: ' + g2.at(50));
+    N.setVolume('medium'); N.stop();
+  } finally {
+    if (hadWin) global.window = oldWin; else delete global.window;
+    delete require.cache[path];
+  }
+});
 t('425: his own words after a path sit: kept (600 max, spaces tidied), cleared, through a restore; not on other practices', () => {
   const s = K.defaults();
   const r = K.record(s, 'count', 20, null, null, new Date(2026, 10, 27, 19));
