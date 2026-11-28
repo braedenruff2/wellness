@@ -914,6 +914,54 @@ const W = require('./lib/web.cjs');
       await t.noOverflow(['#tagalog/settings']);
     });
   }
+  // Task 421: 27 Nov UI: Calm sound + volume chips (before and during a sit), "In your own words", #me-words, note replies
+  for (const [ts, theme] of [[1, 'light'], [1.3, 'light'], [1, 'dark'], [1, 'night']]) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step('27 Nov UI at ' + ts + 'x ' + theme + ': #c-noise-pick(-vol), .me-ask-note, #me-words, .wl-note-reply', async () => {
+      await look(ts, theme); await seed();
+      const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
+      await page.clock.setSystemTime(new Date(2026, 10, 27, 19, 0));
+      await page.evaluate(() => {
+        const c = JSON.parse(localStorage.getItem('wl.calm.v1') || '{"sessions":[],"settings":{}}');
+        c.settings = Object.assign(c.settings || {}, { aim: 'train', stage: 'count', noise: 'brown', noiseVol: 'medium' }); c.sessions = c.sessions || [];
+        localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+        const m = JSON.parse(localStorage.getItem('wl.me.v1'));
+        m.feedback.push({ id: 'faith/after/day:10@z', at: new Date(2026, 10, 27, 18, 0).toISOString(), part: 'faith', kind: 'after', about: 'day:10@z', a: { felt: 'Peaceful' }, note: 'The verse about rest stayed with me all evening, a long note to wrap at 320 px' });
+        localStorage.setItem('wl.me.v1', JSON.stringify(m));
+        localStorage.setItem('wl.notes.v1', JSON.stringify({ notes: [{ id: 'nr1', at: new Date(2026, 10, 27, 18, 0).toISOString(), where: '#calm/s/count', tag: 'Idea', text: 'The brown noise has a beat', read: new Date(2026, 10, 27, 19, 0).toISOString(), reply: 'Fixed: every sound now loops smoothly; switch it during a sit.' }] }));
+        if (window.WL && WL.notes && WL.notes.reload) WL.notes.reload();
+      });
+      await page.goto(base + '#home'); await page.goto(base + '#calm/s/count'); await page.reload(); await page.waitForSelector('#c-noise-pick-vol');
+      assert.deepStrictEqual(await small('#c-noise-pick button, #c-noise-pick-vol button'), [], 'before a sit');
+      assert.deepStrictEqual(await bad('#c-noise-row'), [], theme + ' #c-noise-row');
+      await t.noOverflow(['#calm/s/count']);
+      await page.click('#c-pp'); await page.clock.runFor(2000);
+      assert.deepStrictEqual(await small('#c-noise-pick button, #c-noise-pick-vol button'), [], 'during a sit');
+      assert.deepStrictEqual(await bad('#c-noise-row'), [], theme + ' #c-noise-row in a sit');
+      await page.click('#c-end'); await page.waitForSelector('#c-today');
+      await page.evaluate(() => window.WLNoise && WLNoise.stop());
+      // a short practice's quick questions with the own-words box
+      await page.goto(base + '#calm/s/sigh'); await page.waitForSelector('#c-pp');
+      await page.click('#c-pp'); await page.clock.fastForward(62000); await page.clock.runFor(1000);
+      await page.waitForSelector('#c-after .me-ask-note');
+      assert.deepStrictEqual(await small('#c-after .me-ask-note'), []);
+      assert.deepStrictEqual(await bad('#c-after .me-ask'), [], theme + ' .me-ask-note');
+      await t.noOverflow(['#calm/s/sigh']);
+      await page.click('#c-save');
+      // About you: In your own words
+      await page.goto(base + '#me'); await page.waitForSelector('#me-words');
+      assert.deepStrictEqual(await bad('#me-words'), [], theme + ' #me-words');
+      await t.noOverflow(['#me']);
+      // the note sheet with an autopilot reply
+      await page.goto(base + '#calm'); await page.waitForSelector('[data-wl-note]');
+      await page.click('[data-wl-note]'); await page.waitForSelector('#wl-note-sheet');
+      await page.click('#wl-note-list summary'); await page.waitForSelector('.wl-note-reply');
+      const rc = await page.evaluate(() => { const e = document.querySelector('.wl-note-reply'); const r = e.getBoundingClientRect(); return { w: r.right, vw: document.documentElement.clientWidth }; });
+      assert.ok(rc.w <= rc.vw + 1, 'reply fits the screen ' + JSON.stringify(rc));
+      assert.deepStrictEqual((await contrast('#wl-note-sheet')).filter((x) => x.r < min), [], theme + ' .wl-note-reply');
+      await page.keyboard.press('Escape');
+    });
+  }
   for (const theme of ['light', 'dark', 'night']) {
     const min = theme === 'night' ? 3 : 4.5;
     await t.step(theme + ': Cooking tabs (incl. "What did Mama cook?" & fridge category filter) text contrast, 44 px at 1.3', async () => {
