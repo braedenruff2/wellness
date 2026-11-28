@@ -60,9 +60,16 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.click('#c-focus [data-f="2"]');
     assert.ok(!('focus' in (await calm()).sessions[0]), 'tapping again clears');
     await page.click('#c-focus [data-f="3"]');
+    // 425: his own words after a sit, saved as he types
+    assert.strictEqual(await page.getAttribute('#c-sit-note', 'aria-label'), 'In your own words (optional)');
+    await page.fill('#c-sit-note', '  counting felt   easier after minute 5 ');
+    assert.strictEqual((await calm()).sessions[0].note, 'counting felt easier after minute 5');
     await page.click('#c-save'); await page.waitForSelector('#c-path[open]');
     s1 = (await calm()).sessions[0];
     assert.deepStrictEqual([s1.focus, s1.hind], [3, ['Sleepy']]);
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-last-words');
+    assert.strictEqual(await page.textContent('#c-last-words'), 'After your last sit you wrote: “counting felt easier after minute 5”');
+    await page.goto(base + '#calm'); await page.waitForSelector('#c-path');
     const me = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[]}'));
     assert.ok(!me.feedback.some((f) => f.part === 'calm'), 'nothing in the stress "helped" answers');
   });

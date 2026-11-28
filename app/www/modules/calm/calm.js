@@ -298,13 +298,20 @@
         : '<div class="line" id="c-line">' + esc(p.blurb || '') + '</div>') +
       '<div class="meta" id="c-left" style="text-align:center;min-height:1.4em;font-variant-numeric:tabular-nums"></div>' +
       (p.path ? '' : rating('c-before', 'How stressed are you right now?')) +
-      lengthChips(p) + quietChip(p) + noiseRow(p) + Sit.firstSitTip(S, p) + roughLine(p) +
+      lengthChips(p) + quietChip(p) + noiseRow(p) + Sit.firstSitTip(S, p) + lastWords(p) + roughLine(p) +
       '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">' + beginLabel(p) + '</button></div>' +
       '<div class="row ui" id="c-long-pause" style="justify-content:center;margin-top:8px" hidden><button class="btn" id="c-finish-here" type="button"></button></div>' +
       (Sit.darkOn(S, p) && Sit.darkHint(S) ? '<p class="meta" id="c-dark-hint" style="text-align:center">The screen goes dark while you sit, so you needn’t lock the phone. Tap it to see the time.</p>' : '') +
       '<div id="c-after" hidden>' + (p.path ? Sit.sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button><button class="link" type="button" data-wl-note="#calm/s/' + esc(p.id) + '">💡 Note for autopilot</button></div></div></div>';
   }
 
+  /* Before a path sit: what he wrote after the last one (in his own words), so he starts from what he noticed. */
+  function lastWords(p) {
+    if (!p.path) return '';
+    var last = null;
+    S.sessions.forEach(function (x) { if (x && K.PATH.indexOf(x.id) >= 0 && (!last || String(x.at) > String(last.at))) last = x; });
+    return last && last.note ? '<p class="meta" id="c-last-words" style="text-align:center">After your last sit you wrote: “' + esc(last.note) + '”</p>' : '';
+  }
   function usesAlarm(p) { return Sit.usesAlarm(p); }
   function alarmLabel(p) { return Sit.alarmLabel(p, mins(p)); }
   function calmAlarm(ms, label) { Sit.calmAlarm(ms, label); }
@@ -383,6 +390,7 @@
     // the sound row stays: the sound can be switched or turned off during the sit (his note: a sound he didn't like)
     var qr = $('#c-quiet-row'); if (qr) qr.hidden = true;
     var ft = $('#c-first-tip'); if (ft) ft.hidden = true;
+    var lw = $('#c-last-words'); if (lw) lw.hidden = true;
     if ($('#c-before')) $('#c-before').hidden = true;
     var progress = function () {
       if (run && run.paused) { updateLongPause(); return; }
@@ -493,6 +501,10 @@
       if (run && run.done && run.rec) { K.rateSit(run.rec, undefined, hind); hind = (run.rec.hind || []).slice(); run.rec.rated = new Date().toISOString(); save(); }
       $$('#c-hind [data-h]').forEach(function (x) { x.setAttribute('aria-pressed', hind.indexOf(x.dataset.h) >= 0); });
     }; });
+    var sn = $('#c-sit-note');
+    if (sn) sn.oninput = function () { // saved as he types, like the other answers
+      if (run && run.done && run.rec) { K.sitNote(run.rec, sn.value); run.rec.rated = new Date().toISOString(); save(); }
+    };
     $$('#c-after-r [data-r]').forEach(function (b) { b.onclick = function () {
       after = +b.dataset.r;
       $$('#c-after-r [data-r]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });

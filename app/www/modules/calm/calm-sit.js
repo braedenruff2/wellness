@@ -40,7 +40,8 @@
     return '<div class="ui rate" id="c-focus"><div class="meta">How steady was your attention?</div><div class="chips">' + K.FOCUS.map(function (f, i) {
       return '<button class="chip" data-f="' + (i + 1) + '">' + esc(f) + '</button>'; }).join('') + '</div></div>' +
       '<div class="ui rate" id="c-hind"><div class="meta">What got in the way? (any)</div><div class="chips">' + K.HIND.map(function (x) {
-      return '<button class="chip" data-h="' + esc(x) + '" aria-pressed="false">' + esc(x) + '</button>'; }).join('') + '</div></div>';
+      return '<button class="chip" data-h="' + esc(x) + '" aria-pressed="false">' + esc(x) + '</button>'; }).join('') + '</div></div>' +
+      '<input id="c-sit-note" class="me-ask-note" type="text" maxlength="600" aria-label="In your own words (optional)" placeholder="In your own words (optional)">';
   }
 
   /* A dark screen during sits and the quiet timer (setting, on by default): the app stays awake, so the voice,

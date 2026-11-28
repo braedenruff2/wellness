@@ -499,6 +499,13 @@
     }
     return rec;
   }
+  /* His own words after a sit (the questions' text box): kept on the session, 600 characters; '' clears it. */
+  function sitNote(rec, text) {
+    if (!rec) return rec;
+    var t = String(text == null ? '' : text).replace(/\s+/g, ' ').trim().slice(0, 600);
+    if (t) rec.note = t; else delete rec.note;
+    return rec;
+  }
   function suggest(state, now, opts) {
     now = now || new Date(); opts = opts || {};
     var to = iso(now), upTo = state.sessions.filter(function (s) { return !s.date || s.date <= to; });
@@ -566,6 +573,7 @@
         before: [1, 2, 3, 4, 5].indexOf(x.before) >= 0 ? x.before : null, after: [1, 2, 3, 4, 5].indexOf(x.after) >= 0 ? x.after : null,
         rated: typeof x.rated === 'string' && !isNaN(Date.parse(x.rated)) ? x.rated : undefined };
       if (PATH.indexOf(x.id) >= 0) rateSit(rec, [1, 2, 3].indexOf(x.focus) >= 0 ? x.focus : undefined, Array.isArray(x.hind) ? x.hind : undefined);
+      if (PATH.indexOf(x.id) >= 0 && typeof x.note === 'string') sitNote(rec, x.note);
       d.sessions.push(rec);
     });
     var st = s.settings || {};
@@ -603,7 +611,7 @@
     });
   }
 
-  var api = { pathLate: pathLate, quietScript: quietScript, pathWhen: pathWhen, INTERVALS: INTERVALS, NOISE_KINDS: NOISE_KINDS, NOISE_VOLS: NOISE_VOLS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
+  var api = { pathLate: pathLate, quietScript: quietScript, pathWhen: pathWhen, INTERVALS: INTERVALS, NOISE_KINDS: NOISE_KINDS, NOISE_VOLS: NOISE_VOLS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, sitNote: sitNote, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

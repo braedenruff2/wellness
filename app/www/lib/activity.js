@@ -58,7 +58,8 @@
       // a sit on the meditation path: how steady his attention was (1-3) and what got in the way
       if (x.focus) d.focus = x.focus;
       if (Array.isArray(x.hind) && x.hind.length) d.hind = x.hind.slice(0, 5);
-      out.push({ id: 'calm/' + at + '/' + x.id + ((x.after || x.focus || d.hind) && okDate(x.rated) ? '/e' + Date.parse(x.rated) : ''), at: at, part: 'calm', kind: 'session', text: x.id, data: d });
+      if (typeof x.note === 'string' && x.note) d.note = cut(x.note, 600); // his own words after a sit
+      out.push({ id: 'calm/' + at + '/' + x.id + ((x.after || x.focus || d.hind || d.note) && okDate(x.rated) ? '/e' + Date.parse(x.rated) : ''), at: at, part: 'calm', kind: 'session', text: x.id, data: d });
     });
     // what Calm is for (his choice: 'calm' or 'train' = the meditation path, with his stage), once a day like Move's target
     var st = s.settings || {};

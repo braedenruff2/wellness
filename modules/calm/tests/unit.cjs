@@ -521,4 +521,21 @@ t('422: a phone that can\'t make the long loop gets a shorter one, never an erro
   const again = N.makeBuffer(fake, 'ocean');
   assert.strictEqual(again, b, 'kept for next time');
 });
+t('425: his own words after a path sit: kept (600 max, spaces tidied), cleared, through a restore; not on other practices', () => {
+  const s = K.defaults();
+  const r = K.record(s, 'count', 20, null, null, new Date(2026, 10, 27, 19));
+  K.sitNote(r, '  calmer   than last time ');
+  assert.strictEqual(r.note, 'calmer than last time');
+  K.sitNote(r, 'x'.repeat(900)); assert.strictEqual(r.note.length, 600);
+  K.sitNote(r, 'calmer'); const back = K.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(back.sessions[0].note, 'calmer');
+  K.sitNote(r, ''); assert.strictEqual(r.note, undefined);
+  const o = K.record(s, 'slow', 3, 2, 1, new Date(2026, 10, 27, 20)); o.note = 'x';
+  assert.strictEqual(K.validate(JSON.parse(JSON.stringify(s))).sessions[1].note, undefined, 'only path sits keep words');
+  const A = require('../../../app/www/lib/activity.js');
+  K.sitNote(r, 'woke at minute 12'); r.rated = new Date(2026, 10, 27, 19, 30).toISOString();
+  const ev = A.collect({ 'wl.calm.v1': s }, {}, new Date(2026, 10, 28)).find((e) => e.part === 'calm' && e.data && e.data.practice === 'count');
+  assert.strictEqual(ev.data.note, 'woke at minute 12');
+  assert.ok(/\/e\d+$/.test(ev.id), 'a new id when words are added later (newest wins on the PC)');
+});
 console.log(n + ' calm unit tests passed');

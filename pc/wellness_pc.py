@@ -494,6 +494,7 @@ def summarize(days=7, today=None):
                 fw = {1: "mostly lost in thought", 2: "some steady stretches", 3: "mostly steady"}.get(lst.get("focus"))
                 lh = [h for h in (lst.get("hind") or []) if h != "Nothing much"]
                 extra += f"; last sit: {lst['practice']} {round(lst.get('mins') or 0)} min" + (f", {fw}" if fw else "") + (f", in the way: {', '.join(lh)}" if lh else "")
+                if isinstance(lst.get("note"), str) and lst["note"].strip(): extra += f", in his words: \"{lst['note'].strip()[:300]}\""
                 tw = sit_times([(local_hour(e["at"]), e["data"].get("focus")) for e in es if e["kind"] == "session" and isinstance(e.get("data"), dict)
                                 and e["data"].get("practice") in ("count", "follow", "note", "change", "open")])
                 if tw: extra += "; " + tw

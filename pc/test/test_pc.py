@@ -361,6 +361,10 @@ check("summary: the time of day his sits go best", "steadiest sits in the mornin
 check("sit_times: like CalmCore.pathWhen", W.sit_times([(6, 3), (7, 3), (9, 2), (23, 1), (0, 1)]).startswith("steadiest sits in the morning")
       and W.sit_times([(6, 3), (7, 1), (23, 3), (22, 1)]) == "" and W.sit_times([(6, 3), (7, 3), (8, 3), (9, 3)]) == "" and W.sit_times([(None, 3)]) == "")
 check("summary: Calm aim (the newest wins)", "he uses Calm to train the mind (the meditation path, now at stage follow)" in cline, cline)
+w4 = {"id": "calm/" + today + "T23:30:00-04:00/follow/e9", "at": today + "T23:30:00-04:00", "part": "calm", "kind": "session", "data": {"practice": "follow", "mins": 20, "before": None, "after": None, "focus": 2, "hind": ["Interrupted"], "note": "she woke at minute 12, came back after"}}
+req("POST", "/v1/activity", {"events": [w4]}, token=token)
+cline4 = [l for l in W.summarize(7).splitlines() if l.startswith("- calm:")][0]
+check("summary: the last sit's own words", 'in the way: Interrupted, in his words: "she woke at minute 12, came back after"' in cline4, cline4)
 check("prompts: the weekly plan knows the sit options and the time-of-day note", all(x in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", "weekly-plan.md"), encoding="utf-8").read()
       for x in ("Quiet sit", "soft bell every 5 or 10 min", "steadiest sits")))
 check("prompts: the weekly plan follows his meditation path", "put his current stage's id in calm.prefer" in open(os.path.join(os.path.dirname(os.path.abspath(W.__file__)), "prompts", "weekly-plan.md"), encoding="utf-8").read())
