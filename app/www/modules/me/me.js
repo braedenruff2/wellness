@@ -128,7 +128,11 @@
     ['workout', 'cook', 'coach'].forEach(function (id) {
       var el = document.querySelector('.home-card[data-module="' + id + '"]');
       var m = WL.modules && WL.modules[id];
-      if (el && m && m.card) { el.innerHTML = m.card(); if (m.wireCard) try { m.wireCard(el); } catch (e) {} } // its buttons must work at once
+      if (!el || !m || !m.card) return;
+      // a fresh element (same attributes, no old listeners) wired once: Move and Cooking listen on the card itself, so
+      // wiring the old one again would answer each tap twice; Parenting wires its buttons, which a redraw drops
+      var fresh = el.cloneNode(false); fresh.innerHTML = m.card(); el.parentNode.replaceChild(fresh, el);
+      if (m.wireCard) try { m.wireCard(fresh); } catch (e) {}
     });
   }
   document.addEventListener('click', function (e) {
