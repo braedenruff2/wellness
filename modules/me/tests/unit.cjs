@@ -667,6 +667,35 @@ t('419: afterNoteOf prefix lookup matches day:N / day:N@... without matching day
   assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:10', { prefix: true }), 'day ten note');
   assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:2', { prefix: true }), '', 'no note for day 2');
 });
+t('462: For you names the day of a sick stretch (Day 2, Day 3 + 811/doctor), a day without a check-in in between counts; Better now ends it', () => {
+  const s = K.defaults();
+  const line = (d) => (K.guidance(s, d, 8).find((g) => g.key === 'sick') || {}).text || '';
+  assert.strictEqual(K.sickDayNo(s, D(20, 12)), 0);
+  K.checkinNote(s, '2026-11-20', 'we are all sick', D(20, 9));
+  assert.strictEqual(K.sickDayNo(s, D(20, 12)), 1);
+  assert.ok(/^A sick or teething day/.test(line(D(20, 12))), line(D(20, 12)));
+  K.setStillUnwell(s, '2026-11-21', 'Yes', D(21, 9));
+  assert.strictEqual(K.sickDayNo(s, D(21, 12)), 2);
+  assert.ok(/^Day 2 of feeling unwell/.test(line(D(21, 12))) && /811/.test(line(D(21, 12))), line(D(21, 12)));
+  // 22 Nov: no check-in at all; 23 Nov "Yes" again: day 4 (the 22nd counts)
+  K.setStillUnwell(s, '2026-11-23', 'Yes', D(23, 9));
+  assert.strictEqual(K.sickDayNo(s, D(23, 12)), 4);
+  assert.ok(/^Day 4 of feeling unwell/.test(line(D(23, 12))) && /doctor/.test(line(D(23, 12))), line(D(23, 12)));
+  // Better now: back to normal guidance, no sick line
+  K.setStillUnwell(s, '2026-11-23', 'Better now', D(23, 13));
+  assert.strictEqual(K.sickDayNo(s, D(23, 14)), 0);
+  assert.strictEqual(line(D(23, 14)), '');
+  // a check-in without the note breaks the stretch: a new sick day later is day 1 again
+  K.checkin(s, '2026-11-24', 'sleep', '7 h+', D(24, 9));
+  K.checkinNote(s, '2026-11-25', 'a cold', D(25, 9));
+  assert.strictEqual(K.sickDayNo(s, D(25, 12)), 1);
+  // two days without check-ins are not filled in
+  const s2 = K.defaults(); K.checkinNote(s2, '2026-11-20', 'fever', D(20, 9)); K.checkinNote(s2, '2026-11-23', 'fever again', D(23, 9));
+  assert.strictEqual(K.sickDayNo(s2, D(23, 12)), 1);
+  // teething alone keeps the old line
+  const s3 = K.defaults(); K.checkinNote(s3, '2026-11-20', 'she is teething', D(20, 9));
+  assert.ok(/^A sick or teething day/.test((K.guidance(s3, D(20, 12), 8).find((g) => g.key === 'sick') || {}).text || ''));
+});
 t('424: multi-day sick check-in asks "Still unwell?" for next 2 days; Yes keeps sick mode without a note; Better now clears it', () => {
   const s = K.defaults();
   assert.strictEqual(K.askStillUnwell(s, D(20, 9)), false);

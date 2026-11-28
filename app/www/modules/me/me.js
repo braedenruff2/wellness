@@ -134,6 +134,8 @@
       var fresh = el.cloneNode(false); fresh.innerHTML = m.card(); el.parentNode.replaceChild(fresh, el);
       if (m.wireCard) try { m.wireCard(fresh); } catch (e) {}
     });
+    var sl = document.getElementById('me-sick-line');
+    if (sl) { var t = sickLineText(); sl.textContent = t; sl.hidden = !t; }
     if (WL.refreshToday) WL.refreshToday();
   }
   document.addEventListener('click', function (e) {
@@ -194,9 +196,15 @@
     return h;
   }
 
+  /* A sick day's line ("Day 2 of feeling unwell: ...") shows on the check-in card too, before the rest is answered (462). */
+  function sickLineText() {
+    if (!K.unwell(S, new Date())) return '';
+    var g = K.guidance(S, new Date(), 8).filter(function (x) { return x.key === 'sick'; })[0];
+    return g ? g.text : '';
+  }
   function cardHtml() {
     var c = S.checkins[today()], g = K.guidance(S, new Date(), 3);
-    if (!K.checkinDone(c) && !S.skipped[today()]) return '<div class="meta ui">Quick check-in</div><h3>How are you today?</h3>' + checkinHtml(false);
+    if (!K.checkinDone(c) && !S.skipped[today()]) { var sl = sickLineText(); return '<div class="meta ui">Quick check-in</div><h3>How are you today?</h3>' + '<p class="ui" id="me-sick-line"' + (sl ? '' : ' hidden') + '>' + esc(sl) + '</p>' + checkinHtml(false); }
     var h = '<div class="meta ui">For you</div>';
     if (g.length) h += '<ul class="me-g">' + g.map(function (x) { return '<li>' + esc(x.text) + ' ' + fitLink(x.part, 'guide:' + x.key, x.text) + '</li>'; }).join('') + '</ul>';
     else h += '<p class="meta ui">Thanks for checking in. Answer the quick questions after things you do, and the app learns what fits you.</p>';

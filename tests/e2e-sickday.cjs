@@ -54,6 +54,12 @@ const W = require('./lib/web.cjs');
     await page.clock.runFor(1000);
     const s = await state();
     assert.deepStrictEqual({ rest: s.rest, soup: s.soup, coach: s.coach, calm: s.calm }, { rest: true, soup: true, coach: true, calm: true }, JSON.stringify(s));
+    // 462: the check-in card says which day of it this is, straight after the tap, and For you too once checked in
+    assert.ok(/^Day 2 of feeling unwell/.test(await page.textContent('#me-sick-line')), await page.textContent('#me-sick-line'));
+    await page.click('#me-still-unwell [data-me-unwell][data-v="Yes"]'); // off: the line goes
+    assert.strictEqual(await page.isVisible('#me-sick-line'), false);
+    await page.click('#me-still-unwell [data-me-unwell][data-v="Yes"]'); // on again
+    assert.strictEqual(await page.isVisible('#me-sick-line'), true);
     // after "Still unwell?" redrew them, the cards' buttons still answer once
     await page.evaluate(() => { window.__toasts = []; const t = WL.toast; WL.toast = (m) => { window.__toasts.push(m); return t(m); }; });
     await page.click('#wo-rough-rest');
@@ -62,7 +68,10 @@ const W = require('./lib/web.cjs');
     await page.click('#me-still-unwell [data-me-unwell][data-v="Yes"]'); await page.click('#me-still-unwell [data-me-unwell][data-v="Yes"]'); // off and on again
     await page.click('#ck-sick-soup');
     await page.waitForFunction(() => !document.querySelector('#ck-sick-soup'));
-    assert.strictEqual((await page.evaluate(() => window.__toasts)).length, 2, 'still once after two more redraws: ' + JSON.stringify(await page.evaluate(() => window.__toasts)));
+    assert.strictEqual((await page.evaluate(() => window.__toasts)).length, 2, 'still once after two more redraws: ' + JSON.stringify(await page.evaluate(() => window.__toasts)));    for (const [k, v] of [['sleep', '6–7 h'], ['wakes', '1'], ['energy', 'Low'], ['mood', 'OK'], ['day', 'Good']]) await page.click(`[data-me-ck][data-k="${k}"][data-v="${v}"]`);
+    await page.clock.runFor(1000);
+    const fy = await page.textContent('.home-card[data-module="me"]');
+    assert.ok(/For you/.test(fy) && /Day 2 of feeling unwell/.test(fy), fy.slice(0, 400));
   });
 
   await t.step('day 3: "Better now" turns them all off; day 4 nothing is asked', async () => {

@@ -235,6 +235,20 @@
     return !!(c.note && noteUnwell(c.note));
   }
   function unwell(state, now) { return dayUnwell(state.checkins[iso(now || new Date())]); }
+  /* Which day of feeling unwell today is (462): 0 when today isn't, 1 on the first day, 2 after "Still unwell? Yes" the
+     next day, and so on. A day with no check-in between two unwell days counts (he just didn't open the app). */
+  function sickDayNo(state, now) {
+    var t = iso(now || new Date());
+    if (!dayUnwell(state.checkins[t])) return 0;
+    var n = 1;
+    for (var i = 1; i < 30; i++) {
+      var c = state.checkins[WLD.addDays(t, -i)];
+      if (dayUnwell(c)) { n++; continue; }
+      if (!hasCheckin(c) && dayUnwell(state.checkins[WLD.addDays(t, -i - 1)])) { n++; continue; }
+      break;
+    }
+    return n;
+  }
   /* Ask "Still unwell?" (Yes / Better now) for the next 2 calendar days after an unwell day, unless he already tapped "Better now" yesterday. */
   function askStillUnwell(state, now) {
     var t = iso(now || new Date()), c1 = state.checkins[WLD.addDays(t, -1)], c2 = state.checkins[WLD.addDays(t, -2)];
@@ -377,7 +391,9 @@
     var today = state.checkins[iso(now)], week = recentCheckins(state, now, 7);
     if (rough(state, now)) out.push({ key: 'rough', part: 'home', text: 'Rough night. Keep today small: the one-minute reset, a shorter workout (or rest), and lie down when she naps if you can.' });
     // today's explicit check-in note (sick/teething or busy day) or "Still unwell? Yes" belongs near the top so multi-day trends never hide it on Home
-    if (unwell(state, now) || (today && today.note && /\b(teeth|teething)\b/i.test(today.note))) out.push({ key: 'sick', part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
+    var sickN = sickDayNo(state, now);
+    if (sickN >= 2) out.push({ key: 'sick', part: 'home', text: 'Day ' + sickN + ' of feeling unwell: everything else can wait. Comfort, fluids, rest' + (sickN >= 3 ? '; if it’s lasting or getting worse, call 811 or your doctor.' : '; call 811 if you’re unsure.') });
+    else if (sickN || (today && today.note && /\b(teeth|teething)\b/i.test(today.note))) out.push({ key: 'sick', part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
     else if (today && today.note && /\b(family|party|parties|visit|visits|visiting|visitors|guests|busy|hosting|birthday)\b/i.test(today.note)) out.push({ key: 'busyday', part: 'home', text: 'A full day with people around: keep it small. The one-minute reset between things, and a rest day from Move is fine (it won’t count as missed).' });
     var low = week.filter(function (c) { return c.mood === 'Low'; }).length;
     if (low >= 4) out.push({ key: 'lowmood', part: 'home', text: 'Your mood has been low on ' + low + ' of the last ' + week.length + ' check-ins. That’s worth sharing with someone you trust, or your doctor; 811 can help too.' });
@@ -562,7 +578,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, setStillUnwell: setStillUnwell, afterNote: afterNote, afterNoteOf: afterNoteOf, afterNoteByPrefix: afterNoteByPrefix, checkinDone: checkinDone, rough: rough, unwell: unwell, askStillUnwell: askStillUnwell, noteUnwell: noteUnwell, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
+    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, setStillUnwell: setStillUnwell, afterNote: afterNote, afterNoteOf: afterNoteOf, afterNoteByPrefix: afterNoteByPrefix, checkinDone: checkinDone, rough: rough, unwell: unwell, sickDayNo: sickDayNo, askStillUnwell: askStillUnwell, noteUnwell: noteUnwell, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

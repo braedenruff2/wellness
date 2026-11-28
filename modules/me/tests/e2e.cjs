@@ -204,7 +204,7 @@ const Wb = require('../../../tests/lib/web.cjs');
       await page.click(`[data-me-ck][data-k="${k}"][data-v="${v}"]`);
     }
     await page.clock.runFor(600);
-    assert.ok(/A sick or teething day/.test(await page.textContent('.home-card[data-module="me"]')), 'For you shows sick guidance without a note');
+    assert.ok(/Day 2 of feeling unwell/.test(await page.textContent('.home-card[data-module="me"]')), 'For you shows sick guidance without a note');
     // Next day (2026-11-22): still asks "Still unwell?"; tapping "Better now" keeps sick mode off
     await page.clock.setSystemTime(new Date(2026, 10, 22, 10, 0));
     await page.reload();
