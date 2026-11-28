@@ -164,6 +164,32 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.getAttribute('#c-hind [data-h="Interrupted"]', 'aria-pressed'), 'true', 'Interrupted pre-ticked after carrying on');
     await page.click('#c-save'); await page.waitForSelector('#c-path[open]');
   });
+  await t.step('433: a long pause -> Finish here -> attention + own words: the session keeps Interrupted, focus and the words, and its activity event carries all three', async () => {
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-len');
+    await page.click('[data-len="10"]');
+    await page.click('#c-pp');
+    await page.clock.runFor(4 * 60000);
+    if (await page.$('#c-dark')) await page.click('#c-dark');
+    await page.click('#c-pp'); // pause
+    await page.clock.runFor(11 * 60000);
+    await page.waitForSelector('#c-finish-here', { state: 'visible' });
+    await page.click('#c-finish-here');
+    await page.waitForSelector('#c-after', { state: 'visible' });
+    await page.click('#c-focus [data-f="2"]');
+    await page.fill('#c-sit-note', 'she woke up, I came back after feeding her');
+    await page.click('#c-hind [data-h="Restless"]');
+    await page.click('#c-save'); await page.waitForSelector('#c-path[open]');
+    const ss = (await calm()).sessions, last = ss[ss.length - 1];
+    assert.deepStrictEqual([last.focus, last.hind, last.note], [2, ['Interrupted', 'Restless'], 'she woke up, I came back after feeding her']);
+    const ev = await page.evaluate((at) => {
+      const st = { 'wl.calm.v1': JSON.parse(localStorage.getItem('wl.calm.v1')) };
+      return WLActivity.collect(st, {}, new Date()).filter((e) => e.part === 'calm' && e.at === at).map((e) => e.data)[0];
+    }, last.at);
+    assert.deepStrictEqual([ev.focus, ev.hind, ev.note], [2, ['Interrupted', 'Restless'], 'she woke up, I came back after feeding her']);
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-last-words');
+    assert.ok((await page.textContent('#c-last-words')).includes('I came back after feeding her'));
+    await page.goto(base + '#calm'); await page.waitForSelector('#c-path');
+  });
   await t.step('no overflow at 1.0, no errors', async () => {
     await t.noOverflow(['#calm', '#calm/s/count', '#calm/s/open']);
     assert.deepStrictEqual(t.errors, []);
