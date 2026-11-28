@@ -185,5 +185,13 @@ const W = require('./lib/web.cjs');
     assert.ok(/First workout after being sick/.test(await page.textContent('#view')));
     assert.deepStrictEqual(t.errors, []);
   });
+  await t.step('466: Sunday\'s "Your week" names the sick days plainly', async () => {
+    await page.clock.setSystemTime(new Date(2026, 11, 6, 13, 0));
+    await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#wl-week');
+    const w = await page.textContent('#wl-week');
+    const n = await page.evaluate(() => MeCore.sickDaysIn(JSON.parse(localStorage.getItem('wl.me.v1')), new Date(), 7));
+    assert.ok(n >= 1 && new RegExp(n + ' sick days?\\b \\(rest counted\\)').test(w) && !/missed/i.test(w), n + ': ' + w);
+    assert.deepStrictEqual(t.errors, []);
+  });
   await t.close('sick stretch');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

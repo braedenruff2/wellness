@@ -249,6 +249,12 @@
     }
     return n;
   }
+  /* How many of the last n days (today included) were sick days: for Home's Sunday "Your week" (466). */
+  function sickDaysIn(state, now, n) {
+    var t = iso(now || new Date()), k = 0;
+    for (var i = 0; i < (n || 7); i++) if (dayUnwell(state.checkins[WLD.addDays(t, -i)])) k++;
+    return k;
+  }
   /* Ask "Still unwell?" (Yes / Better now) for the next 2 calendar days after an unwell day, unless he already tapped "Better now" yesterday. */
   function askStillUnwell(state, now) {
     var t = iso(now || new Date()), c1 = state.checkins[WLD.addDays(t, -1)], c2 = state.checkins[WLD.addDays(t, -2)];
@@ -578,7 +584,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, setStillUnwell: setStillUnwell, afterNote: afterNote, afterNoteOf: afterNoteOf, afterNoteByPrefix: afterNoteByPrefix, checkinDone: checkinDone, rough: rough, unwell: unwell, sickDayNo: sickDayNo, askStillUnwell: askStillUnwell, noteUnwell: noteUnwell, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
+    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, setStillUnwell: setStillUnwell, afterNote: afterNote, afterNoteOf: afterNoteOf, afterNoteByPrefix: afterNoteByPrefix, checkinDone: checkinDone, rough: rough, unwell: unwell, sickDayNo: sickDayNo, sickDaysIn: sickDaysIn, askStillUnwell: askStillUnwell, noteUnwell: noteUnwell, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

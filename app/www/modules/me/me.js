@@ -417,6 +417,8 @@
   WL.register({
     id: 'me', title: 'About you', short: 'You', icon: '☺', nav: false, navAs: 'home', storageKeys: [store.key],
     route: route, card: cardHtml, wireCard: wireCard,
+    // Sunday's "Your week": sick days named plainly, never as missed (466)
+    week: function () { var n = K.sickDaysIn(S, new Date(), 7); return n ? n + ' sick day' + (n === 1 ? '' : 's') + ' (rest counted)' : ''; },
     today: function () { var c = S.checkins[today()]; return K.checkinDone(c) || S.skipped[today()] ? { label: 'Check-in', done: true, href: '#me' } : { label: 'Check-in (20 seconds, below)', done: false, href: '#home' }; },
     validate: function (k, raw) { try { var s = K.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); }

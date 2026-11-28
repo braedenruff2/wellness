@@ -667,6 +667,17 @@ t('419: afterNoteOf prefix lookup matches day:N / day:N@... without matching day
   assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:10', { prefix: true }), 'day ten note');
   assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:2', { prefix: true }), '', 'no note for day 2');
 });
+t('466: sickDaysIn counts unwell days in the last 7 (today included), Still unwell Yes too, nothing older', () => {
+  const s = K.defaults();
+  assert.strictEqual(K.sickDaysIn(s, D(29, 13), 7), 0);
+  K.checkinNote(s, '2026-11-21', 'fever', D(21, 9)); // 9 days before the 29th: outside
+  K.checkinNote(s, '2026-11-23', 'we are all sick', D(23, 9));
+  K.setStillUnwell(s, '2026-11-24', 'Yes', D(24, 9));
+  K.setStillUnwell(s, '2026-11-25', 'Better now', D(25, 9));
+  K.checkinNote(s, '2026-11-29', 'a cold', D(29, 9));
+  assert.strictEqual(K.sickDaysIn(s, D(29, 13), 7), 3);
+  assert.strictEqual(K.sickDaysIn(s, D(29, 13), 1), 1);
+});
 t('462: For you names the day of a sick stretch (Day 2, Day 3 + 811/doctor), a day without a check-in in between counts; Better now ends it', () => {
   const s = K.defaults();
   const line = (d) => (K.guidance(s, d, 8).find((g) => g.key === 'sick') || {}).text || '';
