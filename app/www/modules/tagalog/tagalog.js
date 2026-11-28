@@ -101,7 +101,10 @@
         (nx ? '<div class="row"><a class="link" id="tl-ahead" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Want to go ahead? Lesson ' + nx.lesson.day + '</a></div>' : '') + '</div>';
     } else if (nx && sick()) {
       var r = T.restLesson(S, all);
-      h += '<div class="card ui" id="tl-sick"><h3 style="margin:.2em 0">Sick today: no lesson needed</h3>' +
+      if (T.listenedOn(S, todayIso)) h += '<div class="card ui done-banner" id="tl-sick"><h3 style="margin:.2em 0">\u2713 Listened while resting</h3>' +
+        '<p class="meta">That counts for today. Rest well.</p><div class="row"><a class="btn" id="tl-sick-listen" href="' + restHref(r) + '">🎧 Listen again</a>' +
+        '<a class="link" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Lesson ' + nx.lesson.day + ' anyway</a></div></div>';
+      else h += '<div class="card ui" id="tl-sick"><h3 style="margin:.2em 0">Sick today: no lesson needed</h3>' +
         '<p class="meta">Rest comes first, and a day off never counts against you. If you like, listen to ' + (r.done ? 'the words and conversation of a lesson you’ve done' : 'the words and conversation') + ' (lesson ' + r.lesson.day + ', ' + esc(r.lesson.title) + '): no typing, no questions.</p>' +
         '<div class="row"><a class="btn primary" id="tl-sick-listen" href="' + restHref(r) + '">🎧 Listen while resting</a>' +
         '<a class="link" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Lesson ' + nx.lesson.day + ' anyway</a></div></div>';

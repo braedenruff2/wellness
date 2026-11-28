@@ -62,6 +62,7 @@ const Wb = require('../../../tests/lib/web.cjs');
 
   await t.step('the Tagalog page: sick card first, lesson 4 still one tap away; the button reads "while resting"', async () => {
     await page.goto(base + '#tagalog'); await page.waitForSelector('#tl-sick');
+    assert.ok(/Listened while resting/.test(await page.textContent('#tl-sick')) && /Listen again/.test(await page.textContent('#tl-sick-listen')), '472: the page says so too');
     assert.strictEqual(await page.getAttribute('#tl-sick-listen', 'href'), '#tagalog/l/2026-11-18/2/listen');
     assert.ok(await page.$('#tl-sick a[href="#tagalog/l/2026-11-18/4"]'), 'Lesson 4 anyway');
     await page.click('#tl-sick a[href="#tagalog/l/2026-11-18/4"]'); await page.waitForSelector('#tl-walk');
