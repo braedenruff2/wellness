@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-27 21:35-21:45 AST (same run; APK 0.1.20261128.0144, real key, cert 6795e499...)
+- Done 420 (no automatic Parenting scenario on a day the check-in note says unwell; #co-sick line; Generate still works; e2e-auto fails without it), 417 (noise.js wake(): a suspended AudioContext resumes on return only while a sound is active), 422 (makeBuffer falls back to an 11 s loop if the long buffer throws).
+- Tested: full suite after the rebase (118 suites, none skipped); APK verified.
+- Open for the next runs: 415, 418, 419, 421, 423 and the 2 Dec lesson pack ([drive], Wednesday from noon).
+
 ## 2026-11-27 21:05-21:35 AST (same run; APK 0.1.20261128.0130, real key, cert 6795e499...)
 - Done 410 (tap a Calm sound before a sit: 4 s of it; Begin keeps it; leaving stops it), 411 (Soft / Medium / Louder, live), 412 (About you: "In your own words" card), 413 (summaries mark quick-answer text as `in his words: "..."`; weekly-plan + advice prompts weigh it; test_pc), 414 (me-core noteUnwell: sick / sore throat / a cold / fever ..., not "sick of", "cold outside", "not sick"; the sick guidance uses it; Move's Home card offers "Rest today (sick)").
 - Added 417-423. Tested: full suite after the rebase (118 suites, none skipped); APK verified.
