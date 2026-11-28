@@ -1,5 +1,9 @@
 # Cloud log
 
+## 2026-11-28 05:50-06:20 AST (same run; APK 0.1.20261128.1007, real key, cert 6795e499...)
+- Done 473 (independent read of 465-472: 468's strip rules missed real notes ("Felt ill just after dinner", "Got a cold day 3", "Flu season got us all"): they now keep words after felt/feeling/got/have...; Your week counted a sick rest twice: fixed), 474 (Calm on a sick day: today's item done, day 2+ "rest counts as today's sit"), 475 (check-in events carry sickDay; PC summary "sick day N"), 478 (Tagalog week summary listenedDays).
+- Tested: full suite (122 suites, none skipped); APK verified.
+
 ## 2026-11-28 05:10-05:50 AST (same run; APK 0.1.20261128.0947, real key, cert 6795e499...)
 - Done 463 (a11y for the new sick-day UI: all pass), 464 (independent read of 457/460-462: no real bugs; the ticked Tagalog item on Home now opens #tagalog instead of starting audio), 465 (Move: "First workout after being sick: go lighter" after a Sick rest day in the last week, until he trains), 466 (Sunday's Your week: "N sick days (rest counted)"), 467 (a full hands-free Tagalog listen counts the day as practised; "Listened while resting" on a sick day), 468 (matcher: ill-fitting, "ill be", a cold drink/day/shower, fever pitch, flu season, a sick friend no longer count), 469 (perf on day 30 of a sick stretch: Home ~45 ms at CPU 4x), 470 (a sick rest from a note later edited to fine doesn't bring 465's line; WLMe.unwellOn), 472; 471 dropped. Plan 473-478 added.
 - Rotation: Singing Helper turn (mid-song BPM changes; TV words offset; its own log). focus.md's project line edit was refused again, left as is.
