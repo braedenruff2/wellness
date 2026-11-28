@@ -19,6 +19,10 @@ t('467 listened: a full hands-free listen counts the day as practised; kept 60 d
   const v = T.validate(Object.assign(JSON.parse(JSON.stringify(s)), { listened: { '2026-11-28': 2, 'x': 1, '2026-11-27': 0, '2026-11-26': 'a', '2026-11-25': 500 } }));
   assert.deepStrictEqual(v.listened, { '2026-11-25': 99, '2026-11-28': 2 });
   assert.strictEqual(T.validate(T.defaults()).listened, undefined, 'old saves without it load');
+  // 478: the Wednesday lesson run sees the listening days of the last week
+  const ws = T.weeklySummary(s, [], now);
+  assert.deepStrictEqual(ws.listenedDays, ['2026-11-28']);
+  assert.deepStrictEqual(T.weeklySummary(T.defaults(), [], now).listenedDays, []);
 });
 t('460 restLesson: the lesson finished last (by time, not order), else the next; none when there are no lessons', () => {
   const P = [{ id: '2026-11-18', lessons: [{ day: 1 }, { day: 2 }, { day: 3 }] }, { id: '2026-11-25', lessons: [{ day: 1 }, { day: 2 }] }];

@@ -522,6 +522,8 @@
       hints: state.answers.slice(-300).filter(function (a) { return a.hint; }).slice(-20).map(function (a) { return { kind: a.hint, about: HINT_ABOUT[a.hint] || '', prompt: a.prompt, given: a.given || '' }; }),
       // per kind over the last 14 days: how many slips, and on how many exercises the newest answer is still wrong
       slipKinds: slipKinds(state, now),
+      // days in the last 7 he listened to a lesson hands-free (walking, or resting on a sick day) without typing (478)
+      listenedDays: (function () { var n = now || new Date(), from = iso(new Date(n.getFullYear(), n.getMonth(), n.getDate() - 6)), to = iso(n); return Object.keys(state.listened || {}).filter(function (d) { return d >= from && d <= to; }).sort(); })(),
       packs: packs.map(function (p) { return p.id; }) };
   }
 
