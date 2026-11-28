@@ -470,6 +470,8 @@
 
   var RECIPE_BY = {};
   RECIPES.forEach(function (r) { RECIPE_BY[r.id] = r; });
+  var SOUP_IDS = ['tinola', 'arroz-caldo', 'lentil-soup'];
+  var SOUP_SHORT = { 'tinola': 'Tinola soup', 'arroz-caldo': 'Arroz caldo', 'lentil-soup': 'Red lentil soup' };
 
   function defaults() {
     return {
@@ -764,6 +766,39 @@
     }
     day[meal] = { recipeId: pick.id, title: pick.title, status: 'planned', note: '' };
     return day[meal];
+  }
+
+  /* Sick-day soup offer: find the next planned dinner (today, or tomorrow within this week if today's dinner is already
+     done/Mama/skipped) that isn't already a soup, and suggest an existing comforting soup (Tinola, Arroz caldo, lentil). */
+  function sickSoupOffer(state, now) {
+    now = now || new Date();
+    var days = state && state.plan && state.plan.days;
+    if (!days) return null;
+    var tIso = iso(now), tomIso = addDays(tIso, 1);
+    var targetDate = null, isTomorrow = false;
+    var td = days[tIso] && days[tIso].dinner;
+    if (td && td.status === 'planned') {
+      if (SOUP_IDS.indexOf(td.recipeId) >= 0) return null;
+      targetDate = tIso;
+    } else {
+      var tm = days[tomIso] && days[tomIso].dinner;
+      if (!tm || tm.status !== 'planned' || SOUP_IDS.indexOf(tm.recipeId) >= 0) return null;
+      targetDate = tomIso; isTomorrow = true;
+    }
+    var soups = SOUP_IDS.map(function (id) { return RECIPE_BY[id]; }).filter(Boolean);
+    if (!soups.length) return null;
+    // avoid repeating a soup already planned/made today or yesterday
+    var yIso = addDays(tIso, -1), recent = {};
+    [yIso, tIso].forEach(function (d) {
+      var row = days[d]; if (!row) return;
+      MEALS.forEach(function (m) { if (row[m] && row[m].recipeId) recent[row[m].recipeId] = 1; });
+    });
+    var pick = soups.filter(function (r) { return !recent[r.id]; })[0] || soups[0];
+    return {
+      date: targetDate, meal: 'dinner', isTomorrow: isTomorrow,
+      recipe: pick, shortName: SOUP_SHORT[pick.id] || pick.title,
+      soups: soups.map(function (r) { return { id: r.id, title: r.title, shortName: SOUP_SHORT[r.id] || r.title }; })
+    };
   }
 
   function usableMeal(m) {
@@ -1217,7 +1252,7 @@
     daysUntilExpiry: daysUntilExpiry, addPantryItem: addPantryItem, updatePantryStatus: updatePantryStatus,
     removePantryItem: removePantryItem, expiringSoon: expiringSoon, sortedPantry: sortedPantry,
     matchExpiring: matchExpiring, deductRecipe: deductRecipe, applyPhotoScan: applyPhotoScan,
-    ensureWeekPlan: ensureWeekPlan, markSlot: markSlot, swapSlot: swapSlot, applyAiPlan: applyAiPlan,
+    ensureWeekPlan: ensureWeekPlan, markSlot: markSlot, swapSlot: swapSlot, sickSoupOffer: sickSoupOffer, SOUP_IDS: SOUP_IDS, applyAiPlan: applyAiPlan,
     shoppingList: shoppingList, toggleBought: toggleBought,
     logMe: logMe, logChild: logChild, updateLogNutri: updateLogNutri, removeLog: removeLog, dayLogs: dayLogs, childSummary: childSummary,
     addCustomFood: addCustomFood, removeCustomFood: removeCustomFood, setTargets: setTargets, resetTargets: resetTargets,

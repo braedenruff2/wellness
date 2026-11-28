@@ -675,6 +675,68 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.locator('.ck-ed-auto').count(), 0);
   });
 
+  await t.step('415: unwell check-in offers one-tap soup swap on Home Cooking card (today or tomorrow) and #cook', async () => {
+    // Seed non-soup dinners for Thu 2026-11-26 and Fri 2026-11-27 and a non-unwell check-in ("sick of rain")
+    await page.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem('wl.cook.v1'));
+      c.plan.days['2026-11-25'].dinner = { recipeId: 'beef-broccoli', title: 'One-pan ground beef, broccoli & rice', status: 'made', note: '' };
+      c.plan.days['2026-11-26'].dinner = { recipeId: 'sheet-chicken', title: 'Sheet-pan garlic chicken, broccoli & sweet potato', status: 'planned', note: '' };
+      c.plan.days['2026-11-27'].dinner = { recipeId: 'salmon-tray', title: '20-minute baked salmon, spinach & potatoes', status: 'planned', note: '' };
+      localStorage.setItem('wl.cook.v1', JSON.stringify(c));
+      const m = JSON.parse(localStorage.getItem('wl.me.v1') || '{"checkins":{},"feedback":[],"skipped":{}}');
+      m.checkins['2026-11-26'] = { sleep: '7 h+', wakes: '0', energy: 'OK', mood: 'Good', day: 'Good', note: 'sick of this rain', at: new Date().toISOString() };
+      localStorage.setItem('wl.me.v1', JSON.stringify(m));
+    });
+    await page.goto(base + '#home'); await page.reload();
+    await page.waitForSelector('.home-card[data-module="cook"]');
+    assert.strictEqual(await page.$('#ck-sick-soup'), null, 'no soup swap for "sick of rain"');
+
+    // Unwell check-in note -> Cooking card offers one tap to swap tonight's dinner for Tinola soup
+    await page.evaluate(() => {
+      const m = JSON.parse(localStorage.getItem('wl.me.v1'));
+      m.checkins['2026-11-26'].note = 'I think we are all sick, sore throat';
+      localStorage.setItem('wl.me.v1', JSON.stringify(m));
+    });
+    await page.reload();
+    await page.waitForSelector('#ck-sick-soup');
+    const lbl = (await page.textContent('#ck-sick-soup')).trim();
+    assert.ok(/Swap tonight’s dinner for Tinola soup/.test(lbl), lbl);
+    await page.click('#ck-sick-soup');
+    await page.waitForFunction(() => !document.querySelector('#ck-sick-soup'));
+    const after1 = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-11-26'].dinner);
+    assert.strictEqual(after1.recipeId, 'tinola');
+
+    // Tonight's dinner already made -> offers tomorrow's dinner swap; tapping it swaps Fri dinner
+    await page.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem('wl.cook.v1'));
+      c.plan.days['2026-11-26'].dinner = { recipeId: 'sheet-chicken', title: 'Sheet-pan garlic chicken, broccoli & sweet potato', status: 'made', note: '' };
+      localStorage.setItem('wl.cook.v1', JSON.stringify(c));
+    });
+    await page.reload();
+    await page.waitForSelector('#ck-sick-soup');
+    assert.ok(/Swap tomorrow’s dinner for/.test(await page.textContent('#ck-sick-soup')));
+    await page.click('#ck-sick-soup');
+    await page.waitForFunction(() => !document.querySelector('#ck-sick-soup'));
+    const after2 = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-11-27'].dinner);
+    assert.ok(['tinola', 'arroz-caldo', 'lentil-soup'].includes(after2.recipeId), JSON.stringify(after2));
+
+    // Also works on #cook Today view with multiple soup chips (incl. Arroz caldo)
+    await page.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem('wl.cook.v1'));
+      c.plan.days['2026-11-26'].dinner = { recipeId: 'sheet-chicken', title: 'Sheet-pan garlic chicken, broccoli & sweet potato', status: 'planned', note: '' };
+      localStorage.setItem('wl.cook.v1', JSON.stringify(c));
+      if (WL.modules && WL.modules.cook && WL.modules.cook.reload) WL.modules.cook.reload();
+    });
+    await page.goto(base + '#cook');
+    await page.waitForSelector('#ck-sick-card [data-sick-soup="2026-11-26|arroz-caldo"]');
+    const btnH = await page.$eval('#ck-sick-card [data-sick-soup="2026-11-26|arroz-caldo"]', (el) => Math.round(el.getBoundingClientRect().height));
+    assert.ok(btnH >= 44, 'sick soup chip height >= 44 px: ' + btnH);
+    await page.click('#ck-sick-card [data-sick-soup="2026-11-26|arroz-caldo"]');
+    await page.waitForFunction(() => !document.querySelector('#ck-sick-card'));
+    const after3 = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-11-26'].dinner);
+    assert.strictEqual(after3.recipeId, 'arroz-caldo');
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('cook e2e');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

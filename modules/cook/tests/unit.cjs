@@ -647,4 +647,41 @@ t('408: words that used to match the wrong food; "half a banana"; avocado by the
     assert.ok(Math.abs(n.kcal - m) <= 0.1 * n.kcal, id + ' ' + n.kcal + ' vs ' + m);
   });
 });
+
+t('415: sickSoupOffer picks a comforting soup for today or tomorrow\'s next planned dinner', () => {
+  const now = new Date(2026, 10, 26, 16, 0); // Thu 2026-11-26
+  const s = K.defaults();
+  K.ensureWeekPlan(s, now);
+  // Force non-soup meals on Wed/Thu/Fri
+  s.plan.days['2026-11-25'].dinner = { recipeId: 'beef-broccoli', title: 'One-pan ground beef, broccoli & rice', status: 'made', note: '' };
+  s.plan.days['2026-11-26'].dinner = { recipeId: 'sheet-chicken', title: 'Sheet-pan garlic chicken, broccoli & sweet potato', status: 'planned', note: '' };
+  s.plan.days['2026-11-27'].dinner = { recipeId: 'salmon-tray', title: '20-minute baked salmon, spinach & potatoes', status: 'planned', note: '' };
+
+  const o1 = K.sickSoupOffer(s, now);
+  assert.ok(o1 && o1.date === '2026-11-26' && !o1.isTomorrow, JSON.stringify(o1));
+  assert.strictEqual(o1.recipe.id, 'tinola', 'prefers Tinola when not recently planned');
+  assert.strictEqual(o1.soups.length, 3, 'lists existing soup recipes');
+
+  // If Tinola was made yesterday, prefer Arroz caldo
+  s.plan.days['2026-11-25'].dinner = { recipeId: 'tinola', title: 'Tinolang manok (chicken & ginger soup)', status: 'made', note: '' };
+  const o2 = K.sickSoupOffer(s, now);
+  assert.strictEqual(o2.recipe.id, 'arroz-caldo', 'rotates to Arroz caldo if Tinola was yesterday');
+
+  // Swapping tonight's dinner to the suggested soup clears the offer
+  K.swapSlot(s, o2.date, 'dinner', o2.recipe.id, now);
+  assert.strictEqual(s.plan.days['2026-11-26'].dinner.recipeId, 'arroz-caldo');
+  assert.strictEqual(K.sickSoupOffer(s, now), null, 'no offer once dinner is already a soup');
+
+  // When tonight's dinner is already made/mama/skipped, offer swaps tomorrow's planned dinner
+  s.plan.days['2026-11-26'].dinner = { recipeId: 'sheet-chicken', title: 'Sheet-pan garlic chicken, broccoli & sweet potato', status: 'made', note: '' };
+  const o3 = K.sickSoupOffer(s, now);
+  assert.ok(o3 && o3.date === '2026-11-27' && o3.isTomorrow === true, JSON.stringify(o3));
+
+  // If tomorrow's dinner is already a soup, or on Sunday evening after dinner, return null
+  s.plan.days['2026-11-27'].dinner = { recipeId: 'lentil-soup', title: 'One-pot red lentil & carrot soup', status: 'planned', note: '' };
+  assert.strictEqual(K.sickSoupOffer(s, now), null, 'tomorrow already soup');
+  const sun = new Date(2026, 10, 29, 19, 0); // Sun 2026-11-29 (last day of week)
+  s.plan.days['2026-11-29'].dinner = { recipeId: 'sheet-chicken', title: 'Sheet-pan garlic chicken, broccoli & sweet potato', status: 'made', note: '' };
+  assert.strictEqual(K.sickSoupOffer(s, sun), null, 'Sunday night after dinner has no tomorrow in this week');
+});
 console.log(n + ' cook unit tests passed');

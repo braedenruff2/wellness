@@ -131,6 +131,16 @@
         h += '<div class="card ui" id="ck-today-targets"><div class="row"><span class="meta grow">' + esc(bits.join(' · ')) + '</span><a class="link" href="#cook/log">Targets</a></div></div>';
       }
     }
+    if (ctx.sick) {
+      var sickOffer = K.sickSoupOffer && K.sickSoupOffer(S, d);
+      if (sickOffer) {
+        h += '<div class="card ui" id="ck-sick-card"><h3>Warm soup for a sick day?</h3>' +
+          '<p class="meta" style="margin-bottom:6px">Swap ' + (sickOffer.isTomorrow ? 'tomorrow’s' : 'tonight’s') + ' dinner in one tap — gentle, warm, and updates your shopping list.</p>' +
+          '<div class="chips">' + sickOffer.soups.map(function (sp) {
+            return '<button class="chip" type="button" data-sick-soup="' + esc(sickOffer.date + '|' + sp.id) + '">' + esc(sp.shortName) + '</button>';
+          }).join('') + '</div></div>';
+      }
+    }
     if (soon.length) {
       h += '<div class="card ui" id="ck-soon" style="border-color:var(--warn)"><h3>Use soon</h3>' +
         '<p class="meta" style="margin-bottom:6px">' + soon.map(function (x) {
@@ -406,10 +416,12 @@
     var headline = slot.status === 'mama' ? 'Mama cooked' + (slot.note ? ': ' + slot.note : '')
       : slot.status === 'skipped' ? 'Flexible day (skipped ' + (K.MEAL_LABEL[pickMeal] || 'meal').toLowerCase() + ')'
       : (slot.title || 'Plan today’s meals');
+    var sickOffer = ctx.sick && K.sickSoupOffer ? K.sickSoupOffer(S, d) : null;
     return '<div class="meta ui">Cooking · ' + esc(K.MEAL_LABEL[pickMeal] || 'Today') + '</div>' +
       '<h3>' + esc(headline) + '</h3>' +
       (soon.length ? '<p class="meta ui" style="color:var(--warn)">Use soon: ' + esc(soon.slice(0, 3).map(function (x) { return x.item.name + ' (' + (x.daysLeft <= 0 ? 'today' : x.daysLeft + ' d') + ')'; }).join(', ')) + '</p>'
         : '<p class="meta ui">Beginner recipes, flexible when Mama cooks, food logs &amp; targets for you &amp; ' + esc(ctx.childLabel()) + '.</p>') +
+      (sickOffer ? '<div class="row ui" id="ck-sick-soup-row" style="margin-bottom:6px"><button class="btn" id="ck-sick-soup" type="button" data-sick-soup="' + esc(sickOffer.date + '|' + sickOffer.recipe.id) + '">Swap ' + (sickOffer.isTomorrow ? 'tomorrow’s' : 'tonight’s') + ' dinner for ' + esc(sickOffer.shortName) + '</button></div>' : '') +
       '<div class="row ui"><a class="btn primary" href="#cook">Today’s meals</a><a class="btn" href="#cook/log">Log food</a><a class="btn" href="#cook/pantry">Fridge &amp; list</a></div>';
   }
 

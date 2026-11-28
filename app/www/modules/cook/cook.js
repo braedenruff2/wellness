@@ -44,6 +44,7 @@
   }
 
   function askable() { var pc = WL.pc; return !!(pc && (pc.canAsk ? pc.canAsk() : pc.ready())); }
+  function isSick() { return !!(window.WLMe && WLMe.unwell && WLMe.unwell()); }
   function queuedFor(task) {
     var pc = WL.pc;
     return pc && pc.queued ? pc.queued().filter(function (x) { return x.task === task; }) : [];
@@ -218,7 +219,7 @@
   function viewCtx() {
     var rn = realNow();
     return {
-      realNow: rn, logNow: now(), childLabel: childLabel, pers: pers,
+      realNow: rn, logNow: now(), childLabel: childLabel, pers: pers, sick: isSick(),
       wk: curTab === '' ? workoutInfo(rn) : null,
       askable: askable, queuedFor: queuedFor, pantryCat: pantryCat,
       targetWho: targetWho, targetRange: targetRange,
@@ -416,6 +417,14 @@
         b.onclick = function () {
           K.swapSlot(S, tIso, b.dataset.useMeal, b.dataset.useRecipe, d);
           save(); render(); WL.toast('Added to today’s plan');
+        };
+      });
+      $$('[data-sick-soup]', view).forEach(function (b) {
+        b.onclick = function () {
+          var p = b.dataset.sickSoup.split('|');
+          var s = K.swapSlot(S, p[0], 'dinner', p[1], d);
+          if (!s) return;
+          save(); render(); WL.toast('Swapped dinner to ' + s.title);
         };
       });
       $$('[data-ck-made]', view).forEach(function (b) {
@@ -723,7 +732,19 @@
   function card() {
     var d = realNow();
     K.ensureWeekPlan(S, d);
-    return V.cardHtml(S, { realNow: d, childLabel: childLabel });
+    return V.cardHtml(S, { realNow: d, childLabel: childLabel, sick: isSick() });
+  }
+  function wireCard(el) {
+    el.addEventListener('click', function (e) {
+      var b = e.target.closest && e.target.closest('[data-sick-soup]');
+      if (!b) return;
+      var p = b.dataset.sickSoup.split('|'), d = realNow();
+      var s = K.swapSlot(S, p[0], 'dinner', p[1], d);
+      if (!s) return;
+      save();
+      el.innerHTML = card();
+      WL.toast('Swapped dinner to ' + s.title);
+    });
   }
 
   var prevBackCook = window.FCBack;
@@ -746,6 +767,7 @@
     },
     leave: function () { closeFoodModal(true); },
     card: card,
+    wireCard: wireCard,
     validate: function (k, raw) { try { var s = K.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); }
   });
