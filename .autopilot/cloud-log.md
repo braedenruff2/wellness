@@ -1,5 +1,15 @@
 # Cloud log
 
+## 2026-11-27 23:45 - 2026-11-28 00:30 AST (run after the usage reset; APK 0.1.20261128.0425, real key, cert 6795e499...)
+- No new Gemini commits since the last cross-review; no gemini-work branch. Drive: no new notes or requests since the last run.
+- Done 432 (e2e-noise-race: fast Begin / sound chip / volume / pause taps never leave two sources live; fails if start() skips stop(); no bug), 443 (calm unit with a fake Web Audio clock: duck() in the fade-in or before a pause never leaves the sound low; no bug).
+- Done 431: year fixture now has own words on every quick answer, sit and check-in (600 chars), still-unwell and note replies. Found: sit notes grew ~220 KB a year without end -> CalmCore.trimNotes keeps them on the newest 200 sits (record + validate; ratings stay; activity ids unchanged).
+  - bug: an autopilot reply cut at 300 chars could end in a space; a restore tidied it, so the backup came back different / cause: slice after trim / fixed: notes.js tidyReply (markRead + validate) / test: notes unit (fails without it); found by e2e-backup-year with the heavier year.
+- Done 438: an interrupted path sit rated below steady is left out of the last-5 window (no longer counts against "Move on" or toward "go back a step"); the path card adds "Interrupted sits don't count against you."; calm unit + e2e-path.
+- Done 437: TagalogCore.lintPack (run by build-packs.cjs only, phones keep checkPack): refuses "How do you say 'X'?" prompts whose answer is the question, and "(to an elder)" answers without po/ho; week 2026-11-25 lesson 3 prompt reworded ("Ask an elder how to say 'bottle' in Tagalog."; phones re-download the week by hash).
+- Added 436-443. Tested: full suite after the rebase (119 suites, none skipped); APK verified (apksigner, zipalign).
+- Check on the phone: Calm path card after an interrupted sit shows the new line.
+
 ## 2026-11-27 23:20 AST (end of this run; APK 0.1.20261128.0311, real key, cert 6795e499...)
 - Gemini pushed 419, 423 and 424 while this run tested; each time rebased (two plan conflicts: kept both agents' tasks; this run's 426-430 renumbered 431-435), ran the full suite again (118 suites, none skipped) and rebuilt the APK so it carries both agents' work.
 - Open for the next runs: 426, 427 (Gemini's), 431-434, and the 2 Dec lesson pack ([drive], Wednesday from noon: 273/390/398).
