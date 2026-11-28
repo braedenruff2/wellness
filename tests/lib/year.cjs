@@ -31,7 +31,7 @@ function simulate(days) {
     FC.addEntry(fc, 'journal', words(130), null, at(21));
     CA.record(ca, 'body', 8, 3, 2, at(20)); CA.record(ca, 'sigh', 1, 4, 3, at(15));
     const sit = CA.rateSit(CA.record(ca, 'count', 20, null, null, at(6)), 1 + (d % 3), ['Sleepy', 'Restless']); // a meditation-path sit every morning
-    CA.sitNote(sit, 'sit ' + d + ' ' + words(120)); // and his own words after it, every day, at the 600-character limit
+    CA.sitNote(sit, 'sit ' + d + ' ' + words(120)); CA.trimNotes(ca); // and his own words after it, every day, at the 600-character limit (calm.js trims as it saves)
     if (d % 2 === 0) { for (let i = 0; i < 5; i++) for (let n = 0; n < 3; n++) WK.logSet(wk, 'A', i, 12, 10, at(13, i * 5 + n)); WK.endSession(wk, at(14)); }
     else WK.logRest(wk, WK.iso(at(9)), 'Busy day', at(9));
     ['calm', 'faith', 'tagalog', 'workout'].forEach((p) => { const q = ME.questions(p)[0]; ME.answer(me, p, p + '@' + d, q.k, q.opts[1], at(22)); ME.afterNote(me, p, p + '@' + d, p + ' ' + d + ' ' + words(120), at(22, 1)); });

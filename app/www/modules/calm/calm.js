@@ -505,7 +505,7 @@
     }; });
     var sn = $('#c-sit-note');
     if (sn) sn.oninput = function () { // saved as he types, like the other answers
-      if (run && run.done && run.rec) { K.sitNote(run.rec, sn.value); run.rec.rated = new Date().toISOString(); save(); }
+      if (run && run.done && run.rec) { K.sitNote(run.rec, sn.value); K.trimNotes(S); run.rec.rated = new Date().toISOString(); save(); }
     };
     $$('#c-after-r [data-r]').forEach(function (b) { b.onclick = function () {
       after = +b.dataset.r;

@@ -696,6 +696,9 @@ t('445: restoreSlot puts a swapped dinner back exactly, only while the soup is s
   K.swapSlot(s, day, 'dinner', 'tinola', now); K.swapSlot(s, day, 'dinner', 'lentil-soup', now);
   assert.strictEqual(K.restoreSlot(s, day, 'dinner', prev, 'tinola'), null, 'changed since: left alone');
   assert.strictEqual(s.plan.days[day].dinner.recipeId, 'lentil-soup');
+  K.swapSlot(s, day, 'dinner', 'tinola', now); s.plan.days[day].dinner.status = 'made';
+  assert.strictEqual(K.restoreSlot(s, day, 'dinner', prev, 'tinola'), null, 'made: never undone (its fridge items were used)');
+  assert.strictEqual(s.plan.days[day].dinner.status, 'made');
   assert.strictEqual(K.restoreSlot(s, '2026-12-25', 'dinner', prev, 'tinola'), null);
   assert.strictEqual(K.restoreSlot(s, day, 'brunch', prev, 'lentil-soup'), null);
 });

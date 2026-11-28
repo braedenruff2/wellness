@@ -644,9 +644,14 @@ final class Sync {
         try {
             InputStream in = c.getContentResolver().openInputStream(u);
             if (in == null) throw new IOException("could not open sync file");
+            String text;
             try (InputStream s = in) {
-                return readStream(s, MAX_READ_BYTES);
+                text = readStream(s, MAX_READ_BYTES);
             }
+            // Drive answered: an old "couldn't reach Drive" no longer applies (an automatic sync with nothing new
+            // skips the write, which used to be the only thing that cleared it); a failed write sets its own again
+            if (u.equals(savedUri(c))) prefs(c).edit().putString("error", "").apply();
+            return text;
         } catch (Throwable t) {
             String msg = friendlyError(t, false);
             if (u.equals(savedUri(c))) prefs(c).edit().putString("error", msg).apply();

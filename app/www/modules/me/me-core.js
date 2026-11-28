@@ -222,7 +222,11 @@
   function noteUnwell(text) {
     var t = String(text || '');
     if (!UNWELL.test(t)) return false;
-    var rest = t.replace(/\bsick (of|and tired)\b/ig, '').replace(/\bthrew up (her|his|my|their|our) hands\b/ig, '').replace(/\b(not|isn['’]?t|aren['’]?t|no longer) (sick|ill|unwell)\b/ig, '');
+    var rest = t.replace(/\bsick (of|and tired)\b/ig, '').replace(/\bthrew up (her|his|my|their|our) hands\b/ig, '')
+      // vaccines and negative tests aren't being sick: "got our covid boosters", "her RSV shot", "flu jab", "covid test came back negative"
+      .replace(/\b(covid|rsv|flu)(-19)?\s+(shot|shots|jab|jabs|vaccine|vaccines|booster|boosters|vaccination)\b/ig, '')
+      .replace(/\b(covid|rsv|flu)(-19)?\s+tests?\s+(came back\s+|was\s+|were\s+|is\s+)?negative\b/ig, '').replace(/\bnegative for (covid|rsv|flu)\b/ig, '')
+      .replace(/\ba temperature of\b/ig, '').replace(/\bno (fever|cough|temperature)\b/ig, '').replace(/\b(not|isn['’]?t|aren['’]?t|no longer) (sick|ill|unwell)\b/ig, '');
     return UNWELL.test(rest);
   }
   function dayUnwell(c) {

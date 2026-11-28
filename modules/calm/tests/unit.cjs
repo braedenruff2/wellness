@@ -624,7 +624,10 @@ t('425: his own words after a path sit: kept (600 max, spaces tidied), cleared, 
 });
 t('sit notes are kept on the newest 200 sits only (store stays bounded); ratings stay; validate trims too', () => {
   const s = K.defaults();
-  for (let i = 0; i < 260; i++) { const r = K.rateSit(K.record(s, 'count', 20, null, null, new Date(2026, 10, 1, 6, 0, i)), 2, ['Restless']); K.sitNote(r, 'sit ' + i); }
+  for (let i = 0; i < 260; i++) { const r = K.rateSit(K.record(s, 'count', 20, null, null, new Date(2026, 10, 1, 6, 0, i)), 2, ['Restless']); K.sitNote(r, 'sit ' + i); K.trimNotes(s); }
+  // a sit without words (or another practice) never costs an old note (review 28 Nov)
+  K.record(s, 'count', 20, null, null, new Date(2026, 10, 2, 6)); K.record(s, 'body', 8, 3, 2, new Date(2026, 10, 2, 7));
+  assert.strictEqual(s.sessions.filter((x) => x.note).length, K.MAX_SIT_NOTES, 'still 200 after sits without words');
   const noted = s.sessions.filter((x) => x.note);
   assert.strictEqual(noted.length, K.MAX_SIT_NOTES);
   assert.strictEqual(noted[noted.length - 1].note, 'sit 259', 'the newest keeps its words');
@@ -633,7 +636,8 @@ t('sit notes are kept on the newest 200 sits only (store stays bounded); ratings
   const big = JSON.parse(JSON.stringify(s)); big.sessions.forEach((x, i) => { x.note = 'n' + i; });
   const back = K.validate(big);
   assert.strictEqual(back.sessions.filter((x) => x.note).length, K.MAX_SIT_NOTES);
-  assert.strictEqual(back.sessions[back.sessions.length - 1].note, 'n259');
-  assert.strictEqual(back.sessions.length, 260, 'no sit dropped');
+  const noted2 = back.sessions.filter((x) => x.note);
+  assert.strictEqual(noted2[noted2.length - 1].note, 'n260', 'the newest path sit keeps its words (a body scan has none)');
+  assert.strictEqual(back.sessions.length, 262, 'no sit dropped');
 });
 console.log(n + ' calm unit tests passed');

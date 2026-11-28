@@ -772,7 +772,7 @@
      still holds the soup it was swapped to. prev is the slot object as it was before the swap (a copy). */
   function restoreSlot(state, date, meal, prev, swappedTo) {
     var day = state && state.plan && state.plan.days && state.plan.days[date];
-    if (!day || !prev || MEALS.indexOf(meal) < 0 || !day[meal] || day[meal].recipeId !== swappedTo) return null;
+    if (!day || !prev || MEALS.indexOf(meal) < 0 || !day[meal] || day[meal].recipeId !== swappedTo || day[meal].status !== 'planned') return null;
     day[meal] = JSON.parse(JSON.stringify(prev));
     return day[meal];
   }

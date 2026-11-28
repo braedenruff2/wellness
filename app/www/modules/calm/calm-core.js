@@ -358,11 +358,11 @@
     var s = { id: practiceId, date: iso(now), at: now.toISOString(), mins: m,
       before: before >= 1 && before <= 5 ? before : null, after: after >= 1 && after <= 5 ? after : null };
     state.sessions.push(s);
-    trimNotes(state, MAX_SIT_NOTES - 1); // room for this sit's own words
     return s;
   }
   /* His words after sits are kept on the newest 200 sits that have them (about 120 KB at most); older sits keep their
-     ratings. Without this a sit a day with a full note grows the store by ~220 KB a year, without end. */
+     ratings. Without this a sit a day with a full note grows the store by ~220 KB a year, without end. Run when words
+     are saved (calm.js) and on load (validate), never on a sit without words. */
   var MAX_SIT_NOTES = 200;
   function trimNotes(state, keep) {
     var n = 0, ss = (state && state.sessions) || [], max = keep >= 0 ? keep : MAX_SIT_NOTES;

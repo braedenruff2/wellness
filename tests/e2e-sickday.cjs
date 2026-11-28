@@ -12,14 +12,17 @@ const W = require('./lib/web.cjs');
     const co = JSON.parse(localStorage.getItem('wl.coach.v1') || '{}');
     co.child = Object.assign({ name: '', birth: '2025-09-01', can: [] }, co.child || {});
     localStorage.setItem('wl.coach.v1', JSON.stringify(co));
+    const c = JSON.parse(localStorage.getItem('wl.calm.v1') || '{"sessions":[],"settings":{}}'); // the meditation path, 20-min sits
+    c.settings = Object.assign(c.settings || {}, { aim: 'train', sitMinutes: 20 }); localStorage.setItem('wl.calm.v1', JSON.stringify(c));
   });
   const state = () => page.evaluate(() => ({
     rest: !!document.querySelector('#wo-rough-rest') && /sick/i.test(document.querySelector('#wo-rough-rest').textContent),
     soup: !!document.querySelector('#ck-sick-soup'),
     coach: !!document.querySelector('#co-sick'),
     guide: /A sick or teething day/.test((document.querySelector('.home-card[data-module="me"]') || {}).textContent || ''),
+    calm: /Sick today/.test((document.querySelector('.home-card[data-module="calm"]') || {}).textContent || ''),
   }));
-  const ALL = { rest: true, soup: true, coach: true, guide: true }, NONE = { rest: false, soup: false, coach: false, guide: false };
+  const ALL = { rest: true, soup: true, coach: true, guide: true, calm: true }, NONE = { rest: false, soup: false, coach: false, guide: false, calm: false };
 
   await t.step('day 1: typing the note on Home switches Home, Move, Cooking and Parenting to a sick day (no reload)', async () => {
     await page.goto(base + '#home'); await seed(); await page.reload();
@@ -50,7 +53,7 @@ const W = require('./lib/web.cjs');
     await page.click('#me-still-unwell [data-me-unwell][data-v="Yes"]');
     await page.clock.runFor(1000);
     const s = await state();
-    assert.deepStrictEqual({ rest: s.rest, soup: s.soup, coach: s.coach }, { rest: true, soup: true, coach: true }, JSON.stringify(s));
+    assert.deepStrictEqual({ rest: s.rest, soup: s.soup, coach: s.coach, calm: s.calm }, { rest: true, soup: true, coach: true, calm: true }, JSON.stringify(s));
     // after "Still unwell?" redrew them, the cards' buttons still answer once
     await page.evaluate(() => { window.__toasts = []; const t = WL.toast; WL.toast = (m) => { window.__toasts.push(m); return t(m); }; });
     await page.click('#wo-rough-rest');
@@ -94,6 +97,16 @@ const W = require('./lib/web.cjs');
     await page.click('#ck-sick-undo');
     await page.waitForSelector('#ck-sick-card');
     assert.deepStrictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-11-30'].dinner), before);
+    // once the soup is marked made, Undo goes (putting the old dinner back would drop the made mark)
+    await page.click('#ck-sick-card [data-sick-soup]'); await page.waitForSelector('#ck-sick-undo');
+    await page.click('[data-ck-made="dinner"]');
+    await page.waitForFunction(() => !document.querySelector('#ck-sick-undo'), null, { timeout: 3000 });
+    const made = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-11-30'].dinner);
+    assert.strictEqual(made.status, 'made');
+    await page.goto(base + '#home'); await page.waitForSelector('.home-card[data-module="cook"]');
+    assert.strictEqual(await page.$('#ck-sick-undo'), null, 'not on Home either');
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.cook.v1')); c.plan.days['2026-11-30'].dinner = Object.assign({}, c.plan.days['2026-11-30'].dinner, { status: 'planned', recipeId: 'sheet-chicken' }); localStorage.setItem('wl.cook.v1', JSON.stringify(c)); });
+    await page.goto(base + '#cook'); await page.reload(); await page.waitForSelector('#ck-sick-card');
     // after 10 minutes the Undo is gone (the swap stays)
     await page.click('#ck-sick-card [data-sick-soup]'); await page.waitForSelector('#ck-sick-undo');
     await page.clock.fastForward(11 * 60 * 1000);

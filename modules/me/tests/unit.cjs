@@ -651,8 +651,8 @@ t('414: a check-in note saying he is unwell (whole words; not "sick of", not col
   yes.forEach((x) => assert.strictEqual(K.noteUnwell(x), true, x));
   no.forEach((x) => assert.strictEqual(K.noteUnwell(x), false, x));
   // 444: more ways he might say it
-  ['she threw up twice', 'vomited at 2am', 'puking all night', 'diarrhea since yesterday', 'Feeling under the weather', 'tested positive for covid', 'RSV going around daycare', 'croup cough', 'ear infection again', 'she has the sniffles', 'running a temperature'].forEach((x) => assert.strictEqual(K.noteUnwell(x), true, x));
-  ['she threw up her hands and laughed', 'the weather was nice', 'temperature dropped outside', 'I\'ll call later', 'illustrated book'].forEach((x) => assert.strictEqual(K.noteUnwell(x), false, x));
+  ['covid test positive', 'got the flu after her flu shot', 'she threw up twice', 'vomited at 2am', 'puking all night', 'diarrhea since yesterday', 'Feeling under the weather', 'tested positive for covid', 'RSV going around daycare', 'croup cough', 'ear infection again', 'she has the sniffles', 'running a temperature'].forEach((x) => assert.strictEqual(K.noteUnwell(x), true, x));
+  ['Got our covid boosters today', 'Baby got her RSV shot', 'Covid test came back negative', 'negative for flu', 'Set the oven to a temperature of 400', 'No fever today', 'flu shot at the pharmacy', 'she threw up her hands and laughed', 'the weather was nice', 'temperature dropped outside', 'I\'ll call later', 'illustrated book'].forEach((x) => assert.strictEqual(K.noteUnwell(x), false, x));
   const s = K.defaults(); K.checkinNote(s, '2026-11-27', 'we are all sick', D(27, 9));
   assert.strictEqual(K.unwell(s, D(27, 15)), true);
   assert.strictEqual(K.unwell(s, D(28, 9)), false, 'only today');

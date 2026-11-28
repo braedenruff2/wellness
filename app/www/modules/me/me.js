@@ -123,9 +123,9 @@
     var box = n.closest('.me-ask'); if (!box) return;
     if (K.afterNote(S, box.dataset.part, box.dataset.about, n.value, now(), new Date()) || !n.value.trim()) save();
   });
-  /* Refresh Home cards that react to sick-day mode (Move, Cooking, Parenting) when "Still unwell?" changes. */
+  /* Refresh Home cards that react to sick-day mode (Move, Cooking, Parenting, Calm) when "Still unwell?" or the note changes. */
   function refreshSickCards() {
-    ['workout', 'cook', 'coach'].forEach(function (id) {
+    ['workout', 'cook', 'coach', 'calm'].forEach(function (id) {
       var el = document.querySelector('.home-card[data-module="' + id + '"]');
       var m = WL.modules && WL.modules[id];
       if (!el || !m || !m.card) return;

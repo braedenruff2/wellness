@@ -220,6 +220,10 @@
   var lastSwap = null;
   function undoNow() {
     if (!lastSwap || Date.now() - lastSwap.at > 10 * 60 * 1000) { lastSwap = null; return null; }
+    // only while the dinner is still the soup, still planned (once it's made, or changed another way, Undo goes:
+    // putting the old dinner back would drop a "made" mark whose fridge items were already used)
+    var day = S.plan && S.plan.days && S.plan.days[lastSwap.date], cur = day && day.dinner;
+    if (!cur || cur.recipeId !== lastSwap.to || cur.status !== 'planned') { lastSwap = null; return null; }
     return lastSwap;
   }
   function sickSwap(date, recipeId, d) {
@@ -446,7 +450,7 @@
         };
       });
       $$('[data-sick-undo]', view).forEach(function (b) {
-        b.onclick = function () { var u = sickUndo(); save(); render(); if (u) WL.toast('Back to ' + u.prevTitle); };
+        b.onclick = function () { var u = sickUndo(); save(); render(); WL.toast(u ? 'Back to ' + u.prevTitle : 'Too late to undo: change dinner below'); };
       });
       $$('[data-ck-made]', view).forEach(function (b) {
         b.onclick = function () {
@@ -758,7 +762,7 @@
   function wireCard(el) {
     el.addEventListener('click', function (e) {
       var un = e.target.closest && e.target.closest('[data-sick-undo]');
-      if (un) { var u = sickUndo(); save(); el.innerHTML = card(); if (u) WL.toast('Back to ' + u.prevTitle); return; }
+      if (un) { var u = sickUndo(); save(); el.innerHTML = card(); WL.toast(u ? 'Back to ' + u.prevTitle : 'Too late to undo: change dinner in Cooking'); return; }
       var b = e.target.closest && e.target.closest('[data-sick-soup]');
       if (!b) return;
       var p = b.dataset.sickSoup.split('|'), d = realNow();

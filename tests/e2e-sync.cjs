@@ -72,7 +72,7 @@ const FAKE_DRIVE = `
         d.reads++;
         Promise.resolve().then(function () {
           if (d.failRead) { d.error = d.failRead; window.FCSyncDone(id, false, d.failRead); }
-          else window.FCSyncDone(id, true, d.content);
+          else { d.error = ''; window.FCSyncDone(id, true, d.content); } // like Sync.java: Drive answered, old error gone
         });
       },
       syncReadAnswers: function (id) {
@@ -162,6 +162,20 @@ const FAKE_DRIVE = `
     await page.evaluate(() => window.FCSaveNow());
     await page.waitForFunction(() => window.__drive.writes === 4);
     await page.evaluate(() => { window.__drive.writes = 3; }); // the steps below count from here as before
+  });
+
+  await t.step('450: offline, then back with nothing new: the skipped write still clears the old Drive error', async () => {
+    const w0 = await page.evaluate(() => window.__drive.writes);
+    await page.evaluate(() => { window.__drive.failRead = 'Could not reach Google Drive. Check your connection.'; });
+    await page.clock.fastForward(31 * 60 * 1000);
+    await page.evaluate(() => window.FCSaveNow());
+    await page.waitForSelector('#wl-sync-err');
+    await page.evaluate(() => { window.__drive.failRead = null; });
+    await page.clock.fastForward(31 * 60 * 1000);
+    await page.evaluate(() => window.FCSaveNow());
+    await page.waitForFunction(() => !document.querySelector('#wl-sync-err'), null, { timeout: 3000 });
+    assert.strictEqual(await page.evaluate(() => window.__drive.writes), w0, 'nothing new: still no write');
+    assert.ok(/nothing new to save/.test(await page.textContent('#wl-sync-when')));
   });
 
   await t.step('reads cloud answers before writing, keeps them until taken, writes acked ids', async () => {
