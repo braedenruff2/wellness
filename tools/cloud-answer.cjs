@@ -10,8 +10,9 @@
       Writes <work>/rows.json: the full wellness-answers sheet (header, rows still unacked, new answers, then blank
       rows over any old ones), ready for Sheets update_values on Sheet1!A1:D<rows.length>.
    Notes he left for the autopilot (wl.notes.v1): after reading them,
-      node tools/cloud-answer.cjs ack-notes <wellness-sync.json> <work>
-   adds a notes-ack answer (before step 3) so the phone shows "Read by the autopilot" on each. */
+      node tools/cloud-answer.cjs ack-notes <wellness-sync.json> <work> [<replies.json>]
+   adds a notes-ack answer (before step 3) so the phone shows "Read by the autopilot" on each; replies.json
+   ({noteId: "one line: what was done"}) shows that line under the note ("Autopilot: ..."). */
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -70,15 +71,23 @@ function prepare(syncFile, work, csvOrNow, maybeNow) {
   return list;
 }
 
-/* The notes not yet read by the autopilot -> <work>/answers/notes-ack-<stamp>.json ({ids, at}); [] when none. */
-function ackNotes(syncFile, work, now) {
+/* The notes not yet read by the autopilot -> <work>/answers/notes-ack-<stamp>.json ({ids, at[, replies]}); [] when none.
+   replies (optional): {noteId: "one line"}, the run's answer to a note (what was done), shown under it on the phone;
+   a reply can go to a note read earlier too. Replies to notes that aren't in the file are left out. */
+function ackNotes(syncFile, work, now, replies) {
   const st = states(readSync(syncFile)), notes = st['wl.notes.v1'] && Array.isArray(st['wl.notes.v1'].notes) ? st['wl.notes.v1'].notes : [];
-  const ids = notes.filter((n) => n && n.id && !n.read).map((n) => String(n.id));
-  if (!ids.length) return { id: null, ids };
+  const rp = {};
+  for (const n of notes) {
+    const r = n && n.id && replies && typeof replies[n.id] === 'string' ? replies[n.id].replace(/\s+/g, ' ').trim().slice(0, 300) : '';
+    if (r && r !== n.reply) rp[String(n.id)] = r;
+  }
+  const ids = notes.filter((n) => n && n.id && (!n.read || rp[n.id])).map((n) => String(n.id));
+  if (!ids.length) return { id: null, ids, replies: 0 };
   const at = (now || new Date()).toISOString(), id = 'notes-ack-' + at.replace(/[^0-9]/g, '').slice(0, 14);
   fs.mkdirSync(path.join(work, 'answers'), { recursive: true });
-  fs.writeFileSync(path.join(work, 'answers', id + '.json'), JSON.stringify({ ids, at }));
-  return { id, ids };
+  const ans = { ids, at }; if (Object.keys(rp).length) ans.replies = rp;
+  fs.writeFileSync(path.join(work, 'answers', id + '.json'), JSON.stringify(ans));
+  return { id, ids, replies: Object.keys(rp).length };
 }
 
 function rows(syncFile, work, csvFile, now) {
@@ -116,14 +125,14 @@ function rows(syncFile, work, csvFile, now) {
 module.exports = { prepare, rows, ackNotes, pending, HEADER };
 
 if (require.main === module) {
-  const [cmd, syncFile, work, csv] = process.argv.slice(2);
+  const [cmd, syncFile, work, csv] = process.argv.slice(2); // ack-notes: the 4th is an optional replies JSON file
   if (cmd === 'prepare' && syncFile && work) {
     const l = prepare(syncFile, work, csv);
     if (!l.length) console.log('No requests waiting.');
     for (const x of l) console.log(x.id + '  ' + x.task + '  ' + (x.error ? 'ERROR ' + x.error : path.join(work, x.prompt)) + (x.tools ? '  (web: ' + x.tools + ')' : ''));
   } else if (cmd === 'ack-notes' && syncFile && work) {
-    const r = ackNotes(syncFile, work);
-    console.log(r.id ? r.id + ': ' + r.ids.length + ' note(s) marked read' : 'No unread notes.');
+    const r = ackNotes(syncFile, work, undefined, csv ? JSON.parse(fs.readFileSync(csv, 'utf8')) : undefined);
+    console.log(r.id ? r.id + ': ' + r.ids.length + ' note(s) marked read' + (r.replies ? ', ' + r.replies + ' reply(ies)' : '') : 'No unread notes.');
   } else if (cmd === 'rows' && syncFile && work) {
     const r = rows(syncFile, work, csv);
     console.log('rows.json: ' + r.rows.length + ' rows (kept ' + r.kept + ', added ' + r.added + ', dropped ' + r.dropped + '); range Sheet1!A1:D' + r.rows.length);

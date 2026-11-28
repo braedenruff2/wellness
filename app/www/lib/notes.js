@@ -46,15 +46,25 @@
         text: x.text.trim().slice(0, 1200)
       });
       if (typeof x.read === 'string' && !isNaN(Date.parse(x.read))) d.notes[d.notes.length - 1].read = new Date(x.read).toISOString();
+      if (typeof x.reply === 'string' && x.reply.trim()) d.notes[d.notes.length - 1].reply = x.reply.trim().slice(0, 300);
     });
     return d;
   }
 
-  /* A cloud run's "notes-ack" answer: these notes were read by the autopilot (at = when). Returns how many changed. */
-  function markRead(state, ids, at) {
+  /* A cloud run's "notes-ack" answer: these notes were read by the autopilot (at = when), and optionally its one-line
+     reply to some of them (replies: {id: text}; a later run's reply replaces an earlier one). Returns how many changed. */
+  function markRead(state, ids, at, replies) {
     if (!state || !Array.isArray(state.notes) || !Array.isArray(ids)) return 0;
     var when = typeof at === 'string' && !isNaN(Date.parse(at)) ? new Date(at).toISOString() : new Date().toISOString(), n = 0;
-    state.notes.forEach(function (x) { if (x && !x.read && ids.indexOf(x.id) >= 0) { x.read = when; n++; } });
+    var rp = replies && typeof replies === 'object' ? replies : {};
+    state.notes.forEach(function (x) {
+      if (!x || ids.indexOf(x.id) < 0) return;
+      var changed = false;
+      if (!x.read) { x.read = when; changed = true; }
+      var r = typeof rp[x.id] === 'string' ? rp[x.id].replace(/\s+/g, ' ').trim().slice(0, 300) : '';
+      if (r && r !== x.reply) { x.reply = r; changed = true; }
+      if (changed) n++;
+    });
     return n;
   }
   function unread(state) { return (state && Array.isArray(state.notes) ? state.notes : []).filter(function (x) { return x && !x.read; }); }
@@ -92,6 +102,7 @@
         var rd = n.read && !isNaN(Date.parse(n.read)) ? new Date(n.read).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
         return '<li class="entry"><span class="kind">' + esc(n.tag) + '</span> <span class="when">' + esc(d + (n.where ? ' · ' + n.where : '')) + '</span><p>' + esc(n.text) + '</p>' +
           '<p class="meta wl-note-state">' + (rd ? '✓ Read by the autopilot (' + esc(rd) + ')' : 'Waiting for the next autopilot run') + '</p>' +
+          (n.reply ? '<p class="wl-note-reply"><b>Autopilot:</b> ' + esc(n.reply) + '</p>' : '') +
           '<button class="link wl-note-del" type="button" data-id="' + esc(n.id) + '" aria-label="Delete note">Delete</button></li>';
       }).join('') + '</ul></details>';
   }
@@ -212,7 +223,7 @@
     WL.pc.onCloudAnswer('notes-ack', function (e, ans) {
       if (e || !ans || !Array.isArray(ans.ids)) return;
       S = store.load();
-      if (markRead(S, ans.ids, ans.at)) save(); // an open sheet shows it the next time it opens
+      if (markRead(S, ans.ids, ans.at, ans.replies)) save(); // an open sheet shows it the next time it opens
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hookAck); else setTimeout(hookAck, 0);

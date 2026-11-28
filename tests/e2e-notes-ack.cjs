@@ -38,7 +38,7 @@ const FAKE = `
     await page.evaluate(() => WL.driveSync.sync());
     await page.evaluate(() => {
       const f = JSON.parse(window.__drive.content || '{}');
-      f.answers = Object.assign(f.answers || {}, { 'notes-ack-20261127150000': { task: 'notes-ack', answer: { ids: ['n1', 'gone'], at: '2026-11-27T15:00:00.000Z' } } });
+      f.answers = Object.assign(f.answers || {}, { 'notes-ack-20261127150000': { task: 'notes-ack', answer: { ids: ['n1', 'gone'], at: '2026-11-27T15:00:00.000Z', replies: { n1: 'Done: <b>fixed</b> in the next update.', gone: 'x' } } } });
       window.__drive.content = JSON.stringify(f);
       return WL.driveSync.sync();
     });
@@ -52,6 +52,8 @@ const FAKE = `
     const st = await page.$$eval('.wl-note-state', (e) => e.map((x) => x.textContent));
     assert.strictEqual(st[0], 'Waiting for the next autopilot run');
     assert.ok(/^✓ Read by the autopilot \(/.test(st[1]), st[1]);
+    const rep = await page.$$eval('.wl-note-reply', (e) => e.map((x) => [x.textContent, x.querySelectorAll('b').length]));
+    assert.deepStrictEqual(rep, [['Autopilot: Done: <b>fixed</b> in the next update.', 1]], 'the reply under n1, escaped (only the label is bold)');
     // deleting: the read one goes at once; the unread one asks for a second tap
     const delBtns = await page.$$('.wl-note-del');
     assert.strictEqual(delBtns.length, 2);

@@ -134,4 +134,27 @@ test('ack-notes: the unread autopilot notes become one notes-ack row the phone r
   assert.strictEqual(T.ackNotes(f2, w2, now).id, null);
   assert.strictEqual(T.rows(f2, w2, null, now).added, 0);
 });
+test('ack-notes with replies: a one-line answer per note goes with the ack (also to a note read before); unknown ids and repeats left out', () => {
+  const w = fs.mkdtempSync(path.join(os.tmpdir(), 'cloud-notes-'));
+  const s = JSON.parse(JSON.stringify(sync)); s.requests = []; s.acked = [];
+  s.stores['wl.notes.v1'] = JSON.stringify({ notes: [
+    { id: 'n3', at: '2026-11-22T10:00:00Z', where: '#calm', tag: 'Idea', text: 'c' },
+    { id: 'n2', at: '2026-11-21T10:00:00Z', where: '#calm', tag: 'Idea', text: 'b', read: '2026-11-21T20:00:00Z' },
+    { id: 'n1', at: '2026-11-20T10:00:00Z', where: '#home', tag: 'Bug', text: 'a', read: '2026-11-20T20:00:00Z', reply: 'Fixed.' }] });
+  const f = path.join(w, 'sync.json'); fs.writeFileSync(f, JSON.stringify(s));
+  const a = T.ackNotes(f, w, now, { n2: '  Done in the next app update:\n the sound loops smoothly now. ', n1: 'Fixed.', nope: 'x' });
+  assert.deepStrictEqual(a.ids, ['n3', 'n2'], 'unread n3 + already-read n2 with a new reply; n1\'s reply is unchanged');
+  assert.strictEqual(a.replies, 1);
+  const r = T.rows(f, w, null, now), back = C.rowsToAnswers(r.rows);
+  assert.deepStrictEqual(back[a.id].answer.replies, { n2: 'Done in the next app update: the sound loops smoothly now.' });
+  // the phone side
+  const N = require('../app/www/lib/notes.js'), st = N.validate(JSON.parse(s.stores['wl.notes.v1']));
+  assert.strictEqual(N.markRead(st, back[a.id].answer.ids, back[a.id].answer.at, back[a.id].answer.replies), 2);
+  assert.strictEqual(st.notes.find((x) => x.id === 'n2').reply, 'Done in the next app update: the sound loops smoothly now.');
+  assert.strictEqual(st.notes.find((x) => x.id === 'n2').read, '2026-11-21T20:00:00.000Z', 'read date kept');
+  assert.strictEqual(N.markRead(st, back[a.id].answer.ids, back[a.id].answer.at, back[a.id].answer.replies), 0, 'taken twice: no change');
+  assert.strictEqual(N.validate(JSON.parse(JSON.stringify(st))).notes.find((x) => x.id === 'n2').reply.length > 0, true, 'kept through a restore');
+  const long = N.validate({ notes: [{ id: 'x', at: '2026-11-22T10:00:00Z', text: 't', reply: 'y'.repeat(900) }] });
+  assert.strictEqual(long.notes[0].reply.length, 300);
+});
 console.log(n + ' cloud-answer tests passed');

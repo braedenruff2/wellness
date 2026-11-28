@@ -27,6 +27,7 @@ Scratch dir OUTSIDE the repo (his data). Download wellness-sync.json and the `we
 on `Sheet1!A1:D<n>` (it prunes acked rows and blanks old ones). No PROBLEM lines allowed.
 After reading his notes for the autopilot (wl.notes.v1 in the sync file), run `node tools/cloud-answer.cjs ack-notes <sync.json> <work>`
 BEFORE `rows`: the phone then shows "Read by the autopilot" on each note.
+To answer a note, pass a replies file: `ack-notes <sync.json> <work> <replies.json>` with {"<note id>": "one line: what was done"} (from APK 0.1.20261128 the phone shows "Autopilot: ..." under it; a reply can also go to a note read earlier).
 
 ## Private inputs (Google Drive folder "Wellness (private)", never copied into this repo)
 - The phone's data (backup JSON, later the sync file with queued requests) and the owner's notes for the autopilot.
@@ -510,4 +511,4 @@ NOTE 27 Nov 21:00 AST (Claude): 410-416 follow from the owner's notes and data (
 413. [any] Summaries: pc/wellness_pc.py summarize and tools/cloud-answer.cjs print a quick answer's own-words note as `in his words: "..."` (not mixed with "shown" text), and the weekly-plan / advice prompts (pc/prompts) say to weigh his own words over chip answers; test_pc + tests/cloud-answer.cjs.
 414. [any] me-core guidance: a check-in note about being unwell ("sick", "throat", "hoarse", "cold", "fever", "flu", whole words, any case; not "sick of") -> the existing sick rule fires (check what it matches now), and Move's Today offers the Sick rest day; unit + e2e.
 415. [any] Cooking: on a day whose check-in note says unwell (same matcher as 414), the Cooking card offers one tap to swap the next planned dinner for a soup (arroz caldo / tinola / chicken soup recipes that exist); unit + e2e.
-416. [any] Notes for the autopilot: a cloud run can reply to a note. tools/cloud-answer.cjs ack-notes takes an optional replies JSON ({noteId: "one line"}) and puts it in the notes-ack answer; the phone shows "Autopilot: <reply>" under that note (escaped, 300 chars max) and keeps it with the note; unit (cloud-answer + notes core) + e2e (tests/e2e-notes-ack.cjs).
+416. (done 27 Nov, Claude: notes.js markRead replies + .wl-note-reply; cloud-answer ack-notes [replies.json]; cloud-answer test + e2e-notes-ack) Notes for the autopilot: a cloud run can reply to a note. tools/cloud-answer.cjs ack-notes takes an optional replies JSON ({noteId: "one line"}) and puts it in the notes-ack answer; the phone shows "Autopilot: <reply>" under that note (escaped, 300 chars max) and keeps it with the note; unit (cloud-answer + notes core) + e2e (tests/e2e-notes-ack.cjs).
