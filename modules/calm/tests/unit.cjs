@@ -302,6 +302,9 @@ t('438: an interrupted sit that wasn\'t steady is left out of the last 5 (never 
   sit(7, 3, ['Interrupted']); // interrupted but steady anyway: counts
   st = K.pathStatus(s);
   assert.strictEqual(st.steady, 3, 'last 5 now 2, 3, 2, ... includes the steady interrupted one'); assert.strictEqual(st.interrupted, 1);
+  sit(8, 1, ['Unwell']); // 455: a sit while sick counts like an interruption
+  assert.strictEqual(K.pathStatus(s).interrupted, 2); assert.strictEqual(K.pathStatus(s).steady, 3);
+  assert.ok(/unwell/i.test(K.pathStatus(s).tip));
   // a later stage: three interrupted, wandering sits don't offer "go back a step"
   K.setStage(s, 'follow');
   for (let d = 10; d < 13; d++) K.rateSit(K.record(s, 'follow', 20, null, null, new Date(2026, 10, d, 19)), 1, ['Interrupted', 'Restless']);

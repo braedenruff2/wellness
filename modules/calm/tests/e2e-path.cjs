@@ -122,7 +122,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     });
     await page.reload(); await page.waitForSelector('#c-path-status');
     const txt = await page.textContent('#c-path-status');
-    assert.ok(/3 sits at this stage \(60 min\)\. Interrupted sits don’t count against you\./.test(txt), txt);
+    assert.ok(/3 sits at this stage \(60 min\)\. Interrupted sits, and sits while unwell, don’t count against you\./.test(txt), txt);
     assert.ok(!(await page.$('#c-path-back')), 'no "go back a step" for interruptions');
     await page.click('#c-stages [data-stage="count"]'); await page.waitForSelector('#c-path[open]');
   });

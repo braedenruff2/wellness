@@ -56,8 +56,18 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(await page.$('.home-card[data-module="calm"] a[href="#calm/s/count/10"]'), 'Begin starts the 10-minute sit');
     await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-rough');
     assert.ok(/Sick today/.test(await page.textContent('#c-rough')));
-    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.sessions = c.sessions.filter((x) => x.date < '2026-11-18' || x.date > '2026-11-24'); c.settings.aim = undefined; localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
+    // 455: a sit on a sick day has "Unwell" ticked on the questions (it won't count against moving on)
+    await page.click('[data-len="10"]'); await page.click('#c-pp'); await page.clock.runFor(10 * 60 * 1000 + 3000);
+    await page.waitForSelector('#c-hind');
+    assert.strictEqual(await page.getAttribute('#c-hind [data-h="Unwell"]', 'aria-pressed'), 'true');
+    const last = await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); return c.sessions[c.sessions.length - 1]; });
+    assert.deepStrictEqual(last.hind, ['Unwell']);
+    await page.click('#c-hind [data-h="Unwell"]');
+    assert.strictEqual(await page.getAttribute('#c-hind [data-h="Unwell"]', 'aria-pressed'), 'false', 'he can untick it');
+    await page.goto(base + '#calm');
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.sessions = c.sessions.filter((x) => (x.date < '2026-11-18' || x.date > '2026-11-24') && !(x.hind || []).includes('Unwell') && x.date !== '2026-11-26'); c.settings.aim = undefined; localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
     await checkin({ sleep: '7 h+', wakes: '0', energy: 'OK', mood: 'Good', day: 'Good' });
+    await page.goto(base + '#calm/s/count'); await page.reload(); await page.waitForSelector('#c-len'); // where the next step starts
   });
   await t.step('a 10-minute default already: no line; other practices: no line', async () => {
     await page.click('[data-len="10"]'); // rough day, not saved

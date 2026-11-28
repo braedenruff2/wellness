@@ -185,12 +185,13 @@
   var PATH = PRACTICES.filter(function (p) { return p.path; }).map(function (p) { return p.id; });
   /* How steady his attention was in a sit (1-3), and what got in the way (the classic hindrances, plainly named). */
   var FOCUS = ['Mostly lost in thought', 'Some steady stretches', 'Mostly steady'];
-  var HIND = ['Sleepy', 'Restless', 'Doubting it', 'Interrupted', 'Nothing much'];
+  var HIND = ['Sleepy', 'Restless', 'Doubting it', 'Interrupted', 'Unwell', 'Nothing much'];
   var HIND_TIP = {
     Sleepy: 'Last time you were sleepy: sit more upright, eyes a little open, or try a time of day when you’re more awake.',
     Restless: 'Last time you were restless: let the out-breath be longer, and go back to counting for a few minutes if it helps.',
     'Doubting it': 'Last time you doubted it: that’s common. Judge it by weeks of practice, not one sit.',
-    Interrupted: 'Last time you were interrupted: a shorter sit when she’s asleep still counts.'
+    Interrupted: 'Last time you were interrupted: a shorter sit when she’s asleep still counts.',
+    Unwell: 'Last time you felt unwell: rest comes first. A short sit when you’re better counts just the same.'
   };
   // while he is still on counting breaths, "go back to counting" makes no sense: a shorter count does the same job
   var HIND_TIP_COUNT = {
@@ -520,9 +521,9 @@
     var all = state.sessions.filter(function (s) { return PATH.indexOf(s.id) >= 0 && (!to || !s.date || s.date <= to); })
       .sort(function (a, b) { return sessionMs(a) - sessionMs(b); });
     var sits = all.filter(function (s) { return s.id === id; });
-    // an interrupted sit (the phone, a child waking) that wasn't steady says nothing about his attention: it is left
+    // an interrupted sit (the phone, a child waking) or one while unwell that wasn't steady says nothing about his attention: it is left
     // out of the last-5 window, so it never counts against moving on nor toward "go back a step"
-    var hit = function (s) { return Array.isArray(s.hind) && s.hind.indexOf('Interrupted') >= 0 && s.focus < 3; };
+    var hit = function (s) { return Array.isArray(s.hind) && (s.hind.indexOf('Interrupted') >= 0 || s.hind.indexOf('Unwell') >= 0) && s.focus < 3; };
     var rated = sits.filter(function (s) { return s.focus >= 1 && s.focus <= 3 && !hit(s); }).slice(-5);
     var skipped = sits.filter(function (s) { return s.focus >= 1 && s.focus <= 3 && hit(s); }).length;
     var steady = rated.filter(function (s) { return s.focus === 3; }).length;

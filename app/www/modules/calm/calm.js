@@ -146,7 +146,7 @@
     var ps = K.pathStatus(S), cur = practice(ps.stage), nx = ps.next && practice(ps.next);
     var h = '<details class="card ui" id="c-path"' + (open ? ' open' : '') + '><summary>Meditation path' + (open ? ' · stage ' + ps.n + ' of ' + ps.of + ': ' + esc(cur.title) : ' (training the mind)') + '</summary>';
     if (open) {
-      h += '<p class="meta" id="c-path-status">' + (ps.sits ? ps.sits + ' sit' + (ps.sits === 1 ? '' : 's') + ' at this stage (' + ps.mins + ' min)' + (ps.rated ? '; attention mostly steady in ' + ps.steady + ' of the last ' + ps.rated : '') + '.' + (ps.interrupted ? ' Interrupted sits don’t count against you.' : '') : 'No sits at this stage yet.') + '</p>';
+      h += '<p class="meta" id="c-path-status">' + (ps.sits ? ps.sits + ' sit' + (ps.sits === 1 ? '' : 's') + ' at this stage (' + ps.mins + ' min)' + (ps.rated ? '; attention mostly steady in ' + ps.steady + ' of the last ' + ps.rated : '') + '.' + (ps.interrupted ? ' Interrupted sits, and sits while unwell, don’t count against you.' : '') : 'No sits at this stage yet.') + '</p>';
       if (ps.tip) h += '<p class="meta" id="c-path-tip">' + esc(ps.tip) + '</p>';
       if (ps.when) h += '<p class="meta" id="c-path-when">' + esc(ps.when.text) + '</p>';
       if (ps.late && !(window.WLMe && WLMe.flagged && WLMe.flagged('calm', 'path:late')))
@@ -361,13 +361,15 @@
     var interrupted = !!(opts && opts.interrupted || run.interrupted);
     stopRun(); if (!silent) WL.bell();
     var rec = K.record(S, p.id, m, before, null, sessionTime(started));
-    if (p.path && interrupted) K.rateSit(rec, undefined, ['Interrupted']);
+    // a sit on a sick day (his check-in): "Unwell" is ticked for him (tap to untick), like Interrupted after a long pause
+    var pre = []; if (interrupted) pre.push('Interrupted'); if (window.WLMe && WLMe.unwell && WLMe.unwell()) pre.push('Unwell');
+    if (p.path && pre.length) K.rateSit(rec, undefined, pre);
     save(); // saved straight away; "Done" only adds the after rating
     run = { p: p, done: true, mins: m, before: before, rec: rec };
     $('#c-pp').hidden = true; if ($('#c-before')) $('#c-before').hidden = true; $('#c-after').hidden = false;
     var nr = $('#c-noise-row'); if (nr) nr.hidden = true; // the sound has stopped: no sound choice on the questions
-    if (p.path && interrupted) {
-      $$('#c-hind [data-h]').forEach(function (x) { x.setAttribute('aria-pressed', String(x.dataset.h === 'Interrupted')); });
+    if (p.path && pre.length) {
+      $$('#c-hind [data-h]').forEach(function (x) { x.setAttribute('aria-pressed', String(pre.indexOf(x.dataset.h) >= 0)); });
     }
     if (window.WLMe && !p.path) $('#c-after').insertAdjacentHTML('afterbegin', WLMe.askHtml('calm', p.id + '@' + rec.at));
     var td = K.today(S), l = $('#c-label') || $('#c-line');
