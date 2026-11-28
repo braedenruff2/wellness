@@ -1,5 +1,15 @@
 # Cloud log
 
+## 2026-11-28 01:40-02:05 AST (same run; APK 0.1.20261128.0604, real key, cert 6795e499...)
+- Done 446 (tests/e2e-a11y-sick.cjs: all pass), 442 (checked: no change), 439 (Journal > All: his own words, read-only).
+- Done 450: an independent read of today's Claude commits found 5 real bugs; each fixed with a test:
+  - bug: after an offline failure, an automatic sync with nothing new skipped the write and the old "couldn't reach Google Drive" stayed up / cause: Sync.java cleared "error" only on a write / fixed: a successful read clears it / test: e2e-sync (fake bridge does the same as Sync.java).
+  - bug: "Got our covid boosters", "her RSV shot", "covid test came back negative", "a temperature of 400", "No fever today" counted as a sick day / fixed: me-core strips those before matching / test: me unit.
+  - bug: the soup-swap Undo stayed after the dinner was marked made, and tapping it dropped the made mark / fixed: Undo only while the slot is still the soup and planned (cook.js undoNow + restoreSlot) / test: cook unit + e2e-sickday.
+  - bug: Home's Calm card (sick-aware since 447) didn't follow the sick note / Still unwell / fixed: refreshSickCards includes calm / test: e2e-sickday (fails without).
+  - bug: any recorded sit at the 200-note cap removed one old sit note / fixed: trim only when words are saved (calm.js) and on load / test: calm unit.
+- Tested: full suite after the rebase (121 suites, none skipped); APK verified.
+
 ## 2026-11-28 01:25-01:40 AST (same run; APK 0.1.20261128.0537, real key, cert 6795e499...)
 - Done 447 (sick day in Calm: path sit offered at 10 min on Home and the sit screen, "or none at all, both count as rest"; the path card holds off on Move on / Back; e2e-rough) and 445 ("Undo: back to <dinner>" for 10 min after a sick-day soup swap, Home and Cooking; CookCore.restoreSlot; cook unit + e2e-sickday).
 - Tested: full suite after the rebase (120 suites, none skipped); APK verified.
