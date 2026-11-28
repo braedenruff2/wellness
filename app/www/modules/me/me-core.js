@@ -226,6 +226,12 @@
       // vaccines and negative tests aren't being sick: "got our covid boosters", "her RSV shot", "flu jab", "covid test came back negative"
       .replace(/\b(covid|rsv|flu)(-19)?\s+(shot|shots|jab|jabs|vaccine|vaccines|booster|boosters|vaccination)\b/ig, '')
       .replace(/\b(covid|rsv|flu)(-19)?\s+tests?\s+(came back\s+|was\s+|were\s+|is\s+)?negative\b/ig, '').replace(/\bnegative for (covid|rsv|flu)\b/ig, '')
+      // words that only look like it (468): "ill-fitting", "ill be there" (I'll), "a cold drink / day / shower", "fever pitch",
+      // "flu season", someone outside the family ("a sick friend", "sick coworker")
+      .replace(/\bill-[a-z]+/ig, '').replace(/\bill (be|go|do|try|get|call|see|take|make|let|just|text|send|check)\b/ig, '')
+      .replace(/\b(a|the|my|her|his|got|caught|have|has) cold (drinks?|beers?|ones?|days?|nights?|mornings?|evenings?|snap|front|weather|showers?|plunge|water|glass|brew|coffee|pizza|wind|spell|start|call|feet|hands|room|house|car)\b/ig, '')
+      .replace(/\bfever pitch\b/ig, '').replace(/\bflu season\b/ig, '')
+      .replace(/\b(a|my|our|his|her) sick (friend|friends|neighbou?rs?|coworkers?|co-workers?|colleagues?|patients?)\b/ig, '')
       .replace(/\ba temperature of\b/ig, '').replace(/\bno (fever|cough|temperature)\b/ig, '').replace(/\b(not|isn['’]?t|aren['’]?t|no longer) (sick|ill|unwell)\b/ig, '');
     return UNWELL.test(rest);
   }

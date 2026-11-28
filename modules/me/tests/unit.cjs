@@ -667,6 +667,12 @@ t('419: afterNoteOf prefix lookup matches day:N / day:N@... without matching day
   assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:10', { prefix: true }), 'day ten note');
   assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:2', { prefix: true }), '', 'no note for day 2');
 });
+t('468: words that only look unwell stay a normal day; real ones still count', () => {
+  for (const t of ['ill-fitting jeans', 'she was ill-tempered today', 'ill be there at 6', 'grabbed a cold drink', 'a cold beer after work', 'the cold weather again', 'had a cold shower', 'its a cold day', 'a cold front coming', 'fever pitch at the game', 'flu season is coming', 'visiting a sick friend', 'my sick coworker went home'])
+    assert.strictEqual(K.noteUnwell(t), false, t);
+  for (const t of ['she got a cold', 'I have a cold', 'caught a cold, cold day too', 'feeling ill', 'ill again today', 'sore throat', 'fever last night', 'flu', 'we have the flu, flu season indeed', 'a sick friend visited and now I am sick too', 'I think we\'re all sick'])
+    assert.strictEqual(K.noteUnwell(t), true, t);
+});
 t('466: sickDaysIn counts unwell days in the last 7 (today included), Still unwell Yes too, nothing older', () => {
   const s = K.defaults();
   assert.strictEqual(K.sickDaysIn(s, D(29, 13), 7), 0);
