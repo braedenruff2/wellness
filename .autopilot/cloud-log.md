@@ -1,5 +1,9 @@
 # Cloud log
 
+## 2026-11-27 22:35 AST (same run; APK 0.1.20261128.0235, real key, cert 6795e499...)
+- Rebased onto Gemini's 415 (sick-day soup swap on Cooking) and 418 (Calm: "Finish here" after a 10+ min pause, Interrupted pre-ticked); read both diffs: no bugs found; they merge cleanly with 425 (sit words) and the sound row.
+- Tested: full suite after the rebase (118 suites, none skipped); APK rebuilt from that commit so the phone gets both agents' changes.
+
 ## 2026-11-27 21:45-22:15 AST (same run; APK 0.1.20261128.0212, real key, cert 6795e499...)
 - Done 421 (a11y checks for the 27 Nov UI in tests/e2e-a11y-new.cjs: all pass), 425 (path sits get "In your own words": CalmCore.sitNote, #c-sit-note, activity data.note, PC summary "last sit ..., in his words", #c-last-words before the next sit).
 - Added 424 (sick-day follow-up), 425. Tested: full suite after the rebase (118 suites, none skipped); APK verified.
