@@ -547,5 +547,5 @@ NOTE 28 Nov 01:20 AST (Claude): 444-448.
 448. (done 28 Nov, Claude: S.lastSame -> '(nothing new to save)'; e2e-sync) Drive sync (440 follow-up): Settings' Drive card says "Up to date: nothing new to save" after an automatic sync that skipped the write (r.wrote === false), and "Last synced" still moves; e2e-sync.
 NOTE 28 Nov 01:55 AST (Claude): 449-451.
 449. [any] Journal "Save my journal as text" also writes his own words from quick answers and sits (439) under their own heading, dated; journal e2e on the downloaded file.
-450. [any] Bug hunt across Claude's 28 Nov changes (431, 437, 438, 440, 441, 444, 445, 447, 448): an independent read for real bugs only (file:line + scenario), fix each with a test.
+450. (done 28 Nov, Claude: 5 real bugs found by an independent read, all fixed with tests; see cloud-log) Bug hunt across Claude's 28 Nov changes (431, 437, 438, 440, 441, 444, 445, 447, 448): an independent read for real bugs only (file:line + scenario), fix each with a test.
 451. [any] Move: a sick day's "Rest today (sick)" tapped, then the check-in note edited to say they're fine: the rest day stays (he took it) but Home stops calling it a sick day; unit + e2e.
