@@ -289,6 +289,29 @@ t('meditation path: stage, readiness after 6 sits with 3 of the last 5 steady, n
   K.setStage(s, 'open'); st = K.pathStatus(s);
   assert.strictEqual(st.next, null); assert.strictEqual(st.ready, false);
 });
+t('438: an interrupted sit that wasn\'t steady is left out of the last 5 (never counts against moving on, nor toward going back)', () => {
+  const s = K.defaults();
+  const sit = (d, focus, hind) => K.rateSit(K.record(s, 'count', 20, null, null, new Date(2026, 10, d, 19)), focus, hind);
+  sit(1, 3); sit(2, 3); sit(3, 2, ['Restless']); sit(4, 3); sit(5, 2);
+  sit(6, 1, ['Interrupted']); // the phone rang
+  let st = K.pathStatus(s);
+  assert.strictEqual(st.rated, 5); assert.strictEqual(st.steady, 3, 'the interrupted sit did not push a steady one out');
+  assert.strictEqual(st.ready, true, '6 sits, 3 of the last 5 (uninterrupted) steady');
+  assert.strictEqual(st.interrupted, 1);
+  assert.ok(/interrupted/i.test(st.tip), 'the tip still speaks to the interruption');
+  sit(7, 3, ['Interrupted']); // interrupted but steady anyway: counts
+  st = K.pathStatus(s);
+  assert.strictEqual(st.steady, 3, 'last 5 now 2, 3, 2, ... includes the steady interrupted one'); assert.strictEqual(st.interrupted, 1);
+  // a later stage: three interrupted, wandering sits don't offer "go back a step"
+  K.setStage(s, 'follow');
+  for (let d = 10; d < 13; d++) K.rateSit(K.record(s, 'follow', 20, null, null, new Date(2026, 10, d, 19)), 1, ['Interrupted', 'Restless']);
+  st = K.pathStatus(s);
+  assert.strictEqual(st.back, false); assert.strictEqual(st.rated, 0); assert.strictEqual(st.interrupted, 3);
+  K.rateSit(K.record(s, 'follow', 20, null, null, new Date(2026, 10, 13, 19)), 1, ['Restless']);
+  K.rateSit(K.record(s, 'follow', 20, null, null, new Date(2026, 10, 14, 19)), 1, ['Restless']);
+  K.rateSit(K.record(s, 'follow', 20, null, null, new Date(2026, 10, 15, 19)), 1, ['Sleepy']);
+  assert.strictEqual(K.pathStatus(s).back, true, 'uninterrupted wandering still offers it');
+});
 t('rateSit: focus 1-3 (null clears), hindrances known and unique, "Nothing much" alone', () => {
   const r = {};
   K.rateSit(r, 2, ['Sleepy', 'Sleepy', 'Bored', 'Restless']);

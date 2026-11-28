@@ -113,6 +113,19 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual((await calm()).settings.stage, 'count');
     assert.ok(!(await page.$('#c-path-back')));
   });
+  await t.step('438: interrupted, wandering sits say they don\'t count against him, and don\'t offer going back', async () => {
+    await page.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem('wl.calm.v1'));
+      c.settings.stage = 'note';
+      for (let d = 23; d <= 25; d++) c.sessions.push({ id: 'note', date: '2026-11-' + d, at: new Date(2026, 10, d, 22).toISOString(), mins: 20, focus: 1, hind: ['Interrupted'] });
+      localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+    });
+    await page.reload(); await page.waitForSelector('#c-path-status');
+    const txt = await page.textContent('#c-path-status');
+    assert.ok(/3 sits at this stage \(60 min\)\. Interrupted sits don’t count against you\./.test(txt), txt);
+    assert.ok(!(await page.$('#c-path-back')), 'no "go back a step" for interruptions');
+    await page.click('#c-stages [data-stage="count"]'); await page.waitForSelector('#c-path[open]');
+  });
   await t.step('418: a path sit paused 10+ min offers "Finish here (N min counts)" next to carrying on, with Interrupted pre-ticked', async () => {
     await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-len');
     await page.click('[data-len="15"]');

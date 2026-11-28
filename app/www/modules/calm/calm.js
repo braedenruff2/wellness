@@ -146,7 +146,7 @@
     var ps = K.pathStatus(S), cur = practice(ps.stage), nx = ps.next && practice(ps.next);
     var h = '<details class="card ui" id="c-path"' + (open ? ' open' : '') + '><summary>Meditation path' + (open ? ' · stage ' + ps.n + ' of ' + ps.of + ': ' + esc(cur.title) : ' (training the mind)') + '</summary>';
     if (open) {
-      h += '<p class="meta" id="c-path-status">' + (ps.sits ? ps.sits + ' sit' + (ps.sits === 1 ? '' : 's') + ' at this stage (' + ps.mins + ' min)' + (ps.rated ? '; attention mostly steady in ' + ps.steady + ' of the last ' + ps.rated : '') + '.' : 'No sits at this stage yet.') + '</p>';
+      h += '<p class="meta" id="c-path-status">' + (ps.sits ? ps.sits + ' sit' + (ps.sits === 1 ? '' : 's') + ' at this stage (' + ps.mins + ' min)' + (ps.rated ? '; attention mostly steady in ' + ps.steady + ' of the last ' + ps.rated : '') + '.' + (ps.interrupted ? ' Interrupted sits don’t count against you.' : '') : 'No sits at this stage yet.') + '</p>';
       if (ps.tip) h += '<p class="meta" id="c-path-tip">' + esc(ps.tip) + '</p>';
       if (ps.when) h += '<p class="meta" id="c-path-when">' + esc(ps.when.text) + '</p>';
       if (ps.late && !(window.WLMe && WLMe.flagged && WLMe.flagged('calm', 'path:late')))

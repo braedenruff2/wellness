@@ -476,14 +476,18 @@
     var all = state.sessions.filter(function (s) { return PATH.indexOf(s.id) >= 0 && (!to || !s.date || s.date <= to); })
       .sort(function (a, b) { return sessionMs(a) - sessionMs(b); });
     var sits = all.filter(function (s) { return s.id === id; });
-    var rated = sits.filter(function (s) { return s.focus >= 1 && s.focus <= 3; }).slice(-5);
+    // an interrupted sit (the phone, a child waking) that wasn't steady says nothing about his attention: it is left
+    // out of the last-5 window, so it never counts against moving on nor toward "go back a step"
+    var hit = function (s) { return Array.isArray(s.hind) && s.hind.indexOf('Interrupted') >= 0 && s.focus < 3; };
+    var rated = sits.filter(function (s) { return s.focus >= 1 && s.focus <= 3 && !hit(s); }).slice(-5);
+    var skipped = sits.filter(function (s) { return s.focus >= 1 && s.focus <= 3 && hit(s); }).length;
     var steady = rated.filter(function (s) { return s.focus === 3; }).length;
     var lastSit = all[all.length - 1] || null, hind = lastSit && Array.isArray(lastSit.hind) ? lastSit.hind : [];
     var tips = lastSit && lastSit.id === 'count' ? HIND_TIP_COUNT : {};
     var tip = null; hind.some(function (h) { return tips[h] || HIND_TIP[h] ? (tip = tips[h] || HIND_TIP[h]) : false; });
     var lost = rated.filter(function (s) { return s.focus === 1; }).length;
     return { stage: id, n: i + 1, of: PATH.length, sits: sits.length, mins: Math.round(sits.reduce(function (a, s) { return a + (s.mins || 0); }, 0)),
-      rated: rated.length, steady: steady, lost: lost, ready: i < PATH.length - 1 && sits.length >= READY_SITS && steady >= 3,
+      rated: rated.length, interrupted: skipped, steady: steady, lost: lost, ready: i < PATH.length - 1 && sits.length >= READY_SITS && steady >= 3,
       // a later stage that keeps slipping (3 of the last 5 rated "Mostly lost in thought"): offer the stage before, gently
       back: i > 0 && lost >= 3,
       next: i < PATH.length - 1 ? PATH[i + 1] : null, prev: i > 0 ? PATH[i - 1] : null, total: all.length, tip: tip, when: pathWhen(state, now), late: pathLate(state, now) };
