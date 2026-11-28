@@ -181,6 +181,16 @@
   function checkinDone(c) { return !!c && CHECKIN.every(function (q) { return c[q.k] != null; }); }
 
   /* Today's check-in, and whether it's a rough day (little sleep or a broken night). */
+  /* A check-in note that says he (or the family) is unwell: "we're all sick", "my throat hurts", "a cold", "fever".
+     Whole words; not "sick of", "cold outside" or "ill" inside other words. Teething is not him unwell (see guidance). */
+  var UNWELL = /\b(sick|ill|unwell|fever|feverish|flu|cough|coughing|throat|hoarse|vomit|vomiting|throwing up|stomach bug|congested|runny nose)\b|\b(a|the|my|her|his|got|caught|have|has) cold\b/i;
+  function noteUnwell(text) {
+    var t = String(text || '');
+    if (!UNWELL.test(t)) return false;
+    var rest = t.replace(/\bsick (of|and tired)\b/ig, '').replace(/\b(not|isn['’]?t|aren['’]?t|no longer) (sick|ill|unwell)\b/ig, '');
+    return UNWELL.test(rest);
+  }
+  function unwell(state, now) { var c = state.checkins[iso(now || new Date())]; return !!(c && c.note && noteUnwell(c.note)); }
   function rough(state, now) {
     var c = state.checkins[iso(now || new Date())];
     if (!c) return false;
@@ -316,7 +326,7 @@
     var today = state.checkins[iso(now)], week = recentCheckins(state, now, 7);
     if (rough(state, now)) out.push({ key: 'rough', part: 'home', text: 'Rough night. Keep today small: the one-minute reset, a shorter workout (or rest), and lie down when she naps if you can.' });
     // today's explicit check-in note (sick/teething or busy day) belongs near the top so multi-day trends never hide it on Home
-    if (today && today.note && /\b(sick|fever|teeth|teething)\b/i.test(today.note)) out.push({ key: 'sick', part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
+    if (today && today.note && (noteUnwell(today.note) || /\b(teeth|teething)\b/i.test(today.note))) out.push({ key: 'sick', part: 'home', text: 'A sick or teething day: everything else can wait. Comfort, fluids, rest; call 811 if you’re unsure.' });
     else if (today && today.note && /\b(family|party|parties|visit|visits|visiting|visitors|guests|busy|hosting|birthday)\b/i.test(today.note)) out.push({ key: 'busyday', part: 'home', text: 'A full day with people around: keep it small. The one-minute reset between things, and a rest day from Move is fine (it won’t count as missed).' });
     var low = week.filter(function (c) { return c.mood === 'Low'; }).length;
     if (low >= 4) out.push({ key: 'lowmood', part: 'home', text: 'Your mood has been low on ' + low + ' of the last ' + week.length + ' check-ins. That’s worth sharing with someone you trust, or your doctor; 811 can help too.' });
@@ -500,7 +510,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, afterNote: afterNote, afterNoteOf: afterNoteOf, checkinDone: checkinDone, rough: rough, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
+    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, afterNote: afterNote, afterNoteOf: afterNoteOf, checkinDone: checkinDone, rough: rough, unwell: unwell, noteUnwell: noteUnwell, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

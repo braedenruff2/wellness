@@ -47,6 +47,23 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.$('#wo-rough-rest'), null);
   });
 
+  await t.step('414: a check-in note saying he is unwell ("we\'re all sick", "throat hurts") offers "Rest today (sick)" (reason Sick), even after a good night; "sick of" doesn\'t', async () => {
+    await page.evaluate(() => { const w = JSON.parse(localStorage.getItem('wl.workout.v1')); delete w.rest['2026-11-26']; localStorage.setItem('wl.workout.v1', JSON.stringify(w)); });
+    await checkin({ sleep: '7 h+', wakes: '0', energy: 'OK', mood: 'Good', day: 'Good', note: 'I think we are all sick of this rain' });
+    await home();
+    assert.strictEqual(await page.$('#wo-rough-rest'), null, '"sick of": not unwell');
+    await checkin({ sleep: '7 h+', wakes: '0', energy: 'OK', mood: 'Good', day: 'Good', note: 'I think we’re all sick. My throat hurts' });
+    await home();
+    await page.waitForSelector('#wo-rough-rest');
+    assert.strictEqual((await page.textContent('#wo-rough-rest')).trim(), 'Rest today (sick)');
+    await page.click('#wo-rough-rest');
+    const w = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')));
+    assert.strictEqual(w.rest['2026-11-26'].why, 'Sick');
+    await page.goto(base + '#home'); await page.waitForSelector('.home-card');
+    assert.ok(/A sick or teething day/.test(await page.textContent('#view')), 'Home guidance says so too');
+    await page.evaluate(() => { const w = JSON.parse(localStorage.getItem('wl.workout.v1')); delete w.rest['2026-11-26']; localStorage.setItem('wl.workout.v1', JSON.stringify(w)); });
+  });
+
   await t.step('two such days in a week: "Your week" says 2 rest days he chose (never missed)', async () => {
     for (const [d, iso] of [[24, '2026-11-24'], [25, '2026-11-25']]) {
       await page.clock.setSystemTime(new Date(2026, 10, d, 9, 0));

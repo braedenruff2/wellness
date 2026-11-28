@@ -645,4 +645,13 @@ t('quick questions: his own words saved as the note (trimmed, 600 max), with or 
   assert.strictEqual(s.feedback[0].note, undefined, 'cleared');
   assert.strictEqual(s.feedback[0].a.felt, 'Peaceful', 'chips untouched');
 });
+t('414: a check-in note saying he is unwell (whole words; not "sick of", not cold weather, not "not sick")', () => {
+  const yes = ['I think we\'re all sick. My throat hurts', 'sore throat', 'her voice is hoarse', 'caught a cold', 'she has a cold', 'fever last night', 'flu going around', 'coughing all night', 'feeling ill', 'stomach bug', 'Throwing up since 3'];
+  const no = ['sick of this rain', 'cold outside today', 'will do it later', 'Bill came over', 'not sick anymore, just tired', 'teething', 'busy day', ''];
+  yes.forEach((x) => assert.strictEqual(K.noteUnwell(x), true, x));
+  no.forEach((x) => assert.strictEqual(K.noteUnwell(x), false, x));
+  const s = K.defaults(); K.checkinNote(s, '2026-11-27', 'we are all sick', D(27, 9));
+  assert.strictEqual(K.unwell(s, D(27, 15)), true);
+  assert.strictEqual(K.unwell(s, D(28, 9)), false, 'only today');
+});
 console.log(n + ' me unit tests passed');

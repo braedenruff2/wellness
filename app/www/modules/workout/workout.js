@@ -543,18 +543,22 @@
   }
   /* A rough night (today's check-in: very short sleep or low energy): one tap makes today a rest day ("Tired"),
      never a missed workout. Not once he has said "Not for me" to it, nor with a workout under way or a rest logged. */
+  /* Also when today's check-in note says he is unwell ("we're all sick", "sore throat"): "Rest today (sick)". */
   function roughRest(open) {
     var M = window.WLMe, c = M && M.state && M.state().checkins && M.state().checkins[W.iso(now())];
-    if (open || !c || !(c.sleep === 'Under 4 h' || c.energy === 'Low') || W.restOn(S, W.iso(now()))) return '';
-    if (M.state().feedback.some(function (f) { return f && f.part === 'workout' && f.kind === 'notfit' && f.about === 'roughrest'; })) return '';
-    return '<button class="btn" id="wo-rough-rest" data-rough-rest="1">Rest today (tired)</button>' + (M.fitLink ? ' ' + M.fitLink('workout', 'roughrest', 'Rest today (tired)') : '');
+    var sick = !!(M && M.unwell && M.unwell());
+    if (open || !c || !(sick || c.sleep === 'Under 4 h' || c.energy === 'Low') || W.restOn(S, W.iso(now()))) return '';
+    var about = sick ? 'sickrest' : 'roughrest', label = sick ? 'Rest today (sick)' : 'Rest today (tired)';
+    if (M.state().feedback.some(function (f) { return f && f.part === 'workout' && f.kind === 'notfit' && f.about === about; })) return '';
+    return '<button class="btn" id="wo-rough-rest" data-rough-rest="' + (sick ? 'Sick' : 'Tired') + '">' + label + '</button>' + (M.fitLink ? ' ' + M.fitLink('workout', about, label) : '');
   }
   function wireCard(el) {
     el.addEventListener('click', function (e) {
-      if (!e.target.closest('[data-rough-rest]')) return;
-      W.logRest(S, W.iso(now()), 'Tired', new Date()); save();
+      var b = e.target.closest('[data-rough-rest]'); if (!b) return;
+      var why = b.dataset.roughRest === 'Sick' ? 'Sick' : 'Tired';
+      W.logRest(S, W.iso(now()), why, new Date()); save();
       el.innerHTML = card(); if (WL.refreshToday) WL.refreshToday();
-      WL.toast('Rest day kept: tired. Not a missed workout.');
+      WL.toast('Rest day kept: ' + why.toLowerCase() + '. Not a missed workout.');
     });
   }
 
