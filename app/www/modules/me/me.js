@@ -291,6 +291,14 @@
     if (shownDays.length) h += '<div class="card ui"><h3>Last 7 check-ins</h3><ul class="me-g">' + shownDays.map(function (d) {
       var c = S.checkins[d]; return '<li><b>' + esc(d) + '</b> ' + esc(K.CHECKIN.map(function (q) { return c[q.k] ? q.q.split(' ')[0] + ': ' + c[q.k] : ''; }).filter(Boolean).join(' · ')) + (c.note ? ' — ' + esc(c.note) : '') + '</li>';
     }).join('') + '</ul></div>';
+    // what he wrote in his own words with quick answers (newest first): what the weekly plan reads too
+    var PN = { calm: 'Calm', workout: 'Move', faith: 'Faith', coach: 'Parenting', tagalog: 'Tagalog', todo: 'To-do', home: 'Home' };
+    var words = S.feedback.filter(function (f) { return f.kind === 'after' && f.note; })
+      .sort(function (a, b) { return (Date.parse(b.edited || b.at) || 0) - (Date.parse(a.edited || a.at) || 0); }).slice(0, 10);
+    if (words.length) h += '<div class="card ui" id="me-words"><h3>In your own words</h3><ul class="me-g">' + words.map(function (f) {
+      var chips = Object.keys(f.a || {}).map(function (k) { var v = f.a[k]; return Array.isArray(v) ? v.join(', ') : v; }).filter(Boolean).join(' · ');
+      return '<li><b>' + esc(String(f.at || '').slice(0, 10)) + '</b> ' + esc(PN[f.part] || f.part) + (chips ? ' (' + esc(chips) + ')' : '') + ': “' + esc(f.note) + '”</li>';
+    }).join('') + '</ul><p class="meta">Your weekly plan and advice read these with your answers.</p></div>';
     var n = S.feedback.filter(function (f) { return f.kind === 'after'; }).length;
     h += '<p class="meta ui">' + n + ' quick answers so far.</p>';
     return h;

@@ -79,6 +79,9 @@ const Wb = require('../../../tests/lib/web.cjs');
     const txt = await page.textContent('#view');
     assert.ok(!(await page.$('#me-trend')) || (await page.locator('#me-trend .tb').count()) === 56, 'trend: 4 rows of 14 days');
     assert.ok(/Last 7 check-ins/.test(txt) && /teething/.test(txt) && !/Marked .not for me./i.test(txt) && /PC link/.test(txt), txt);
+    const words = await page.textContent('#me-words');
+    assert.ok(/In your own words/.test(words) && /Move \(Too hard · None\): “left knee felt odd on split squats”/.test(words) && /Calm \(A lot · Interrupted\): “the baby woke halfway”/.test(words), words);
+    assert.ok(words.indexOf('left knee') < words.indexOf('the baby woke'), 'newest first');
     // typing a check-in note saves on input without needing blur/change
     await page.fill('#me-ck-note', 'long afternoon walk');
     assert.strictEqual((await me()).checkins['2026-11-21'].note, 'long afternoon walk');
