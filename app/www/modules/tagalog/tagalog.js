@@ -6,12 +6,16 @@
   var store = WL.store('wl.tagalog.v1', T.defaults);
   var S = store.load(), view = null, playTok = 0, playTimer = null;
   function save() { store.save(S); }
+  /* Today's check-in says he is unwell (WLMe.unwell): no new lesson asked of him; listening while resting instead (460). */
+  function sick() { return !!(window.WLMe && WLMe.unwell && WLMe.unwell()); }
+  function walkLabel() { return sick() ? '🎧 Listen while resting' : '🎧 Listen while walking'; }
+  function restHref(r) { return '#tagalog/l/' + r.pack.id + '/' + r.lesson.day + '/listen'; }
   function stopPlayback() {
     playTok++; clearTimeout(playTimer); playTimer = null;
     var wkBtn = $('#tl-walk');
     if (wkBtn && wkBtn.getAttribute('aria-pressed') === 'true') {
       wkBtn.setAttribute('aria-pressed', 'false');
-      wkBtn.textContent = '🎧 Listen while walking';
+      wkBtn.textContent = walkLabel();
     }
     walkScreen(false);
   }
@@ -95,6 +99,12 @@
       h += '<div class="card done-banner ui" id="tl-done-today"><h3 style="margin:.2em 0">\u2713 Lesson done for today</h3>' +
         '<p class="meta" style="margin-bottom:4px">That\u2019s enough for one day. Come back tomorrow' + (nx ? ' for lesson ' + nx.lesson.day + ' (' + esc(nx.lesson.title) + ')' : '') + '.</p>' +
         (nx ? '<div class="row"><a class="link" id="tl-ahead" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Want to go ahead? Lesson ' + nx.lesson.day + '</a></div>' : '') + '</div>';
+    } else if (nx && sick()) {
+      var r = T.restLesson(S, all);
+      h += '<div class="card ui" id="tl-sick"><h3 style="margin:.2em 0">Sick today: no lesson needed</h3>' +
+        '<p class="meta">Rest comes first, and a day off never counts against you. If you like, listen to ' + (r.done ? 'the words and conversation of a lesson you’ve done' : 'the words and conversation') + ' (lesson ' + r.lesson.day + ', ' + esc(r.lesson.title) + '): no typing, no questions.</p>' +
+        '<div class="row"><a class="btn primary" id="tl-sick-listen" href="' + restHref(r) + '">🎧 Listen while resting</a>' +
+        '<a class="link" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Lesson ' + nx.lesson.day + ' anyway</a></div></div>';
     } else if (nx) {
       h += '<div class="card"><div class="meta ui">Week ' + esc(nx.pack.week || '') + ' · ' + esc(nx.pack.title) + ' · lesson ' + nx.lesson.day + ' of ' + nx.pack.lessons.length + '</div>' +
         '<h3 style="margin:.2em 0">' + esc(nx.lesson.title) + '</h3><p class="meta ui">' + esc(nx.lesson.intro) + '</p>' +
@@ -117,7 +127,7 @@
     var h = subnav('') + '<div class="meta ui">Week ' + esc(pk.week || '') + ' · lesson ' + l.day + '</div><h1>' + esc(l.title) + '</h1><p>' + esc(l.intro) + '</p>' +
       (window.WLMe ? '<div class="ui" style="text-align:right">' + WLMe.fitLink('tagalog', 'lesson:' + pk.id + '/' + l.day, l.title + ': ' + l.intro) + '</div>' : '');
     h += '<div class="card"><h2>Words</h2><p class="meta ui">Tap 🔊 to hear each one, then say it out loud.</p>' +
-      '<div class="row ui" style="margin-bottom:6px"><button class="chip" id="tl-walk" aria-pressed="false">🎧 Listen while walking</button></div><ul class="list">' + l.words.map(function (w) {
+      '<div class="row ui" style="margin-bottom:6px"><button class="chip" id="tl-walk" aria-pressed="false">' + walkLabel() + '</button></div><ul class="list">' + l.words.map(function (w) {
       return '<li class="row"><span class="grow"><b lang="tl">' + esc(w.tl) + '</b><br><span class="meta ui">' + esc(w.en) + '</span></span>' + hear(w.tl) + '</li>';
     }).join('') + '</ul></div>';
     if (l.dialogue && l.dialogue.length) h += '<div class="card"><h2>Conversation</h2><div class="row ui"><button class="chip" id="tl-play">▶ Play all</button><button class="chip" id="tl-en" aria-pressed="true">English</button></div><ul class="list dlg">' + l.dialogue.map(function (d) {
@@ -351,7 +361,7 @@
         };
         // hands-free: each word in Tagalog, its meaning, the Tagalog again (time to repeat it), then the conversation
         var wk = $('#tl-walk'); if (wk) wk.onclick = function () {
-          if (wk.getAttribute('aria-pressed') === 'true') { wk.setAttribute('aria-pressed', 'false'); wk.textContent = '🎧 Listen while walking'; stopAudio(); return; }
+          if (wk.getAttribute('aria-pressed') === 'true') { wk.setAttribute('aria-pressed', 'false'); wk.textContent = walkLabel(); stopAudio(); return; }
           stopAudio();
           wk.setAttribute('aria-pressed', 'true'); wk.textContent = '■ Stop listening'; walkScreen(true);
           var tok = playTok, here = location.hash, rate = S.settings.slow ? 0.8 : 1, seq = [];
@@ -366,6 +376,7 @@
           })();
         };
         runExercises(f.pack, f.lesson);
+        if (parts[3] === 'listen' && wk) wk.click(); // from a sick day's "Listen while resting": straight to listening
         return;
       }
     }
@@ -435,6 +446,12 @@
         '<p class="meta ui">' + (nx ? 'Next tomorrow: Lesson ' + nx.lesson.day + ' (' + esc(nx.lesson.title) + '). ' : '') + st.known + ' words known well</p>' +
         '<div class="row ui">' + (st.due ? '<a class="btn primary" href="#tagalog/review">Review (' + st.due + ')</a>' : '') + '<a class="btn" href="#tagalog">Open</a></div>';
     }
+    if (nx && sick()) {
+      var r = T.restLesson(S, all);
+      return '<div class="meta ui">Tagalog</div><h3>Sick today: no lesson needed</h3>' +
+        '<p class="meta ui" id="tl-card-sick">Rest comes first. Listening is optional: no typing, no questions.</p>' +
+        '<div class="row ui"><a class="btn primary" id="tl-card-listen" href="' + restHref(r) + '">🎧 Listen while resting</a><a class="btn" href="#tagalog">Open</a></div>';
+    }
     return '<div class="meta ui">Tagalog</div><h3>' + (nx ? 'Lesson ' + nx.lesson.day + ': ' + esc(nx.lesson.title) : 'All lessons done') + '</h3>' +
       '<p class="meta ui">' + (st.due ? st.due + ' word' + (st.due === 1 ? '' : 's') + ' to review · ' : '') + st.known + ' words known well</p>' +
       '<div class="row ui">' + (nx ? '<a class="btn primary" href="#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day + '">Start</a>' : '') + (st.due ? '<a class="btn" href="#tagalog/review">Review</a>' : '') + '</div>';
@@ -448,6 +465,8 @@
       var d = T.iso(new Date()), lessonToday = Object.keys(S.done).some(function (k) { return T.iso(new Date(S.done[k])) === d; });
       var st = T.stats(S), nx = T.nextLesson(S, packs());
       if (lessonToday) return { label: 'Tagalog: lesson done' + (st.due ? ' (' + st.due + ' to review, optional)' : ''), done: true, href: '#tagalog' };
+      // a sick day is a rest day here too: nothing left undone on Home (listening stays one tap away)
+      if (nx && sick()) return { label: 'Tagalog: rest today (listening is optional)', done: true, href: restHref(T.restLesson(S, packs())) };
       if (nx) return { label: 'Tagalog: lesson ' + nx.lesson.day + (st.due ? ' + ' + st.due + ' to review' : ''), done: false, href: '#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day };
       return st.due ? { label: 'Tagalog: ' + st.due + ' to review', done: false, href: '#tagalog/review' } : null;
     },

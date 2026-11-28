@@ -125,7 +125,7 @@
   });
   /* Refresh Home cards that react to sick-day mode (Move, Cooking, Parenting, Calm) when "Still unwell?" or the note changes. */
   function refreshSickCards() {
-    ['workout', 'cook', 'coach', 'calm'].forEach(function (id) {
+    ['workout', 'cook', 'coach', 'calm', 'tagalog'].forEach(function (id) {
       var el = document.querySelector('.home-card[data-module="' + id + '"]');
       var m = WL.modules && WL.modules[id];
       if (!el || !m || !m.card) return;

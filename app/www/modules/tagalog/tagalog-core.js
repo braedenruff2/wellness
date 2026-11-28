@@ -337,6 +337,21 @@
     return null;
   }
 
+  /* A sick day's "Listen while resting" (460): the lesson he finished last (familiar words, nothing new to learn),
+     or the next one when none is done yet; only lessons still in the packs he has. */
+  function restLesson(state, packs) {
+    var best = null, bestT = -Infinity;
+    packs.forEach(function (p) {
+      p.lessons.forEach(function (l) {
+        var t = Date.parse(state.done[p.id + '/' + l.day]);
+        if (t > bestT) { bestT = t; best = { pack: p, lesson: l, done: true }; }
+      });
+    });
+    if (best) return best;
+    var nx = nextLesson(state, packs);
+    return nx ? { pack: nx.pack, lesson: nx.lesson, done: false } : null;
+  }
+
   /* Finishing a lesson puts its words into review (due tomorrow). */
   function finishLesson(state, pack, lesson, now) {
     now = now || new Date();
@@ -539,7 +554,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, lintPack: lintPack, norm: norm, bubbleWord: bubbleWord, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, HINT_LABEL: HINT_LABEL, slips: slips, slipSet: slipSet, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, lintPack: lintPack, norm: norm, bubbleWord: bubbleWord, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, HINT_LABEL: HINT_LABEL, slips: slips, slipSet: slipSet, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson, restLesson: restLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, againMiss: againMiss, addWords: addWords, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;

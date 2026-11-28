@@ -7,6 +7,16 @@ function t(name, f) { f(); n++; console.log('ok', name); }
 const DIR = path.join(__dirname, '..', 'packs');
 const packs = fs.readdirSync(DIR).filter((f) => /^\d{4}-\d\d-\d\d\.json$/.test(f)).sort().map((f) => JSON.parse(fs.readFileSync(path.join(DIR, f), 'utf8')));
 
+t('460 restLesson: the lesson finished last (by time, not order), else the next; none when there are no lessons', () => {
+  const P = [{ id: '2026-11-18', lessons: [{ day: 1 }, { day: 2 }, { day: 3 }] }, { id: '2026-11-25', lessons: [{ day: 1 }, { day: 2 }] }];
+  const s = { done: {} };
+  assert.deepStrictEqual([T.restLesson(s, P).pack.id, T.restLesson(s, P).lesson.day, T.restLesson(s, P).done], ['2026-11-18', 1, false], 'nothing done: the next lesson');
+  s.done = { '2026-11-18/1': '2026-11-20T10:00:00Z', '2026-11-18/3': '2026-11-24T10:00:00Z', '2026-11-18/2': '2026-11-22T10:00:00Z', '2026-11-25/1': '2026-11-23T10:00:00Z' };
+  const r = T.restLesson(s, P); assert.deepStrictEqual([r.pack.id, r.lesson.day, r.done], ['2026-11-18', 3, true]);
+  s.done['2026-11-25/1'] = 'garbage'; s.done['2026-01-01/1'] = '2026-12-01T00:00:00Z'; // a pack he no longer has, a bad time
+  assert.strictEqual(T.restLesson(s, P).lesson.day, 3);
+  assert.strictEqual(T.restLesson({ done: {} }, []), null);
+});
 t('every pack passes the format check (7 lessons, answers in options, build words match)', () => {
   assert.ok(packs.length >= 1);
   for (const p of packs) { assert.deepStrictEqual(T.checkPack(p), [], p.id); assert.strictEqual(p.lessons.length, 7, p.id); }
