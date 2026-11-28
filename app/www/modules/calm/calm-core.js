@@ -358,7 +358,16 @@
     var s = { id: practiceId, date: iso(now), at: now.toISOString(), mins: m,
       before: before >= 1 && before <= 5 ? before : null, after: after >= 1 && after <= 5 ? after : null };
     state.sessions.push(s);
+    trimNotes(state, MAX_SIT_NOTES - 1); // room for this sit's own words
     return s;
+  }
+  /* His words after sits are kept on the newest 200 sits that have them (about 120 KB at most); older sits keep their
+     ratings. Without this a sit a day with a full note grows the store by ~220 KB a year, without end. */
+  var MAX_SIT_NOTES = 200;
+  function trimNotes(state, keep) {
+    var n = 0, ss = (state && state.sessions) || [], max = keep >= 0 ? keep : MAX_SIT_NOTES;
+    for (var i = ss.length - 1; i >= 0; i--) if (ss[i] && ss[i].note) { n++; if (n > max) delete ss[i].note; }
+    return state;
   }
 
   function sessionMs(s) {
@@ -576,6 +585,7 @@
       if (PATH.indexOf(x.id) >= 0 && typeof x.note === 'string') sitNote(rec, x.note);
       d.sessions.push(rec);
     });
+    trimNotes(d);
     var st = s.settings || {};
     if (typeof st.voice === 'boolean') d.settings.voice = st.voice;
     if (typeof st.tick === 'boolean') d.settings.tick = st.tick;
@@ -611,7 +621,7 @@
     });
   }
 
-  var api = { pathLate: pathLate, quietScript: quietScript, pathWhen: pathWhen, INTERVALS: INTERVALS, NOISE_KINDS: NOISE_KINDS, NOISE_VOLS: NOISE_VOLS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, sitNote: sitNote, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
+  var api = { pathLate: pathLate, quietScript: quietScript, pathWhen: pathWhen, INTERVALS: INTERVALS, NOISE_KINDS: NOISE_KINDS, NOISE_VOLS: NOISE_VOLS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, sitNote: sitNote, trimNotes: trimNotes, MAX_SIT_NOTES: MAX_SIT_NOTES, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);

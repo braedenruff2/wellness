@@ -17,6 +17,15 @@ const z365 = sizes(s365);
 console.log('365 days total', total(z365), 'calm', z365['wl.calm.v1']);
 assert.ok(z365['wl.calm.v1'] < 400000, 'a year of Calm (3 a day incl. a rated sit) stays small: ' + z365['wl.calm.v1']);
 assert.ok(total(z365) < 4000000, 'a year of everything stays under the quota: ' + total(z365));
+// his own words (quick answers, sits, check-in notes, 600 characters each, every day) and the autopilot's replies stay bounded
+assert.ok(s365['wl.calm.v1'].sessions.filter((x) => x.note).length <= 200, 'sit notes: only the newest 200 kept');
+assert.ok(s365['wl.calm.v1'].sessions.slice(-200).every((x) => x.id !== 'count' || x.note), 'the newest sits keep theirs');
+assert.ok(Object.keys(s365['wl.me.v1'].checkins).length <= 120, 'check-ins (with notes) capped at 120 days');
+assert.ok(s365['wl.notes.v1'].notes.every((x) => !x.reply || x.reply.length <= 300), 'replies at most 300 characters');
+const y2 = simulate(730), s730 = sizes(y2);
+for (const k of ['wl.me.v1', 'wl.notes.v1']) assert.ok(s730[k] < 1.25 * Math.max(z365[k], 1) + 50000, k + ': a second year adds little (bounded): ' + z365[k] + ' -> ' + s730[k]);
+const sitWords = (st) => st.sessions.reduce((a, x) => a + (x.note ? x.note.length : 0), 0);
+assert.ok(sitWords(y2['wl.calm.v1']) <= 200 * 600, 'sit notes after two years: at most 200 x 600 characters: ' + sitWords(y2['wl.calm.v1']));
 // the backup / Drive sync file has the same stores as JSON strings: a year must stay well under what the phone reads
 // back from Drive (Sync.MAX_READ_BYTES, 16 MB) and quick to write
 const backup = JSON.stringify({ app: 'wellness', exported: new Date().toISOString(), stores: Object.fromEntries(Object.entries(s365).map(([k, v]) => [k, JSON.stringify(v)])), requests: [], acked: [] });

@@ -30,11 +30,14 @@ function simulate(days) {
     CO.grade(co, words(70), { score: 7, verdict: words(30), good: [words(25), words(25), words(25)], improve: [words(25), words(25)], better: words(100), why: words(60), practice: words(40) }, at(11, 20));
     FC.addEntry(fc, 'journal', words(130), null, at(21));
     CA.record(ca, 'body', 8, 3, 2, at(20)); CA.record(ca, 'sigh', 1, 4, 3, at(15));
-    CA.rateSit(CA.record(ca, 'count', 20, null, null, at(6)), 1 + (d % 3), ['Sleepy', 'Restless']); // a meditation-path sit every morning
+    const sit = CA.rateSit(CA.record(ca, 'count', 20, null, null, at(6)), 1 + (d % 3), ['Sleepy', 'Restless']); // a meditation-path sit every morning
+    CA.sitNote(sit, 'sit ' + d + ' ' + words(120)); // and his own words after it, every day, at the 600-character limit
     if (d % 2 === 0) { for (let i = 0; i < 5; i++) for (let n = 0; n < 3; n++) WK.logSet(wk, 'A', i, 12, 10, at(13, i * 5 + n)); WK.endSession(wk, at(14)); }
     else WK.logRest(wk, WK.iso(at(9)), 'Busy day', at(9));
-    ['calm', 'faith', 'tagalog', 'workout'].forEach((p) => { const q = ME.questions(p)[0]; ME.answer(me, p, p + '@' + d, q.k, q.opts[1], at(22)); });
+    ['calm', 'faith', 'tagalog', 'workout'].forEach((p) => { const q = ME.questions(p)[0]; ME.answer(me, p, p + '@' + d, q.k, q.opts[1], at(22)); ME.afterNote(me, p, p + '@' + d, p + ' ' + d + ' ' + words(120), at(22, 1)); });
     ME.CHECKIN.forEach((q) => ME.checkin(me, WK.iso(at(8)), q.k, q.opts[1], at(8)));
+    ME.checkinNote(me, WK.iso(at(8)), 'day ' + d + ' ' + words(120), at(8, 5)); // a full check-in note every day
+    if (d % 5 === 1) ME.setStillUnwell(me, WK.iso(at(8)), 'Yes', at(8, 6));
     // to-dos: a few one-offs a day (most ticked), the weekly bins ticked each Thursday, rent each month
     for (let i = 0; i < 3; i++) { const x = TD.add(td, 'errand ' + d + '-' + i + ' ' + words(4), null, at(7, i)); if (i < 2) TD.complete(td, x.id, at(17, i)); }
     if (at(19).getDay() === 4) TD.complete(td, bins.id, at(19, 30));
@@ -56,6 +59,7 @@ function simulate(days) {
       CK.setTargets(ck, 'me', { kcal: 2300, pro: 130 });
     }
     if (d % 3 === 0) NT.add(nt, 'note ' + d + ' ' + words(30), '#home', 'Idea', at(22, 10));
+    if (d % 3 === 1) NT.markRead(nt, nt.notes.map((x) => x.id), at(23).toISOString(), Object.fromEntries(nt.notes.map((x) => [x.id, 'reply to ' + x.id + ' ' + words(60)]))); // a cloud run reads and answers every note (300 characters each)
     if (d % 7 === 0) {
       WS.addPrinciple(ws, { text: 'Principle ' + d + ' ' + words(8), context: words(10), tag: WS.TAGS[d % WS.TAGS.length] }, at(20, 0));
       const dec = WS.addDecision(ws, { choice: 'Decision ' + d, why: words(6), expect: words(8), reviewDays: 30 }, at(20, 5));
