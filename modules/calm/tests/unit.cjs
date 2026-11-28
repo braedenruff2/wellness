@@ -510,4 +510,15 @@ t('background sounds loop with no seam and no beat (his note: the brown noise ha
   assert.deepStrictEqual(Array.from(a), Array.from(b));
   assert.deepStrictEqual(Object.keys(N.LABELS), N.KINDS);
 });
+t('422: a phone that can\'t make the long loop gets a shorter one, never an error; no copyToChannel is fine', () => {
+  const N = require('../../../app/www/lib/noise.js');
+  let asked = [];
+  const fake = { sampleRate: 8000, createBuffer: (ch, len, rate) => { asked.push(len); if (len > 8000 * 15) throw new Error('out of memory'); const d = new Float32Array(len); return { length: len, getChannelData: () => d }; } };
+  const b = N.makeBuffer(fake, 'ocean');
+  assert.strictEqual(b.length, 8000 * 11, 'fell back to 11 s');
+  assert.strictEqual(asked.length, 2);
+  assert.ok(b.getChannelData(0).some((v) => v !== 0), 'filled without copyToChannel');
+  const again = N.makeBuffer(fake, 'ocean');
+  assert.strictEqual(again, b, 'kept for next time');
+});
 console.log(n + ' calm unit tests passed');

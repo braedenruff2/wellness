@@ -89,8 +89,12 @@
   function makeBuffer(c, kind) {
     var rate = c.sampleRate || 44100;
     for (var i = 0; i < made.length; i++) if (made[i].kind === kind && made[i].c === c) return made[i].buf;
-    var data = samples(kind, rate);
-    var buf = c.createBuffer(1, data.length, rate);
+    var data, buf;
+    try {
+      data = samples(kind, rate); buf = c.createBuffer(1, data.length, rate);
+    } catch (e) { // short of memory on an old phone: a shorter loop (still seamless) rather than no sound
+      data = samples(kind, rate, 11); buf = c.createBuffer(1, data.length, rate);
+    }
     if (buf.copyToChannel) buf.copyToChannel(data, 0); else buf.getChannelData(0).set(data);
     made.push({ kind: kind, c: c, buf: buf }); if (made.length > 3) made.shift();
     return buf;
@@ -183,7 +187,7 @@
   }
   if (root.document && root.document.addEventListener) root.document.addEventListener('visibilitychange', function () { if (!root.document.hidden) wake(); });
 
-  var api = { KINDS: KINDS, wake: wake, context: function () { return active ? active.ctx : null; }, LABELS: LABELS, samples: samples, preview: preview, setVolume: setVolume, volume: function () { return vol; }, VOLS: VOLS, previewing: function () { return !!previewT; }, start: start, stop: stop, duck: duck, current: function () { return curKind; } };
+  var api = { KINDS: KINDS, wake: wake, makeBuffer: makeBuffer, context: function () { return active ? active.ctx : null; }, LABELS: LABELS, samples: samples, preview: preview, setVolume: setVolume, volume: function () { return vol; }, VOLS: VOLS, previewing: function () { return !!previewT; }, start: start, stop: stop, duck: duck, current: function () { return curKind; } };
   root.WLNoise = api;
   if (root.WL) root.WL.noise = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
