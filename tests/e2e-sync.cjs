@@ -147,12 +147,14 @@ const FAKE_DRIVE = `
     await page.waitForTimeout(100);
     assert.strictEqual(await page.evaluate(() => window.__drive.writes), 2, 'unchanged: no write');
     assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.sync.v1')).lastAuto), 'it still counts as a sync attempt');
+    await page.waitForFunction(() => /nothing new to save/.test((document.querySelector('#wl-sync-when') || {}).textContent || ''), null, { timeout: 2000 });
 
     // 31 min later after something changed (a to-do added): the auto-sync writes
     await page.evaluate(() => { const k = 'wl.todo.v1', v = JSON.parse(localStorage.getItem(k) || '{"tasks":[]}'); v.tasks = v.tasks || []; v.tasks.push({ id: 'x440', text: 'changed', created: new Date().toISOString() }); localStorage.setItem(k, JSON.stringify(v)); });
     await page.clock.fastForward(31 * 60 * 1000);
     await page.evaluate(() => window.FCSaveNow());
     await page.waitForFunction(() => window.__drive.writes === 3);
+    await page.waitForFunction(() => !/nothing new/.test((document.querySelector('#wl-sync-when') || {}).textContent || ''), null, { timeout: 2000 });
 
     // the file changed in Drive (another device, a restore): the next auto-sync writes even with nothing new here
     await page.evaluate(() => { window.__drive.content = window.__drive.content.replace('"requests"', '"requests" '); });

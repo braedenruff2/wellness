@@ -228,6 +228,7 @@
     if (typeof raw.lastAuto === 'string' && !isNaN(Date.parse(raw.lastAuto))) d.lastAuto = raw.lastAuto;
     if (typeof raw.lastError === 'string' && raw.lastError) d.lastError = raw.lastError.slice(0, 300);
     if (typeof raw.answersError === 'string' && raw.answersError) d.answersError = raw.answersError.slice(0, 300);
+    if (raw.lastSame === true) d.lastSame = true;
     return d;
   }
 

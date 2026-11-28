@@ -88,6 +88,7 @@
       lastSync: last,
       error: S.lastError || ns.error || '',
       busy: !!inFlight || !!ns.busy,
+      same: !!S.lastSame,
       pendingRequests: pendingRequestCount(),
       pendingAnswers: Object.keys(S.answers).length,
       answersSupported: !!(x && x.syncPickAnswers && x.syncReadAnswers),
@@ -186,7 +187,7 @@
     }).then(function () {
       if (myGen !== gen) { inFlight = null; emitState(); return { ok: false, skipped: true }; }
       var doneAt = new Date().toISOString();
-      S.lastSync = doneAt; S.lastAuto = doneAt; S.lastError = null;
+      S.lastSync = doneAt; S.lastAuto = doneAt; S.lastError = null; S.lastSame = !wrote; // Drive already had it all
       store.save(S);
       inFlight = null;
       emitState();
