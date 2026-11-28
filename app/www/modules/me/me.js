@@ -410,7 +410,7 @@
   document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(autoPlan, 5000); });
 
   window.WLMe = {
-    hiddenHtml: hiddenHtml, askHtml: askHtml, answers: function (part, about) { return K.answers(S, part, about); }, afterNoteOf: function (part, about, opts) { return K.afterNoteOf(S, part, about, opts); }, fitLink: fitLink, flagged: function (part, about, sinceMs, nowMs) { return K.flagged(S, part, about, sinceMs, nowMs); }, planLine: planLine, rough: function () { return K.rough(S, new Date()); }, unwell: function () { return K.unwell(S, new Date()); },
+    hiddenHtml: hiddenHtml, askHtml: askHtml, answers: function (part, about) { return K.answers(S, part, about); }, afterNoteOf: function (part, about, opts) { return K.afterNoteOf(S, part, about, opts); }, fitLink: fitLink, flagged: function (part, about, sinceMs, nowMs) { return K.flagged(S, part, about, sinceMs, nowMs); }, planLine: planLine, rough: function () { return K.rough(S, new Date()); }, unwell: function () { return K.unwell(S, new Date()); }, unwellOn: function (day) { return K.unwellOn(S, day); },
     calmLikes: function () { return K.calmLikes(S, new Date()); }, planFor: function (part) { return K.planFor(S, part, new Date()); }, planFlagged: function (part) { return K.planFlagged(S, part); }, calmHelped: function () { return K.calmHelped(S); }, painNote: function () { return K.painNote(S, new Date()); }, state: function () { return S; }
   };
 

@@ -532,7 +532,7 @@
     if (!document.hidden && rest && $('#restbar')) showRest();
   });
 
-  function meOpts() { return window.WLMe && WLMe.unwell ? { unwell: !!WLMe.unwell() } : null; }
+  function meOpts() { return window.WLMe && WLMe.unwell ? { unwell: !!WLMe.unwell(), unwellOn: WLMe.unwellOn } : null; }
   function card() {
     var open = W.openSession(S, now()), fin = !open && W.finishedToday(S, now()), day = open ? open.day : W.nextDay(S, now()), plan = W.PROGRAM[day];
     if (fin) {

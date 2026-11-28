@@ -541,6 +541,8 @@
       for (var sd = 1; sd <= 7; sd++) {
         var sIso = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - sd));
         if (lastDate && lastDate >= sIso) break; // trained since
+        // a sick rest tapped from Home whose day's note was later changed to fine (451) wasn't a sick day after all
+        if (restOn(state, sIso) === 'Sick' && state.rest[sIso].fromCheckin && opts && opts.unwellOn && !opts.unwellOn(sIso)) continue;
         if (restOn(state, sIso) === 'Sick') return 'First workout after being sick: go lighter today (two sets of each, same weights) and stop if it feels wrong. Rest another day if you’re not really better.';
       }
     }

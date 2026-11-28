@@ -241,6 +241,7 @@
     return !!(c.note && noteUnwell(c.note));
   }
   function unwell(state, now) { return dayUnwell(state.checkins[iso(now || new Date())]); }
+  function unwellOn(state, day) { return dayUnwell(state.checkins[day]); }
   /* Which day of feeling unwell today is (462): 0 when today isn't, 1 on the first day, 2 after "Still unwell? Yes" the
      next day, and so on. A day with no check-in between two unwell days counts (he just didn't open the app). */
   function sickDayNo(state, now) {
@@ -590,7 +591,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, setStillUnwell: setStillUnwell, afterNote: afterNote, afterNoteOf: afterNoteOf, afterNoteByPrefix: afterNoteByPrefix, checkinDone: checkinDone, rough: rough, unwell: unwell, sickDayNo: sickDayNo, sickDaysIn: sickDaysIn, askStillUnwell: askStillUnwell, noteUnwell: noteUnwell, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
+    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, setStillUnwell: setStillUnwell, afterNote: afterNote, afterNoteOf: afterNoteOf, afterNoteByPrefix: afterNoteByPrefix, checkinDone: checkinDone, rough: rough, unwell: unwell, unwellOn: unwellOn, sickDayNo: sickDayNo, sickDaysIn: sickDaysIn, askStillUnwell: askStillUnwell, noteUnwell: noteUnwell, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -255,6 +255,12 @@ t('465: the first workout after a sick day goes lighter, once; not while still u
   const t2 = W.defaults(); W.logRest(t2, '2026-11-20', 'Sick', at(20, 9));
   assert.ok(!back.test(W.coach(t2, at(28, 9))), 'a sick day 8 days ago: no');
   assert.ok(back.test(W.coach(t2, at(27, 9))), '7 days: yes');
+  // 470: a sick rest from Home's check-in whose note was later edited to fine: not a sick day after all
+  const t3 = W.defaults(); W.logRest(t3, '2026-11-26', 'Sick', at(26, 9), { fromCheckin: true });
+  assert.ok(back.test(W.coach(t3, at(27, 9), { unwell: false, unwellOn: () => true })), 'still a sick day in the check-in');
+  assert.ok(!back.test(W.coach(t3, at(27, 9), { unwell: false, unwellOn: () => false })), 'the note said fine after all');
+  W.logRest(t3, '2026-11-25', 'Sick', at(25, 9)); // chosen on Move by hand: always counts
+  assert.ok(back.test(W.coach(t3, at(27, 9), { unwell: false, unwellOn: () => false })));
 });
 t('rest days with a reason: done for the day, kind coach line, not a workout, undo, validate', () => {
   const s = W.defaults();

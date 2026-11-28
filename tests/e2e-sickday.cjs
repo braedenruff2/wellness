@@ -176,9 +176,16 @@ const W = require('./lib/web.cjs');
     assert.ok(savedRest && savedRest.why === 'Sick' && savedRest.fromCheckin === true, 'rest day stayed saved: ' + JSON.stringify(savedRest));
     assert.deepStrictEqual(t.errors, []);
   });
-  await t.step('465: two days after the sick rest day, no sick note: Move says go lighter for the first workout back', async () => {
+  await t.step('465/470: the day after a sick rest day, no sick note: Move says go lighter for the first workout back', async () => {
     await page.clock.setSystemTime(new Date(2026, 11, 3, 9, 0));
     await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('.home-card[data-module="workout"]');
+    await page.evaluate(() => { const w = JSON.parse(localStorage.getItem('wl.workout.v1')); delete w.rest['2026-11-27']; delete w.rest['2026-11-28']; localStorage.setItem('wl.workout.v1', JSON.stringify(w)); }); // only 1 Dec's rest left in the week
+    await page.reload(); await page.waitForSelector('.home-card[data-module="workout"]');
+    // 470: 1 Dec's sick rest was tapped from a note later changed to fine: not a sick day after all
+    assert.ok(!/First workout after being sick/.test(await page.textContent('.home-card[data-module="workout"]')));
+    // 2 Dec's note said sick and he rested from Home: the first workout back goes lighter
+    await page.evaluate(() => { const w = JSON.parse(localStorage.getItem('wl.workout.v1')); w.rest['2026-12-02'] = { why: 'Sick', at: '2026-12-02T14:00:00.000Z', fromCheckin: true }; localStorage.setItem('wl.workout.v1', JSON.stringify(w)); });
+    await page.reload(); await page.waitForSelector('.home-card[data-module="workout"]');
     const mv = await page.textContent('.home-card[data-module="workout"]');
     assert.ok(/First workout after being sick: go lighter/.test(mv), mv);
     await page.goto(base + '#workout'); await page.waitForSelector('#view h1');
