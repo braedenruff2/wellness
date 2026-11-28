@@ -316,6 +316,27 @@ const W = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#journal/journal'); await page.waitForSelector('#new-entry');
     assert.strictEqual(await page.$('#j-words'), null, 'only on All');
   });
+  await t.step('452: #j-words shows 30 newest with a "Show all (N)" button when > 30 own-words notes exist', async () => {
+    await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[],"checkins":{}}');
+      me.feedback = me.feedback || [];
+      for (let i = 1; i <= 34; i++) {
+        const ts = new Date(2026, 9, 1 + i, 12, 0).toISOString();
+        me.feedback.push({ id: 'faith/after/day:w' + i, at: ts, part: 'faith', kind: 'after', about: 'day:w' + i, a: { felt: 'Peaceful' }, note: 'Own word note #' + i });
+      }
+      localStorage.setItem('wl.me.v1', JSON.stringify(me));
+    });
+    await page.goto(base + '#journal'); await page.reload(); await page.waitForSelector('#j-words');
+    assert.ok(/\(36\)/.test(await page.textContent('#j-words summary')), await page.textContent('#j-words summary'));
+    await page.click('#j-words summary');
+    await page.waitForSelector('#j-words-all');
+    assert.strictEqual(await page.locator('#j-words-list > li').count(), 30);
+    assert.strictEqual((await page.textContent('#j-words-all')).trim(), 'Show all (36)');
+    await page.click('#j-words-all');
+    assert.strictEqual(await page.$('#j-words-all'), null, 'Show all button removed once expanded');
+    assert.strictEqual(await page.locator('#j-words-list > li').count(), 36);
+    assert.ok((await page.textContent('#j-words-list')).includes('Own word note #1'), 'oldest note revealed');
+  });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#journal', '#journal/journal', '#journal/awe', '#journal/gratitude', '#journal/wisdom/zoom', '#journal/wisdom/decisions', '#journal/wisdom/principles']);
     assert.deepStrictEqual(t.errors, []);

@@ -113,15 +113,17 @@
     });
     return out.sort(function (a, b) { return (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0); });
   }
+  function ownWordLi(x) {
+    var d = Date.parse(x.at), when = isNaN(d) ? '' : new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return '<li><span class="meta">' + esc(when) + (when ? ' · ' : '') + esc(x.where) + '</span><p style="margin:.2em 0 0">' + esc(x.text) + '</p></li>';
+  }
   function ownWordsHtml() {
     var w = ownWords(); if (!w.length) return '';
     var show = w.slice(0, 30);
     return '<details class="card ui" id="j-words"><summary>Your words with quick answers (' + w.length + ')</summary>' +
       '<p class="meta">What you wrote in the “In your own words” boxes, newest first. Edit them where you wrote them.</p><ul class="list" id="j-words-list">' +
-      show.map(function (x) {
-        var d = Date.parse(x.at), when = isNaN(d) ? '' : new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        return '<li><span class="meta">' + esc(when) + (when ? ' · ' : '') + esc(x.where) + '</span><p style="margin:.2em 0 0">' + esc(x.text) + '</p></li>';
-      }).join('') + '</ul>' + (w.length > show.length ? '<p class="meta">The newest ' + show.length + ' are shown.</p>' : '') + '</details>';
+      show.map(ownWordLi).join('') + '</ul>' +
+      (w.length > show.length ? '<button class="link" type="button" id="j-words-all">Show all (' + w.length + ')</button>' : '') + '</details>';
   }
 
   function screen(tab, sub) {
@@ -397,6 +399,20 @@
       dismissLookBack(lbd.dataset.id);
       var box = $('#j-lookback', view); if (box) box.remove();
       var ta = $('#new-entry', view); if (ta && ta.focus) try { ta.focus(); } catch (e) {}
+    };
+    var jwa = $('#j-words-all', view);
+    if (jwa) jwa.onclick = function () {
+      var list = $('#j-words-list', view);
+      if (list) {
+        var rest = ownWords().slice(30);
+        if (rest.length) {
+          var prevLen = list.children.length;
+          list.insertAdjacentHTML('beforeend', rest.map(ownWordLi).join(''));
+          var first = list.children[prevLen];
+          if (first) { first.tabIndex = -1; try { first.focus(); } catch (e) {} }
+        }
+      }
+      jwa.remove();
     };
     var ex = $('#j-export-text', view);
     if (ex) ex.onclick = function () {

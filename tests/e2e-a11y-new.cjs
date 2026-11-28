@@ -1090,6 +1090,28 @@ const W = require('./lib/web.cjs');
       assert.ok((await ov()) <= 2, '#calm/s/count 426 overflow ' + (await ov()));
       await page.click('#c-end'); await page.waitForSelector('#c-today');
       await page.evaluate(() => window.WLNoise && WLNoise.stop());
+      // Task 452: Journal #j-words (summary, list, Show all) at 320 px / 1.3x and light/dark/night contrast
+      await page.evaluate(() => {
+        const m = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[],"checkins":{}}');
+        m.feedback = m.feedback || [];
+        for (let i = 1; i <= 32; i++) {
+          m.feedback.push({
+            id: 'faith/after/day:jw' + i, at: new Date(2026, 9, 1 + i, 12, 0).toISOString(),
+            part: 'faith', kind: 'after', about: 'day:jw' + i, a: { felt: 'Peaceful' },
+            note: 'Quiet own-words reflection number ' + i
+          });
+        }
+        localStorage.setItem('wl.me.v1', JSON.stringify(m));
+      });
+      await page.goto(base + '#journal'); await page.reload(); await page.waitForSelector('#j-words');
+      await page.click('#j-words summary'); await page.waitForSelector('#j-words-all');
+      assert.deepStrictEqual(await small('#j-words summary, #j-words-all'), [], '#j-words targets');
+      assert.deepStrictEqual(await bad('#j-words'), [], theme + ' #j-words');
+      assert.ok((await ov()) <= 2, '#journal #j-words overflow ' + (await ov()));
+      await page.click('#j-words-all');
+      assert.strictEqual(await page.$('#j-words-all'), null);
+      assert.deepStrictEqual(await bad('#j-words'), [], theme + ' #j-words expanded');
+      assert.ok((await ov()) <= 2, '#journal #j-words expanded overflow ' + (await ov()));
     });
   }
   await page.setViewportSize({ width: 360, height: 760 });
