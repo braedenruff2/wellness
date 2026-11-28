@@ -646,6 +646,21 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok((await firstLi.textContent()).includes('~430 kcal, 15 g pro'));
   });
 
+  await t.step('a meal logged with the food picker has no "Use auto-estimate" (it would throw the picked amounts away) (407)', async () => {
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.cook.v1'));
+      s.logs.unshift({ id: 'pick-1', date: '2026-11-26', at: new Date().toISOString(), who: 'me', meal: 'snack', text: 'Banana, Yogurt', portion: 'Regular',
+        nutri: { kcal: 250, pro: 10, carb: 45, fat: 3, fib: 3, iron: 0.3, ca: 200, vitc: 10, k: 600 }, nutriSource: 'picker' });
+      localStorage.setItem('wl.cook.v1', JSON.stringify(s));
+    });
+    await page.goto(base + '#home'); await page.goto(base + '#cook/log');
+    await page.reload();
+    await page.waitForSelector('[data-log-edit="pick-1"]');
+    await page.click('[data-log-edit="pick-1"]');
+    await page.waitForSelector('.ck-ed-save');
+    assert.strictEqual(await page.locator('.ck-ed-auto').count(), 0);
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('cook e2e');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

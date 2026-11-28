@@ -634,7 +634,7 @@
             '<input type="number" min="0" class="ck-ed-fat" value="' + esc(cur.fat || '') + '" placeholder="Fat g" aria-label="Fat grams" style="flex:1 1 65px;min-width:0;width:auto;box-sizing:border-box">' +
             '</div><div class="row" style="margin-top:6px">' +
             '<button class="primary ck-ed-save" type="button">Save numbers</button>' +
-            (log.nutri ? '<button class="link ck-ed-auto" type="button">Use auto-estimate</button>' : '') +
+            (log.nutri && (log.nutriSource === 'ai' || log.nutriSource === 'manual') ? '<button class="link ck-ed-auto" type="button">Use auto-estimate</button>' : '') + // picked foods' amounts are never thrown away
             '<button class="link ck-ed-cancel" type="button">Cancel</button></div>';
           var kc = ed.querySelector('.ck-ed-kcal'); if (kc) kc.focus();
           ed.querySelector('.ck-ed-save').onclick = function () {
