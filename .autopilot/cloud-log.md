@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-27 21:05-21:35 AST (same run; APK 0.1.20261128.0130, real key, cert 6795e499...)
+- Done 410 (tap a Calm sound before a sit: 4 s of it; Begin keeps it; leaving stops it), 411 (Soft / Medium / Louder, live), 412 (About you: "In your own words" card), 413 (summaries mark quick-answer text as `in his words: "..."`; weekly-plan + advice prompts weigh it; test_pc), 414 (me-core noteUnwell: sick / sore throat / a cold / fever ..., not "sick of", "cold outside", "not sick"; the sick guidance uses it; Move's Home card offers "Rest today (sick)").
+- Added 417-423. Tested: full suite after the rebase (118 suites, none skipped); APK verified.
+- Check on the phone: Calm sit screen: tap a sound to hear it, volume chips; Home Move card on a day whose check-in note says sick.
+
 ## 2026-11-27 20:35-21:05 AST (same run; APK 0.1.20261128.0100, real key, cert 6795e499...)
 - Done 401 (e2e: removing a meal logged from the plan brings "Log to food log" back and today's numbers follow; no bug), 402 ("Now doing" names every ticked harder step, "3-sec lowering on every rep + feet on a chair"; WorkoutCore.doingText; unit + e2e), 416 (a cloud run can reply to a note for the autopilot: ack-notes <sync> <work> <replies.json>; the phone shows "Autopilot: ..." under the note, escaped, 300 chars; cloud-answer test + e2e-notes-ack).
 - The answers sheet's notes-ack row now carries replies to the owner's two notes (shown once the phone has this APK).
