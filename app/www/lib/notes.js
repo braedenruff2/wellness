@@ -46,7 +46,10 @@
         text: x.text.trim().slice(0, 1200)
       });
       if (typeof x.read === 'string' && !isNaN(Date.parse(x.read))) d.notes[d.notes.length - 1].read = new Date(x.read).toISOString();
-      if (typeof x.reply === 'string' && x.reply.trim()) d.notes[d.notes.length - 1].reply = x.reply.trim().slice(0, 300);
+      if (typeof x.reply === 'string' && x.reply.trim()) {
+        d.notes[d.notes.length - 1].reply = x.reply.trim().slice(0, 300);
+        if (typeof x.replySeen === 'string' && !isNaN(Date.parse(x.replySeen))) d.notes[d.notes.length - 1].replySeen = new Date(x.replySeen).toISOString();
+      }
     });
     return d;
   }
@@ -62,14 +65,21 @@
       var changed = false;
       if (!x.read) { x.read = when; changed = true; }
       var r = typeof rp[x.id] === 'string' ? rp[x.id].replace(/\s+/g, ' ').trim().slice(0, 300) : '';
-      if (r && r !== x.reply) { x.reply = r; changed = true; }
+      if (r && r !== x.reply) { x.reply = r; delete x.replySeen; changed = true; }
       if (changed) n++;
     });
     return n;
   }
   function unread(state) { return (state && Array.isArray(state.notes) ? state.notes : []).filter(function (x) { return x && !x.read; }); }
+  function unseenReplies(state) { return (state && Array.isArray(state.notes) ? state.notes : []).filter(function (x) { return !!(x && x.reply && !x.replySeen); }); }
+  function markRepliesSeen(state, now) {
+    if (!state || !Array.isArray(state.notes)) return 0;
+    var when = (now || new Date()).toISOString(), n = 0;
+    state.notes.forEach(function (x) { if (x && x.reply && !x.replySeen) { x.replySeen = when; n++; } });
+    return n;
+  }
 
-  var api = { KEY: KEY, TAGS: TAGS, defaults: defaults, add: add, remove: remove, validate: validate, markRead: markRead, unread: unread };
+  var api = { KEY: KEY, TAGS: TAGS, defaults: defaults, add: add, remove: remove, validate: validate, markRead: markRead, unread: unread, unseenReplies: unseenReplies, markRepliesSeen: markRepliesSeen };
   root.WLNotes = api;
   if (typeof module !== 'undefined' && module.exports) { module.exports = api; return; }
 
@@ -96,7 +106,9 @@
 
   function listHtml() {
     if (!S.notes.length) return '';
-    return '<details id="wl-note-list" style="margin-top:10px"><summary class="meta">Saved notes for autopilot (' + S.notes.length + ')</summary><ul class="list">' +
+    var ur = unseenReplies(S).length;
+    var badge = ur ? ' <span class="wl-reply-badge">' + ur + (ur === 1 ? ' reply' : ' replies') + '</span>' : '';
+    return '<details id="wl-note-list" style="margin-top:10px"><summary class="meta">Saved notes for autopilot (' + S.notes.length + ')' + badge + '</summary><ul class="list">' +
       S.notes.slice(0, 30).map(function (n) {
         var d = !isNaN(Date.parse(n.at)) ? new Date(n.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
         var rd = n.read && !isNaN(Date.parse(n.read)) ? new Date(n.read).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
@@ -146,6 +158,15 @@
     if (window.WL && WL.trapTab) WL.trapTab(wrap);
 
     function wireList() {
+      var det = $('#wl-note-list', wrap);
+      if (det) det.addEventListener('toggle', function () {
+        if (!det.open) return;
+        if (markRepliesSeen(S)) {
+          save();
+          var b = det.querySelector('summary .wl-reply-badge');
+          if (b) b.remove();
+        }
+      });
       $$('.wl-note-del', wrap).forEach(function (b) {
         b.onclick = function () {
           // a note the autopilot hasn't read yet: a second tap deletes it (no system dialog)
@@ -231,6 +252,7 @@
   WL.notes = {
     open: open, close: close, reload: reload, onChange: onChange,
     state: function () { return S; },
+    unseenReplyCount: function () { return unseenReplies(S).length; },
     validateRaw: function (raw) { try { var v = validate(JSON.parse(raw)); return v ? JSON.stringify(v) : null; } catch (e) { return null; } }
   };
 })(typeof window !== 'undefined' ? window : this);

@@ -46,9 +46,17 @@ const FAKE = `
     const notes = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.notes.v1')).notes);
     assert.strictEqual(notes.find((n) => n.id === 'n1').read, '2026-11-27T15:00:00.000Z');
     assert.ok(!notes.find((n) => n.id === 'n2').read);
+    // 423: unseen reply shows "1 reply" badge on Home chip and footer bar before opening
+    assert.strictEqual((await page.textContent('#wl-note-open .wl-reply-badge')).trim(), '1 reply');
+    assert.strictEqual((await page.textContent('#wl-bar-note .wl-reply-badge')).trim(), '1 reply');
     await page.click('[data-wl-note]');
     await page.waitForSelector('#wl-note-sheet');
+    assert.strictEqual((await page.textContent('#wl-note-list summary .wl-reply-badge')).trim(), '1 reply');
     await page.click('#wl-note-list summary');
+    // Opening the saved notes list marks the reply seen and clears the badge everywhere
+    await page.waitForFunction(() => !document.querySelector('.wl-reply-badge'));
+    const seenNotes = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.notes.v1')).notes);
+    assert.ok(seenNotes.find((n) => n.id === 'n1').replySeen, 'replySeen saved on phone');
     const st = await page.$$eval('.wl-note-state', (e) => e.map((x) => x.textContent));
     assert.strictEqual(st[0], 'Waiting for the next autopilot run');
     assert.ok(/^✓ Read by the autopilot \(/.test(st[1]), st[1]);

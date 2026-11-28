@@ -335,6 +335,16 @@
     var h = now.getHours();
     return isoDate(now) + '|' + (h >= 20 ? 'e' : now.getDay() === 0 && h >= 12 ? 'w' : 'd');
   }
+  function noteReplyBadge() {
+    var n = WL.notes && WL.notes.unseenReplyCount ? WL.notes.unseenReplyCount() : 0;
+    return n ? ' <span class="wl-reply-badge">' + n + (n === 1 ? ' reply' : ' replies') + '</span>' : '';
+  }
+  function redrawNotesBadge() {
+    var b1 = $('#wl-note-open');
+    if (b1) b1.innerHTML = '💡 Note for autopilot' + noteReplyBadge();
+    var b2 = $('#wl-bar-note');
+    if (b2) b2.innerHTML = '💡 Note for autopilot' + noteReplyBadge();
+  }
   function home() {
     homeStamp = makeHomeStamp();
     var h = '<div class="meta ui">' + esc(greeting()) + ' · ' + esc(new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) + '</div>' +
@@ -342,7 +352,7 @@
       '<div class="chips ui" id="wl-quick" style="margin:0 0 12px">' +
       '<a class="chip" href="#journal">✎ Journal</a>' +
       (modules.cook ? '<a class="chip" href="#cook">🍳 Cook</a>' : '') +
-      '<button class="chip" id="wl-note-open" data-wl-note="#home" type="button">💡 Note for autopilot</button></div>' +
+      '<button class="chip" id="wl-note-open" data-wl-note="#home" type="button">💡 Note for autopilot' + noteReplyBadge() + '</button></div>' +
       saveFailHtml('wl-savefail') + todayList() + weekCard() + (syncNudge() || backupNudge());
     order.forEach(function (id) {
       var m = modules[id];
@@ -678,7 +688,7 @@
     }
     var bar = document.getElementById('wl-bar');
     if (bar) {
-      bar.innerHTML = '<button class="link" id="wl-bar-note" data-wl-note="1" type="button">💡 Note for autopilot</button>';
+      bar.innerHTML = '<button class="link" id="wl-bar-note" data-wl-note="1" type="button">💡 Note for autopilot' + noteReplyBadge() + '</button>';
     }
     var tab = m ? (m.navAs || id) : 'home';
     $$('nav#tabs a').forEach(function (a) {
@@ -718,7 +728,7 @@
       if (WL.driveSync.onRestore) WL.driveSync.onRestore(handleDriveRestore);
       WL.driveSync.start();
     }
-    if (WL.notes && WL.notes.onChange) WL.notes.onChange(redrawSync);
+    if (WL.notes && WL.notes.onChange) WL.notes.onChange(function () { redrawSync(); redrawNotesBadge(); });
     route();
   }
 

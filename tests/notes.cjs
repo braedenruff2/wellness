@@ -67,4 +67,27 @@ t('markRead: a cloud run\'s ack marks those notes read (once); validate keeps it
   assert.ok(!('read' in v.notes.find((x) => x.id === b.id)));
   assert.strictEqual(N.markRead(s, null), 0); assert.strictEqual(N.markRead(null, [a.id]), 0);
 });
+
+t('423: unseenReplies, markRepliesSeen, replySeen persistence, and updated reply resets seen', () => {
+  const s = N.defaults();
+  const a = N.add(s, 'first', '#home', 'Idea', new Date('2026-11-26T10:00:00Z'));
+  const b = N.add(s, 'second', '#calm', 'Bug', new Date('2026-11-26T11:00:00Z'));
+  assert.strictEqual(N.unseenReplies(s).length, 0);
+  N.markRead(s, [a.id], '2026-11-27T01:00:00Z', { [a.id]: 'Done in next update.' });
+  assert.deepStrictEqual(N.unseenReplies(s).map((x) => x.id), [a.id], 'new reply is unseen');
+  assert.strictEqual(N.markRepliesSeen(s, new Date('2026-11-27T02:00:00Z')), 1);
+  assert.strictEqual(N.unseenReplies(s).length, 0, 'seen after opening');
+  assert.strictEqual(N.markRepliesSeen(s), 0, 'idempotent');
+  // validate keeps replySeen
+  const v = N.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.notes.find((x) => x.id === a.id).replySeen, '2026-11-27T02:00:00.000Z');
+  assert.strictEqual(N.unseenReplies(v).length, 0);
+  // same reply text keeps replySeen; updated reply text makes it unseen again
+  assert.strictEqual(N.markRead(v, [a.id], '2026-11-27T03:00:00Z', { [a.id]: 'Done in next update.' }), 0);
+  assert.strictEqual(N.unseenReplies(v).length, 0);
+  assert.strictEqual(N.markRead(v, [a.id], '2026-11-27T04:00:00Z', { [a.id]: 'Shipped in APK 2.' }), 1);
+  assert.deepStrictEqual(N.unseenReplies(v).map((x) => x.id), [a.id], 'updated reply resets seen');
+  assert.strictEqual(N.unseenReplies(null).length, 0);
+  assert.strictEqual(N.markRepliesSeen(null), 0);
+});
 console.log(n + ' notes unit tests passed');
