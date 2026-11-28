@@ -38,7 +38,7 @@
       yearView: z.yearView || '',
       nextStep: z.nextStep || ''
     };
-    WL.pc.ask('wisdom-check', inp).then(function (ans) {
+    WL.pc.ask('wisdom-check', inp, null, { input: { zoomId: z.id } }).then(function (ans) { // meta: the cloud answer finds this one
       aiBusy = false;
       var saved = WC && WC.setZoomOutFeedback(W, z.id, ans);
       if (saved) { openZoomId = z.id; saveW(); WL.toast('Blind-spot check ready'); }
@@ -54,8 +54,11 @@
   if (WL.pc && WL.pc.onCloudAnswer) {
     WL.pc.onCloudAnswer('wisdom-check', function (e, ans, meta) {
       if (!e && WC) {
-        var targetId = (meta && meta.input && meta.input.zoomId) || pendingZoomId || (W.zoomouts && W.zoomouts[0] && W.zoomouts[0].id);
-        if (targetId && WC.setZoomOutFeedback(W, targetId, ans)) {
+        // the Zoom Out it was asked for, never simply the newest one
+        var targetId = meta ? (meta.input && meta.input.zoomId) || meta.zoomId || '' : pendingZoomId;
+        var has = targetId && (W.zoomouts || []).some(function (z) { return z && z.id === targetId; });
+        if (!has) aiErr = 'A blind-spot check arrived, but the Zoom Out it was for isn’t saved any more.';
+        else if (WC.setZoomOutFeedback(W, targetId, ans)) {
           aiErr = ''; openZoomId = targetId; saveW(); WL.toast('Your blind-spot check arrived');
         } else {
           aiErr = 'That cloud reflection reply was incomplete. Try again.';

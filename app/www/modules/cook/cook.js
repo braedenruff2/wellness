@@ -165,7 +165,8 @@
       portion: log.who === 'child' ? ('Actually ate: ' + (log.ate || 'About half')) : (log.portion || 'Regular'),
       note: log.note || ''
     };
-    WL.pc.ask('cook-nutri', inp).then(function (ans) {
+    // meta names the meal, so an answer from the cloud (hours later, after a restart) lands on this one
+    WL.pc.ask('cook-nutri', inp, null, { input: { logId: log.id } }).then(function (ans) {
       nutriBusyId = '';
       var note = ans && typeof ans.breakdown === 'string' ? ans.breakdown : '';
       var ok = K.updateLogNutri(S, log.id, ans, { exact: true, note: note, source: 'ai' });
@@ -200,9 +201,13 @@
     });
     WL.pc.onCloudAnswer('cook-nutri', function (e, ans, meta) {
       if (!e) {
-        var tid = (meta && meta.input && meta.input.logId) || pendingNutriId || (S.logs && S.logs[0] && S.logs[0].id);
+        // the meal it was asked for, never simply the newest one (requests queued before meta named it: the one
+        // asked about in this session, if any)
+        var tid = meta ? (meta.input && meta.input.logId) || meta.logId || '' : pendingNutriId;
+        var has = tid && (S.logs || []).some(function (l) { return l && l.id === tid; });
         var note = ans && typeof ans.breakdown === 'string' ? ans.breakdown : '';
-        if (tid && K.updateLogNutri(S, tid, ans, { exact: true, note: note, source: 'ai' })) {
+        if (!has) nutriErr = 'A nutrition estimate arrived, but the meal it was for isn’t in your food log any more.';
+        else if (K.updateLogNutri(S, tid, ans, { exact: true, note: note, source: 'ai' })) {
           nutriErr = ''; save(); WL.toast('Your AI nutrition estimate arrived');
         } else nutriErr = 'That cloud nutrition reply was incomplete. Try again.';
       } else nutriErr = e;
