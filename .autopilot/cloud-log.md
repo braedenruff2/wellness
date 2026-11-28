@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-28 06:20-06:45 AST (same run; APK 0.1.20261128.1024, real key, cert 6795e499...)
+- Done 477 (checked: sick day across midnight, no bug), 479 (Home's today list on a sick day: "A sick day: rest counts"), 480 (Faith today() rest counts on a sick day; to-dos "only what can't wait"), 482 (independent read: 473's keep-rules too wide; narrowed). 481 dropped. Plan 484-488 added.
+- The owner asked (live) for a much larger food database with vitamins and minerals, like Cronometer: proposed the Canadian Nutrient File (open licence, ~5,700 foods, 150+ nutrients; reachable from the PC) and USDA FoodData Central (its site answers 403 here); waiting for his OK to download.
+- Tested: full suite (122 suites, none skipped); APK verified.
+
 ## 2026-11-28 05:50-06:20 AST (same run; APK 0.1.20261128.1007, real key, cert 6795e499...)
 - Done 473 (independent read of 465-472: 468's strip rules missed real notes ("Felt ill just after dinner", "Got a cold day 3", "Flu season got us all"): they now keep words after felt/feeling/got/have...; Your week counted a sick rest twice: fixed), 474 (Calm on a sick day: today's item done, day 2+ "rest counts as today's sit"), 475 (check-in events carry sickDay; PC summary "sick day N"), 478 (Tagalog week summary listenedDays).
 - Tested: full suite (122 suites, none skipped); APK verified.
