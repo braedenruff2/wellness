@@ -408,6 +408,20 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.$('[data-ck-logmeal="breakfast"]'), null, 'no second Log button');
     const bLogs = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).logs.filter((x) => x.who === 'me' && x.date === '2026-11-26' && x.meal === 'breakfast'));
     assert.strictEqual(bLogs.length, 1, JSON.stringify(bLogs));
+    // 401: removing that meal from the food log brings "Log to food log" back and the day's numbers follow
+    const tgtBefore = await page.textContent('#ck-today-targets');
+    await page.goto(base + '#cook/log');
+    await page.waitForSelector('.ck-log-del[data-id="' + bLogs[0].id + '"]');
+    await page.click('.ck-log-del[data-id="' + bLogs[0].id + '"]');
+    await page.waitForFunction((id) => !document.querySelector('.ck-log-del[data-id="' + id + '"]'), bLogs[0].id);
+    await page.goto(base + '#cook');
+    await page.waitForSelector('[data-ck-logmeal="breakfast"]');
+    assert.strictEqual(await page.$('[data-ck-logged="breakfast"]'), null, 'no "In your food log" after removing it');
+    const tgtAfter = (await page.$('#ck-today-targets')) ? await page.textContent('#ck-today-targets') : '';
+    assert.notStrictEqual(tgtAfter, tgtBefore, 'today\'s numbers changed: ' + tgtAfter);
+    if (tgtAfter) assert.ok(!tgtAfter.includes('Me: ' + /Me: (\d+) kcal/.exec(tgtBefore)[1] + ' kcal'), 'the removed meal no longer counts');
+    await page.click('[data-ck-logmeal="breakfast"]'); // logged again for the steps below
+    await page.waitForSelector('[data-ck-logged="breakfast"]');
     // 393: "Use today's dinner" never fills a dinner marked Not making
     if (await page.$('[data-ck-reset="dinner"]')) await page.click('[data-ck-reset="dinner"]');
     await page.waitForSelector('[data-ck-skip="dinner"]');
