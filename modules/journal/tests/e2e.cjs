@@ -305,6 +305,14 @@ const W = require('../../../tests/lib/web.cjs');
     assert.ok(/Calm sit/.test(items[0]) && /minute 5/.test(items[0]), 'newest first: ' + items[0]);
     assert.ok(/Faith/.test(items[1]) && items[1].includes('<b>stayed</b>'), 'shown as text, not markup: ' + items[1]);
     assert.strictEqual(await page.$('#j-words-list b'), null);
+    // 449: "Save my journal as text" also writes his own words from quick answers and sits under their own heading, dated
+    const [dl2] = await Promise.all([page.waitForEvent('download'), page.click('#j-export-text')]);
+    assert.strictEqual(dl2.suggestedFilename(), 'journal-2026-11-25.txt');
+    const txt2 = fs.readFileSync(await dl2.path(), 'utf8');
+    assert.ok(txt2.includes('In your own words (quick answers and sits)\n\n'), 'own-words heading present:\n' + txt2);
+    assert.ok(/\d{4}-\d\d-\d\d \d\d:\d\d · Calm sit\ncounting got easier after minute 5/.test(txt2), 'dated Calm sit words in export:\n' + txt2);
+    assert.ok(/\d{4}-\d\d-\d\d \d\d:\d\d · Faith\nThe verse about rest <b>stayed<\/b>/.test(txt2), 'dated Faith quick-answer words in export:\n' + txt2);
+    assert.ok(txt2.indexOf('Calm sit') < txt2.indexOf('The verse about rest'), 'newest first in export');
     await page.goto(base + '#journal/journal'); await page.waitForSelector('#new-entry');
     assert.strictEqual(await page.$('#j-words'), null, 'only on All');
   });

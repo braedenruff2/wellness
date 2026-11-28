@@ -421,20 +421,23 @@
     return settings.theme;
   }
 
-  /* His journal and prayer list as plain text to keep (Faith settings > Save my journal as text). Newest first.
-     dayTitle(n) -> the day's title (or ''). Dates are the phone's local time, written the same everywhere. */
-  function journalText(state, dayTitle, now) {
+  /* His journal and prayer list as plain text to keep (Faith settings > Save my journal as text; Journal > Save my
+     journal as text). Newest first. dayTitle(n) -> the day's title (or ''). extraWords (optional, from Journal):
+     [{at, where, text}] for his own words from quick answers and after meditation sits, written under their own heading.
+     Dates are the phone's local time, written the same everywhere. */
+  function journalText(state, dayTitle, now, extraWords) {
     function two(n) { return (n < 10 ? '0' : '') + n; }
     function when(at) { var d = new Date(at); return isNaN(d) ? '' : d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate()) + ' ' + two(d.getHours()) + ':' + two(d.getMinutes()); }
-    var KIND = { awe: 'Awe moment', gratitude: 'Thanks' };
-    var out = ['My journal (Wellness app), saved ' + when((now || new Date()).toISOString()), ''];
-    var items = (state.journal || []).slice().sort(function (a, b) {
+    function byNewest(a, b) {
       var ta = Date.parse(a && a.at), tb = Date.parse(b && b.at);
       if (isNaN(ta) && isNaN(tb)) return 0;
       if (isNaN(ta)) return 1;
       if (isNaN(tb)) return -1;
       return tb - ta;
-    });
+    }
+    var KIND = { awe: 'Awe moment', gratitude: 'Thanks' };
+    var out = ['My journal (Wellness app), saved ' + when((now || new Date()).toISOString()), ''];
+    var items = (state.journal || []).slice().sort(byNewest);
     if (!items.length) out.push('(No entries yet.)', '');
     items.forEach(function (e) {
       var label = KIND[e.kind] || (e.day ? 'Day ' + e.day + (dayTitle && dayTitle(e.day) ? ': ' + dayTitle(e.day) : '') : 'Journal');
@@ -446,6 +449,14 @@
       open.forEach(function (p) { out.push('- ' + p.text + ' (since ' + when(p.at).slice(0, 10) + ')'); });
       done.forEach(function (p) { var note = String(p.note || '').trim(); out.push('- ' + p.text + ': answered or let go ' + when(p.answered).slice(0, 10) + (note ? ' (' + note + ')' : '')); });
       out.push('');
+    }
+    var words = (Array.isArray(extraWords) ? extraWords : []).filter(function (w) { return w && typeof w.text === 'string' && w.text.trim(); }).sort(byNewest);
+    if (words.length) {
+      out.push('In your own words (quick answers and sits)', '');
+      words.forEach(function (w) {
+        var ts = when(w.at), src = String(w.where || '').trim() || 'Note';
+        out.push((ts ? ts + ' · ' : '') + src, w.text.trim().replace(/\r\n?/g, '\n'), '');
+      });
     }
     return out.join('\n');
   }

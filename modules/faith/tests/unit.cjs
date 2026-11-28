@@ -470,6 +470,15 @@ t('journalText: mixed timezone offsets sort strictly newest-first; answered pray
   assert.ok(txt.indexOf('Newer offset') < txt.indexOf('Earlier UTC'), 'timestamp sort beats string order:\n' + txt);
   assert.ok(txt.includes('- Sleep: answered or let go 2026-11-20\n'), 'whitespace-only prayer note omitted');
   assert.ok(txt.includes('- Work: answered or let go 2026-11-21 (Went smoothly)\n'), 'trimmed prayer note included');
+  assert.ok(!txt.includes('In your own words'), 'no extra heading when extraWords omitted');
+  const txt2 = C.journalText(s, null, new Date(2026, 10, 23, 9, 0), [
+    { at: '2026-11-22T23:00:00.000Z', where: 'Faith', text: 'Quiet verse\r\nstayed with me' },
+    { at: '2026-11-22T20:00:00-04:00', where: 'Calm sit', text: 'Steady breath after minute 5' },
+    { at: '2026-11-22T12:00:00.000Z', where: 'Move', text: '   ' }
+  ]);
+  assert.ok(txt2.includes('In your own words (quick answers and sits)\n\n'), txt2);
+  assert.ok(txt2.indexOf('Calm sit\nSteady breath after minute 5') < txt2.indexOf('Faith\nQuiet verse\nstayed with me'), 'own words sorted newest-first across timezone offsets:\n' + txt2);
+  assert.ok(!txt2.includes('Move') && !txt2.includes('\r'), 'blank own-words skipped and CRLF normalized');
 });
 
 t('daysShowedUp ignores invalid or null timestamps in journal, sessions, and prayers', () => {

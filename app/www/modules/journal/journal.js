@@ -401,7 +401,7 @@
     var ex = $('#j-export-text', view);
     if (ex) ex.onclick = function () {
       var dt = window.FC && window.FC.dayTitle ? window.FC.dayTitle : null;
-      WL.saveFile('journal-' + C.isoDate(new Date()) + '.txt', C.journalText(state(), dt, new Date()));
+      WL.saveFile('journal-' + C.isoDate(new Date()) + '.txt', C.journalText(state(), dt, new Date(), ownWords()));
     };
   }
 
