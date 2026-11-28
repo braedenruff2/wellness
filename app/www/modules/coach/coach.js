@@ -500,13 +500,25 @@
   }
 
   function sickDay() { return !!(window.WLMe && WLMe.unwell && WLMe.unwell()); }
+  /* 461: on a sick day the practice prompt gives way to a few plain, general comfort lines (nothing medical). */
+  var SICK_TIPS = [
+    'Offer drinks little and often: her usual milk or water, in sips, from a cup she likes.',
+    'Cuddles and rest beat any routine today; a nap on you or a later bedtime is fine.',
+    'Keep play quiet: books, songs, sitting close together.',
+    'If you’re the one who’s sick: rest when she naps, and keep meals simple.'
+  ];
+  function sickTipsHtml() {
+    return '<ul class="ui" id="co-sick-tips">' + SICK_TIPS.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>' +
+      '<p class="meta ui">General guidance, not medical advice. Call 811 if you’re unsure; in an emergency, 911.</p>';
+  }
   function card() {
     if (!S.child.birth && !askable()) return '';
     var st = K.skillStats(S).filter(function (s) { return s.n; }), last = null;
     for (var i = S.history.length - 1; i >= 0; i--) { if (S.history[i].result && S.history[i].result.score != null) { last = S.history[i]; break; } }
-    var done = K.doneToday(S), queued = hasQueuedScenario();
-    var title = S.current ? esc(S.current.title) : waiting ? 'Claude is on it…' : queued ? 'Today’s scenario is on the way…' : done ? '\u2713 Scenario done today' : 'Practise a moment with ' + esc(S.child.name || 'her');
+    var done = K.doneToday(S), queued = hasQueuedScenario(), sick = !S.current && !done && !waiting && !queued && sickDay();
+    var title = S.current ? esc(S.current.title) : waiting ? 'Claude is on it…' : queued ? 'Today’s scenario is on the way…' : done ? '\u2713 Scenario done today' : sick ? 'Sick day: comfort and fluids' : 'Practise a moment with ' + esc(S.child.name || 'her');
     var actions = S.current ? '<a class="btn primary" href="#coach">Answer it</a>'
+      : sick ? '<a class="btn" href="#coach">Open</a>' + (S.child.birth && askable() ? '<button class="link" data-co-daily>Practise anyway</button>' : '')
       : (!done && !waiting && !queued && S.child.birth && askable())
         ? '<button class="primary" data-co-daily>Generate today’s scenario</button><a class="btn" href="#coach">Open</a>'
         : '<a class="btn' + (done ? '' : ' primary') + '" href="#coach">Open</a>';
@@ -516,7 +528,7 @@
         var ra = !S.current && K.recentAdvice(S, new Date());
         return ra ? '<p class="ui" id="co-advice-step">From your question: <b>' + esc(ra.step.slice(0, 200)) + '</b></p><div class="row ui"><a class="btn" href="#coach/h/' + esc(ra.id) + '">See the advice</a></div>' : '';
       })() +
-      (!S.current && !done && !waiting && !queued && sickDay() ? '<p class="ui" id="co-sick">A sick day: no practice scenario today. Comfort and rest come first; it can wait.</p>' : '') +
+      (sick ? '<p class="ui" id="co-sick">A sick day: no practice scenario today. Comfort and rest come first; it can wait.</p>' + sickTipsHtml() : '') +
       (draftWaiting() ? '<div class="row ui" id="co-draft-line"><span class="grow">Your question is saved, not sent yet.</span><a class="btn" href="#coach/real">Finish and send</a></div>' : '') +
       (function () { var ts = K.tips(S, null, 50).filter(function (x) { return !tipFlagged(x.id); }); return ts[0] && !S.current && !K.recentAdvice(S, new Date()) ? '<p class="ui" id="co-tip">Try this week: ' + esc(ts[0].text) + '</p>' : ''; })() +
       '<div class="row ui">' + actions + '</div>';
@@ -530,6 +542,7 @@
     if (K.doneToday(S)) return { label: 'Parenting: scenario done', done: true, href: '#coach' };
     if (S.current) return { label: 'Parenting: answer today’s scenario', done: false, href: '#coach' };
     if (waiting || hasQueuedScenario()) return { label: 'Parenting: scenario on the way', done: false, href: '#coach' };
+    if (sickDay()) return { label: 'Parenting: a sick day, comfort first (no scenario)', done: true, href: '#coach' };
     return { label: 'Parenting: 1 daily scenario (5 min)', done: false, href: '#coach' };
   }
 

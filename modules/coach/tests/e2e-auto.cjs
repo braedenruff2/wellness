@@ -225,6 +225,15 @@ const CHILD = { child: { name: 'Mila', birth: '2025-11-24' }, history: [], curre
     assert.strictEqual(await queued(), 0, 'still nothing');
     await p2.waitForSelector('.home-card[data-module="coach"] #co-sick');
     assert.ok((await p2.textContent('#co-sick')).includes('A sick day'));
+    // 461: the practice prompt gives way to comfort lines: the title, a few general tips, 811; Practise anyway is secondary
+    const card = await p2.textContent('.home-card[data-module="coach"]');
+    assert.ok(/Sick day: comfort and fluids/.test(card) && !/Practise a moment/.test(card), card);
+    assert.ok((await p2.$$('.home-card[data-module="coach"] #co-sick-tips li')).length >= 3);
+    assert.ok(/811/.test(card) && /not medical advice/.test(card));
+    assert.ok(/Practise anyway/.test(await p2.textContent('.home-card[data-module="coach"] [data-co-daily]')));
+    assert.strictEqual(await p2.$('.home-card[data-module="coach"] button.primary[data-co-daily]'), null, 'no primary Generate on a sick day');
+    const item = await p2.evaluate(() => WL.modules.coach.today());
+    assert.ok(item && item.done === true && /sick day/.test(item.label), JSON.stringify(item));
     await p2.click('.home-card[data-module="coach"] [data-co-daily]');
     await p2.clock.runFor(1000);
     assert.strictEqual(await queued(), 1, 'Generate by hand still works');
