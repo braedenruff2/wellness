@@ -664,4 +664,16 @@ t('Pushups two-step harder progression: steps through 3-sec lowering then feet o
   assert.strictEqual(W.nextHard(legacy, 'Pushups'), null);
   assert.ok(/add a set or slow/.test(W.advice(legacy, it, top)));
 });
+t('402: "Now doing" names every harder step he has ticked (they add up)', () => {
+  const s = W.defaults();
+  assert.strictEqual(W.doingText(s, 'Pushups'), '');
+  W.setHard(s, 'Pushups', 1);
+  assert.strictEqual(W.doingText(s, 'Pushups'), '3-sec lowering on every rep');
+  W.setHard(s, 'Pushups', 2);
+  assert.strictEqual(W.doingText(s, 'Pushups'), '3-sec lowering on every rep + feet on a chair');
+  s.next.Pushups = '3-sec lowering on every rep, then feet on a chair'; // an older save
+  assert.strictEqual(W.doingText(s, 'Pushups'), '3-sec lowering on every rep + feet on a chair');
+  W.setHard(s, 'Hammer Curls', 1);
+  assert.strictEqual(W.doingText(s, 'Hammer Curls'), '3-sec lowering');
+});
 console.log(n + ' workout unit tests passed');

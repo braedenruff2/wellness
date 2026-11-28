@@ -215,6 +215,39 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await p2.isChecked(), false);
     assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')).next.Pushups), undefined);
   });
+  await t.step('402: both Pushups steps stay ticked after a reload and Today names both in "Now doing"', async () => {
+    await page.goto(base + '#workout/settings');
+    await page.waitForSelector('[data-hard="Pushups"][data-hard-step="2"]');
+    await page.locator('[data-hard="Pushups"][data-hard-step="2"]').check();
+    await page.reload();
+    await page.waitForSelector('[data-hard="Pushups"][data-hard-step="2"]');
+    assert.strictEqual(await page.locator('[data-hard="Pushups"][data-hard-step="1"]').isChecked(), true);
+    assert.strictEqual(await page.locator('[data-hard="Pushups"][data-hard-step="2"]').isChecked(), true);
+    // the whole label is the tap target (44 px), not only the small box
+    const h = await page.locator('[data-hard="Pushups"][data-hard-step="2"]').locator('xpath=ancestor::label').evaluate((l) => l.getBoundingClientRect().height);
+    assert.ok(h >= 44, 'label height ' + h);
+    // a day with Pushups on it: its How says both steps
+    await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('wl.workout.v1'));
+      s.next.Pushups = 'feet on a chair'; localStorage.setItem('wl.workout.v1', JSON.stringify(s));
+    });
+    const html = await page.evaluate(() => {
+      const W = window.WorkoutCore, s = W.validate(JSON.parse(localStorage.getItem('wl.workout.v1')));
+      return W.doingText(s, 'Pushups');
+    });
+    assert.strictEqual(html, '3-sec lowering on every rep + feet on a chair');
+    await page.goto(base + '#workout');
+    const how = await page.evaluate(() => Array.from(document.querySelectorAll('#view details p')).map((p) => p.textContent).filter((t) => /Body in one line/.test(t)));
+    // today's day (A/B/C) may not have Pushups (B has Pike Pushups): check it when it does
+    const hasPush = await page.evaluate(() => Array.from(document.querySelectorAll('#view h3, #view b, #view .ex-name')).some((e) => e.textContent.trim() === 'Pushups'));
+    if (hasPush || how.length) {
+      assert.strictEqual(how.length, 1);
+      assert.ok(how[0].includes('Now doing: 3-sec lowering on every rep + feet on a chair.'), how[0]);
+    }
+    await page.goto(base + '#workout/settings');
+    await page.waitForSelector('[data-hard="Pushups"][data-hard-step="1"]');
+    await page.locator('[data-hard="Pushups"][data-hard-step="1"]').uncheck();
+  });
   await t.step('no overflow, no errors', async () => {
     await t.noOverflow(['#workout', '#workout/history', '#workout/settings']);
     assert.deepStrictEqual(t.errors, []);

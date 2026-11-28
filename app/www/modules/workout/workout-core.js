@@ -363,6 +363,13 @@
     var steps = hardSteps(name), lvl = hardLevel(state, name);
     return steps[lvl] || null;
   }
+  /* What he is doing now for an exercise's harder versions: every step up to his level ("3-sec lowering on every rep +
+     feet on a chair"), since the steps add up; '' if none. */
+  function doingText(state, name) {
+    var steps = hardSteps(name), lvl = hardLevel(state, name), cur = state && state.next && state.next[name];
+    if (lvl > 0) return steps.slice(0, lvl).join(' + ');
+    return typeof cur === 'string' ? cur : '';
+  }
   function setHard(state, name, level) {
     var steps = hardSteps(name);
     if (!state.next) state.next = {};
@@ -699,7 +706,7 @@
 
   var api = { fourWeeks: fourWeeks, SORE_LEVELS: SORE_LEVELS, askSore: askSore, setSore: setSore, soreOn: soreOn, targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, activeTime: activeTime, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
     startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
-    last: last, bestSet: bestSet, ready: ready, hardSteps: hardSteps, hardLevel: hardLevel, nextHard: nextHard, setHard: setHard, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
+    last: last, bestSet: bestSet, ready: ready, hardSteps: hardSteps, hardLevel: hardLevel, nextHard: nextHard, setHard: setHard, doingText: doingText, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     AGE_NORMS: AGE_NORMS, cleanAge: cleanAge, ageBracket: ageBracket, benchmark: benchmark, weeklyTrend: weeklyTrend, exerciseSeries: exerciseSeries,
     validate: validate, iso: iso };
   root.WorkoutCore = api;
