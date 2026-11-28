@@ -88,7 +88,28 @@
     trim(state);
     return f;
   }
-  function afterNoteOf(state, part, about) { var f = find(state, part + '/after/' + cut(about, 80)); return (f && f.note) || ''; }
+  function afterNoteByPrefix(state, part, prefix, opts) {
+    if (!state || !Array.isArray(state.feedback) || !prefix) return '';
+    var pfx = String(prefix), pfxAt = pfx + '@', beforeDay = opts && opts.beforeDay;
+    var hits = state.feedback.filter(function (f) {
+      if (!f || f.kind !== 'after' || f.part !== part || !f.note) return false;
+      var ab = String(f.about || '');
+      if (ab !== pfx && ab.indexOf(pfxAt) !== 0) return false;
+      if (beforeDay) {
+        var t = Date.parse(f.at);
+        if (!isNaN(t) && iso(new Date(t)) > beforeDay) return false;
+      }
+      return true;
+    });
+    if (!hits.length) return '';
+    hits.sort(function (a, b) { return (Date.parse(b.edited || b.at) || 0) - (Date.parse(a.edited || a.at) || 0); });
+    return hits[0].note || '';
+  }
+  function afterNoteOf(state, part, about, opts) {
+    if (opts && opts.prefix) return afterNoteByPrefix(state, part, about, opts);
+    var f = find(state, part + '/after/' + cut(about, 80));
+    return (f && f.note) || '';
+  }
   function answers(state, part, about) { var f = find(state, part + '/after/' + cut(about, 80)); return f ? f.a : {}; }
 
   /* "Not for me": what it was about (part + about + the text he saw), why (reasons from REASONS), an optional note. */
@@ -510,7 +531,7 @@
   }
 
   var api = { trend: trend, Q: Q, CHECKIN: CHECKIN, REASONS: REASONS, PARTS: PARTS, defaults: defaults, iso: iso, questions: questions, answer: answer, answers: answers,
-    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, afterNote: afterNote, afterNoteOf: afterNoteOf, checkinDone: checkinDone, rough: rough, unwell: unwell, noteUnwell: noteUnwell, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
+    notFit: notFit, flagged: flagged, hiddenList: hiddenList, unFit: unFit, checkin: checkin, checkinNote: checkinNote, afterNote: afterNote, afterNoteOf: afterNoteOf, afterNoteByPrefix: afterNoteByPrefix, checkinDone: checkinDone, rough: rough, unwell: unwell, noteUnwell: noteUnwell, calmLikes: calmLikes, calmHelped: calmHelped, working: working, painNote: painNote, planFlagged: planFlagged, dismissPlan: dismissPlan, planDismissed: planDismissed,
     guidance: guidance, cleanPlan: cleanPlan, planFor: planFor, planDue: planDue, planFailed: planFailed, forPlan: forPlan, validate: validate, recentCheckins: recentCheckins };
   root.MeCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

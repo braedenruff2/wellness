@@ -19,7 +19,7 @@
   var S = store.load();
   var view = null;
   var native = window.FCAndroid || null;   // the Android app's bridge (absent in a browser)
-  var player = null, session = null, quietTimer = null, startTimer = null, journalTimer = null, keyHandler = null;
+  var player = null, session = null, quietTimer = null, startTimer = null, journalTimer = null, keyHandler = null, dismissedPrev = {};
 
   function save() { store.save(S); }
   var finishedAt = -1e9;
@@ -115,6 +115,7 @@
     var showThink = !(window.WLMe && WLMe.flagged && WLMe.flagged('faith', fk('think')));
     var showPractice = !(window.WLMe && WLMe.flagged && WLMe.flagged('faith', fk('practice')));
     h += '<div class="chips jump ui"><button class="chip" data-jump="pray-card">Pray</button>' + (showPractice ? '<button class="chip" data-jump="practice">Practice</button>' : '') + '<button class="chip" data-jump="write">Write</button></div>';
+    h += earlierQuickNote(d.n);
     h += '<div class="card" id="reading"><h2>Read</h2>' + passageHtml(d) +
       '<div class="row ui"><button id="listen">\u25B6 Listen</button><span class="meta">' + esc(CONTENT.translation) + '</span></div></div>';
     function fit(what, text) { return window.WLMe ? '<div class="ui" style="text-align:right">' + WLMe.fitLink('faith', fk(what), text) + '</div>' : ''; }
@@ -137,6 +138,16 @@
     return h;
   }
 
+  function earlierQuickNote(n) {
+    if ((S.round || 1) <= 1 || !window.WLMe || !WLMe.afterNoteOf) return '';
+    var key = (S.round || 1) + ':' + n;
+    if (dismissedPrev[key]) return '';
+    var lastRound = Array.isArray(S.pastRounds) && S.pastRounds.length ? S.pastRounds[S.pastRounds.length - 1] : null;
+    var beforeDay = lastRound && lastRound.ended ? lastRound.ended : null;
+    var note = WLMe.afterNoteOf('faith', 'day:' + n, { prefix: true, beforeDay: beforeDay });
+    if (!note) return '';
+    return '<div class="card ui" id="fc-prev-note"><div class="row" style="align-items:flex-start"><div class="grow"><div class="meta">Last time you wrote:</div><p style="margin:.25em 0 0">“' + esc(note) + '”</p></div><button class="link" type="button" id="fc-prev-dismiss" data-key="' + esc(key) + '" aria-label="Dismiss note from last walk">Dismiss</button></div></div>';
+  }
   function earlierAnswer(n) {
     var e = C.earlierDayJournal(S, n);
     return e ? '<div class="meta" style="margin-top:10px">Last time (' + ordinal1(e.round) + ' walk) you wrote:</div><p class="verse">' + esc(e.text) + '</p>' : '';
@@ -445,6 +456,13 @@
     });
     if (h && h[0] !== 'session') shortOnce = null; // the shorter prayer is for the one session it was picked for
     on('#fc-short', function (el) { el.onclick = function () { shortOnce = +el.dataset.n; }; });
+    on('#fc-prev-dismiss', function (el) {
+      el.onclick = function () {
+        dismissedPrev[el.dataset.key] = 1;
+        var box = $('#fc-prev-note'); if (box) box.remove();
+        var j = $('[data-jump]'); if (j && j.focus) try { j.focus(); } catch (e) {}
+      };
+    });
     on('#fc-export-text', function (el) { el.onclick = function () {
       WL.saveFile('faith-journal-' + C.isoDate(new Date()) + '.txt', C.journalText(S, function (n) { var d = day(+n); return d ? d.title : ''; }, new Date()));
     }; });

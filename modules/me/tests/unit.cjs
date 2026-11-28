@@ -654,4 +654,14 @@ t('414: a check-in note saying he is unwell (whole words; not "sick of", not col
   assert.strictEqual(K.unwell(s, D(27, 15)), true);
   assert.strictEqual(K.unwell(s, D(28, 9)), false, 'only today');
 });
+t('419: afterNoteOf prefix lookup matches day:N / day:N@... without matching day:10 and honours beforeDay', () => {
+  const s = K.defaults();
+  K.afterNote(s, 'faith', 'day:1@2026-11-20T09:00', 'first walk note', D(20, 9));
+  K.afterNote(s, 'faith', 'day:10@2026-11-25T09:00', 'day ten note', D(25, 9));
+  K.afterNote(s, 'faith', 'day:1@2026-11-28T09:00', 'second walk note', D(28, 9));
+  assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:1', { prefix: true }), 'second walk note', 'newest without beforeDay');
+  assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:1', { prefix: true, beforeDay: '2026-11-26' }), 'first walk note', 'beforeDay picks earlier walk');
+  assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:10', { prefix: true }), 'day ten note');
+  assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:2', { prefix: true }), '', 'no note for day 2');
+});
 console.log(n + ' me unit tests passed');
