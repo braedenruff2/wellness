@@ -35,6 +35,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     const li = await tlToday(); assert.ok(li && /rest today/.test(li.text), JSON.stringify(li));
     const undone = await page.evaluate(() => (WL.modules.tagalog.today() || {}).done);
     assert.strictEqual(undone, true, 'a sick day is not left undone');
+    assert.strictEqual(await page.evaluate(() => WL.modules.tagalog.today().href), '#tagalog', 'the ticked item opens the page, it never starts audio by itself');
   });
 
   await t.step('tapping it opens that lesson and reads it aloud straight away, words then conversation, nothing typed', async () => {

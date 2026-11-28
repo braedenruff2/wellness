@@ -471,7 +471,7 @@
       var st = T.stats(S), nx = T.nextLesson(S, packs());
       if (lessonToday) return { label: 'Tagalog: lesson done' + (st.due ? ' (' + st.due + ' to review, optional)' : ''), done: true, href: '#tagalog' };
       // a sick day is a rest day here too: nothing left undone on Home (listening stays one tap away)
-      if (nx && sick()) return { label: 'Tagalog: rest today (listening is optional)', done: true, href: restHref(T.restLesson(S, packs())) };
+      if (nx && sick()) return { label: 'Tagalog: rest today (listening is optional)', done: true, href: '#tagalog' }; // the page offers the listening; a ticked item never starts audio by itself
       if (nx) return { label: 'Tagalog: lesson ' + nx.lesson.day + (st.due ? ' + ' + st.due + ' to review' : ''), done: false, href: '#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day };
       return st.due ? { label: 'Tagalog: ' + st.due + ' to review', done: false, href: '#tagalog/review' } : null;
     },
