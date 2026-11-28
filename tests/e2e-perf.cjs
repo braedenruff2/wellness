@@ -36,6 +36,24 @@ const { simulate } = require('./lib/year.cjs');
     console.log('   Home draw median ' + ms[2].toFixed(0) + ' ms (all: ' + ms.map((x) => x.toFixed(0)).join(', ') + ')');
     assert.ok(ms[2] < 300, 'Home took ' + ms[2].toFixed(0) + ' ms');
   });
+  await t.step('469: on day 30 of a sick stretch (every card sick-aware), Home still draws under 300 ms', async () => {
+    const calls = await page.evaluate(() => {
+      const me = JSON.parse(localStorage.getItem('wl.me.v1')); me.checkins = me.checkins || {};
+      for (let i = 0; i < 30; i++) { const d = new Date(); d.setDate(d.getDate() - i); const k = MeCore.iso(d); me.checkins[k] = Object.assign({}, me.checkins[k] || { at: new Date().toISOString() }, i ? { stillUnwell: 'Yes' } : { note: 'we are all sick, sore throat' }); }
+      localStorage.setItem('wl.me.v1', JSON.stringify(me)); WL.modules.me.reload();
+      let n = 0; const u = WLMe.unwell; WLMe.unwell = function () { n++; return u.apply(this, arguments); };
+      history.replaceState(null, '', '#settings'); window.dispatchEvent(new HashChangeEvent('hashchange'));
+      history.replaceState(null, '', '#home'); window.dispatchEvent(new HashChangeEvent('hashchange'));
+      WLMe.unwell = u;
+      return { n, sick: WLMe.unwell(), day: MeCore.sickDayNo(JSON.parse(localStorage.getItem('wl.me.v1')), new Date()) };
+    });
+    assert.ok(calls.sick && calls.day >= 30, JSON.stringify(calls));
+    await homeMs();
+    const ms = []; for (let i = 0; i < 5; i++) ms.push(await homeMs());
+    ms.sort((a, b) => a - b);
+    console.log('   sick-day Home draw median ' + ms[2].toFixed(0) + ' ms, WLMe.unwell calls per draw: ' + calls.n);
+    assert.ok(ms[2] < 300, 'sick-day Home took ' + ms[2].toFixed(0) + ' ms');
+  });
   await t.step('no Home card over 100 ms', async () => {
     const per = await page.evaluate(() => {
       const out = {};
