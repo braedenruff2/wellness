@@ -76,6 +76,24 @@ const W = require('./lib/web.cjs');
     assert.strictEqual(await page.$('#me-still-unwell'), null);
     assert.deepStrictEqual(t.errors, []);
   });
+  await t.step('451: rest taken on a sick day, then the note edited to "fine": the rest day stays, the sick-day lines go', async () => {
+    await page.clock.setSystemTime(new Date(2026, 11, 1, 9, 0));
+    await page.reload(); await page.waitForSelector('#me-ck-note');
+    await page.fill('#me-ck-note', 'all sick today'); await page.press('#me-ck-note', 'Tab'); await page.clock.runFor(800);
+    await page.click('#wo-rough-rest'); await page.waitForFunction(() => !document.querySelector('#wo-rough-rest'));
+    await page.fill('#me-ck-note', 'false alarm, all fine'); await page.press('#me-ck-note', 'Tab'); await page.clock.runFor(800);
+    const s = await state();
+    assert.deepStrictEqual({ soup: s.soup, coach: s.coach, calm: s.calm, rest: s.rest }, { soup: false, coach: false, calm: false, rest: false }, JSON.stringify(s));
+    const rest = await page.evaluate(() => (JSON.parse(localStorage.getItem('wl.workout.v1')).rest || {})['2026-12-01']);
+    assert.ok(rest && rest.why === 'Sick', 'the rest he took stays: ' + JSON.stringify(rest));
+    const wo = await page.textContent('.home-card[data-module="workout"]');
+    assert.ok(/rest/i.test(wo), 'Move still shows the rest day: ' + wo);
+    await page.reload(); await page.waitForSelector('#me-ck');
+    assert.strictEqual(await page.$('#me-still-unwell'), null, 'nothing asked: not a sick day after all');
+    await page.clock.setSystemTime(new Date(2026, 11, 2, 9, 0)); await page.reload(); await page.waitForSelector('#me-ck');
+    assert.strictEqual(await page.$('#me-still-unwell'), null, 'and the next day no "Still unwell?"');
+    await page.clock.setSystemTime(new Date(2026, 10, 30, 9, 0)); await page.reload(); await page.waitForSelector('#me-ck-note');
+  });
   await t.step('445: right after a soup swap, one tap puts the planned dinner back (Home and Cooking)', async () => {
     await page.fill('#me-ck-note', 'she threw up, all sick again'); await page.press('#me-ck-note', 'Tab');
     await page.clock.runFor(800);
