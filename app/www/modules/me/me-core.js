@@ -218,11 +218,11 @@
   /* Today's check-in, and whether it's a rough day (little sleep or a broken night). */
   /* A check-in note that says he (or the family) is unwell: "we're all sick", "my throat hurts", "a cold", "fever".
      Whole words; not "sick of", "cold outside" or "ill" inside other words. Teething is not him unwell (see guidance). */
-  var UNWELL = /\b(sick|ill|unwell|fever|feverish|flu|cough|coughing|throat|hoarse|vomit|vomiting|throwing up|stomach bug|congested|runny nose)\b|\b(a|the|my|her|his|got|caught|have|has) cold\b/i;
+  var UNWELL = /\b(sick|ill|unwell|fever|feverish|flu|cough|coughing|throat|hoarse|vomit|vomited|vomiting|throwing up|threw up|puked|puking|diarrh(o)?ea|stomach bug|congested|runny nose|sniffles|covid|rsv|croup|ear infection|under the weather|a temperature)\b|\b(a|the|my|her|his|got|caught|have|has) cold\b/i;
   function noteUnwell(text) {
     var t = String(text || '');
     if (!UNWELL.test(t)) return false;
-    var rest = t.replace(/\bsick (of|and tired)\b/ig, '').replace(/\b(not|isn['’]?t|aren['’]?t|no longer) (sick|ill|unwell)\b/ig, '');
+    var rest = t.replace(/\bsick (of|and tired)\b/ig, '').replace(/\bthrew up (her|his|my|their|our) hands\b/ig, '').replace(/\b(not|isn['’]?t|aren['’]?t|no longer) (sick|ill|unwell)\b/ig, '');
     return UNWELL.test(rest);
   }
   function dayUnwell(c) {
