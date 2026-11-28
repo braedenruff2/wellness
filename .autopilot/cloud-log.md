@@ -1,5 +1,14 @@
 # Cloud log
 
+## 2026-11-28 00:30-01:25 AST (same run; APK 0.1.20261128.0520, real key, cert 6795e499...)
+- Done 437 (lintPack), 440 (an automatic Drive sync whose payload matches Drive's file apart from "exported" skips the write; a plain string comparison: a hash of a heavy year's 4 MB took the sync to 214 ms, over e2e-perf's 200 ms; now 63 ms), 443, 444 (more unwell phrasings), 448 ("(nothing new to save)" in Settings).
+- Done 441 (tests/e2e-sickday.cjs, typing on Home as he did):
+  - bug: a sick check-in note typed on Home switched Move / Cooking / Parenting only after a reload / fixed: me.js note input calls refreshSickCards when unwell flips / test: e2e-sickday (fails without).
+  - bug: refreshSickCards (424) redrew the cards' HTML without wiring: Parenting's button did nothing until Home was drawn again; my first fix wired the same element again, so Move's and Cooking's card listeners answered each tap twice (caught before pushing) / fixed: a fresh element wired once / test: e2e-sickday counts the toasts.
+- Rotation: Singing Helper turn on the PC (review fixes for the TV karaoke; its own log). focus.md's project line was left as is (the edit was refused).
+- Tested: full suite after the rebase (120 suites, none skipped); APK verified.
+- Check on the phone: type "we're all sick" in Home's check-in note: Move, Cooking and Parenting change at once; Settings > Drive line after a quiet half hour.
+
 ## 2026-11-27 23:45 - 2026-11-28 00:30 AST (run after the usage reset; APK 0.1.20261128.0425, real key, cert 6795e499...)
 - No new Gemini commits since the last cross-review; no gemini-work branch. Drive: no new notes or requests since the last run.
 - Done 432 (e2e-noise-race: fast Begin / sound chip / volume / pause taps never leave two sources live; fails if start() skips stop(); no bug), 443 (calm unit with a fake Web Audio clock: duck() in the fade-in or before a pause never leaves the sound low; no bug).
