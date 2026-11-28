@@ -238,6 +238,10 @@ const W = require('./lib/web.cjs');
     await page.clock.runFor(1000);
     await page.waitForSelector('#tl-card-listen');
     assert.ok(await page.$('#co-sick') && /Day 2 of feeling unwell/.test(await page.textContent('#me-sick-line')));
+    // 487: Move's "Not training today?" is open with Sick first and highlighted
+    await page.goto(base + '#workout'); await page.waitForSelector('#wo-rest');
+    const rs = await page.evaluate(() => ({ open: document.querySelector('#wo-rest').open, chips: [...document.querySelectorAll('[data-rest]')].map((x) => x.textContent), primary: document.querySelector('[data-rest="Sick"]').classList.contains('primary') }));
+    assert.deepStrictEqual(rs, { open: true, chips: ['Sick', 'Busy day', 'Sore', 'Tired', 'Planned rest'], primary: true });
     assert.deepStrictEqual(t.errors, []);
   });
   await t.close('sick stretch');

@@ -79,8 +79,12 @@
     if (!open && !worked) {
       var rw = W.restOn(S, dIso);
       h += rw ? '<div class="card ui" id="wo-rest"><div class="row"><span class="grow">Rest day logged: <b>' + esc(rw) + '</b></span><button class="link" id="wo-rest-undo">Undo</button></div></div>'
-        : '<details class="ui" id="wo-rest"><summary class="meta">Not training today?</summary><div class="chips" style="margin-top:6px">' + W.REST_REASONS.map(function (r) {
-          return '<button class="chip" data-rest="' + esc(r) + '">' + esc(r) + '</button>'; }).join('') + '</div><p class="meta">It’s kept as a rest day with your reason, not a missed workout.</p></details>';
+        : (function () {
+          // today's check-in says unwell (487): the sheet is open with "Sick" first and highlighted
+          var sk = !!(window.WLMe && WLMe.unwell && WLMe.unwell()), rs = sk ? ['Sick'].concat(W.REST_REASONS.filter(function (r) { return r !== 'Sick'; })) : W.REST_REASONS;
+          return '<details class="ui" id="wo-rest"' + (sk ? ' open' : '') + '><summary class="meta">Not training today?</summary><div class="chips" style="margin-top:6px">' + rs.map(function (r) {
+            return '<button class="chip' + (sk && r === 'Sick' ? ' primary' : '') + '" data-rest="' + esc(r) + '">' + esc(r) + '</button>'; }).join('');
+        })() + '</div><p class="meta">It’s kept as a rest day with your reason, not a missed workout.</p></details>';
     }
     if (!open) h += '<div class="chips ui" style="margin-bottom:10px">' + W.ORDER.map(function (d) {
       return '<button class="chip" data-day="' + d + '" aria-pressed="' + (d === day) + '">' + W.PROGRAM[d].title.replace('Full body ', 'Day ') + '</button>';
