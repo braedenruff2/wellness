@@ -174,7 +174,16 @@
     return true;
   }
 
-  var api = { KINDS: KINDS, LABELS: LABELS, samples: samples, preview: preview, setVolume: setVolume, volume: function () { return vol; }, VOLS: VOLS, previewing: function () { return !!previewT; }, start: start, stop: stop, duck: duck, current: function () { return curKind; } };
+  /* Back in the app (the phone was locked, or another app was open): Android may have suspended the audio; a sound
+     that should still be playing (a sit is running) carries on. Nothing starts if nothing was playing. */
+  function wake() {
+    if (!active || !active.ctx || active.ctx.state !== 'suspended' || !active.ctx.resume) return false;
+    try { var p = active.ctx.resume(); if (p && p.catch) p.catch(function () {}); } catch (e) { return false; }
+    return true;
+  }
+  if (root.document && root.document.addEventListener) root.document.addEventListener('visibilitychange', function () { if (!root.document.hidden) wake(); });
+
+  var api = { KINDS: KINDS, wake: wake, context: function () { return active ? active.ctx : null; }, LABELS: LABELS, samples: samples, preview: preview, setVolume: setVolume, volume: function () { return vol; }, VOLS: VOLS, previewing: function () { return !!previewT; }, start: start, stop: stop, duck: duck, current: function () { return curKind; } };
   root.WLNoise = api;
   if (root.WL) root.WL.noise = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -243,6 +243,24 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.clock.runFor(5000);
   });
 
+  await t.step('417: back in the app with the audio suspended by Android: a running sit\'s sound resumes; nothing starts when no sound was playing', async () => {
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-noise-pick');
+    await page.click('#c-noise-pick [data-noise="brown"]');
+    await page.click('#c-pp'); await page.clock.runFor(2000);
+    const r = await page.evaluate(() => {
+      const c = WLNoise.context(); let calls = 0;
+      Object.defineProperty(c, 'state', { configurable: true, get: () => 'suspended' });
+      c.resume = () => { calls++; return Promise.resolve(); };
+      document.dispatchEvent(new Event('visibilitychange'));
+      const during = calls;
+      WLNoise.stop();
+      document.dispatchEvent(new Event('visibilitychange'));
+      return { during, after: calls, cur: WLNoise.current() };
+    });
+    assert.deepStrictEqual(r, { during: 1, after: 1, cur: 'off' });
+    await page.click('#c-end'); await page.waitForSelector('#c-today');
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.step('the soft interval bell dips the background sound so it is heard; nothing to dip when the sound is off', async () => {
     await page.goto(base + '#calm');
