@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-28 01:25-01:40 AST (same run; APK 0.1.20261128.0537, real key, cert 6795e499...)
+- Done 447 (sick day in Calm: path sit offered at 10 min on Home and the sit screen, "or none at all, both count as rest"; the path card holds off on Move on / Back; e2e-rough) and 445 ("Undo: back to <dinner>" for 10 min after a sick-day soup swap, Home and Cooking; CookCore.restoreSlot; cook unit + e2e-sickday).
+- Tested: full suite after the rebase (120 suites, none skipped); APK verified.
+- Check on the phone: on a sick-day check-in, Calm's card says 10 min; swap a soup on Home, then Undo.
+
 ## 2026-11-28 00:30-01:25 AST (same run; APK 0.1.20261128.0520, real key, cert 6795e499...)
 - Done 437 (lintPack), 440 (an automatic Drive sync whose payload matches Drive's file apart from "exported" skips the write; a plain string comparison: a hash of a heavy year's 4 MB took the sync to 214 ms, over e2e-perf's 200 ms; now 63 ms), 443, 444 (more unwell phrasings), 448 ("(nothing new to save)" in Settings).
 - Done 441 (tests/e2e-sickday.cjs, typing on Home as he did):
