@@ -1,7 +1,7 @@
 # Cloud log
 
-## 2026-11-28 06:20-06:45 AST (same run; APK 0.1.20261128.1024, real key, cert 6795e499...)
-- Done 477 (checked: sick day across midnight, no bug), 479 (Home's today list on a sick day: "A sick day: rest counts"), 480 (Faith today() rest counts on a sick day; to-dos "only what can't wait"), 482 (independent read: 473's keep-rules too wide; narrowed). 481 dropped. Plan 484-488 added.
+## 2026-11-28 06:20-07:10 AST (same run; APK 0.1.20261128.1047, real key, cert 6795e499...)
+- Done 487 (Move's Not training today? opens with Sick first on a sick day), 477 (checked: sick day across midnight, no bug), 479 (Home's today list on a sick day: "A sick day: rest counts"), 480 (Faith today() rest counts on a sick day; to-dos "only what can't wait"), 482 (independent read: 473's keep-rules too wide; narrowed). 481 dropped. Plan 484-488 added.
 - The owner asked (live) for a much larger food database with vitamins and minerals, like Cronometer: proposed the Canadian Nutrient File (open licence, ~5,700 foods, 150+ nutrients; reachable from the PC) and USDA FoodData Central (its site answers 403 here); waiting for his OK to download.
 - Tested: full suite (122 suites, none skipped); APK verified.
 
