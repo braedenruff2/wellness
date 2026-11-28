@@ -38,6 +38,27 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await saved(), 20);
   });
 
+  await t.step('447: a sick day (his check-in note) offers 10 min too, and the path card holds off on moving on', async () => {
+    await page.evaluate(() => {
+      const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.settings.aim = 'train'; c.settings.sitMinutes = 20;
+      for (let d = 18; d <= 24; d++) c.sessions.push({ id: 'count', date: '2026-11-' + d, at: new Date(2026, 10, d, 7).toISOString(), mins: 20, focus: 3, hind: ['Nothing much'] });
+      localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+    });
+    await checkin({ sleep: '7 h+', wakes: '0', energy: 'OK', mood: 'Good', day: 'Good' });
+    await page.goto(base + '#calm'); await page.reload(); await page.waitForSelector('#c-path-ready');
+    assert.strictEqual(await page.$('#c-path-sick'), null, 'well: no sick line, Move on offered');
+    await checkin({ sleep: '7 h+', wakes: '0', energy: 'OK', mood: 'Good', day: 'Good', note: 'I think we\'re all sick, sore throat' });
+    await page.reload(); await page.waitForSelector('#c-path-sick');
+    assert.strictEqual(await page.$('#c-path-ready'), null, 'no Move on nudge on a sick day');
+    assert.ok(/count as rest/.test(await page.textContent('#c-path-sick')));
+    await page.goto(base + '#home'); await page.waitForSelector('.home-card[data-module="calm"]');
+    assert.ok(/Sick today: a 10-minute sit/.test(await page.textContent('.home-card[data-module="calm"]')), await page.textContent('.home-card[data-module="calm"]'));
+    assert.ok(await page.$('.home-card[data-module="calm"] a[href="#calm/s/count/10"]'), 'Begin starts the 10-minute sit');
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-rough');
+    assert.ok(/Sick today/.test(await page.textContent('#c-rough')));
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.sessions = c.sessions.filter((x) => x.date < '2026-11-18' || x.date > '2026-11-24'); c.settings.aim = undefined; localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });
+    await checkin({ sleep: '7 h+', wakes: '0', energy: 'OK', mood: 'Good', day: 'Good' });
+  });
   await t.step('a 10-minute default already: no line; other practices: no line', async () => {
     await page.click('[data-len="10"]'); // rough day, not saved
     await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.calm.v1')); c.settings.sitMinutes = 10; localStorage.setItem('wl.calm.v1', JSON.stringify(c)); });

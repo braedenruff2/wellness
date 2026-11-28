@@ -17,12 +17,14 @@
 
   /* A path sit on a rough day (short sleep, broken night or low energy in today's check-in): a shorter sit is fine.
      The 10-min chip picks it for this sit only; the saved length stays. */
+  function sick() { return !!(root.WLMe && root.WLMe.unwell && root.WLMe.unwell()); }
+  /* A short or broken night, low energy, or a sick day (his check-in): the path sit is offered at 10 minutes. */
   function roughDay(S, p) {
-    return !!(p && p.path && root.WLMe && root.WLMe.rough && root.WLMe.rough() && (S.settings.sitMinutes || 20) > 10);
+    return !!(p && p.path && root.WLMe && ((root.WLMe.rough && root.WLMe.rough()) || sick()) && (S.settings.sitMinutes || 20) > 10);
   }
   function roughLine(S, p) {
     if (!roughDay(S, p)) return '';
-    return '<p class="meta" id="c-rough" style="text-align:center;margin:0 0 6px">Short night: a 10-minute sit counts just as much today.</p>';
+    return '<p class="meta" id="c-rough" style="text-align:center;margin:0 0 6px">' + (sick() ? 'Sick today: a 10-minute sit, or none at all, both count as rest.' : 'Short night: a 10-minute sit counts just as much today.') + '</p>';
   }
   function quietChip(S, p) {
     if (!p || !p.path) return '';

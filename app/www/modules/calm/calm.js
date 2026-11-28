@@ -121,7 +121,7 @@
         (t.any ? '<div class="progress" style="margin:6px 0 10px"><div style="width:' + pct + '%"></div></div>' +
           '<p class="meta ui">' + esc(names0.join(', ')) + ' (' + Math.max(1, t.mins) + ' min) logged — good reset. About ' + left + ' min left for today’s goal:</p>' : '') +
         '<h3 style="margin:.2em 0">' + esc(sug.title) + ' · ' + mins(sug) + ' min</h3>' +
-        '<p class="meta ui">' + esc(sug.when) + '. ' + (sug.path ? 'Today’s sit on your meditation path.' + (window.WLMe && WLMe.rough() ? ' After a rough night, 10 minutes is plenty.' : '') : (window.WLMe && WLMe.rough() ? 'After a rough night, a short one is plenty.' : 'This one fits the time of day.')) + '</p>' + (sug.path ? '' : flatLine(sug) + howLine(sug)) +
+        '<p class="meta ui">' + esc(sug.when) + '. ' + (sug.path ? 'Today’s sit on your meditation path.' + (window.WLMe && WLMe.unwell && WLMe.unwell() ? ' Sick today: 10 minutes is plenty, and skipping it is fine.' : window.WLMe && WLMe.rough() ? ' After a rough night, 10 minutes is plenty.' : '') : (window.WLMe && WLMe.rough() ? 'After a rough night, a short one is plenty.' : 'This one fits the time of day.')) + '</p>' + (sug.path ? '' : flatLine(sug) + howLine(sug)) +
         '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + '">Begin</a><span class="grow"></span>' + fit(sug.id, sug.title) + '</div>' + racingLine() + '</div>';
     }
     var names = t.ids.map(titleOf).filter(function (x, i, a) { return a.indexOf(x) === i; });
@@ -151,9 +151,11 @@
       if (ps.when) h += '<p class="meta" id="c-path-when">' + esc(ps.when.text) + '</p>';
       if (ps.late && !(window.WLMe && WLMe.flagged && WLMe.flagged('calm', 'path:late')))
         h += '<p class="meta" id="c-path-late">' + esc(ps.late) + fit('path:late', ps.late) + '</p>';
-      if (ps.back) h += '<div class="row" id="c-path-back" style="gap:4px 8px"><span class="meta">Your mind has wandered a lot in recent sits at this stage. That’s normal; going back a step for a while often helps.</span><button class="chip" data-stage="' + ps.prev + '">Back to ' + esc(practice(ps.prev).title) + '</button></div>';
-      if (ps.ready) h += '<div class="row" id="c-path-ready" style="gap:4px 8px"><span class="meta">Your attention has been steady lately. Ready for the next stage?</span><button class="chip" data-stage="' + ps.next + '">Move on to ' + esc(nx.title) + '</button></div>';
-      else if (nx) h += '<p class="meta">The next stage (' + esc(nx.title) + ') is offered after ' + K.READY_SITS + ' sits here with your attention mostly steady in 3 of the last 5. There’s no hurry; you can also choose any stage below.</p>';
+      var sick = !!(window.WLMe && WLMe.unwell && WLMe.unwell());
+      if (sick) h += '<p class="meta" id="c-path-sick">Sick today: a short sit, or none at all, both count as rest. Moving on (or back) can wait until you’re well.</p>';
+      if (ps.back && !sick) h += '<div class="row" id="c-path-back" style="gap:4px 8px"><span class="meta">Your mind has wandered a lot in recent sits at this stage. That’s normal; going back a step for a while often helps.</span><button class="chip" data-stage="' + ps.prev + '">Back to ' + esc(practice(ps.prev).title) + '</button></div>';
+      if (ps.ready && !sick) h += '<div class="row" id="c-path-ready" style="gap:4px 8px"><span class="meta">Your attention has been steady lately. Ready for the next stage?</span><button class="chip" data-stage="' + ps.next + '">Move on to ' + esc(nx.title) + '</button></div>';
+      else if (nx && !sick) h += '<p class="meta">The next stage (' + esc(nx.title) + ') is offered after ' + K.READY_SITS + ' sits here with your attention mostly steady in 3 of the last 5. There’s no hurry; you can also choose any stage below.</p>';
     }
     h += '<ul class="list" id="c-stages">' + K.PATH.map(function (id) {
       var p = practice(id), here = id === ps.stage && S.settings.aim === 'train';
@@ -621,7 +623,8 @@
   }
 
   /* A path sit on a rough day (short or broken night, low energy): offered at 10 minutes, for that sit only. */
-  function roughSit(p) { return !!(p && p.path && window.WLMe && WLMe.rough && WLMe.rough() && mins(p) > 10 && lengths(p).indexOf(10) >= 0); }
+  function sickToday() { return !!(window.WLMe && WLMe.unwell && WLMe.unwell()); }
+  function roughSit(p) { return !!(p && p.path && window.WLMe && ((WLMe.rough && WLMe.rough()) || sickToday()) && mins(p) > 10 && lengths(p).indexOf(10) >= 0); }
   function card() {
     var t = K.today(S), sug = practice(K.suggest(S, null, sopts()));
     // not answered yet: the same one-tap question as on Calm (he may never open the Calm tab first); after the done card
@@ -632,7 +635,7 @@
     // a sit on a rough day (short night, broken night, low energy): 10 minutes, for that sit only
     var short = roughSit(sug);
     return '<div class="meta ui">' + (t.any ? 'Calm · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min today' : 'Calm · today’s practice (goal ' + t.goal + ' min)') + '</div><h3>' + esc(sug.title) + ' · ' + (short ? 10 : mins(sug)) + ' min</h3>' +
-      (short ? '<p class="meta ui" id="c-card-rough">Short night: a 10-minute sit counts just as much today.</p>' : '<p class="meta ui">' + esc(K.advice(S)) + '</p>') +
+      (short ? '<p class="meta ui" id="c-card-rough">' + (sickToday() ? 'Sick today: a 10-minute sit, or none at all, both count as rest.' : 'Short night: a 10-minute sit counts just as much today.') + '</p>' : '<p class="meta ui">' + esc(K.advice(S)) + '</p>') +
       '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + (short ? '/10' : '') + '">Begin</a><a class="btn" href="#calm/all">All practices</a></div>';
   }
 
