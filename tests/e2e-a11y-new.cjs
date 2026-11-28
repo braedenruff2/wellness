@@ -152,7 +152,7 @@ const W = require('./lib/web.cjs');
     const rgb = (s) => (s.match(/[\d.]+/g) || [0, 0, 0]).slice(0, 3).map(Number);
     const lum = (c) => { c = c.map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
     const bg = (e) => { while (e) { const b = getComputedStyle(e).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return rgb(b); e = e.parentElement; } return [255, 255, 255]; };
-    const sels = ['p', '.meta', '.no', '.ok', 'b', 'a', 'button', 'summary', '.wk4-rest', '.trow .tl', 'input[type="search"]', 'input[type="text"]', 'input[type="date"]', 'input[type="time"]', 'textarea', 'select', 'label'].map((s) => rootSel + ' ' + s).join(', ');
+    const sels = ['p', '.meta', '.no', '.ok', 'b', 'a', 'button', 'summary', '.wk4-rest', '.trow .tl', '.wl-reply-badge', 'input[type="search"]', 'input[type="text"]', 'input[type="date"]', 'input[type="time"]', 'textarea', 'select', 'label'].map((s) => rootSel + ' ' + s).join(', ');
     return Array.from(document.querySelectorAll(sels)).filter((e) => {
       if (e.offsetParent === null) return false;
       if (e.tagName === 'INPUT' || e.tagName === 'TEXTAREA' || e.tagName === 'SELECT') return true;
@@ -1021,6 +1021,78 @@ const W = require('./lib/web.cjs');
       await t.noOverflow(['#cook', '#cook/week', '#cook/log', '#cook/pantry']);
     });
   }
+  // Task 426: a11y coverage for 415/418/419/423/424 UI (#ck-sick-soup, #ck-sick-card, #c-finish-here, #fc-prev-note/#fc-prev-dismiss, .wl-reply-badge, #me-still-unwell)
+  for (const [ts, theme, vw] of [[1, 'light', 360], [1.3, 'light', 320], [1, 'dark', 360], [1, 'night', 320]]) {
+    const min = theme === 'night' ? 3 : 4.5;
+    await t.step('426 UI at ' + ts + 'x ' + theme + ' (' + vw + 'px): sick soup/still-unwell, long-pause finish, Faith prev note, reply badges', async () => {
+      await page.setViewportSize({ width: vw, height: 760 });
+      await look(ts, theme); await seed();
+      const bad = async (sel) => (await contrast(sel)).filter((x) => x.r < min);
+      const ov = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      await page.clock.setSystemTime(new Date(2026, 10, 28, 10, 0));
+      await page.evaluate(() => {
+        const m = JSON.parse(localStorage.getItem('wl.me.v1') || '{"feedback":[],"checkins":{}}');
+        m.checkins = m.checkins || {};
+        m.checkins['2026-11-27'] = { at: '2026-11-27T14:00:00.000Z', sleep: '7 h+', wakes: '0', energy: 'OK', mood: 'OK', day: 'Good', note: 'We are all sick with a sore throat' };
+        m.checkins['2026-11-28'] = { at: '2026-11-28T13:00:00.000Z', stillUnwell: 'Yes' };
+        m.feedback = (m.feedback || []).concat([{
+          id: 'faith/after/day:1@prev', at: '2026-10-10T12:00:00.000Z', part: 'faith', kind: 'after',
+          about: 'day:1@prev', a: { felt: 'Peaceful' }, note: 'Quiet gratitude stayed with me through the morning.'
+        }]);
+        localStorage.setItem('wl.me.v1', JSON.stringify(m));
+        const fc = JSON.parse(localStorage.getItem('fc.v1') || '{}');
+        fc.round = 2; fc.done = {}; fc.pastRounds = [{ done: { 1: '2026-10-10' }, ended: '2026-11-01' }];
+        localStorage.setItem('fc.v1', JSON.stringify(fc));
+        const c = JSON.parse(localStorage.getItem('wl.calm.v1') || '{"sessions":[],"settings":{}}');
+        c.settings = Object.assign(c.settings || {}, { aim: 'train', stage: 'count', sitMinutes: 20, dark: false });
+        localStorage.setItem('wl.calm.v1', JSON.stringify(c));
+        localStorage.setItem('wl.notes.v1', JSON.stringify({
+          notes: [{ id: 'unseen1', at: '2026-11-27T18:00:00.000Z', where: '#home', tag: 'Idea', text: 'Reply badge check', read: '2026-11-27T19:00:00.000Z', reply: 'Done in the latest build.' }]
+        }));
+        if (window.WL && WL.notes && WL.notes.reload) WL.notes.reload();
+        if (window.WL && WL.modules) Object.keys(WL.modules).forEach((k) => { if (WL.modules[k].reload) WL.modules[k].reload(); });
+      });
+      // Home: #me-still-unwell, #ck-sick-soup, and unseen .wl-reply-badge on Home button & footer bar
+      await page.goto(base + '#home'); await page.reload();
+      await page.waitForSelector('#me-still-unwell'); await page.waitForSelector('#ck-sick-soup');
+      await page.waitForSelector('#wl-note-open .wl-reply-badge'); await page.waitForSelector('#wl-bar-note .wl-reply-badge');
+      assert.deepStrictEqual(await small('#me-still-unwell button, #ck-sick-soup, #wl-note-open, #wl-bar-note'), [], 'Home 426 targets');
+      assert.deepStrictEqual(await bad('#me-still-unwell'), [], theme + ' #me-still-unwell');
+      assert.deepStrictEqual(await bad('#ck-sick-soup-row'), [], theme + ' #ck-sick-soup');
+      assert.deepStrictEqual(await bad('#wl-note-open'), [], theme + ' Home .wl-reply-badge');
+      assert.deepStrictEqual(await bad('#wl-bar-note'), [], theme + ' footer .wl-reply-badge');
+      assert.ok((await ov()) <= 2, 'Home 426 overflow ' + (await ov()));
+      // Note sheet: unseen .wl-reply-badge on #wl-note-list summary
+      await page.click('#wl-note-open'); await page.waitForSelector('#wl-note-list .wl-reply-badge');
+      assert.deepStrictEqual(await small('#wl-note-list summary'), [], 'sheet summary target');
+      assert.deepStrictEqual(await bad('#wl-note-list summary'), [], theme + ' sheet .wl-reply-badge');
+      assert.ok((await ov()) <= 2, 'note sheet 426 overflow ' + (await ov()));
+      await page.keyboard.press('Escape');
+      // Cooking Today: #ck-sick-card
+      await page.goto(base + '#cook'); await page.waitForSelector('#ck-sick-card [data-sick-soup]');
+      assert.deepStrictEqual(await small('#ck-sick-card [data-sick-soup]'), [], '#ck-sick-card targets');
+      assert.deepStrictEqual(await bad('#ck-sick-card'), [], theme + ' #ck-sick-card');
+      assert.ok((await ov()) <= 2, '#cook 426 overflow ' + (await ov()));
+      // Faith day in round 2+: #fc-prev-note & #fc-prev-dismiss
+      await page.goto(base + '#faith/day/1'); await page.waitForSelector('#fc-prev-note'); await page.waitForSelector('#fc-prev-dismiss');
+      assert.deepStrictEqual(await small('#fc-prev-dismiss'), [], '#fc-prev-dismiss target');
+      assert.deepStrictEqual(await bad('#fc-prev-note'), [], theme + ' #fc-prev-note');
+      assert.ok((await ov()) <= 2, '#faith/day/1 426 overflow ' + (await ov()));
+      // Calm path sit paused 10+ min: #c-finish-here
+      await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-pp');
+      await page.click('#c-pp');
+      await page.clock.fastForward(65000);
+      await page.click('#c-pp'); // Pause
+      await page.clock.fastForward(11 * 60000);
+      await page.waitForSelector('#c-long-pause:not([hidden]) #c-finish-here');
+      assert.deepStrictEqual(await small('#c-pp, #c-finish-here, #c-end'), [], '#c-finish-here targets');
+      assert.deepStrictEqual(await bad('#c-long-pause'), [], theme + ' #c-finish-here');
+      assert.ok((await ov()) <= 2, '#calm/s/count 426 overflow ' + (await ov()));
+      await page.click('#c-end'); await page.waitForSelector('#c-today');
+      await page.evaluate(() => window.WLNoise && WLNoise.stop());
+    });
+  }
+  await page.setViewportSize({ width: 360, height: 760 });
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('a11y of new UI');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });
