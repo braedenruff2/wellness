@@ -134,6 +134,7 @@
       var fresh = el.cloneNode(false); fresh.innerHTML = m.card(); el.parentNode.replaceChild(fresh, el);
       if (m.wireCard) try { m.wireCard(fresh); } catch (e) {}
     });
+    if (WL.refreshToday) WL.refreshToday();
   }
   document.addEventListener('click', function (e) {
     var b = e.target.closest && e.target.closest('[data-me-a],[data-me-ck],[data-me-unwell],[data-me-fit],[data-me-plan-dismiss]');

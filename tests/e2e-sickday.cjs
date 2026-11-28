@@ -114,5 +114,30 @@ const W = require('./lib/web.cjs');
     assert.strictEqual(await page.$('#ck-sick-undo'), null);
     assert.deepStrictEqual(t.errors, []);
   });
+
+  await t.step('451: "Rest today (sick)" tapped, then check-in note edited to fine: rest day stays, Home stops calling it a sick day', async () => {
+    await page.clock.setSystemTime(new Date(2026, 11, 1, 9, 0));
+    await page.goto(base + '#home'); await page.reload();
+    await page.waitForSelector('#me-ck-note');
+    await page.fill('#me-ck-note', 'We are all sick with a cold');
+    await page.press('#me-ck-note', 'Tab');
+    await page.waitForSelector('#wo-rough-rest');
+    await page.click('#wo-rough-rest');
+    await page.waitForFunction(() => !document.querySelector('#wo-rough-rest'));
+    assert.ok(/Move: rest day \(sick\)/.test(await page.textContent('#wl-today')), 'Home today list calls it sick while note is sick');
+    assert.ok(/Rest until you’re better/.test(await page.textContent('.home-card[data-module="workout"]')), 'Move card says sick rest');
+    // Edit the check-in note live on Home to say they are fine
+    await page.fill('#me-ck-note', 'Actually feeling totally fine today');
+    await page.press('#me-ck-note', 'Tab');
+    const todayText = await page.textContent('#wl-today');
+    const moveText = await page.textContent('.home-card[data-module="workout"]');
+    assert.ok(/Move: rest day\b/.test(todayText) && !/sick/i.test(todayText), 'Home today list keeps Move rest day without calling it sick: ' + todayText);
+    assert.ok(/Rest day logged/.test(moveText) && !/Rest until you’re better/i.test(moveText), 'Move card keeps rest day without sick wording: ' + moveText);
+    assert.strictEqual(await page.$('#wo-rough-rest'), null, 'rest button stays gone');
+    assert.deepStrictEqual(await state(), NONE, 'all Home sick-day banners/cards are off');
+    const savedRest = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.workout.v1')).rest['2026-12-01']);
+    assert.ok(savedRest && savedRest.why === 'Sick' && savedRest.fromCheckin === true, 'rest day stayed saved: ' + JSON.stringify(savedRest));
+    assert.deepStrictEqual(t.errors, []);
+  });
   await t.close('sick stretch');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

@@ -56,7 +56,7 @@
   function today() {
     var open = W.openSession(S, now()), fin = !open && W.finishedToday(S, now());
     var day = open ? open.day : (dayChoice || W.nextDay(S, now())), plan = W.PROGRAM[day];
-    var M = window.WLMe, co = W.coach(S, now());
+    var M = window.WLMe, co = W.coach(S, now(), meOpts());
     if (fin && !forceAhead) {
       var h0 = subnav('') + '<div class="row ui"><h1 class="grow" style="margin:0">Done for today \u2713</h1>' + weekDots(now()) + '</div>';
       if (!coachHidden(co)) h0 += '<p class="meta ui">' + esc(co) + (M ? ' ' + M.fitLink('workout', coachKey(co), co) : '') + '</p>';
@@ -532,6 +532,7 @@
     if (!document.hidden && rest && $('#restbar')) showRest();
   });
 
+  function meOpts() { return window.WLMe && WLMe.unwell ? { unwell: !!WLMe.unwell() } : null; }
   function card() {
     var open = W.openSession(S, now()), fin = !open && W.finishedToday(S, now()), day = open ? open.day : W.nextDay(S, now()), plan = W.PROGRAM[day];
     if (fin) {
@@ -539,7 +540,7 @@
         '<p class="meta ui">Finished ' + esc(W.PROGRAM[fin.day].title) + '. Next: ' + esc(plan.title) + '.</p><div class="row ui"><a class="btn" href="#workout">Open</a></div>';
     }
     return '<div class="meta ui">Workout</div><div class="row"><h3 class="grow">' + (open ? 'In progress: ' : 'Next: ') + esc(plan.title) + '</h3>' + weekDots() + '</div>' +
-      '<p class="meta ui">' + esc(W.coach(S, now())) + '</p><div class="row ui"><a class="btn primary" href="#workout">' + (open ? 'Carry on' : 'Start') + '</a>' + roughRest(open) + '</div>';
+      '<p class="meta ui">' + esc(W.coach(S, now(), meOpts())) + '</p><div class="row ui"><a class="btn primary" href="#workout">' + (open ? 'Carry on' : 'Start') + '</a>' + roughRest(open) + '</div>';
   }
   /* A rough night (today's check-in: very short sleep or low energy): one tap makes today a rest day ("Tired"),
      never a missed workout. Not once he has said "Not for me" to it, nor with a workout under way or a rest logged. */
@@ -556,7 +557,7 @@
     el.addEventListener('click', function (e) {
       var b = e.target.closest('[data-rough-rest]'); if (!b) return;
       var why = b.dataset.roughRest === 'Sick' ? 'Sick' : 'Tired';
-      W.logRest(S, W.iso(now()), why, new Date()); save();
+      W.logRest(S, W.iso(now()), why, new Date(), why === 'Sick' ? { fromCheckin: true } : null); save();
       el.innerHTML = card(); if (WL.refreshToday) WL.refreshToday();
       WL.toast('Rest day kept: ' + why.toLowerCase() + '. Not a missed workout.');
     });
@@ -570,7 +571,7 @@
       var t = n ? n + ' workout' + (n === 1 ? '' : 's') : '';
       return r ? (t ? t + ', ' : '') + r + ' rest day' + (r === 1 ? '' : 's') + ' you chose' : t;
     },
-    today: function () { var t = W.today(S, new Date()); return t.done ? { label: 'Move: ' + t.text, done: true, href: '#workout' } : { label: 'Move: ' + t.text, done: false, href: '#workout' }; },
+    today: function () { var t = W.today(S, new Date(), meOpts()); return t.done ? { label: 'Move: ' + t.text, done: true, href: '#workout' } : { label: 'Move: ' + t.text, done: false, href: '#workout' }; },
     storageKeys: [store.key], settingsLink: '#workout/settings',
     route: route, leave: leave, card: card,
     validate: function (k, raw) { try { var s = W.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },

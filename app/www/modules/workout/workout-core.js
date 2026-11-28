@@ -86,11 +86,17 @@
     return busy >= 2;
   }
   function restOn(state, day) { var r = state.rest && state.rest[day]; return r && r.why ? r.why : null; }
-  function logRest(state, day, why, now) {
+  function sickRestCleared(state, day, opts) {
+    var r = state.rest && state.rest[day];
+    return !!(r && r.why === 'Sick' && r.fromCheckin && opts && opts.unwell === false);
+  }
+  function logRest(state, day, why, now, opts) {
     if (REST_REASONS.indexOf(why) < 0) throw new Error('Unknown reason');
     clearRest(state, day);
     if (!state.rest) state.rest = {};
-    state.rest[day] = { why: why, at: (now || new Date()).toISOString() };
+    var rec = { why: why, at: (now || new Date()).toISOString() };
+    if (why === 'Sick' && opts && opts.fromCheckin) rec.fromCheckin = true;
+    state.rest[day] = rec;
     var ks = Object.keys(state.rest).sort();
     if (ks.length > 200) ks.slice(0, ks.length - 200).forEach(function (k) { delete state.rest[k]; });
     return state.rest[day];
@@ -510,7 +516,7 @@
   }
 
   /* One sentence of coaching for the Home card. */
-  function coach(state, now) {
+  function coach(state, now, opts) {
     now = now || new Date();
     var st = weekStats(state, now), dow = (now.getDay() + 6) % 7, todayIso = iso(now); // 0 = Monday
     var done = sessionsWithSets(state).filter(function (s) { return s.date <= todayIso; });
@@ -523,7 +529,7 @@
     if (open) return 'In progress: ' + open.sets.length + ' set' + (open.sets.length === 1 ? '' : 's') + ' so far. Keep going.';
     if (lastDate === iso(now)) return 'Done for today. Rest is when the muscle actually grows.';
     var restToday = restOn(state, todayIso);
-    if (restToday) return REST_LINES[restToday];
+    if (restToday) return sickRestCleared(state, todayIso, opts) ? 'Rest day logged. The next workout picks up where you left off.' : REST_LINES[restToday];
     var soreToday = soreOn(state, todayIso);
     if (soreToday === 'Very') return 'Very sore today: do two sets of each and keep the weights the same, or make it a rest day (“Not training today?” › Sore). Moving gently usually helps it ease.';
     if (soreToday === 'A bit') return 'A bit sore is normal: warm up well and it usually eases once you’re moving.';
@@ -553,7 +559,7 @@
 
   /* Home's "today" line: a workout done today, a rest day that's part of the plan (worked out yesterday, or the
      week's three are done), or the next workout. {done, text} */
-  function today(state, now) {
+  function today(state, now, opts) {
     now = now || new Date();
     var d = iso(now), y = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
     var dates = {}; sessionsWithSets(state).forEach(function (s) { dates[s.date] = 1; }); historyWithSets(state).forEach(function (h) { dates[h.date] = 1; });
@@ -561,7 +567,7 @@
     if (open) return { done: false, text: 'in progress (' + PROGRAM[open.day].title + ')' };
     if (dates[d]) return { done: true, text: 'workout done' };
     var rd = restOn(state, d);
-    if (rd) return { done: true, text: 'rest day (' + rd.toLowerCase() + ')' };
+    if (rd) return { done: true, text: sickRestCleared(state, d, opts) ? 'rest day' : 'rest day (' + rd.toLowerCase() + ')' };
     var st = weekStats(state, now);
     if (st.thisWeek >= st.target) return { done: true, text: st.target + ' this week, rest or a walk' };
     if (dates[y]) return { done: true, text: 'rest day (worked out yesterday)' };
@@ -714,7 +720,12 @@
     Object.keys(s.weights || {}).forEach(function (k) { var w = cleanWeight(s.weights[k]); if (EX[k] && typeof s.weights[k] === 'number' && w != null) d.weights[k] = w; });
     Object.keys(s.next || {}).forEach(function (k) { if (EX[k] && typeof s.next[k] === 'string') d.next[k] = s.next[k]; });
     if (s.rest && typeof s.rest === 'object') Object.keys(s.rest).sort().slice(-200).forEach(function (k) {
-      var r = s.rest[k]; if (isDate(k) && r && REST_REASONS.indexOf(r.why) >= 0 && typeof r.at === 'string' && !isNaN(Date.parse(r.at))) { if (!d.rest) d.rest = {}; d.rest[k] = { why: r.why, at: r.at }; }
+      var r = s.rest[k]; if (isDate(k) && r && REST_REASONS.indexOf(r.why) >= 0 && typeof r.at === 'string' && !isNaN(Date.parse(r.at))) {
+        if (!d.rest) d.rest = {};
+        var rec = { why: r.why, at: r.at };
+        if (r.why === 'Sick' && r.fromCheckin === true) rec.fromCheckin = true;
+        d.rest[k] = rec;
+      }
     });
     if (s.sore && typeof s.sore === 'object') Object.keys(s.sore).sort().slice(-120).forEach(function (k) {
       var x = s.sore[k]; if (isDate(k) && x && SORE_LEVELS.indexOf(x.level) >= 0 && typeof x.at === 'string' && !isNaN(Date.parse(x.at))) { if (!d.sore) d.sore = {}; d.sore[k] = { level: x.level, at: x.at }; }

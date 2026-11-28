@@ -700,4 +700,21 @@ t('436: compact archives closed sessions older than 180 days while preserving al
   const v = W.validate(JSON.parse(JSON.stringify(s)));
   assert.deepStrictEqual(v.archive, s.archive, 'archive survives validate() identically');
 });
+t('451: sick rest tapped from check-in stays a rest day when check-in is edited to fine, but stops calling it a sick day', () => {
+  const s = W.defaults();
+  W.logRest(s, '2026-11-28', 'Sick', at(28, 9), { fromCheckin: true });
+  assert.strictEqual(W.restOn(s, '2026-11-28'), 'Sick');
+  assert.deepStrictEqual(W.today(s, at(28, 10), { unwell: true }), { done: true, text: 'rest day (sick)' });
+  assert.ok(/Rest until you’re better/.test(W.coach(s, at(28, 10), { unwell: true })));
+  // check-in edited to fine (unwell: false): rest day stays done, no longer called a sick day
+  assert.deepStrictEqual(W.today(s, at(28, 10), { unwell: false }), { done: true, text: 'rest day' });
+  assert.ok(/Rest day logged/.test(W.coach(s, at(28, 10), { unwell: false })) && !/better/i.test(W.coach(s, at(28, 10), { unwell: false })));
+  const v = W.validate(JSON.parse(JSON.stringify(s)));
+  assert.strictEqual(v.rest['2026-11-28'].fromCheckin, true, 'fromCheckin preserved on Sick rest');
+  // manual Sick rest picked directly on Move (without fromCheckin) still says sick even when unwell is false
+  const m = W.defaults();
+  W.logRest(m, '2026-11-28', 'Sick', at(28, 9));
+  assert.deepStrictEqual(W.today(m, at(28, 10), { unwell: false }), { done: true, text: 'rest day (sick)' });
+  assert.ok(/Rest until you’re better/.test(W.coach(m, at(28, 10), { unwell: false })));
+});
 console.log(n + ' workout unit tests passed');
