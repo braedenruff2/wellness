@@ -1,5 +1,11 @@
 # Cloud log
 
+## 2026-11-28 05:10-05:50 AST (same run; APK 0.1.20261128.0947, real key, cert 6795e499...)
+- Done 463 (a11y for the new sick-day UI: all pass), 464 (independent read of 457/460-462: no real bugs; the ticked Tagalog item on Home now opens #tagalog instead of starting audio), 465 (Move: "First workout after being sick: go lighter" after a Sick rest day in the last week, until he trains), 466 (Sunday's Your week: "N sick days (rest counted)"), 467 (a full hands-free Tagalog listen counts the day as practised; "Listened while resting" on a sick day), 468 (matcher: ill-fitting, "ill be", a cold drink/day/shower, fever pitch, flu season, a sick friend no longer count), 469 (perf on day 30 of a sick stretch: Home ~45 ms at CPU 4x), 470 (a sick rest from a note later edited to fine doesn't bring 465's line; WLMe.unwellOn), 472; 471 dropped. Plan 473-478 added.
+- Rotation: Singing Helper turn (mid-song BPM changes; TV words offset; its own log). focus.md's project line edit was refused again, left as is.
+- Tested: full suite (122 suites, none skipped); APK verified.
+- Check on the phone: a sick check-in, then Tagalog > Listen while resting to the end: the card says "Listened while resting"; Move after "Better now" says go lighter.
+
 ## 2026-11-28 04:43-05:10 AST (run after the usage reset; APK 0.1.20261128.0909, real key, cert 6795e499...)
 - No new Gemini commits since the last cross-review; no gemini-work branch. Drive: sync file unchanged since the last run (no new notes or requests). Not Wednesday: no lesson pack.
 - Done 460 (Tagalog on a sick day: Home card / #tagalog say "Sick today: no lesson needed"; "Listen while resting" opens the lesson he finished last and reads words + conversation hands-free; the /listen hash is dropped once it starts so Back never restarts it; today() not left undone; TagalogCore.restLesson; tagalog unit + e2e-sick).
