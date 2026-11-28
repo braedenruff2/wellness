@@ -221,8 +221,8 @@
   var UNWELL = /\b(sick|ill|unwell|fever|feverish|flu|cough|coughing|throat|hoarse|vomit|vomited|vomiting|throwing up|threw up|puked|puking|diarrh(o)?ea|stomach bug|congested|runny nose|sniffles|covid|rsv|croup|ear infection|under the weather|a temperature)\b|\b(a|the|my|her|his|got|caught|have|has) cold\b/i;
   /* A strip rule that leaves the words alone when they follow one of these (473): "felt ill just after dinner" is ill,
      "got a cold day 3" is a cold. */
-  var FEEL = /\b(felt|feel|feels|feeling|fell|been|got|getting|am|is|are|was|were|so|very|still|quite|really|bit|kinda|seriously|pretty)\s*$/i;
-  var CAUGHT = /\b(got|caught|have|has|had|having|with|getting|fighting|still|another)\s*$/i;
+  var FEEL = /\b(felt|feel|feels|feeling|fell|been|am|very|quite|bit|kinda|seriously)\s*$/i; // not so/still/got/is: those come before "I'll" far more often
+  var CAUGHT = /\b(got|caught|have|has|having|getting|fighting|another)\s*$/i;
   function keepAfter(re) { return function (m) { var at = arguments[arguments.length - 2], src = arguments[arguments.length - 1]; return re.test(src.slice(Math.max(0, at - 30), at)) ? m : ''; }; }
   function noteUnwell(text) {
     var t = String(text || '');
@@ -234,9 +234,9 @@
       // words that only look like it (468): "ill-fitting", "ill be there" (I'll), "a cold drink / day / shower", "fever pitch",
       // "flu season", someone outside the family ("a sick friend", "sick coworker")
       .replace(/\bill-[a-z]+/ig, '').replace(/\bill (be|go|do|try|get|call|see|take|make|let|just|text|send|check)\b/ig, keepAfter(FEEL))
-      .replace(/\b(a|the|my|her|his) cold (drinks?|beers?|ones?|snap|front|weather|showers?|plunge|water|glass|brew|coffee|pizza|wind|call|feet|hands|room|house|car)\b/ig, '')
+      .replace(/\b(a|the|my|her|his|got|caught|have|has) cold (drinks?|beers?|ones?|snap|front|weather|showers?|plunge|water|glass|brew|coffee|pizza|wind|call|feet|hands|room|house|car)\b/ig, '')
       .replace(/\b(a|the|my|her|his) cold (days?|nights?|mornings?|evenings?|spell|start)\b/ig, keepAfter(CAUGHT))
-      .replace(/\bfever pitch\b/ig, '').replace(/\bflu season (is|starts|coming|shots?|jabs?|vaccines?|again|already)\b/ig, '')
+      .replace(/\bfever pitch\b/ig, '').replace(/\bflu season (is|starts|coming|shots?|jabs?|vaccines?|again|already)\b/ig, '').replace(/\b(for|before|ahead of) flu season\b/ig, '')
       .replace(/\b(a|my|our|his|her) sick (friend|friends|neighbou?rs?|coworkers?|co-workers?|colleagues?|patients?)\b/ig, '')
       .replace(/\ba temperature of\b/ig, '').replace(/\bno (fever|cough|temperature)\b/ig, '').replace(/\b(not|isn['’]?t|aren['’]?t|no longer) (sick|ill|unwell)\b/ig, '');
     return UNWELL.test(rest);

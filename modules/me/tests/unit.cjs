@@ -675,11 +675,14 @@ t('475: check-in events carry sickDay (the app\'s own count) so the PC summary n
   assert.deepStrictEqual(ev.map((e) => e.data.sickDay || 0), [1, 2, 0, 0], JSON.stringify(ev));
 });
 t('468: words that only look unwell stay a normal day; real ones still count', () => {
-  for (const t of ['ill-fitting jeans', 'she was ill-tempered today', 'ill be there at 6', 'grabbed a cold drink', 'a cold beer after work', 'the cold weather again', 'had a cold shower', 'its a cold day', 'a cold front coming', 'fever pitch at the game', 'flu season is coming', 'visiting a sick friend', 'my sick coworker went home', 'ok ill call you later', 'flu season is coming again'])
+  for (const t of ['ill-fitting jeans', 'she was ill-tempered today', 'ill be there at 6', 'grabbed a cold drink', 'a cold beer after work', 'the cold weather again', 'had a cold shower', 'its a cold day', 'a cold front coming', 'fever pitch at the game', 'flu season is coming', 'visiting a sick friend', 'my sick coworker went home', 'ok ill call you later', 'flu season is coming again',
+    // 482: the 473 keep-rules must not bring these back
+    'running late so ill be there at 6', 'got home, so ill call you tomorrow', 'still ill be there', 'so ill just texted mom', 'got cold feet', 'have cold drinks in the fridge', 'got cold hands outside',
+    'it is still a cold day out', 'we had a cold start this morning', 'had a cold day at the park', 'getting ready for flu season'])
     assert.strictEqual(K.noteUnwell(t), false, t);
   for (const t of ['she got a cold', 'I have a cold', 'caught a cold, cold day too', 'feeling ill', 'ill again today', 'sore throat', 'fever last night', 'flu', 'we have the flu, flu season indeed', 'a sick friend visited and now I am sick too', 'I think we\'re all sick',
     // 473: the strip rules must not eat the real thing
-    'Felt ill just after dinner', 'feeling ill do not disturb', 'Felt ill go figure', 'Got a cold day 3', 'The kids have a cold nights are rough', 'Kids have a cold start of week', 'Flu season got us all', 'still a cold day 2'])
+    'Felt ill just after dinner', 'feeling ill do not disturb', 'Felt ill go figure', 'Got a cold day 3', 'The kids have a cold nights are rough', 'Kids have a cold start of week', 'Flu season got us all', 'I am ill be back tomorrow'])
     assert.strictEqual(K.noteUnwell(t), true, t);
 });
 t('466: sickDaysIn counts unwell days in the last 7 (today included), Still unwell Yes too, nothing older', () => {
