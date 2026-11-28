@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-28 02:05-03:20 AST (same run)
+- Done 455 -> renumbered 459 (Calm: "Unwell" as what got in the way, ticked for him on a sick-day check-in, never counts against moving on; calm unit + e2e-rough + e2e-path).
+- Collisions with Gemini: my 449 (journal export) and 451 sat unpushed while three rebases waited on full suites; Gemini claimed and did both meanwhile. Rebased onto theirs: dropped my 449 (theirs kept), kept Gemini's 451 fix and test (my "no bug" 451 step was a duplicate and broke theirs: removed). My plan tasks 452-455 renumbered 456-459 next to Gemini's 452-454. Lesson: push the claim on its own right away, never bundled with the work.
+- Cross-review: Gemini 426 (a11y, tests only), 427 (pc summary), 436 (Calm/Move compaction into archive counts; timesDone/pathStatus read the archive), 449, 451: read, no bugs found.
+
 ## 2026-11-28 01:40-02:05 AST (same run; APK 0.1.20261128.0604, real key, cert 6795e499...)
 - Done 446 (tests/e2e-a11y-sick.cjs: all pass), 442 (checked: no change), 439 (Journal > All: his own words, read-only).
 - Done 450: an independent read of today's Claude commits found 5 real bugs; each fixed with a test:
