@@ -218,6 +218,31 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'off');
   });
 
+  await t.step('411: Soft / Medium / Louder for the sound, live during a sit, kept, hidden when the sound is Off', async () => {
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-noise-pick');
+    await page.click('#c-noise-pick [data-noise="brown"]');
+    assert.strictEqual(await page.isVisible('#c-noise-pick-vol'), true);
+    assert.strictEqual(await page.getAttribute('#c-noise-pick-vol [data-noise-vol="medium"]', 'aria-pressed'), 'true', 'medium by default');
+    await page.click('#c-pp'); await page.clock.runFor(2000);
+    await page.click('#c-noise-pick-vol [data-noise-vol="soft"]');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.volume()), 0.5, 'softer at once');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.current()), 'brown', 'still playing');
+    await page.click('#c-noise-pick-vol [data-noise-vol="loud"]');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.volume()), 1.7);
+    assert.strictEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('wl.calm.v1')).settings.noiseVol), 'loud');
+    await page.click('#c-noise-pick [data-noise="off"]');
+    assert.strictEqual(await page.isHidden('#c-noise-pick-vol'), true, 'no volume for no sound');
+    await page.click('#c-end'); await page.waitForSelector('#c-today');
+    await page.reload();
+    await page.click('#c-settings summary'); await page.waitForSelector('#c-noise');
+    assert.strictEqual(await page.isHidden('#c-noise-vol'), true);
+    await page.click('#c-noise [data-noise="pink"]');
+    await page.waitForSelector('#c-noise-vol [data-noise-vol="loud"][aria-pressed="true"]');
+    await page.click('#c-noise-vol [data-noise-vol="medium"]');
+    assert.strictEqual(await page.evaluate(() => window.WLNoise.volume()), 1);
+    await page.clock.runFor(5000);
+  });
+
   await t.step('no errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.step('the soft interval bell dips the background sound so it is heard; nothing to dip when the sound is off', async () => {
     await page.goto(base + '#calm');

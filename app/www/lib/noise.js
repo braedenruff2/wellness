@@ -12,6 +12,10 @@
   /* Loop lengths: long enough that the ear can't hear the loop repeat (a 3 s brown loop sounded like a drum beat). */
   var SECS = { brown: 23, pink: 19, white: 11, fan: 17, ocean: 37 };
 
+  /* Volume: soft / medium (as always) / loud, a multiplier on each kind's level. */
+  var VOLS = { soft: 0.5, medium: 1, loud: 1.7 }, vol = 1;
+  function level(kind) { return (GAIN[kind] || 0.08) * vol; }
+
   var ctx = null, active = null, curKind = 'off', previewT = null;
 
   function getCtx() {
@@ -120,7 +124,7 @@
       src.loop = true;
       var gain = c.createGain(), t = c.currentTime;
       gain.gain.setValueAtTime(0.0001, t);
-      gain.gain.exponentialRampToValueAtTime(GAIN[kind] || 0.08, t + 1.0);
+      gain.gain.exponentialRampToValueAtTime(level(kind), t + 1.0);
       if (c.createBiquadFilter) {
         var flt = c.createBiquadFilter();
         flt.type = 'lowpass';
@@ -141,7 +145,7 @@
   function duck(secs) {
     if (!active) return false;
     try {
-      var g = active.gain.gain, t = active.ctx.currentTime, full = GAIN[curKind] || 0.08, d = secs || 2.5;
+      var g = active.gain.gain, t = active.ctx.currentTime, full = level(curKind), d = secs || 2.5;
       g.cancelScheduledValues(t);
       g.setValueAtTime(Math.max(0.0001, g.value || full), t);
       g.linearRampToValueAtTime(full / 3, t + 0.15);
@@ -149,6 +153,17 @@
       g.linearRampToValueAtTime(full, t + d + 0.8);
       return true;
     } catch (e) { return false; }
+  }
+
+  /* Sets the volume (soft | medium | loud); a sound that is playing glides to it. Returns the multiplier. */
+  function setVolume(name) {
+    vol = VOLS[name] || 1;
+    if (active) try {
+      var g = active.gain.gain, t = active.ctx.currentTime;
+      g.cancelScheduledValues(t); g.setValueAtTime(Math.max(0.0001, g.value || 0.001), t);
+      g.linearRampToValueAtTime(level(curKind), t + 0.4);
+    } catch (e) {}
+    return vol;
   }
 
   /* A few seconds of a sound so it can be chosen before a sit (it fades out by itself; start() keeps it going). */
@@ -159,7 +174,7 @@
     return true;
   }
 
-  var api = { KINDS: KINDS, LABELS: LABELS, samples: samples, preview: preview, previewing: function () { return !!previewT; }, start: start, stop: stop, duck: duck, current: function () { return curKind; } };
+  var api = { KINDS: KINDS, LABELS: LABELS, samples: samples, preview: preview, setVolume: setVolume, volume: function () { return vol; }, VOLS: VOLS, previewing: function () { return !!previewT; }, start: start, stop: stop, duck: duck, current: function () { return curKind; } };
   root.WLNoise = api;
   if (root.WL) root.WL.noise = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -54,12 +54,29 @@
     var labels = (window.WLNoise && WLNoise.LABELS) || { off: 'Off', brown: 'Warm brown', pink: 'Soft rain', white: 'White noise', fan: 'Fan', ocean: 'Slow waves' };
     return '<div class="chips" id="' + idAttr + '" role="group" aria-label="Background sound">' + K.NOISE_KINDS.map(function (k) {
       return '<button class="chip" type="button" data-noise="' + k + '" aria-pressed="' + (cur === k) + '">' + esc(labels[k] || k) + '</button>';
-    }).join('') + '</div>';
+    }).join('') + '</div>' + volChips(idAttr + '-vol');
+  }
+  /* Soft / Medium / Louder for the background sound (applied live) */
+  function volChips(idAttr) {
+    var cur = (S.settings && S.settings.noiseVol) || 'medium', names = { soft: 'Soft', medium: 'Medium', loud: 'Louder' };
+    if (window.WLNoise && WLNoise.setVolume) WLNoise.setVolume(cur);
+    return '<div style="margin-top:6px"><div class="chips" id="' + idAttr + '" role="group" aria-label="Background sound volume"' + ((S.settings.noise || 'off') === 'off' ? ' hidden' : '') + '>' + K.NOISE_VOLS.map(function (v) {
+      return '<button class="chip" type="button" data-noise-vol="' + v + '" aria-pressed="' + (cur === v) + '">' + names[v] + '</button>';
+    }).join('') + '</div></div>';
+  }
+  function wireVol(sel) {
+    $$(sel + ' [data-noise-vol]').forEach(function (b) { b.onclick = function () {
+      S.settings.noiseVol = b.dataset.noiseVol; save();
+      if (window.WLNoise && WLNoise.setVolume) WLNoise.setVolume(S.settings.noiseVol);
+      $$(sel + ' [data-noise-vol]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+      // nothing playing (before a sit, or in settings): a short sample at the new volume
+      if (window.WLNoise && WLNoise.current() === 'off' && !(run && run.start) && S.settings.noise !== 'off' && WLNoise.preview) WLNoise.preview(S.settings.noise, 3);
+    }; });
   }
   function noiseRow(p) {
     if (!Sit.usesAlarm(p)) return '';
     return '<div id="c-noise-row" style="text-align:center;margin:4px 0 6px"><div class="meta" style="margin-bottom:4px">Background sound <span aria-hidden="true">·</span> tap one to hear it</div>' +
-      noiseChips('c-noise-pick').replace('class="chips"', 'class="chips" style="justify-content:center"') + '</div>';
+      noiseChips('c-noise-pick').replace(/class="chips"/g, 'class="chips" style="justify-content:center"') + '</div>';
   }
   function exactTimerRow(p) {
     if (p.fixed || (!p.path && p.kind !== 'timer' && p.kind !== 'pacer')) return '';
@@ -430,11 +447,13 @@
     $$('#c-noise-pick [data-noise]').forEach(function (b) { b.onclick = function () {
       S.settings.noise = b.dataset.noise; save();
       $$('#c-noise-pick [data-noise]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); });
+      var vr = $('#c-noise-pick-vol'); if (vr) vr.hidden = S.settings.noise === 'off';
       // during a sit the new sound plays at once (or stops); paused, it waits for Resume
       if (run && run.p === p && !run.done && !run.paused && run.start && usesAlarm(p) && window.WLNoise) {
         if (S.settings.noise === 'off') WLNoise.stop(); else WLNoise.start(S.settings.noise);
       } else if (!(run && run.start) && window.WLNoise && WLNoise.preview) WLNoise.preview(S.settings.noise); // before a sit: hear a few seconds
     }; });
+    wireVol('#c-noise-pick-vol');
     var qb = $('#c-quiet');
     if (qb) qb.onclick = function () { S.settings.sitQuiet = !S.settings.sitQuiet; save(); qb.setAttribute('aria-pressed', !!S.settings.sitQuiet); };
     $$('#c-before [data-r]').forEach(function (b) { b.onclick = function () { run = run || { p: p }; run.before = +b.dataset.r; $$('#c-before [data-r]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
@@ -535,6 +554,7 @@
     $('#ctk').onclick = function () { S.settings.tick = !S.settings.tick; save(); redrawList(true); };
     $('#cdk').onclick = function () { S.settings.dark = S.settings.dark === false; save(); redrawList(true); };
     $$('[data-iv]').forEach(function (b) { b.onclick = function () { S.settings.interval = +b.dataset.iv; save(); redrawList(true); }; });
+    wireVol('#c-noise-vol');
     $$('#c-noise [data-noise]').forEach(function (b) { b.onclick = function () { S.settings.noise = b.dataset.noise; save(); if (window.WLNoise && WLNoise.preview) WLNoise.preview(b.dataset.noise); redrawList(true); }; });
     $$('[data-aim]').forEach(function (b) { b.onclick = function () { S.settings.aim = b.dataset.aim; save(); redrawList(!!(det && det.open)); }; });
     $$('[data-stage]').forEach(function (b) { b.onclick = function () { K.setStage(S, b.dataset.stage); save(); WL.toast('Your stage: ' + titleOf(K.stageOf(S))); redrawList(false); }; });

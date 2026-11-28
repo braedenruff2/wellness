@@ -476,6 +476,12 @@ t('ambient noise setting: off by default, valid kinds kept, unknown values reset
   }
   assert.strictEqual(K.validate({ sessions: [], settings: { noise: 'thunder' } }).settings.noise, 'off');
   assert.strictEqual(K.validate({ sessions: [] }).settings.noise, 'off');
+  assert.strictEqual(K.defaults().settings.noiseVol, 'medium', '411: volume medium by default');
+  assert.strictEqual(K.validate({ sessions: [], settings: { noiseVol: 'soft' } }).settings.noiseVol, 'soft');
+  assert.strictEqual(K.validate({ sessions: [], settings: { noiseVol: 'max' } }).settings.noiseVol, 'medium');
+  const N = require('../../../app/www/lib/noise.js');
+  assert.deepStrictEqual(Object.keys(N.VOLS), K.NOISE_VOLS);
+  assert.strictEqual(N.setVolume('soft'), 0.5); assert.strictEqual(N.setVolume('nope'), 1); assert.strictEqual(N.setVolume('medium'), 1);
 });
 t('background sounds loop with no seam and no beat (his note: the brown noise had a drum sound)', () => {
   const N = require('../../../app/www/lib/noise.js');
