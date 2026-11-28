@@ -183,4 +183,25 @@ t('usesAlarm, darkOn, scheduleDark/lightUp, intervalEvery/ringInterval, roughDay
   assert.strictEqual(Sit.alarmLabel({ title: 'Quiet timer' }, 3), 'Quiet timer · 3 min');
 });
 
+t('418: longPauseOffer triggers for path sits paused 10+ min after >= 30 s elapsed', () => {
+  const t0 = new Date(2026, 10, 26, 20, 0).getTime();
+  const { Sit, setNow } = loadSit({ nowMs: t0 });
+  const run = { p: pCount, start: t0, pausedFor: 0, paused: true, pausedAt: t0 + 6 * 60000, done: false };
+  // Under 10 min paused -> null
+  setNow(t0 + 15 * 60000 + 59000);
+  assert.strictEqual(Sit.longPauseOffer(run), null, '9m59s paused: null');
+  // 10+ min paused -> offers Finish here (6 min counts)
+  setNow(t0 + 18 * 60000);
+  const o = Sit.longPauseOffer(run);
+  assert.deepStrictEqual(Object.assign({}, o), { mins: 6, pausedMins: 12, label: 'Finish here (6 min counts)' });
+  // Earlier pausedFor subtracted cleanly from elapsed minutes
+  const run2 = { p: pCount, start: t0, pausedFor: 2 * 60000, paused: true, pausedAt: t0 + 6 * 60000, done: false };
+  assert.strictEqual(Sit.longPauseOffer(run2).label, 'Finish here (4 min counts)');
+  // Non-path practices (timer, body), unpaused, done, or < 30 s elapsed -> null
+  assert.strictEqual(Sit.longPauseOffer({ p: pTimer, start: t0, pausedFor: 0, paused: true, pausedAt: t0 + 6 * 60000 }), null, 'timer: null');
+  assert.strictEqual(Sit.longPauseOffer({ p: pBody, start: t0, pausedFor: 0, paused: true, pausedAt: t0 + 6 * 60000 }), null, 'body: null');
+  assert.strictEqual(Sit.longPauseOffer({ p: pCount, start: t0, pausedFor: 0, paused: false, pausedAt: t0 + 6 * 60000 }), null, 'not paused: null');
+  assert.strictEqual(Sit.longPauseOffer({ p: pCount, start: t0, pausedFor: 0, paused: true, pausedAt: t0 + 15000 }), null, '< 30 s sat: null');
+});
+
 console.log(n + ' calm-sit unit tests passed');

@@ -300,6 +300,7 @@
       (p.path ? '' : rating('c-before', 'How stressed are you right now?')) +
       lengthChips(p) + quietChip(p) + noiseRow(p) + Sit.firstSitTip(S, p) + roughLine(p) +
       '<div class="controls" style="grid-template-columns:1fr"><button class="primary main" id="c-pp">' + beginLabel(p) + '</button></div>' +
+      '<div class="row ui" id="c-long-pause" style="justify-content:center;margin-top:8px" hidden><button class="btn" id="c-finish-here" type="button"></button></div>' +
       (Sit.darkOn(S, p) && Sit.darkHint(S) ? '<p class="meta" id="c-dark-hint" style="text-align:center">The screen goes dark while you sit, so you needn’t lock the phone. Tap it to see the time.</p>' : '') +
       '<div id="c-after" hidden>' + (p.path ? Sit.sitQuestions() : rating('c-after-r', 'And now?')) + '<div class="row" style="justify-content:center;margin-top:10px"><button class="primary" id="c-save">Done</button><button class="link" type="button" data-wl-note="#calm/s/' + esc(p.id) + '">💡 Note for autopilot</button></div></div></div>';
   }
@@ -314,10 +315,25 @@
     if (!run) return;
     lightUp();
     if (window.WLNoise) WLNoise.stop();
+    var lp = $('#c-long-pause'); if (lp) lp.hidden = true;
     cancelAnimationFrame(run.raf); clearTimeout(run.timer); clearInterval(run.tick);
     if (run.player) run.player.stop();
     WL.speech.stop(); WL.keepAwake(false); calmAlarm(0, '');
     run = null;
+  }
+
+  function updateLongPause() {
+    var lp = $('#c-long-pause'), fh = $('#c-finish-here'), pp = $('#c-pp');
+    if (!lp || !fh) return null;
+    var offer = Sit.longPauseOffer ? Sit.longPauseOffer(run) : null;
+    if (offer) {
+      fh.textContent = offer.label;
+      lp.hidden = false;
+      if (pp && pp.dataset.state === 'paused') pp.textContent = '▶ Carry on';
+    } else {
+      lp.hidden = true;
+    }
+    return offer;
   }
 
   function elapsed() { return run ? ((run.paused ? run.pausedAt : Date.now()) - run.start - run.pausedFor) / 1000 : 0; }
@@ -330,14 +346,20 @@
   }
 
   function sessionTime(started) { return Sit.sessionTime(started); }
-  function finish(silent) {
+  function finish(silent, opts) {
     if (!run) return;
     var p = run.p, m = silent && run.total ? Math.min(loggedMins(), run.total / 60) : loggedMins(), before = run.before, started = run.start;
+    var interrupted = !!(opts && opts.interrupted || run.interrupted);
     stopRun(); if (!silent) WL.bell();
-    var rec = K.record(S, p.id, m, before, null, sessionTime(started)); save(); // saved straight away; "Done" only adds the after rating
+    var rec = K.record(S, p.id, m, before, null, sessionTime(started));
+    if (p.path && interrupted) K.rateSit(rec, undefined, ['Interrupted']);
+    save(); // saved straight away; "Done" only adds the after rating
     run = { p: p, done: true, mins: m, before: before, rec: rec };
     $('#c-pp').hidden = true; if ($('#c-before')) $('#c-before').hidden = true; $('#c-after').hidden = false;
     var nr = $('#c-noise-row'); if (nr) nr.hidden = true; // the sound has stopped: no sound choice on the questions
+    if (p.path && interrupted) {
+      $$('#c-hind [data-h]').forEach(function (x) { x.setAttribute('aria-pressed', String(x.dataset.h === 'Interrupted')); });
+    }
     if (window.WLMe && !p.path) $('#c-after').insertAdjacentHTML('afterbegin', WLMe.askHtml('calm', p.id + '@' + rec.at));
     var td = K.today(S), l = $('#c-label') || $('#c-line');
     if (l && p.path) l.textContent = 'Well done. ' + Math.max(1, Math.round(m)) + ' min of practice.';
@@ -363,6 +385,7 @@
     var ft = $('#c-first-tip'); if (ft) ft.hidden = true;
     if ($('#c-before')) $('#c-before').hidden = true;
     var progress = function () {
+      if (run && run.paused) { updateLongPause(); return; }
       var e = elapsed();
       $('#c-prog').style.width = Math.min(100, 100 * e / total) + '%';
       if (p.kind !== 'guided' || p.path) $('#c-left').textContent = fmtTimer(total - e) + ' left';
@@ -457,13 +480,14 @@
     var qb = $('#c-quiet');
     if (qb) qb.onclick = function () { S.settings.sitQuiet = !S.settings.sitQuiet; save(); qb.setAttribute('aria-pressed', !!S.settings.sitQuiet); };
     $$('#c-before [data-r]').forEach(function (b) { b.onclick = function () { run = run || { p: p }; run.before = +b.dataset.r; $$('#c-before [data-r]').forEach(function (x) { x.setAttribute('aria-pressed', x === b); }); }; });
-    var after = null, hind = [];
+    var after = null;
     $$('#c-focus [data-f]').forEach(function (b) { b.onclick = function () {
       var f = +b.dataset.f, on = b.getAttribute('aria-pressed') === 'true';
       $$('#c-focus [data-f]').forEach(function (x) { x.setAttribute('aria-pressed', !on && x === b); });
       if (run && run.done && run.rec) { K.rateSit(run.rec, on ? null : f); run.rec.rated = new Date().toISOString(); save(); }
     }; });
     $$('#c-hind [data-h]').forEach(function (b) { b.onclick = function () {
+      var hind = (run && run.done && run.rec && Array.isArray(run.rec.hind)) ? run.rec.hind.slice() : [];
       var v = b.dataset.h, i = hind.indexOf(v);
       if (i >= 0) hind.splice(i, 1); else hind.push(v);
       if (run && run.done && run.rec) { K.rateSit(run.rec, undefined, hind); hind = (run.rec.hind || []).slice(); run.rec.rated = new Date().toISOString(); save(); }
@@ -475,6 +499,11 @@
       // save straight away so tapping Back or closing the app never drops the after-stress rating
       if (run && run.done && run.rec) { run.rec.after = after; run.rec.rated = new Date().toISOString(); save(); }
     }; });
+    var fh = $('#c-finish-here');
+    if (fh) fh.onclick = function () {
+      if (!run || run.done) return;
+      finish(true, { interrupted: true });
+    };
     $('#c-pp').onclick = function () {
       var b = this, st = b.dataset.state;
       if (!st) return begin(p);
@@ -485,6 +514,12 @@
         lightUp();
         b.textContent = '▶ Resume'; b.dataset.state = 'paused';
       } else {
+        var lp = $('#c-long-pause'), wasHidden = !lp || lp.hidden;
+        var offer = updateLongPause();
+        // long interruption paused 10+ min: if the offer wasn't visible yet (e.g. just returned to app), show it first
+        if (offer && wasHidden) return;
+        if (offer) run.interrupted = true;
+        if (lp) lp.hidden = true;
         run.pausedFor += Date.now() - run.pausedAt; run.paused = false; if (run.player) run.player.resume(); if (run.frame) run.frame(); WL.keepAwake(true);
         if (usesAlarm(p) && window.WLNoise && S.settings.noise && S.settings.noise !== 'off') WLNoise.start(S.settings.noise);
         if (usesAlarm(p)) calmAlarm(Math.max(0, run.total * 1000 - elapsed() * 1000), alarmLabel(p));
@@ -534,6 +569,7 @@
   /* Returning after the screen was locked: if a sit or Quiet timer already passed its end, finish cleanly without a duplicate bell. */
   document.addEventListener('visibilitychange', function () {
     // (back in the app mid-sit, WL.darkScreen shows the time first and goes dark again 10 s later)
+    if (!document.hidden && run && !run.done && run.paused) updateLongPause();
     if (!document.hidden && run && !run.done && !run.paused && usesAlarm(run.p)) {
       var e = elapsed();
       if (e >= run.total) finish(!!(WL.native && WL.native.calmAlarm && e - run.total > 5));

@@ -106,6 +106,57 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.strictEqual((await calm()).settings.stage, 'count');
     assert.ok(!(await page.$('#c-path-back')));
   });
+  await t.step('418: a path sit paused 10+ min offers "Finish here (N min counts)" next to carrying on, with Interrupted pre-ticked', async () => {
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-len');
+    await page.click('[data-len="15"]');
+    await page.click('#c-pp');
+    await page.clock.runFor(6 * 60000); // sit for 6 min (dark cover is up)
+    if (await page.$('#c-dark')) await page.click('#c-dark');
+    await page.click('#c-pp'); // pause
+    assert.strictEqual(await page.textContent('#c-pp'), '▶ Resume');
+    await page.clock.runFor(2 * 60000); // short 2 min pause: no Finish here
+    assert.strictEqual(await page.isVisible('#c-finish-here'), false, 'short pause has no Finish here');
+    await page.clock.runFor(9 * 60000); // total 11 min paused -> offer appears
+    await page.waitForSelector('#c-finish-here', { state: 'visible' });
+    assert.strictEqual((await page.textContent('#c-finish-here')).trim(), 'Finish here (6 min counts)');
+    assert.strictEqual((await page.textContent('#c-pp')).trim(), '▶ Carry on');
+    const fhH = await page.$eval('#c-finish-here', (el) => Math.round(el.getBoundingClientRect().height));
+    assert.ok(fhH >= 44, 'Finish here height >= 44 px: ' + fhH);
+    await page.click('#c-finish-here');
+    await page.waitForSelector('#c-after', { state: 'visible' });
+    assert.strictEqual(await page.getAttribute('#c-hind [data-h="Interrupted"]', 'aria-pressed'), 'true', 'Interrupted pre-ticked');
+    const lastSess = async () => { const ss = (await calm()).sessions; return ss[ss.length - 1]; };
+    let last = await lastSess();
+    assert.ok(last.mins >= 5.5 && last.mins <= 6.5, 'logged ~6 min: ' + last.mins);
+    assert.deepStrictEqual(last.hind, ['Interrupted'], 'Interrupted saved straight away');
+    // Tapping another obstacle keeps Interrupted; tapping Interrupted unticks it
+    await page.click('#c-hind [data-h="Sleepy"]');
+    assert.deepStrictEqual((await lastSess()).hind, ['Interrupted', 'Sleepy']);
+    await page.click('#c-hind [data-h="Interrupted"]');
+    assert.deepStrictEqual((await lastSess()).hind, ['Sleepy']);
+    await page.click('#c-save'); await page.waitForSelector('#c-path[open]');
+
+    // Carrying on after a 10+ min clock jump (setSystemTime before tick): Resume shows Finish here first, second tap carries on and still pre-ticks Interrupted at end
+    await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-len');
+    await page.click('[data-len="10"]');
+    await page.click('#c-pp');
+    await page.clock.runFor(3 * 60000);
+    if (await page.$('#c-dark')) await page.click('#c-dark');
+    await page.click('#c-pp'); // pause at 3 min
+    const nowMs = await page.evaluate(() => Date.now());
+    await page.clock.setSystemTime(new Date(nowMs + 11 * 60000));
+    await page.click('#c-pp'); // first Resume tap surfaces the offer
+    assert.strictEqual(await page.isVisible('#c-finish-here'), true, 'Resume surfaces Finish here');
+    assert.strictEqual((await page.textContent('#c-finish-here')).trim(), 'Finish here (3 min counts)');
+    assert.strictEqual((await page.textContent('#c-pp')).trim(), '▶ Carry on');
+    await page.click('#c-pp'); // Carry on
+    assert.strictEqual(await page.isVisible('#c-finish-here'), false, 'hidden once carrying on');
+    assert.strictEqual((await page.textContent('#c-pp')).trim(), '⏸ Pause');
+    await page.clock.runFor(8 * 60000); // finish remaining ~7 min
+    await page.waitForSelector('#c-after', { state: 'visible' });
+    assert.strictEqual(await page.getAttribute('#c-hind [data-h="Interrupted"]', 'aria-pressed'), 'true', 'Interrupted pre-ticked after carrying on');
+    await page.click('#c-save'); await page.waitForSelector('#c-path[open]');
+  });
   await t.step('no overflow at 1.0, no errors', async () => {
     await t.noOverflow(['#calm', '#calm/s/count', '#calm/s/open']);
     assert.deepStrictEqual(t.errors, []);

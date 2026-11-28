@@ -80,10 +80,25 @@
     return when;
   }
 
+  /* A path sit paused for 10+ min (e.g. an interruption) after at least 30 s of sitting: offer finishing here
+     with the minutes already done counting, alongside carrying on. */
+  var LONG_PAUSE_MS = 10 * 60 * 1000;
+  function longPauseOffer(run, nowMs) {
+    if (!run || !run.p || !run.p.path || run.done || !run.paused || !run.pausedAt || !run.start) return null;
+    var now = nowMs != null ? nowMs : Date.now();
+    var pausedMs = now - run.pausedAt;
+    if (pausedMs < LONG_PAUSE_MS) return null;
+    var elapSec = Math.max(0, (run.pausedAt - run.start - (run.pausedFor || 0)) / 1000);
+    if (elapSec < 30) return null;
+    var mins = Math.max(1, Math.round(elapSec / 60));
+    return { mins: mins, pausedMins: Math.round(pausedMs / 60000), label: 'Finish here (' + mins + ' min counts)' };
+  }
+
   root.CalmSit = {
     usesAlarm: usesAlarm, alarmLabel: alarmLabel, calmAlarm: calmAlarm,
     roughDay: roughDay, roughLine: roughLine, quietChip: quietChip, firstSitTip: firstSitTip, sitQuestions: sitQuestions,
     darkOn: darkOn, darkHint: darkHint, scheduleDark: scheduleDark, lightUp: lightUp,
-    intervalEvery: intervalEvery, ringInterval: ringInterval, sessionTime: sessionTime
+    intervalEvery: intervalEvery, ringInterval: ringInterval, sessionTime: sessionTime,
+    LONG_PAUSE_MS: LONG_PAUSE_MS, longPauseOffer: longPauseOffer
   };
 })(typeof window !== 'undefined' ? window : this);
