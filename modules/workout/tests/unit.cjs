@@ -676,4 +676,28 @@ t('402: "Now doing" names every harder step he has ticked (they add up)', () => 
   W.setHard(s, 'Hammer Curls', 1);
   assert.strictEqual(W.doingText(s, 'Hammer Curls'), '3-sec lowering');
 });
+t('436: compact archives closed sessions older than 180 days while preserving all-time bestSet, total workout days, weekly streaks, and validate round-trip', () => {
+  const s = W.defaults();
+  // Two sessions > 180 days ago with a heavy PR on Pushups and Bulgarian Split Squats
+  const old1 = new Date(2026, 0, 5, 9, 0);
+  W.logSet(s, 'A', 0, 15, 25, old1);
+  W.logSet(s, 'A', 1, 22, null, old1);
+  W.endSession(s, new Date(2026, 0, 5, 9, 30));
+  const old2 = new Date(2026, 0, 8, 9, 0);
+  W.logSet(s, 'A', 1, 18, null, old2);
+  W.endSession(s, new Date(2026, 0, 8, 9, 30));
+  // Recent session within 180 days with lower reps/weight
+  const rec = new Date(2026, 10, 20, 9, 0);
+  W.logSet(s, 'A', 0, 12, 10, rec);
+  W.logSet(s, 'A', 1, 14, null, rec);
+  W.endSession(s, new Date(2026, 10, 20, 9, 30));
+  // Open session older than 180d is never archived until closed
+  assert.strictEqual(s.sessions.length, 1, 'endSession compacted the two >180d closed sessions');
+  assert.deepStrictEqual(s.archive.days, ['2026-01-05', '2026-01-08']);
+  assert.deepStrictEqual(W.bestSet(s, 'Bulgarian Split Squats'), { val: 15, w: 25, date: '2026-01-05' });
+  assert.deepStrictEqual(W.bestSet(s, 'Pushups'), { val: 22, w: null, date: '2026-01-05' });
+  assert.strictEqual(W.weekStats(s, new Date(2026, 10, 21, 9, 0)).total, 3, 'all 3 workout days counted');
+  const v = W.validate(JSON.parse(JSON.stringify(s)));
+  assert.deepStrictEqual(v.archive, s.archive, 'archive survives validate() identically');
+});
 console.log(n + ' workout unit tests passed');

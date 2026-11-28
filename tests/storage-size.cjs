@@ -10,7 +10,7 @@ const z120 = sizes(simulate(120));
 console.log('120 days:', JSON.stringify(z120), 'total', total(z120));
 assert.ok(total(z120) < 2500000, 'under half the quota after 120 days: ' + total(z120));
 const s365 = simulate(365);
-assert.ok(s365['wl.tagalog.v1'].answers.length <= 2000 && s365['wl.tagalog.v1'].reviews.length <= 2000, 'Tagalog logs capped');
+assert.ok(s365['wl.tagalog.v1'].answers.length <= 1000 && s365['wl.tagalog.v1'].reviews.length <= 600, 'Tagalog logs capped');
 assert.ok(s365['wl.coach.v1'].history.length <= 300, 'coach history capped');
 assert.ok(s365['wl.me.v1'].feedback.length <= 600, 'quick answers capped');
 const z365 = sizes(s365);
@@ -23,7 +23,10 @@ assert.ok(s365['wl.calm.v1'].sessions.slice(-200).every((x) => x.id !== 'count' 
 assert.ok(Object.keys(s365['wl.me.v1'].checkins).length <= 120, 'check-ins (with notes) capped at 120 days');
 assert.ok(s365['wl.notes.v1'].notes.every((x) => !x.reply || x.reply.length <= 300), 'replies at most 300 characters');
 const y2 = simulate(730), s730 = sizes(y2);
-for (const k of ['wl.me.v1', 'wl.notes.v1']) assert.ok(s730[k] < 1.25 * Math.max(z365[k], 1) + 50000, k + ': a second year adds little (bounded): ' + z365[k] + ' -> ' + s730[k]);
+console.log('730 days:', JSON.stringify(s730), 'total', total(s730));
+assert.ok(total(s730) < 4500000, 'two years of heavy daily use stays under 4.5M chars (WebView ~5M quota): ' + total(s730));
+assert.strictEqual(y2['fc.v1'].journal.length, 730, 'his own journal writing is never dropped');
+for (const k of ['wl.me.v1', 'wl.notes.v1', 'wl.calm.v1', 'wl.workout.v1']) assert.ok(s730[k] < 1.25 * Math.max(z365[k], 1) + 50000, k + ': a second year adds little (bounded): ' + z365[k] + ' -> ' + s730[k]);
 const sitWords = (st) => st.sessions.reduce((a, x) => a + (x.note ? x.note.length : 0), 0);
 assert.ok(sitWords(y2['wl.calm.v1']) <= 200 * 600, 'sit notes after two years: at most 200 x 600 characters: ' + sitWords(y2['wl.calm.v1']));
 // the backup / Drive sync file has the same stores as JSON strings: a year must stay well under what the phone reads

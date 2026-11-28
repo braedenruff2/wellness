@@ -91,6 +91,8 @@
     clearRest(state, day);
     if (!state.rest) state.rest = {};
     state.rest[day] = { why: why, at: (now || new Date()).toISOString() };
+    var ks = Object.keys(state.rest).sort();
+    if (ks.length > 200) ks.slice(0, ks.length - 200).forEach(function (k) { delete state.rest[k]; });
     return state.rest[day];
   }
   function clearRest(state, day) {
@@ -228,11 +230,52 @@
   /* With no time given: the most recent unfinished one (the old behaviour). */
   function lastUnfinished(state) { for (var i = state.sessions.length - 1; i >= 0; i--) if (!state.sessions[i].end) return state.sessions[i]; return null; }
 
+  /* Compact closed sessions older than ARCHIVE_DAYS (6 months) into state.archive ({days, bests}) so multi-year
+     storage stays well within WebView localStorage limits while keeping all-time PRs (bestSet), total workout days,
+     and weekly streaks (weekStats) exact, and keeping the last 6 months of sessions in full for every chart and summary. */
+  var ARCHIVE_DAYS = 180;
+  function betterSet(best, val, w, date) {
+    val = +val; if (!(val > 0)) return best;
+    var wt = w > 0 ? +w : 0;
+    var bw = best && best.w > 0 ? best.w : 0;
+    if (!best || wt > bw || (wt === bw && val > best.val)) return { val: val, w: wt || null, date: date };
+    return best;
+  }
+  function compact(state, now) {
+    if (!state || !Array.isArray(state.sessions) || !state.sessions.length) return 0;
+    var refIso = typeof now === 'string' && WLD.isDate(now) ? now : iso(now || new Date());
+    var cutoff = WLD.addDays(refIso, -ARCHIVE_DAYS);
+    var hasOld = state.sessions.some(function (s) { return s && s.end && s.date && s.date < cutoff; });
+    if (!hasOld) return 0;
+    var arch = state.archive && typeof state.archive === 'object' ? state.archive : { days: [], bests: {} };
+    var dayMap = {}, bests = arch.bests && typeof arch.bests === 'object' ? arch.bests : {};
+    (Array.isArray(arch.days) ? arch.days : []).forEach(function (d) { if (WLD.isDate(d)) dayMap[d] = 1; });
+    var kept = [], moved = 0;
+    state.sessions.forEach(function (s) {
+      if (s && s.end && s.date && s.date < cutoff) {
+        moved++;
+        var sets = (s.sets || []).filter(function (x) { return x && +x.val > 0 && Object.prototype.hasOwnProperty.call(EX, x.ex); });
+        if (sets.length) {
+          dayMap[s.date] = 1;
+          sets.forEach(function (x) { bests[x.ex] = betterSet(bests[x.ex] || null, x.val, x.w, s.date); });
+        }
+      } else {
+        kept.push(s);
+      }
+    });
+    state.sessions = kept;
+    var days = Object.keys(dayMap).sort();
+    if (days.length || Object.keys(bests).length) state.archive = { days: days, bests: bests };
+    else delete state.archive;
+    return moved;
+  }
+
   function endSession(state, now) {
     var s = now ? openSession(state, now, true) : lastUnfinished(state);
     if (!s) return;
     if (!s.sets.length) { if (s.removed && s.removed.length) s.end = s.start; else state.sessions.splice(state.sessions.indexOf(s), 1); }
     else s.end = (now || new Date()).toISOString();
+    compact(state, now || (s.date || new Date()));
   }
 
   /* After set n of item idx: a superset partner still due this round -> 20 s transition; another round -> rest;
@@ -322,12 +365,9 @@
      then highest reps/sec/min at that weight. Returns {val, w, date} or null. */
   function bestSet(state, name) {
     var best = null, dup = appDone(state);
-    function consider(val, w, date) {
-      val = +val; if (!(val > 0)) return;
-      var wt = w > 0 ? +w : 0;
-      var bw = best && best.w > 0 ? best.w : 0;
-      if (!best || wt > bw || (wt === bw && val > best.val)) best = { val: val, w: wt || null, date: date };
-    }
+    function consider(val, w, date) { best = betterSet(best, val, w, date); }
+    var ab = state.archive && state.archive.bests && Object.prototype.hasOwnProperty.call(state.archive.bests, name) ? state.archive.bests[name] : null;
+    if (ab) consider(ab.val, ab.w, ab.date);
     (state.history || []).forEach(function (h) {
       if (h.ex === name && !dup[h.date + '|' + name] && Array.isArray(h.sets))
         h.sets.forEach(function (v) { consider(v, h.w, h.date); });
@@ -407,6 +447,7 @@
     now = now || new Date();
     var wsDate = weekStart(now), ws = iso(wsDate), todayIso = iso(now), nextWs = iso(new Date(wsDate.getFullYear(), wsDate.getMonth(), wsDate.getDate() + 7));
     var days = {};
+    ((state.archive && Array.isArray(state.archive.days)) ? state.archive.days : []).forEach(function (d) { if (WLD.isDate(d)) days[d] = 1; });
     sessionsWithSets(state).forEach(function (s) { days[s.date] = 1; });
     historyWithSets(state).forEach(function (h) { days[h.date] = 1; });
     var thisWeek = Object.keys(days).filter(function (d) { return d >= ws && d < nextWs && d <= todayIso; }).length;
@@ -701,11 +742,27 @@
         if (sets.length) d.history.push({ date: h.date, ex: h.ex.slice(0, 60), sets: sets, w: typeof h.w === 'number' ? cleanWeight(h.w) : null, from: 'sheet' });
       }
     });
+    if (s.archive && typeof s.archive === 'object') {
+      var aDaysMap = {};
+      (Array.isArray(s.archive.days) ? s.archive.days : []).slice(-4000).forEach(function (dt) { if (isDate(dt)) aDaysMap[dt] = 1; });
+      var aDays = Object.keys(aDaysMap).sort();
+      var aBests = {};
+      if (s.archive.bests && typeof s.archive.bests === 'object') {
+        Object.keys(s.archive.bests).forEach(function (k) {
+          if (!Object.prototype.hasOwnProperty.call(EX, k)) return;
+          var b = s.archive.bests[k];
+          if (b && typeof b === 'object' && typeof b.val === 'number' && isFinite(b.val) && b.val > 0 && isDate(b.date)) {
+            aBests[k] = { val: b.val, w: typeof b.w === 'number' && b.w > 0 ? cleanWeight(b.w) : null, date: b.date };
+          }
+        });
+      }
+      if (aDays.length || Object.keys(aBests).length) d.archive = { days: aDays, bests: aBests };
+    }
     return d;
   }
 
-  var api = { fourWeeks: fourWeeks, SORE_LEVELS: SORE_LEVELS, askSore: askSore, setSore: setSore, soreOn: soreOn, targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, defaults: defaults, nextDay: nextDay, openSession: openSession, activeTime: activeTime, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
-    startSession: startSession, endSession: endSession, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
+  var api = { fourWeeks: fourWeeks, SORE_LEVELS: SORE_LEVELS, askSore: askSore, setSore: setSore, soreOn: soreOn, targetOf: targetOf, offerTwo: offerTwo, REST_REASONS: REST_REASONS, restOn: restOn, logRest: logRest, clearRest: clearRest, restThisWeek: restThisWeek, askDumbbells: askDumbbells, today: today, EX: EX, PROGRAM: PROGRAM, ORDER: ORDER, WEEK_TARGET: WEEK_TARGET, ARCHIVE_DAYS: ARCHIVE_DAYS, defaults: defaults, nextDay: nextDay, openSession: openSession, activeTime: activeTime, finishedToday: finishedToday, reopen: reopen, editSet: editSet,
+    startSession: startSession, endSession: endSession, compact: compact, restInfo: restInfo, logSet: logSet, undoSet: undoSet, performances: performances,
     last: last, bestSet: bestSet, ready: ready, hardSteps: hardSteps, hardLevel: hardLevel, nextHard: nextHard, setHard: setHard, doingText: doingText, advice: advice, weekStats: weekStats, weekVolume: weekVolume, volumeAdvice: volumeAdvice, AREA: AREA, AREAS: AREAS, coach: coach, parseCsv: parseCsv, importSheetCsv: importSheetCsv,
     AGE_NORMS: AGE_NORMS, cleanAge: cleanAge, ageBracket: ageBracket, benchmark: benchmark, weeklyTrend: weeklyTrend, exerciseSeries: exerciseSeries,
     validate: validate, iso: iso };

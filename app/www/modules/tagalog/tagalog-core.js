@@ -368,7 +368,7 @@
     var hk = ok ? '' : hintKind(ex, given);
     if (hk) a.hint = hk;
     state.answers.push(a);
-    if (state.answers.length > 2000) state.answers.splice(0, state.answers.length - 2000);
+    if (state.answers.length > 1000) state.answers.splice(0, state.answers.length - 1000);
   }
 
   function dueCards(state, now) {
@@ -392,7 +392,7 @@
     c.last = t;
     if (!Array.isArray(state.reviews)) state.reviews = [];
     state.reviews.push({ at: (now || new Date()).toISOString(), tl: tl, right: !!right, dir: dir });
-    if (state.reviews.length > 2000) state.reviews.splice(0, state.reviews.length - 2000);
+    if (state.reviews.length > 600) state.reviews.splice(0, state.reviews.length - 600);
     return c;
   }
 
@@ -518,14 +518,14 @@
         if (WLD.isDate(c.last)) d.cards[k].last = c.last; // the day it was last reviewed (review() sets it)
       }
     });
-    (Array.isArray(s.answers) ? s.answers : []).slice(-2000).forEach(function (a) {
+    (Array.isArray(s.answers) ? s.answers : []).slice(-1000).forEach(function (a) {
       if (!a || isNaN(new Date(a.at).getTime())) return; // a damaged entry is dropped, not the whole Tagalog backup
       var x = { at: new Date(a.at).toISOString(), pack: String(a.pack || ''), day: +a.day || 0, ok: !!a.ok, prompt: String(a.prompt || '').slice(0, 120), type: String(a.type || '') };
       if (typeof a.given === 'string') x.given = a.given.slice(0, 200);
       if (HINT_KINDS.indexOf(a.hint) >= 0) x.hint = a.hint;
       d.answers.push(x);
     });
-    (Array.isArray(s.reviews) ? s.reviews : []).slice(-2000).forEach(function (r) {
+    (Array.isArray(s.reviews) ? s.reviews : []).slice(-600).forEach(function (r) {
       if (r && typeof r.tl === 'string' && r.tl.length < 120 && !isNaN(new Date(r.at).getTime())) d.reviews.push({ at: new Date(r.at).toISOString(), tl: r.tl, right: !!r.right, dir: r.dir === 'say' ? 'say' : 'meaning' });
     });
     Object.keys(s.packs || {}).forEach(function (k) { if (!checkPack(s.packs[k]).length) d.packs[k] = s.packs[k]; });

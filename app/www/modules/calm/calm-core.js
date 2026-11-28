@@ -315,7 +315,17 @@
       return { say: all[k % all.length], wait: s.wait };
     });
   }
-  function timesDone(state, id) { return state.sessions.filter(function (s) { return s.id === id; }).length; }
+  function archById(state, to) {
+    var a = state && state.archive;
+    if (!a || !a.byId || typeof a.byId !== 'object') return null;
+    if (to && a.until && a.until > to) return null;
+    return a.byId;
+  }
+  function timesDone(state, id) {
+    var n = state.sessions.filter(function (s) { return s.id === id; }).length;
+    var ab = archById(state, null);
+    return n + (ab && ab[id] ? (+ab[id].n || 0) : 0);
+  }
 
   var DAILY_GOALS = [1, 5, 10, 15, 20], SIT_LENGTHS = [10, 15, 20, 30], NOISE_KINDS = ['off', 'brown', 'pink', 'white', 'fan', 'ocean'], NOISE_VOLS = ['soft', 'medium', 'loud'];
   function defaults() { return { sessions: [], settings: { voice: true, rate: 0.9, minutes: 5, tick: false, dailyGoal: 10, aim: null, stage: 'count', sitMinutes: 20, dark: true, interval: 0, sitQuiet: false, noise: 'off', noiseVol: 'medium' } }; }
@@ -352,12 +362,44 @@
     return { phase: i, label: labels[i], frac: frac, scale: scale, cycle: cycle };
   }
 
+  /* Compact sessions older than ARCHIVE_DAYS (1 year) into per-practice counts & minutes (state.archive.byId),
+     keeping timesDone, total counts, and meditation-path stage counts/minutes exact while keeping the full past year
+     of sessions for every chart, recent list, stress trend, time-of-day note, and PC summary. */
+  var ARCHIVE_DAYS = 365;
+  function compact(state, now) {
+    if (!state || !Array.isArray(state.sessions) || !state.sessions.length) return 0;
+    var cutoff = WLD.addDays(iso(now || new Date()), -ARCHIVE_DAYS);
+    var hasOld = state.sessions.some(function (s) { return s && s.date && s.date < cutoff; });
+    if (!hasOld) return 0;
+    var arch = state.archive && typeof state.archive === 'object' ? state.archive : { until: cutoff, byId: {} };
+    var byId = arch.byId && typeof arch.byId === 'object' ? arch.byId : {};
+    var kept = [], moved = 0;
+    state.sessions.forEach(function (s) {
+      if (s && s.date && s.date < cutoff) {
+        moved++;
+        if (s.id) {
+          var o = byId[s.id] = byId[s.id] || { n: 0, mins: 0 };
+          o.n = (+o.n || 0) + 1;
+          o.mins = Math.round(((+o.mins || 0) + (isFinite(s.mins) ? Math.max(0, s.mins) : 0)) * 10) / 10;
+        }
+      } else {
+        kept.push(s);
+      }
+    });
+    state.sessions = kept;
+    var until = arch.until && WLD.isDate(arch.until) && arch.until > cutoff ? arch.until : cutoff;
+    if (Object.keys(byId).length) state.archive = { until: until, byId: byId };
+    else delete state.archive;
+    return moved;
+  }
+
   function record(state, practiceId, mins, before, after, now) {
     now = now || new Date();
     var m = isFinite(mins) ? Math.max(0, Math.round(mins * 10) / 10) : 0;
     var s = { id: practiceId, date: iso(now), at: now.toISOString(), mins: m,
       before: before >= 1 && before <= 5 ? before : null, after: after >= 1 && after <= 5 ? after : null };
     state.sessions.push(s);
+    if (state.sessions.length > 365) compact(state, now);
     return s;
   }
   /* His words after sits are kept on the newest 200 sits that have them (about 120 KB at most); older sits keep their
@@ -387,7 +429,9 @@
     var rated = upTo.filter(function (s) { return s.before && s.after; })
       .sort(function (a, b) { return sessionMs(a) - sessionMs(b); }).slice(-20);
     var drop = rated.length ? rated.reduce(function (a, s) { return a + (s.before - s.after); }, 0) / rated.length : null;
-    return { weekMins: Math.round(mins), weekDays: Object.keys(days).length, total: upTo.length, avgDrop: drop, rated: rated.length };
+    var ab = archById(state, to), archN = 0;
+    if (ab) Object.keys(ab).forEach(function (k) { archN += +ab[k].n || 0; });
+    return { weekMins: Math.round(mins), weekDays: Object.keys(days).length, total: upTo.length + archN, avgDrop: drop, rated: rated.length };
   }
 
   /* What Calm asks of him: reach his daily minutes goal (default 10 min; configurable 1-20 min). A 1-min reset
@@ -486,11 +530,16 @@
     var tips = lastSit && lastSit.id === 'count' ? HIND_TIP_COUNT : {};
     var tip = null; hind.some(function (h) { return tips[h] || HIND_TIP[h] ? (tip = tips[h] || HIND_TIP[h]) : false; });
     var lost = rated.filter(function (s) { return s.focus === 1; }).length;
-    return { stage: id, n: i + 1, of: PATH.length, sits: sits.length, mins: Math.round(sits.reduce(function (a, s) { return a + (s.mins || 0); }, 0)),
-      rated: rated.length, interrupted: skipped, steady: steady, lost: lost, ready: i < PATH.length - 1 && sits.length >= READY_SITS && steady >= 3,
+    var ab = archById(state, to);
+    var archSits = ab && ab[id] ? (+ab[id].n || 0) : 0;
+    var archMins = ab && ab[id] ? (+ab[id].mins || 0) : 0;
+    var archTotal = ab ? PATH.reduce(function (a, pid) { return a + (ab[pid] ? (+ab[pid].n || 0) : 0); }, 0) : 0;
+    var totSits = sits.length + archSits;
+    return { stage: id, n: i + 1, of: PATH.length, sits: totSits, mins: Math.round(sits.reduce(function (a, s) { return a + (s.mins || 0); }, 0) + archMins),
+      rated: rated.length, interrupted: skipped, steady: steady, lost: lost, ready: i < PATH.length - 1 && totSits >= READY_SITS && steady >= 3,
       // a later stage that keeps slipping (3 of the last 5 rated "Mostly lost in thought"): offer the stage before, gently
       back: i > 0 && lost >= 3,
-      next: i < PATH.length - 1 ? PATH[i + 1] : null, prev: i > 0 ? PATH[i - 1] : null, total: all.length, tip: tip, when: pathWhen(state, now), late: pathLate(state, now) };
+      next: i < PATH.length - 1 ? PATH[i + 1] : null, prev: i > 0 ? PATH[i - 1] : null, total: all.length + archTotal, tip: tip, when: pathWhen(state, now), late: pathLate(state, now) };
   }
   /* Meditation-path sits in the 7 days up to now (same window as stats()). */
   function pathWeek(state, now) {
@@ -590,6 +639,22 @@
       d.sessions.push(rec);
     });
     trimNotes(d);
+    if (s.archive && typeof s.archive === 'object' && s.archive.byId && typeof s.archive.byId === 'object') {
+      var byId = {};
+      Object.keys(s.archive.byId).forEach(function (k) {
+        if (ids.indexOf(k) < 0) return;
+        var x = s.archive.byId[k];
+        if (!x || typeof x !== 'object') return;
+        var n = Math.floor(+x.n), m = +x.mins;
+        if (isFinite(n) && n > 0 && n <= 1000000) {
+          byId[k] = { n: n, mins: isFinite(m) && m >= 0 && m <= 10000000 ? Math.round(m * 10) / 10 : 0 };
+        }
+      });
+      if (Object.keys(byId).length) {
+        d.archive = { byId: byId };
+        if (WLD.isDate(s.archive.until)) d.archive.until = s.archive.until;
+      }
+    }
     var st = s.settings || {};
     if (typeof st.voice === 'boolean') d.settings.voice = st.voice;
     if (typeof st.tick === 'boolean') d.settings.tick = st.tick;
@@ -625,7 +690,7 @@
     });
   }
 
-  var api = { pathLate: pathLate, quietScript: quietScript, pathWhen: pathWhen, INTERVALS: INTERVALS, NOISE_KINDS: NOISE_KINDS, NOISE_VOLS: NOISE_VOLS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, sitNote: sitNote, trimNotes: trimNotes, MAX_SIT_NOTES: MAX_SIT_NOTES, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
+  var api = { pathLate: pathLate, quietScript: quietScript, pathWhen: pathWhen, INTERVALS: INTERVALS, NOISE_KINDS: NOISE_KINDS, NOISE_VOLS: NOISE_VOLS, intervalBell: intervalBell, PATH: PATH, FOCUS: FOCUS, HIND: HIND, SIT_LENGTHS: SIT_LENGTHS, READY_SITS: READY_SITS, ARCHIVE_DAYS: ARCHIVE_DAYS, stageOf: stageOf, pathStatus: pathStatus, pathWeek: pathWeek, setStage: setStage, rateSit: rateSit, sitNote: sitNote, trimNotes: trimNotes, compact: compact, MAX_SIT_NOTES: MAX_SIT_NOTES, PACERS: PACERS, PRACTICES: PRACTICES, VARIANTS: VARIANTS, DAILY_GOALS: DAILY_GOALS, goalOf: goalOf, scriptFor: scriptFor, variantCount: variantCount, timesDone: timesDone, today: today, fits: fits, defaults: defaults, pacerAt: pacerAt, tickFor: tickFor, record: record, stats: stats, stressByPractice: stressByPractice, suggest: suggest, feltScores: feltScores, advice: advice, validate: validate, iso: iso };
   root.CalmCore = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : this);
