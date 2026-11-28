@@ -1,5 +1,10 @@
 # Cloud log
 
+## 2026-11-28 03:25-03:45 AST (same run; APK 0.1.20261128.0744, real key, cert 6795e499...)
+- Done 458 (Faith: the shorter guided prayer is offered at any hour on a sick-day check-in; e2e-short). 456 dropped (reason in the plan). Claims pushed on their own from now on.
+- Tested: full suite after the rebase (121 suites, none skipped); APK verified.
+- Open for the next runs: 452-454 (Gemini's), 457, and the 2 Dec lesson pack ([drive], Wednesday from noon: 390/398, contrast hindi + pronoun with palagi/gusto + pronoun; short-word order with po; "Ask an elder how to say ..." prompts, which build-packs now enforces).
+
 ## 2026-11-28 02:05-03:25 AST (same run; APK 0.1.20261128.0724, real key, cert 6795e499...: includes Gemini 436, 449, 451)
 - Done 455 -> renumbered 459 (Calm: "Unwell" as what got in the way, ticked for him on a sick-day check-in, never counts against moving on; calm unit + e2e-rough + e2e-path).
 - Collisions with Gemini: my 449 (journal export) and 451 sat unpushed while three rebases waited on full suites; Gemini claimed and did both meanwhile. Rebased onto theirs: dropped my 449 (theirs kept), kept Gemini's 451 fix and test (my "no bug" 451 step was a duplicate and broke theirs: removed). My plan tasks 452-455 renumbered 456-459 next to Gemini's 452-454. Lesson: push the claim on its own right away, never bundled with the work.
