@@ -1,5 +1,20 @@
 # Cloud log
 
+## 2026-11-27 19:42-20:35 AST (run after the usage reset; APK 0.1.20261128.0029, real key, cert 6795e499...)
+- From the owner's two in-app notes (403, 404):
+  - bug: Calm's "Warm brown" sound had a beat like a drum / cause: a 3 s noise buffer looping, its cross-faded seam dipping every 3 s / fixed: noise.js samples() runs each filter circularly (two passes, so the loop point is like any two neighbouring samples), a 4 Hz DC blocker, 11-37 s loops, cached per kind / test: calm unit (seam within normal step spread, no level dip, no 1 s drift, loops >= 15 s).
+  - New sounds "Fan" and "Slow waves" (irregular swells, periodic over a 37 s loop); the sound row now stays during a sit: switch or turn off live (paused: waits for Resume), hidden on the after-questions / test: e2e-noise-timer.
+  - Quick questions (askHtml, non-compact) get "In your own words (optional)", saved as the answer's note (me-core afterNote), already carried by activity text and the PC/cloud summaries / test: me unit + e2e.
+- Cross-review of Gemini 213efac, a0fcd23, afa8cdc, c09b219 (independent subagent, verified here); fixed 405-409:
+  - bug: a queued cook-nutri / wisdom-check answer went to the newest meal / Zoom Out after a restart / cause: ask() without meta / fixed: meta {input:{logId|zoomId}}, no newest fallback / test: modules/cook/tests/e2e-cloud-ai.cjs (fails without the fix).
+  - bug: an AI reply {error, vitc:1} or kcal 15000 was kept as exact / fixed: CookNutri.plausibleAi; Edit numbers with all four cleared refused / test: cook unit.
+  - bug: "Use auto-estimate" on a food-picker meal dropped the picked amounts / fixed: only for ai/manual / test: cook e2e (it also caught my own slip, a "+" commented out).
+  - bug: "chicken stew" = chicken + beef stew, "diet pop" = juice, "lemon wedges" = fries, "fish cake" = fish + cake, "half a banana" = a whole one; "half an avocado" counted a quarter (two old unit expectations encoded that; corrected) / fixed: aliases, 5 foods, NUM_RE, part-of-one servings / test: cook unit 408.
+  - Wisdom ids from a restored backup with . : | quotes get safe ids (409, journal unit).
+- Answered: no queued requests waiting (the weekly plan and grade are in the sheet; the phone hasn't acked them yet); notes acked in the sheet.
+- Tested: full suite after the rebase (118 suites, none skipped); APK built from that commit, apksigner + zipalign verified.
+- Check on the phone: Calm sit with Warm brown (no beat), switch sound mid-sit after tapping the dark screen; Faith/Calm/workout quick questions have the text box.
+
 ## 2026-11-27 14:43-15:30 AST (run after the usage reset; APK 0.1.20261127.1924, real key, cert 6795e499...)
 - Cross-review: an independent subagent read Gemini's Cooking nutrition / skip / modal work (4088e53, c351e93, db5cb80 via the PC's "Update" commits, plus 2f64c37, 7260ca1, 11bd0bc). 10 confirmed bugs, none crashing; fixed with tests as tasks 392-397:
   - bug: "2 eggs rice" counted the rice twice / cause: blanking a matched food kept its count, which the next food read as its own / fixed: countAt blanks the count too / test: cook unit 392.
