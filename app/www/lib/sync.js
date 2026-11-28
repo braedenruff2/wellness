@@ -180,9 +180,9 @@
       store.save(S);
       var backupObj = WL.backupObj ? WL.backupObj() : JSON.parse(WL.backupText());
       var payload = C.buildPayload(backupObj, S, new Date(), extraRequests());
-      if (opts.auto && C.unchanged(S, remote, payload)) return null; // nothing new: Drive already has it
+      if (opts.auto && C.unchanged(remote, payload)) return null; // nothing new: Drive already has it
       wrote = true;
-      return callNative('syncWrite', payload).then(function (r) { C.noteWrite(S, payload); return r; });
+      return callNative('syncWrite', payload);
     }).then(function () {
       if (myGen !== gen) { inFlight = null; emitState(); return { ok: false, skipped: true }; }
       var doneAt = new Date().toISOString();
