@@ -512,6 +512,10 @@ req("POST", "/v1/activity", {"events": [
     {"id": "checkin/2026-11-21/e1", "at": "2026-11-21T12:00:00Z", "part": "checkin", "kind": "checkin", "data": {"sleep": "7 h+", "stillUnwell": "Yes"}},
     {"id": "checkin/2026-11-21/e2", "at": "2026-11-21T12:00:00Z", "part": "checkin", "kind": "checkin", "data": {"sleep": "7 h+", "stillUnwell": "Better now"}}]}, token=token)
 sm_sick = W.summarize(14, datetime.date(2026, 11, 21))
+req("POST", "/v1/activity", {"events": [
+    {"id": "checkin/2026-11-17/e1", "at": "2026-11-17T12:00:00Z", "part": "checkin", "kind": "checkin", "data": {"sickDay": 3, "stillUnwell": "Yes"}}]}, token=token)
+sm_day = W.summarize(14, datetime.date(2026, 11, 21))
+check("summary: the app's sick-day count in plain words", "2026-11-17 sick day 3, still unwell: Yes" in sm_day and "sickDay" not in sm_day, sm_day)
 check("summary: multi-day stillUnwell Yes and Better now in plain words", "2026-11-20 still unwell: Yes" in sm_sick and "2026-11-21 sleep 7 h+, still unwell: Better now" in sm_sick and "stillUnwell" not in sm_sick, sm_sick)
 check("summary has the newest answer and the not-for-me flag", "helped: A lot" in sm and "helped: A bit" not in sm and "NOT FOR ME" in sm and "my note" in sm, sm)
 check("feedback isn't counted as activity", "1 feedback" not in sm, sm)

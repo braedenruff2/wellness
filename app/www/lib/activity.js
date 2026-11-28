@@ -8,6 +8,10 @@
   'use strict';
   var MAX_DAYS = 60;
 
+  function meCore() {
+    if (root && root.MeCore) return root.MeCore;
+    try { return typeof require === 'function' ? require('../modules/me/me-core.js') : null; } catch (e) { return null; }
+  }
   function cut(s, n) { s = String(s == null ? '' : s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
   function okDate(at) { return typeof at === 'string' && /^\d{4}-\d\d-\d\d/.test(at) && !isNaN(new Date(at.length === 10 ? at + 'T12:00:00' : at).getTime()); }
   function localNoon(day) { var p = day.split('-'); return new Date(+p[0], +p[1] - 1, +p[2], 12).toISOString(); }
@@ -167,6 +171,9 @@
     Object.keys(ck).forEach(function (d) {
       var c = ck[d]; if (!c || !/^\d{4}-\d\d-\d\d$/.test(d)) return;
       var at = okDate(c.at) ? c.at : localNoon(d), data = {};
+      // which day of a sick stretch it was, counted as the app does (MeCore.sickDayNo), so the PC needs no matcher of its own (475)
+      var MC = meCore(), sd = MC && MC.sickDayNo ? MC.sickDayNo(s, new Date(localNoon(d))) : 0;
+      if (sd) data.sickDay = sd;
       ['sleep', 'wakes', 'energy', 'mood', 'day', 'stillUnwell'].forEach(function (k) { if (c[k] != null) data[k] = c[k]; });
       if (!Object.keys(data).length && !c.note) return;
       var ev = { id: 'checkin/' + d + (okDate(c.edited) ? '/e' + Date.parse(c.edited) : ''), at: at, part: 'checkin', kind: 'checkin', data: data };

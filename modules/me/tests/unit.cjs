@@ -667,6 +667,13 @@ t('419: afterNoteOf prefix lookup matches day:N / day:N@... without matching day
   assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:10', { prefix: true }), 'day ten note');
   assert.strictEqual(K.afterNoteOf(s, 'faith', 'day:2', { prefix: true }), '', 'no note for day 2');
 });
+t('475: check-in events carry sickDay (the app\'s own count) so the PC summary needs no matcher', () => {
+  const A = require('../../../app/www/lib/activity.js'), s = K.defaults();
+  K.checkinNote(s, '2026-11-20', 'fever', D(20, 9)); K.setStillUnwell(s, '2026-11-21', 'Yes', D(21, 9)); K.checkin(s, '2026-11-22', 'sleep', '7 h+', D(22, 9));
+  K.checkinNote(s, '2026-11-23', 'a cold drink on the porch', D(23, 9));
+  const ev = A.collect({ 'wl.me.v1': s }, {}, D(23, 15)).filter((e) => e.kind === 'checkin');
+  assert.deepStrictEqual(ev.map((e) => e.data.sickDay || 0), [1, 2, 0, 0], JSON.stringify(ev));
+});
 t('468: words that only look unwell stay a normal day; real ones still count', () => {
   for (const t of ['ill-fitting jeans', 'she was ill-tempered today', 'ill be there at 6', 'grabbed a cold drink', 'a cold beer after work', 'the cold weather again', 'had a cold shower', 'its a cold day', 'a cold front coming', 'fever pitch at the game', 'flu season is coming', 'visiting a sick friend', 'my sick coworker went home', 'ok ill call you later', 'flu season is coming again'])
     assert.strictEqual(K.noteUnwell(t), false, t);
