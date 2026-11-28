@@ -35,7 +35,7 @@ const W = require('./lib/web.cjs');
     });
   }, root);
   const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  const SICK = '#me-still-unwell [data-me-unwell], #wo-rough-rest, #ck-sick-soup, #ck-home-mama, #ck-home-skip, #ck-sick-undo, #ck-sick-card [data-sick-soup], .home-card[data-module="calm"] a.btn';
+  const SICK = '#me-still-unwell [data-me-unwell], #wo-rough-rest, #ck-sick-soup, #ck-home-mama, #ck-home-skip, #tl-card-listen, .home-card[data-module="coach"] [data-co-daily], #ck-sick-undo, #ck-sick-card [data-sick-soup], .home-card[data-module="calm"] a.btn';
 
   await page.goto(base + '#home');
   for (const [ts, theme, w] of [[1, 'light', 360], [1.3, 'light', 320], [1, 'dark', 360], [1, 'night', 320]]) {
@@ -46,9 +46,10 @@ const W = require('./lib/web.cjs');
       await page.waitForSelector('#ck-sick-soup'); await page.waitForSelector('#wo-rough-rest'); await page.waitForSelector('#co-sick');
       assert.ok(await page.$('#me-still-unwell'), 'Still unwell? chips on Home');
       assert.ok(await page.$('#ck-home-mama') && await page.$('#ck-home-skip'), '457: Mama cooked / Not making on Home');
+      assert.ok(await page.$('#tl-card-listen') && await page.$('#co-sick-tips') && await page.isVisible('#me-sick-line'), '460-462 on Home');
       assert.deepStrictEqual(await small(SICK), [], 'tap targets');
       assert.ok((await overflow()) <= 2, 'Home overflow ' + (await overflow()));
-      for (const card of ['me', 'workout', 'cook', 'coach', 'calm']) {
+      for (const card of ['me', 'workout', 'cook', 'coach', 'calm', 'tagalog']) {
         const cs = await contrast('.home-card[data-module="' + card + '"]');
         assert.ok(cs.length >= 2, card + ' card: text measured (' + cs.length + ')');
         assert.deepStrictEqual(cs.filter((x) => x.r < min), [], theme + ' ' + card + ' card');
@@ -62,6 +63,12 @@ const W = require('./lib/web.cjs');
       assert.deepStrictEqual(await small('#ck-sick-card [data-sick-soup]'), [], 'soup chips');
       assert.ok((await overflow()) <= 2, '#cook overflow ' + (await overflow()));
       assert.deepStrictEqual((await contrast('#ck-sick-card')).filter((x) => x.r < min), [], theme + ' #ck-sick-card');
+      await page.goto(base + '#tagalog'); await page.waitForSelector('#tl-sick');
+      assert.deepStrictEqual(await small('#tl-sick a'), [], '#tl-sick targets');
+      assert.ok((await overflow()) <= 2, '#tagalog overflow ' + (await overflow()));
+      assert.deepStrictEqual((await contrast('#tl-sick')).filter((x) => x.r < min), [], theme + ' #tl-sick');
+      await page.click('#tl-sick a.link'); await page.waitForSelector('#tl-walk');
+      assert.deepStrictEqual(await small('#tl-walk'), [], 'Listen while resting chip');
       await page.goto(base + '#calm'); await page.waitForSelector('#c-path-sick');
       assert.ok((await overflow()) <= 2, '#calm overflow ' + (await overflow()));
       assert.deepStrictEqual((await contrast('#c-path')).filter((x) => x.r < min), [], theme + ' #c-path');
