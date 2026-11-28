@@ -128,7 +128,7 @@
     ['workout', 'cook', 'coach'].forEach(function (id) {
       var el = document.querySelector('.home-card[data-module="' + id + '"]');
       var m = WL.modules && WL.modules[id];
-      if (el && m && m.card) { el.innerHTML = m.card(); }
+      if (el && m && m.card) { el.innerHTML = m.card(); if (m.wireCard) try { m.wireCard(el); } catch (e) {} } // its buttons must work at once
     });
   }
   document.addEventListener('click', function (e) {
@@ -211,7 +211,11 @@
   }
   function wireCard(el) {
     var sk = $('#me-skip', el); if (sk) sk.onclick = function () { S.skipped[today()] = 1; save(); el.innerHTML = cardHtml(); wireCard(el); if (WL.refreshToday) WL.refreshToday(); };
-    var n = $('#me-ck-note', el); if (n) n.oninput = n.onchange = function () { K.checkinNote(S, today(), n.value, new Date()); save(); };
+    // a note that says they're sick switches Move, Cooking and Parenting on Home to a sick day as he types (and back)
+    var n = $('#me-ck-note', el); if (n) n.oninput = n.onchange = function () {
+      var was = K.unwell(S, new Date()); K.checkinNote(S, today(), n.value, new Date()); save();
+      if (K.unwell(S, new Date()) !== was) refreshSickCards();
+    };
     var pb = $('#me-plan', el); if (pb) pb.onclick = function () { makePlan(redrawCard); el.innerHTML = cardHtml(); wireCard(el); };
   }
 
