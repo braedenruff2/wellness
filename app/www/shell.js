@@ -263,10 +263,12 @@
     order.forEach(function (id) { var m = modules[id]; if (!m.today) return; try { var t = m.today(); if (t && t.label) items.push(t); } catch (e) {} });
     if (!items.length) return '';
     var n = items.filter(function (t) { return t.done; }).length;
-    return '<div class="card ui" id="wl-today"><div class="row"><b class="grow">' + (n === items.length ? 'All done for today ✓' : n + ' of ' + items.length + ' done today') + '</b></div>' +
+    // a sick day (today's check-in): no count that reads like a score; rest is what counts (479)
+    var sick = !!(window.WLMe && WLMe.unwell && WLMe.unwell());
+    return '<div class="card ui" id="wl-today"><div class="row"><b class="grow">' + (sick ? 'A sick day: rest counts' : n === items.length ? 'All done for today ✓' : n + ' of ' + items.length + ' done today') + '</b></div>' +
       '<ul class="today-list">' + items.map(function (t) {
         return '<li' + (t.done ? ' class="done"' : '') + '><a href="' + esc(t.href || '#home') + '"><span class="tk" aria-hidden="true">' + (t.done ? '✓' : '○') + '</span> ' + esc(t.label) + '</a></li>';
-      }).join('') + '</ul>' + (n === items.length ? '<p class="meta">Nothing else you need to do. Anything more is a bonus.</p>'
+      }).join('') + '</ul>' + (sick ? '<p class="meta" id="wl-today-sick">Nothing here needs doing today. Anything you do is a bonus.</p>' : n === items.length ? '<p class="meta">Nothing else you need to do. Anything more is a bonus.</p>'
         : new Date().getHours() >= 20 ? '<p class="meta">It’s evening: what’s left can wait. Tomorrow is fine.</p>'
         : n === 0 ? '<p class="meta">Do what fits today; on a hard day one of these is plenty.</p>' : '') + '</div>';
   }

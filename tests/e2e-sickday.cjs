@@ -33,6 +33,9 @@ const W = require('./lib/web.cjs');
     await page.press('#me-ck-note', 'Tab'); // done typing
     await page.clock.runFor(1500);
     assert.deepStrictEqual(await state(), ALL, JSON.stringify(await state()));
+    // 479: the today list doesn't keep a score on a sick day
+    const tl = await page.textContent('#wl-today');
+    assert.ok(/A sick day: rest counts/.test(tl) && !/\d+ of \d+ done today/.test(tl), tl);
     // the redrawn cards' buttons work at once (they were dead until Home was drawn again)
     await page.evaluate(() => { window.__toasts = []; const t = WL.toast; WL.toast = (m) => { window.__toasts.push(m); return t(m); }; });
     await page.click('#ck-sick-soup');
@@ -221,6 +224,7 @@ const W = require('./lib/web.cjs');
     await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); });
     await page.waitForSelector('#me-still-unwell');
     for (const sel of ['#tl-card-listen', '#co-sick', '#wo-rough-rest', '#ck-sick-soup']) assert.strictEqual(await page.$(sel), null, sel + ' gone on the new day');
+    assert.ok(!/A sick day: rest counts/.test(await page.textContent('#wl-today')), 'the count is back on a normal day');
     const today = await page.textContent('#wl-today');
     assert.ok(!/sick day|rest today \(listening/.test(today), today);
     await page.click('#me-still-unwell [data-me-unwell][data-v="Yes"]');
