@@ -240,6 +240,22 @@ t('logging for an earlier week: weekStats, weekVolume and coach ignore sessions 
   s.history.push({ date: '2026-11-22', ex: 'Pushups', sets: [15, 15], w: null, from: 'sheet' });
   assert.ok(/Done for today/.test(W.coach(s, at(22, 18))), 'newer imported history recognised');
 });
+t('465: the first workout after a sick day goes lighter, once; not while still unwell; not after a workout since', () => {
+  const s = W.defaults();
+  W.logSet(s, 'A', 0, 12, 10, at(20, 9)); W.endSession(s, at(20, 10));
+  W.logRest(s, '2026-11-25', 'Sick', at(25, 9)); W.logRest(s, '2026-11-26', 'Sick', at(26, 9));
+  const back = /First workout after being sick: go lighter/;
+  assert.ok(back.test(W.coach(s, at(27, 9))), W.coach(s, at(27, 9)));
+  assert.ok(back.test(W.coach(s, at(28, 9))), 'still the first one back the next day: ' + W.coach(s, at(28, 9)));
+  assert.ok(!back.test(W.coach(s, at(27, 9), { unwell: true })), 'still unwell today: not yet');
+  assert.ok(/Rest until you’re better/.test(W.coach(s, at(26, 12))) && !back.test(W.coach(s, at(26, 12))), 'on the sick day itself: the rest line');
+  W.logSet(s, 'B', 0, 12, 10, at(28, 18)); W.endSession(s, at(28, 19));
+  assert.ok(!back.test(W.coach(s, at(29, 9))), 'trained since: back to normal: ' + W.coach(s, at(29, 9)));
+  assert.ok(!back.test(W.coach(s, at(26 + 8, 9))), 'more than a week later: no');
+  const t2 = W.defaults(); W.logRest(t2, '2026-11-20', 'Sick', at(20, 9));
+  assert.ok(!back.test(W.coach(t2, at(28, 9))), 'a sick day 8 days ago: no');
+  assert.ok(back.test(W.coach(t2, at(27, 9))), '7 days: yes');
+});
 t('rest days with a reason: done for the day, kind coach line, not a workout, undo, validate', () => {
   const s = W.defaults();
   W.logSet(s, 'A', 0, 12, 10, at(19, 9)); W.endSession(s, at(19, 10)); // Thursday
@@ -264,7 +280,7 @@ t('rest days with a reason: done for the day, kind coach line, not a workout, un
   assert.ok(!W.clearRest(s, '2026-11-23'));
   assert.throws(() => W.logRest(s, '2026-11-23', 'Lazy'));
   // a busy week names the rest days
-  const b = W.defaults(); W.logRest(b, '2026-11-26', 'Busy day', at(26, 9)); W.logRest(b, '2026-11-27', 'Sick', at(27, 9));
+  const b = W.defaults(); W.logRest(b, '2026-11-26', 'Busy day', at(26, 9)); W.logRest(b, '2026-11-27', 'Planned rest', at(27, 9)); // (a Sick day here gets 465's back-after-sick line instead)
   assert.ok(/rest days logged/.test(W.coach(b, at(28, 18))) || /Rest until/.test(W.coach(b, at(28, 18))), W.coach(b, at(28, 18)));
   assert.ok(/2 rest days logged/.test(W.coach(b, at(29, 9))), W.coach(b, at(29, 9)));
   // a workout on the same day wins over a rest day

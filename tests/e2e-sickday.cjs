@@ -176,5 +176,14 @@ const W = require('./lib/web.cjs');
     assert.ok(savedRest && savedRest.why === 'Sick' && savedRest.fromCheckin === true, 'rest day stayed saved: ' + JSON.stringify(savedRest));
     assert.deepStrictEqual(t.errors, []);
   });
+  await t.step('465: two days after the sick rest day, no sick note: Move says go lighter for the first workout back', async () => {
+    await page.clock.setSystemTime(new Date(2026, 11, 3, 9, 0));
+    await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('.home-card[data-module="workout"]');
+    const mv = await page.textContent('.home-card[data-module="workout"]');
+    assert.ok(/First workout after being sick: go lighter/.test(mv), mv);
+    await page.goto(base + '#workout'); await page.waitForSelector('#view h1');
+    assert.ok(/First workout after being sick/.test(await page.textContent('#view')));
+    assert.deepStrictEqual(t.errors, []);
+  });
   await t.close('sick stretch');
 })().catch((e) => { console.error(String(e && e.stack || e).slice(0, 3000)); process.exit(1); });

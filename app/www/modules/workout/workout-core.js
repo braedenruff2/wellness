@@ -536,6 +536,14 @@
     var yIso = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
     if (restOn(state, yIso) === 'Sore') return 'Still sore? Do two sets of each today and keep the weights the same; moving usually eases it. If it still hurts to move, rest one more day.';
     if (restOn(state, yIso) === 'Tired') return 'Rested yesterday: today’s workout as planned, or two sets of each if you’re still tired.';
+    // back after being sick (a "Sick" rest day in the last week, no workout since, and today's check-in isn't unwell): go lighter once
+    if (!(opts && opts.unwell)) {
+      for (var sd = 1; sd <= 7; sd++) {
+        var sIso = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - sd));
+        if (lastDate && lastDate >= sIso) break; // trained since
+        if (restOn(state, sIso) === 'Sick') return 'First workout after being sick: go lighter today (two sets of each, same weights) and stop if it feels wrong. Rest another day if you’re not really better.';
+      }
+    }
     if (gap != null && gap > 10) return 'It’s been ' + gap + ' days. Start easy today: do two sets of each, not three.';
     // the first workouts back (1-2 in the last 4 weeks): soreness is normal and drops after a couple of weeks; leave reps in reserve
     var from28 = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 28)), recent = {};
