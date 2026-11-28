@@ -626,6 +626,11 @@
 
   /* A path sit on a rough day (short or broken night, low energy): offered at 10 minutes, for that sit only. */
   function sickToday() { return !!(window.WLMe && WLMe.unwell && WLMe.unwell()); }
+  // day 2+ of a sick stretch (474): rest is today's sit, said plainly once
+  function sickLine() {
+    var n = window.WLMe && WLMe.sickDayNo ? WLMe.sickDayNo() : 0;
+    return n >= 2 ? 'Sick today (day ' + n + '): rest counts as today’s sit. If you want one, 10 minutes is plenty.' : 'Sick today: a 10-minute sit, or none at all, both count as rest.';
+  }
   function roughSit(p) { return !!(p && p.path && window.WLMe && ((WLMe.rough && WLMe.rough()) || sickToday()) && mins(p) > 10 && lengths(p).indexOf(10) >= 0); }
   function card() {
     var t = K.today(S), sug = practice(K.suggest(S, null, sopts()));
@@ -637,7 +642,7 @@
     // a sit on a rough day (short night, broken night, low energy): 10 minutes, for that sit only
     var short = roughSit(sug);
     return '<div class="meta ui">' + (t.any ? 'Calm · ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min today' : 'Calm · today’s practice (goal ' + t.goal + ' min)') + '</div><h3>' + esc(sug.title) + ' · ' + (short ? 10 : mins(sug)) + ' min</h3>' +
-      (short ? '<p class="meta ui" id="c-card-rough">' + (sickToday() ? 'Sick today: a 10-minute sit, or none at all, both count as rest.' : 'Short night: a 10-minute sit counts just as much today.') + '</p>' : '<p class="meta ui">' + esc(K.advice(S)) + '</p>') +
+      (short ? '<p class="meta ui" id="c-card-rough">' + (sickToday() ? sickLine() : 'Short night: a 10-minute sit counts just as much today.') + '</p>' : '<p class="meta ui">' + esc(K.advice(S)) + '</p>') +
       '<div class="row ui"><a class="btn primary" href="#calm/s/' + sug.id + (short ? '/10' : '') + '">Begin</a><a class="btn" href="#calm/all">All practices</a></div>';
   }
 
@@ -667,6 +672,7 @@
           var m = sat.reduce(function (a, x) { return a + (x.mins || 0); }, 0), last = sat[sat.length - 1];
           return { label: 'Calm: sat ' + Math.max(1, Math.round(m)) + ' min (' + titleOf(last.id) + ')', done: true, href: '#calm' };
         }
+        if (sickToday() && !t.done) return { label: 'Calm: a sick day, rest counts (a sit is optional)', done: true, href: '#calm' };
         var sp = practice(K.suggest(S, null, sopts()));
         if (sp && sp.path && !t.done) {
           var rough = roughSit(sp); // same as the Calm card: on a rough day, 10 minutes for this sit
@@ -674,6 +680,7 @@
         }
       }
       if (t.done) return { label: 'Calm: done (' + Math.max(1, t.mins) + ' min)', done: true, href: '#calm' };
+      if (sickToday()) return { label: 'Calm: a sick day, rest counts (a practice is optional)', done: true, href: '#calm' };
       if (t.any) return { label: 'Calm: ' + Math.max(1, t.mins) + ' of ' + t.goal + ' min today', done: false, href: '#calm' };
       var sug = practice(K.suggest(S, null, sopts()));
       return { label: 'Calm: ' + sug.title.toLowerCase() + ' (' + mins(sug) + ' min · goal ' + t.goal + ' min)', done: false, href: '#calm/s/' + sug.id };

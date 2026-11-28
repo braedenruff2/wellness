@@ -54,6 +54,7 @@ const Wb = require('../../../tests/lib/web.cjs');
     await page.goto(base + '#home'); await page.waitForSelector('.home-card[data-module="calm"]');
     assert.ok(/Sick today: a 10-minute sit/.test(await page.textContent('.home-card[data-module="calm"]')), await page.textContent('.home-card[data-module="calm"]'));
     assert.ok(await page.$('.home-card[data-module="calm"] a[href="#calm/s/count/10"]'), 'Begin starts the 10-minute sit');
+    assert.strictEqual(await page.evaluate(() => WL.modules.calm.today().done), true, '474: a sick day leaves Calm done on Home');
     await page.goto(base + '#calm/s/count'); await page.waitForSelector('#c-rough');
     assert.ok(/Sick today/.test(await page.textContent('#c-rough')));
     // 455: a sit on a sick day has "Unwell" ticked on the questions (it won't count against moving on)

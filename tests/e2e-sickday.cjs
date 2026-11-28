@@ -56,6 +56,10 @@ const W = require('./lib/web.cjs');
     assert.deepStrictEqual({ rest: s.rest, soup: s.soup, coach: s.coach, calm: s.calm }, { rest: true, soup: true, coach: true, calm: true }, JSON.stringify(s));
     // 462: the check-in card says which day of it this is, straight after the tap, and For you too once checked in
     assert.ok(/^Day 2 of feeling unwell/.test(await page.textContent('#me-sick-line')), await page.textContent('#me-sick-line'));
+    // 474: Calm says it plainly on day 2, and its today item isn't left undone
+    assert.ok(/Sick today \(day 2\): rest counts as today’s sit/.test(await page.textContent('.home-card[data-module="calm"]')), await page.textContent('.home-card[data-module="calm"]'));
+    const ct = await page.evaluate(() => WL.modules.calm.today());
+    assert.ok(ct && ct.done && /sick day/.test(ct.label), JSON.stringify(ct));
     await page.click('#me-still-unwell [data-me-unwell][data-v="Yes"]'); // off: the line goes
     assert.strictEqual(await page.isVisible('#me-sick-line'), false);
     await page.click('#me-still-unwell [data-me-unwell][data-v="Yes"]'); // on again
