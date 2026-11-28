@@ -650,7 +650,7 @@
     storageKeys: [store.key], settingsLink: '#faith/settings',
     route: route, leave: leave, card: card, saveNow: saveNow,
     week: function () { var n = C.doneInLast(S, 7); return n ? n + ' faith day' + (n === 1 ? '' : 's') : ''; },
-    today: function () { var t = C.finishedToday(S), n = C.currentDay(S, TOTAL); return t ? { label: 'Faith: day ' + t + ' done', done: true, href: '#faith/today' } : day(n) ? { label: 'Faith: day ' + n + ' (about ' + (+S.settings.minutes) + ' min)', done: false, href: '#faith/today' } : null; },
+    today: function () { var t = C.finishedToday(S), n = C.currentDay(S, TOTAL); return t ? { label: 'Faith: day ' + t + ' done', done: true, href: '#faith/today' } : day(n) && window.WLMe && WLMe.unwell && WLMe.unwell() ? { label: 'Faith: a sick day, rest counts (a short prayer if you like)', done: true, href: '#faith/today' } : day(n) ? { label: 'Faith: day ' + n + ' (about ' + (+S.settings.minutes) + ' min)', done: false, href: '#faith/today' } : null; },
     pause: function () { var pp = view && view.querySelector('#pp'); if (pp && pp.dataset.state === 'playing') pp.click(); },
     validate: function (k, raw) { try { return JSON.stringify(C.importData(JSON.stringify({ app: 'faith-companion', state: JSON.parse(raw) }))); } catch (e) { return null; } },
     importOld: function (text) { S = C.importData(text); save(); },

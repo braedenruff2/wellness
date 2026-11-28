@@ -201,7 +201,8 @@
     today: function () {
       var g = T.groups(S), due = g.overdue.concat(g.today); if (!due.length) return null;
       var first = String(due[0].text || '').slice(0, 40);
-      return { label: 'To do: ' + first + (due.length > 1 ? ' + ' + (due.length - 1) + ' more' : ''), done: false, href: '#todo' };
+      var sick = !!(window.WLMe && WLMe.unwell && WLMe.unwell()); // a sick day (480): only what can't wait
+      return { label: 'To do: ' + first + (due.length > 1 ? ' + ' + (due.length - 1) + ' more' : '') + (sick ? ' (only what can’t wait)' : ''), done: false, href: '#todo' };
     },
     validate: function (k, raw) { try { var s = T.validate(JSON.parse(raw)); return s ? JSON.stringify(s) : null; } catch (e) { return null; } },
     reload: function () { S = store.load(); tidyNow(); syncAlarms(); }

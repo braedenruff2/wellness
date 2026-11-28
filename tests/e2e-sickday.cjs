@@ -36,6 +36,13 @@ const W = require('./lib/web.cjs');
     // 479: the today list doesn't keep a score on a sick day
     const tl = await page.textContent('#wl-today');
     assert.ok(/A sick day: rest counts/.test(tl) && !/\d+ of \d+ done today/.test(tl), tl);
+    // 480: Faith isn't left undone; to-dos say only what can't wait
+    const fi = await page.evaluate(() => WL.modules.faith.today());
+    assert.ok(fi && fi.done && /rest counts/.test(fi.label), JSON.stringify(fi));
+    await page.evaluate(() => { const td = JSON.parse(localStorage.getItem('wl.todo.v1') || '{"tasks":[]}'); td.tasks = td.tasks || []; td.tasks.push({ id: 'sick1', text: 'pay the phone bill', due: '2026-11-27', done: null, created: '2026-11-26T12:00:00.000Z', repeat: null, at: null }); localStorage.setItem('wl.todo.v1', JSON.stringify(td)); WL.modules.todo.reload(); });
+    const td = await page.evaluate(() => WL.modules.todo.today());
+    assert.ok(td && /only what can’t wait/.test(td.label) && td.done === false, JSON.stringify(td));
+    await page.evaluate(() => { const td = JSON.parse(localStorage.getItem('wl.todo.v1')); td.tasks = td.tasks.filter((x) => x.id !== 'sick1'); localStorage.setItem('wl.todo.v1', JSON.stringify(td)); WL.modules.todo.reload(); });
     // the redrawn cards' buttons work at once (they were dead until Home was drawn again)
     await page.evaluate(() => { window.__toasts = []; const t = WL.toast; WL.toast = (m) => { window.__toasts.push(m); return t(m); }; });
     await page.click('#ck-sick-soup');
