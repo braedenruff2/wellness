@@ -427,7 +427,9 @@
       '<h3>' + esc(headline) + '</h3>' +
       (soon.length ? '<p class="meta ui" style="color:var(--warn)">Use soon: ' + esc(soon.slice(0, 3).map(function (x) { return x.item.name + ' (' + (x.daysLeft <= 0 ? 'today' : x.daysLeft + ' d') + ')'; }).join(', ')) + '</p>'
         : '<p class="meta ui">Beginner recipes, flexible when Mama cooks, food logs &amp; targets for you &amp; ' + esc(ctx.childLabel()) + '.</p>') +
-      undoHtml(ctx) + (sickOffer ? '<div class="row ui" id="ck-sick-soup-row" style="margin-bottom:6px"><button class="btn" id="ck-sick-soup" type="button" data-sick-soup="' + esc(sickOffer.date + '|' + sickOffer.recipe.id) + '">Swap ' + (sickOffer.isTomorrow ? 'tomorrow’s' : 'tonight’s') + ' dinner for ' + esc(sickOffer.shortName) + '</button></div>' : '') +
+      undoHtml(ctx) + (sickOffer ? '<div class="row ui" id="ck-sick-soup-row" style="margin-bottom:6px"><button class="btn" id="ck-sick-soup" type="button" data-sick-soup="' + esc(sickOffer.date + '|' + sickOffer.recipe.id) + '">Swap ' + (sickOffer.isTomorrow ? 'tomorrow’s' : 'tonight’s') + ' dinner for ' + esc(sickOffer.shortName) + '</button>' +
+        // a sick evening: often nobody cooks it (Mama does, or it's toast); both stay one tap away on Home (457)
+        (sickOffer.isTomorrow ? '' : '<button class="btn" type="button" id="ck-home-mama" data-ck-home-mama="' + esc(sickOffer.date) + '">Mama cooked</button><button class="btn" type="button" id="ck-home-skip" data-ck-home-skip="' + esc(sickOffer.date) + '">Not making</button>') + '</div>' : '') +
       '<div class="row ui"><a class="btn primary" href="#cook">Today’s meals</a><a class="btn" href="#cook/log">Log food</a><a class="btn" href="#cook/pantry">Fridge &amp; list</a></div>';
   }
 

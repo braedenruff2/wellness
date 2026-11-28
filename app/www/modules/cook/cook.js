@@ -763,6 +763,15 @@
     el.addEventListener('click', function (e) {
       var un = e.target.closest && e.target.closest('[data-sick-undo]');
       if (un) { var u = sickUndo(); save(); el.innerHTML = card(); WL.toast(u ? 'Back to ' + u.prevTitle : 'Too late to undo: change dinner in Cooking'); return; }
+      var hm = e.target.closest && e.target.closest('[data-ck-home-mama],[data-ck-home-skip]');
+      if (hm) {
+        var mama = !!hm.dataset.ckHomeMama, date = mama ? hm.dataset.ckHomeMama : hm.dataset.ckHomeSkip;
+        if (!K.markSlot(S, date, 'dinner', mama ? 'mama' : 'skipped', '', realNow())) return;
+        lastSwap = null; save(); el.innerHTML = card();
+        WL.toast(mama ? 'Marked Mama cooked: add what she made in Cooking if you like' : 'Not making dinner tonight: that’s fine');
+        if (WL.refreshToday) WL.refreshToday();
+        return;
+      }
       var b = e.target.closest && e.target.closest('[data-sick-soup]');
       if (!b) return;
       var p = b.dataset.sickSoup.split('|'), d = realNow();

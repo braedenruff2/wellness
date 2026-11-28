@@ -35,7 +35,7 @@ const W = require('./lib/web.cjs');
     });
   }, root);
   const overflow = () => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-  const SICK = '#me-still-unwell [data-me-unwell], #wo-rough-rest, #ck-sick-soup, #ck-sick-undo, #ck-sick-card [data-sick-soup], .home-card[data-module="calm"] a.btn';
+  const SICK = '#me-still-unwell [data-me-unwell], #wo-rough-rest, #ck-sick-soup, #ck-home-mama, #ck-home-skip, #ck-sick-undo, #ck-sick-card [data-sick-soup], .home-card[data-module="calm"] a.btn';
 
   await page.goto(base + '#home');
   for (const [ts, theme, w] of [[1, 'light', 360], [1.3, 'light', 320], [1, 'dark', 360], [1, 'night', 320]]) {
@@ -45,6 +45,7 @@ const W = require('./lib/web.cjs');
       await look(ts, theme); await seed(); await page.reload();
       await page.waitForSelector('#ck-sick-soup'); await page.waitForSelector('#wo-rough-rest'); await page.waitForSelector('#co-sick');
       assert.ok(await page.$('#me-still-unwell'), 'Still unwell? chips on Home');
+      assert.ok(await page.$('#ck-home-mama') && await page.$('#ck-home-skip'), '457: Mama cooked / Not making on Home');
       assert.deepStrictEqual(await small(SICK), [], 'tap targets');
       assert.ok((await overflow()) <= 2, 'Home overflow ' + (await overflow()));
       for (const card of ['me', 'workout', 'cook', 'coach', 'calm']) {

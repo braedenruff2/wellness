@@ -124,6 +124,34 @@ const W = require('./lib/web.cjs');
     assert.deepStrictEqual(t.errors, []);
   });
 
+  await t.step('457: with the soup offer on Home, "Mama cooked" and "Not making" for tonight are one tap there too', async () => {
+    await page.clock.setSystemTime(new Date(2026, 11, 2, 9, 0));
+    await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#me-ck-note');
+    await page.fill('#me-ck-note', 'sick again, sore throat'); await page.press('#me-ck-note', 'Tab');
+    await page.clock.runFor(800);
+    await page.goto(base + '#cook'); await page.waitForSelector('#view h1'); // a new week: Cooking makes and saves its plan
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.cook.v1')); c.plan.days['2026-12-02'].dinner = { recipeId: 'salmon-tray', title: '20-minute baked salmon, spinach & potatoes', status: 'planned', note: '' }; localStorage.setItem('wl.cook.v1', JSON.stringify(c)); });
+    await page.goto(base + '#home'); await page.reload(); await page.waitForSelector('#ck-sick-soup');
+    assert.ok(await page.isVisible('#ck-home-mama') && await page.isVisible('#ck-home-skip'));
+    await page.evaluate(() => { window.__toasts = []; const t = WL.toast; WL.toast = (m) => { window.__toasts.push(m); return t(m); }; });
+    await page.click('#ck-home-skip');
+    await page.waitForFunction(() => !document.querySelector('#ck-home-skip'));
+    let din = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-12-02'].dinner);
+    assert.strictEqual(din.status, 'skipped');
+    assert.strictEqual((await page.evaluate(() => window.__toasts)).length, 1, 'answered once');
+    // tonight is settled, so the soup offer moves to tomorrow, without tonight's buttons
+    if (await page.$('#ck-sick-soup')) assert.ok(/tomorrow’s/.test(await page.textContent('#ck-sick-soup')));
+    assert.strictEqual(await page.$('#ck-home-mama'), null);
+    // back to planned: Mama cooked
+    await page.evaluate(() => { const c = JSON.parse(localStorage.getItem('wl.cook.v1')); c.plan.days['2026-12-02'].dinner.status = 'planned'; localStorage.setItem('wl.cook.v1', JSON.stringify(c)); });
+    await page.reload(); await page.waitForSelector('#ck-home-mama');
+    await page.click('#ck-home-mama');
+    await page.waitForFunction(() => !document.querySelector('#ck-home-mama'));
+    din = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.cook.v1')).plan.days['2026-12-02'].dinner);
+    assert.strictEqual(din.status, 'mama');
+    assert.deepStrictEqual(t.errors, []);
+  });
+
   await t.step('451: "Rest today (sick)" tapped, then check-in note edited to fine: rest day stays, Home stops calling it a sick day', async () => {
     await page.clock.setSystemTime(new Date(2026, 11, 1, 9, 0));
     await page.goto(base + '#home'); await page.reload();
