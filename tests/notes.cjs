@@ -90,4 +90,14 @@ t('423: unseenReplies, markRepliesSeen, replySeen persistence, and updated reply
   assert.strictEqual(N.unseenReplies(null).length, 0);
   assert.strictEqual(N.markRepliesSeen(null), 0);
 });
+t('a reply cut at 300 characters never ends in a space, so a backup restores it exactly', () => {
+  const st = N.defaults(); const x = N.add(st, 'a note', '#home', 'Idea', new Date(2026, 10, 28));
+  const long = 'word '.repeat(59) + 'abcd efgh'; // the cut at 300 falls right after a space
+  N.markRead(st, [x.id], new Date(2026, 10, 28, 1).toISOString(), { [x.id]: long });
+  assert.ok(st.notes[0].reply.length <= 300 && !/\s$/.test(st.notes[0].reply), JSON.stringify(st.notes[0].reply.slice(-10)));
+  const back = N.validate(JSON.parse(JSON.stringify(st)));
+  assert.strictEqual(back.notes[0].reply, st.notes[0].reply);
+  const v = N.validate({ notes: [{ id: 'n1', at: new Date(2026, 10, 28).toISOString(), where: '#home', tag: 'Idea', text: 'x', reply: '  two   spaces  ' }] });
+  assert.strictEqual(v.notes[0].reply, 'two spaces');
+});
 console.log(n + ' notes unit tests passed');

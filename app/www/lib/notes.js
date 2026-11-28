@@ -47,7 +47,7 @@
       });
       if (typeof x.read === 'string' && !isNaN(Date.parse(x.read))) d.notes[d.notes.length - 1].read = new Date(x.read).toISOString();
       if (typeof x.reply === 'string' && x.reply.trim()) {
-        d.notes[d.notes.length - 1].reply = x.reply.trim().slice(0, 300);
+        d.notes[d.notes.length - 1].reply = tidyReply(x.reply);
         if (typeof x.replySeen === 'string' && !isNaN(Date.parse(x.replySeen))) d.notes[d.notes.length - 1].replySeen = new Date(x.replySeen).toISOString();
       }
     });
@@ -56,6 +56,8 @@
 
   /* A cloud run's "notes-ack" answer: these notes were read by the autopilot (at = when), and optionally its one-line
      reply to some of them (replies: {id: text}; a later run's reply replaces an earlier one). Returns how many changed. */
+  /* A reply as kept: spaces tidied, at most 300 characters, never ending in a space (so a restore keeps it exactly). */
+  function tidyReply(t) { return String(t).replace(/\s+/g, ' ').trim().slice(0, 300).trim(); }
   function markRead(state, ids, at, replies) {
     if (!state || !Array.isArray(state.notes) || !Array.isArray(ids)) return 0;
     var when = typeof at === 'string' && !isNaN(Date.parse(at)) ? new Date(at).toISOString() : new Date().toISOString(), n = 0;
@@ -64,7 +66,7 @@
       if (!x || ids.indexOf(x.id) < 0) return;
       var changed = false;
       if (!x.read) { x.read = when; changed = true; }
-      var r = typeof rp[x.id] === 'string' ? rp[x.id].replace(/\s+/g, ' ').trim().slice(0, 300) : '';
+      var r = typeof rp[x.id] === 'string' ? tidyReply(rp[x.id]) : '';
       if (r && r !== x.reply) { x.reply = r; delete x.replySeen; changed = true; }
       if (changed) n++;
     });
