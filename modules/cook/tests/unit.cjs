@@ -380,7 +380,8 @@ t('Cronometer nutrition targets & estimator: counts, no double-count, portions, 
   // 2 eggs + half avocado + peanut butter (must NOT double-count butter)
   const e1 = CN.estimateEntry({ who: 'me', text: '2 eggs, half avocado, peanut butter', portion: 'Regular' });
   assert.strictEqual(e1.matched, true);
-  const expKcal = 2 * CN.FOOD_BY.egg.nutri.kcal + 0.5 * CN.FOOD_BY.avocado.nutri.kcal + CN.FOOD_BY.pb.nutri.kcal;
+  // the avocado serving is itself half an avocado (1/2 medium): "half avocado" is one serving, not a quarter
+  const expKcal = 2 * CN.FOOD_BY.egg.nutri.kcal + 1 * CN.FOOD_BY.avocado.nutri.kcal + CN.FOOD_BY.pb.nutri.kcal;
   assert.strictEqual(Math.round(e1.nutri.kcal), Math.round(expKcal), 'exact count + no butter double-count');
 
   // Portion scaling for Me
@@ -459,7 +460,7 @@ t('392: a count never carries to the next food; a recipe title keeps the other f
   const CN = K.nutri, F = CN.FOOD_BY, me = (text, o) => CN.estimateEntry(Object.assign({ who: 'me', text, portion: 'Regular' }, o || {}), [], K.RECIPES).nutri.kcal;
   assert.strictEqual(Math.round(me('2 eggs rice')), 2 * F.egg.nutri.kcal + F.rice.nutri.kcal, '"2 eggs rice" is 2 eggs + 1 rice');
   assert.strictEqual(Math.round(me('3 eggs, rice')), 3 * F.egg.nutri.kcal + F.rice.nutri.kcal);
-  assert.strictEqual(Math.round(me('half avocado toast')), Math.round(0.5 * F.avocado.nutri.kcal + F.toast.nutri.kcal), 'half applies to the avocado only');
+  assert.strictEqual(Math.round(me('half avocado toast')), Math.round(F.avocado.nutri.kcal + F.toast.nutri.kcal), 'half applies to the avocado only (its serving is half an avocado)');
   assert.strictEqual(Math.round(me('rice 2 eggs')), 2 * F.egg.nutri.kcal + F.rice.nutri.kcal);
   // the child's "Fill from dinner" + a chip: the recipe and the banana both count
   const ad = K.RECIPES.find((r) => r.id === 'adobo'), ch = (t) => CN.estimateEntry({ who: 'child', offered: t, ate: 'All' }, [], K.RECIPES).nutri.kcal;
@@ -622,5 +623,28 @@ t('AI nutrition replies are checked before they are kept; typed numbers need cal
   assert.strictEqual(K.updateLogNutri(s, l.id, { kcal: 0, pro: 0, carb: 0, fat: 0, fib: 6, iron: 2 }, { exact: true, source: 'manual' }), null);
   assert.strictEqual(l.nutri.kcal, 400, 'kept the last good numbers');
   assert.ok(K.updateLogNutri(s, l.id, { kcal: 0, pro: 12, carb: 0, fat: 0 }, { exact: true, source: 'manual' }), 'protein only is fine');
+});
+t('408: words that used to match the wrong food; "half a banana"; avocado by the piece; spoonfuls of a food served by the piece', () => {
+  const CN = K.nutri, F = CN.FOOD_BY, me = (text) => Math.round(CN.estimateEntry({ who: 'me', text, portion: 'Regular' }, [], K.RECIPES).nutri.kcal);
+  assert.strictEqual(me('chicken stew'), F.chickenstew.nutri.kcal, 'not chicken + a bowl of beef stew');
+  assert.strictEqual(me('lentil stew'), F.lentils.nutri.kcal);
+  assert.strictEqual(me('beef stew'), F.beefstew.nutri.kcal);
+  assert.ok(me('diet pop') <= 5, 'diet pop is not orange juice');
+  assert.strictEqual(me('a can of pop'), F.soda.nutri.kcal);
+  assert.strictEqual(me('pop tart'), F.poptart.nutri.kcal, 'not juice');
+  assert.strictEqual(me('salmon with lemon wedges'), F.salmon.nutri.kcal, 'lemon wedges are not fries');
+  assert.strictEqual(me('potato wedges'), F.fries.nutri.kcal);
+  assert.strictEqual(me('fish cake'), F.fishcake.nutri.kcal, 'not fish + cake');
+  assert.strictEqual(me('half a banana'), Math.round(F.banana.nutri.kcal / 2));
+  assert.strictEqual(me('half an avocado'), F.avocado.nutri.kcal, 'the serving is half an avocado');
+  assert.strictEqual(me('1 avocado'), 2 * F.avocado.nutri.kcal);
+  assert.strictEqual(me('2 tbsp guacamole'), F.avocado.nutri.kcal, 'spoons of a food served by the piece: one serving');
+  assert.strictEqual(me('half a cup of rice'), Math.round(F.rice.nutri.kcal / 2));
+  assert.strictEqual(me('2 tbsp hummus') > 0, true);
+  // every new food: kcal roughly agrees with its macros
+  ['chickenstew', 'fishcake', 'soda', 'poptart'].forEach((id) => {
+    const n = F[id].nutri, m = 4 * n.pro + 4 * n.carb + 9 * n.fat;
+    assert.ok(Math.abs(n.kcal - m) <= 0.1 * n.kcal, id + ' ' + n.kcal + ' vs ' + m);
+  });
 });
 console.log(n + ' cook unit tests passed');
