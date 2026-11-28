@@ -7,6 +7,19 @@ function t(name, f) { f(); n++; console.log('ok', name); }
 const DIR = path.join(__dirname, '..', 'packs');
 const packs = fs.readdirSync(DIR).filter((f) => /^\d{4}-\d\d-\d\d\.json$/.test(f)).sort().map((f) => JSON.parse(fs.readFileSync(path.join(DIR, f), 'utf8')));
 
+t('467 listened: a full hands-free listen counts the day as practised; kept 60 days; validated', () => {
+  const s = T.defaults(), now = new Date(2026, 10, 28, 15);
+  assert.strictEqual(T.stats(s, now).weekDays, 0);
+  assert.strictEqual(T.markListened(s, now), 1); assert.strictEqual(T.markListened(s, now), 2);
+  assert.ok(T.listenedOn(s, '2026-11-28') && !T.listenedOn(s, '2026-11-27'));
+  assert.strictEqual(T.stats(s, now).weekDays, 1);
+  assert.strictEqual(T.stats(s, now).weekLessons, 0, 'no lesson finished by listening');
+  s.listened['2026-09-01'] = 3; T.markListened(s, now);
+  assert.ok(!s.listened['2026-09-01'], 'older than 60 days dropped');
+  const v = T.validate(Object.assign(JSON.parse(JSON.stringify(s)), { listened: { '2026-11-28': 2, 'x': 1, '2026-11-27': 0, '2026-11-26': 'a', '2026-11-25': 500 } }));
+  assert.deepStrictEqual(v.listened, { '2026-11-25': 99, '2026-11-28': 2 });
+  assert.strictEqual(T.validate(T.defaults()).listened, undefined, 'old saves without it load');
+});
 t('460 restLesson: the lesson finished last (by time, not order), else the next; none when there are no lessons', () => {
   const P = [{ id: '2026-11-18', lessons: [{ day: 1 }, { day: 2 }, { day: 3 }] }, { id: '2026-11-25', lessons: [{ day: 1 }, { day: 2 }] }];
   const s = { done: {} };

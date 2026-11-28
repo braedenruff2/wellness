@@ -352,6 +352,17 @@
     return nx ? { pack: nx.pack, lesson: nx.lesson, done: false } : null;
   }
 
+  /* The hands-free read played to the end (walking, or resting on a sick day): that day counts as practised (467).
+     Kept per local day for 60 days. */
+  function markListened(state, now) {
+    now = now || new Date();
+    var d = iso(now), from = iso(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 59)), m = state.listened = state.listened || {};
+    m[d] = Math.min(99, (m[d] || 0) + 1);
+    Object.keys(m).forEach(function (k) { if (k < from) delete m[k]; });
+    return m[d];
+  }
+  function listenedOn(state, day) { return !!(state.listened && state.listened[day]); }
+
   /* Finishing a lesson puts its words into review (due tomorrow). */
   function finishLesson(state, pack, lesson, now) {
     now = now || new Date();
@@ -454,6 +465,7 @@
     var weekAns = state.answers.filter(function (a) { var d = iso(new Date(a.at)); return d >= from && d <= today; }); // local days, like the rest
     var days = {}; Object.keys(state.done).forEach(function (k) { var d = iso(new Date(state.done[k])); if (d >= from && d <= today) days[d] = 1; });
     weekAns.forEach(function (a) { days[iso(new Date(a.at))] = 1; });
+    Object.keys(state.listened || {}).forEach(function (d) { if (d >= from && d <= today) days[d] = 1; });
     // lessons done by the end of that day: an earlier day (Log for an earlier day) doesn't count later lessons
     var doneBy = Object.keys(state.done).filter(function (k) { return iso(new Date(state.done[k])) <= today; }).length;
     return { words: keys.length, known: known, due: dueCards(state, now).length, lessonsDone: doneBy,
@@ -551,10 +563,13 @@
       if (c && !isNaN(new Date(c.at).getTime())) (d.checks = d.checks || []).push({ at: new Date(c.at).toISOString(), prompt: String(c.prompt || '').slice(0, 300), given: String(c.given || '').slice(0, 300), a: cleanCheck(c.a) });
     });
     if (typeof s.source === 'string' && /^https:\/\/raw\.githubusercontent\.com\//.test(s.source)) d.source = s.source;
+    if (s.listened && typeof s.listened === 'object') Object.keys(s.listened).filter(function (k) { return WLD.isDate(k) && +s.listened[k] >= 1; }).sort().slice(-60).forEach(function (k) {
+      (d.listened = d.listened || {})[k] = Math.min(99, Math.floor(+s.listened[k]));
+    });
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, lintPack: lintPack, norm: norm, bubbleWord: bubbleWord, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, HINT_LABEL: HINT_LABEL, slips: slips, slipSet: slipSet, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson, restLesson: restLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, lintPack: lintPack, norm: norm, bubbleWord: bubbleWord, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, HINT_LABEL: HINT_LABEL, slips: slips, slipSet: slipSet, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson, restLesson: restLesson, markListened: markListened, listenedOn: listenedOn,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, againMiss: againMiss, addWords: addWords, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;

@@ -370,7 +370,7 @@
           var k = 0;
           (function next() {
             if (tok !== playTok || location.hash !== here || wk.getAttribute('aria-pressed') !== 'true') return;
-            if (k >= seq.length) { wk.setAttribute('aria-pressed', 'false'); wk.textContent = '🎧 Listen again'; walkScreen(false); return; }
+            if (k >= seq.length) { wk.setAttribute('aria-pressed', 'false'); wk.textContent = '🎧 Listen again'; walkScreen(false); T.markListened(S, new Date()); save(); return; }
             var it = seq[k++];
             WL.speech.speak(it[0], function () { if (tok === playTok) playTimer = setTimeout(next, it[2]); }, it[1] ? { lang: it[1], rate: rate } : { rate: 1 });
           })();
@@ -453,6 +453,9 @@
     }
     if (nx && sick()) {
       var r = T.restLesson(S, all);
+      if (T.listenedOn(S, todayIso)) return '<div class="meta ui">Tagalog</div><h3>\u2713 Listened while resting</h3>' +
+        '<p class="meta ui" id="tl-card-listened">That counts for today. Rest well.</p>' +
+        '<div class="row ui"><a class="btn" id="tl-card-listen" href="' + restHref(r) + '">🎧 Listen again</a><a class="btn" href="#tagalog">Open</a></div>';
       return '<div class="meta ui">Tagalog</div><h3>Sick today: no lesson needed</h3>' +
         '<p class="meta ui" id="tl-card-sick">Rest comes first. Listening is optional: no typing, no questions.</p>' +
         '<div class="row ui"><a class="btn primary" id="tl-card-listen" href="' + restHref(r) + '">🎧 Listen while resting</a><a class="btn" href="#tagalog">Open</a></div>';
@@ -471,6 +474,7 @@
       var st = T.stats(S), nx = T.nextLesson(S, packs());
       if (lessonToday) return { label: 'Tagalog: lesson done' + (st.due ? ' (' + st.due + ' to review, optional)' : ''), done: true, href: '#tagalog' };
       // a sick day is a rest day here too: nothing left undone on Home (listening stays one tap away)
+      if (nx && sick() && T.listenedOn(S, d)) return { label: 'Tagalog: listened while resting', done: true, href: '#tagalog' };
       if (nx && sick()) return { label: 'Tagalog: rest today (listening is optional)', done: true, href: '#tagalog' }; // the page offers the listening; a ticked item never starts audio by itself
       if (nx) return { label: 'Tagalog: lesson ' + nx.lesson.day + (st.due ? ' + ' + st.due + ' to review' : ''), done: false, href: '#tagalog/l/' + nx.pack.id + '/' + nx.lesson.day };
       return st.due ? { label: 'Tagalog: ' + st.due + ' to review', done: false, href: '#tagalog/review' } : null;

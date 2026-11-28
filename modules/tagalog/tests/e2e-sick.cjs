@@ -52,6 +52,12 @@ const Wb = require('../../../tests/lib/web.cjs');
     assert.ok(/Listen again/.test(await page.textContent('#tl-walk')));
     const st = await page.evaluate(() => JSON.parse(localStorage.getItem('wl.tagalog.v1')));
     assert.strictEqual(Object.keys(st.done).length, 3, 'listening finishes no lesson');
+    // 467: listening to the end counts for today: Home's card and today list say so
+    assert.strictEqual(st.listened && st.listened['2026-11-27'], 1, JSON.stringify(st.listened));
+    await page.goto(base + '#home'); await page.waitForSelector('#tl-card-listened');
+    assert.ok(/Listened while resting/.test(await page.textContent('.home-card[data-module="tagalog"]')));
+    const li2 = await tlToday(); assert.ok(li2 && /listened while resting/.test(li2.text), JSON.stringify(li2));
+    assert.strictEqual(await page.evaluate(() => TagalogCore.stats(JSON.parse(localStorage.getItem('wl.tagalog.v1')), new Date()).weekDays >= 1), true);
   });
 
   await t.step('the Tagalog page: sick card first, lesson 4 still one tap away; the button reads "while resting"', async () => {
