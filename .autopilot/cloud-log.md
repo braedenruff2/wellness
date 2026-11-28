@@ -1,5 +1,13 @@
 # Cloud log
 
+## 2026-11-28 04:43-05:10 AST (run after the usage reset; APK 0.1.20261128.0909, real key, cert 6795e499...)
+- No new Gemini commits since the last cross-review; no gemini-work branch. Drive: sync file unchanged since the last run (no new notes or requests). Not Wednesday: no lesson pack.
+- Done 460 (Tagalog on a sick day: Home card / #tagalog say "Sick today: no lesson needed"; "Listen while resting" opens the lesson he finished last and reads words + conversation hands-free; the /listen hash is dropped once it starts so Back never restarts it; today() not left undone; TagalogCore.restLesson; tagalog unit + e2e-sick).
+- Done 461 (Parenting card on a sick day: "Sick day: comfort and fluids", 4 general lines + "not medical advice, 811 / 911"; Generate becomes "Practise anyway"; coach e2e-auto), 462 (MeCore.sickDayNo: "Day 2 of feeling unwell", day 3+ adds "if it's lasting or getting worse, call 811 or your doctor"; shown on the unfinished check-in card too; me unit + e2e + e2e-sickday), 457 (Home's Cooking card: "Mama cooked" / "Not making" for tonight next to the soup swap; e2e-sickday + e2e-a11y-sick).
+- Claims now go out as claims-only commits on top of origin/main (pushed at once), so work commits never touch claims-claude.md.
+- Tested: full suite (122 suites, none skipped); APK verified (apksigner, cert 6795e499...).
+- Check on the phone: on a sick check-in, Tagalog's Home card -> Listen while resting (it starts by itself); Parenting card's comfort lines; next day "Still unwell? Yes" -> "Day 2 of feeling unwell".
+
 ## 2026-11-28 03:25-03:45 AST (same run; APK 0.1.20261128.0744, real key, cert 6795e499...)
 - Done 458 (Faith: the shorter guided prayer is offered at any hour on a sick-day check-in; e2e-short). 456 dropped (reason in the plan). Claims pushed on their own from now on.
 - Tested: full suite after the rebase (121 suites, none skipped); APK verified.
