@@ -499,6 +499,7 @@
     }).then(finish, function (e) { S.pending = null; save(); err = e.message || String(e); finish(); });
   }
 
+  function sickDay() { return !!(window.WLMe && WLMe.unwell && WLMe.unwell()); }
   function card() {
     if (!S.child.birth && !askable()) return '';
     var st = K.skillStats(S).filter(function (s) { return s.n; }), last = null;
@@ -515,6 +516,7 @@
         var ra = !S.current && K.recentAdvice(S, new Date());
         return ra ? '<p class="ui" id="co-advice-step">From your question: <b>' + esc(ra.step.slice(0, 200)) + '</b></p><div class="row ui"><a class="btn" href="#coach/h/' + esc(ra.id) + '">See the advice</a></div>' : '';
       })() +
+      (!S.current && !done && !waiting && !queued && sickDay() ? '<p class="ui" id="co-sick">A sick day: no practice scenario today. Comfort and rest come first; it can wait.</p>' : '') +
       (draftWaiting() ? '<div class="row ui" id="co-draft-line"><span class="grow">Your question is saved, not sent yet.</span><a class="btn" href="#coach/real">Finish and send</a></div>' : '') +
       (function () { var ts = K.tips(S, null, 50).filter(function (x) { return !tipFlagged(x.id); }); return ts[0] && !S.current && !K.recentAdvice(S, new Date()) ? '<p class="ui" id="co-tip">Try this week: ' + esc(ts[0].text) + '</p>' : ''; })() +
       '<div class="row ui">' + actions + '</div>';
@@ -536,6 +538,7 @@
     if (waiting || document.hidden || !askable() || hasQueuedScenario() || !K.scenarioDue(S, new Date())) return;
     if (autoWait()) return;
     if (here() && typingHere()) return; // never start while he is typing on the Parenting screen
+    if (sickDay()) return; // today's check-in says they're unwell: no practice scenario (Generate still works)
     newScenario({ auto: true });
   }
   if (pc.onCancel) pc.onCancel(function (task) {

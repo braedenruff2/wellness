@@ -198,6 +198,43 @@ const CHILD = { child: { name: 'Mila', birth: '2025-11-24' }, history: [], curre
     await p2.close();
   });
 
+  await t.step('420: a day whose check-in note says they are unwell: no automatic scenario, the card says why, Generate still works; the next day as usual', async () => {
+    const p2 = await page.context().newPage();
+    await p2.clock.install({ time: new Date(2026, 10, 22, 9, 0) });
+    await p2.addInitScript(() => {
+      const d = window.__drive = { content: '', writes: 0 };
+      window.FCAndroid = {
+        pcStatus: () => '{"paired":false}',
+        pcRequest: (id) => Promise.resolve().then(() => window.FCPcDone(id, false, 'not paired')),
+        syncStatus: () => JSON.stringify({ configured: true, name: 'wellness-sync.json', lastSync: 0, error: '', busy: false }),
+        syncRead: (id) => Promise.resolve().then(() => window.FCSyncDone(id, true, d.content)),
+        syncWrite: (id, text) => { d.writes++; Promise.resolve().then(() => { d.content = text; window.FCSyncDone(id, true, ''); }); }
+      };
+    });
+    await p2.goto(base + '#home');
+    await p2.evaluate((s) => {
+      localStorage.setItem('wl.coach.v1', JSON.stringify(s));
+      localStorage.setItem('wl.me.v1', JSON.stringify({ feedback: [], checkins: { '2026-11-22': { at: '2026-11-22T12:00:00Z', sleep: '7 h+', note: 'I think we are all sick, my throat hurts' } }, plan: null, skipped: {} }));
+      localStorage.removeItem('wl.pc.v1'); // the last step's queue
+    }, CHILD);
+    await p2.reload();
+    await p2.clock.runFor(15000);
+    const queued = () => p2.evaluate(() => WL.pc.queued().filter((x) => x.task === 'coach-scenario').length);
+    assert.strictEqual(await queued(), 0, 'nothing queued on a sick day');
+    await p2.clock.runFor(31 * 60000);
+    assert.strictEqual(await queued(), 0, 'still nothing');
+    await p2.waitForSelector('.home-card[data-module="coach"] #co-sick');
+    assert.ok((await p2.textContent('#co-sick')).includes('A sick day'));
+    await p2.click('.home-card[data-module="coach"] [data-co-daily]');
+    await p2.clock.runFor(1000);
+    assert.strictEqual(await queued(), 1, 'Generate by hand still works');
+    await p2.evaluate(() => { WL.pc.queued().forEach((x) => WL.pc.cancel && WL.pc.cancel(x.id)); });
+    await p2.clock.setSystemTime(new Date(2026, 10, 23, 9, 0));
+    await p2.clock.runFor(16 * 60000);
+    assert.strictEqual(await queued(), 1, 'the next day (no sick note): queued as usual');
+    await p2.close();
+  });
+
   await t.step('no console errors', async () => { assert.deepStrictEqual(t.errors, []); });
   await t.close('coach auto browser');
 })().catch((e) => { console.error(e); process.exit(1); });
