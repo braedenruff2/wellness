@@ -14,6 +14,21 @@
   var addDays = WLD.addDays;
 
   /* Pack format check (used by the build tool, the tests, and before accepting a downloaded pack). */
+  /* Authoring checks for a new week (build-packs.cjs refuses a pack that fails them; phones never run these, so a
+     week already out stays valid): a prompt like "How do you say 'bottle' in Tagalog?" whose answer is the question
+     itself reads as asking for the word (he typed "bote po"): write "Ask an elder how to say 'bottle' in Tagalog". */
+  function lintPack(p) {
+    var e = [];
+    ((p && p.lessons) || []).forEach(function (l, i) {
+      ((l && l.exercises) || []).forEach(function (x, j) {
+        if (!x || typeof x.prompt !== 'string' || typeof x.answer !== 'string') return;
+        var v = 'lesson ' + (i + 1) + ' exercise ' + (j + 1) + ': ';
+        if (/^\s*how do (you|i) say\b/i.test(x.prompt) && /\?\s*$/.test(x.answer)) e.push(v + 'the prompt reads as asking for the word; write "Ask ... how to say \'X\' in Tagalog"');
+        if (/\bto an elder\b/i.test(x.prompt) && !/\b(po|ho|opo|oho)\b/i.test(x.answer)) e.push(v + 'an answer to an elder needs po/ho');
+      });
+    });
+    return e;
+  }
   function checkPack(p) {
     var e = [];
     if (!p || typeof p !== 'object') return ['not an object'];
@@ -524,7 +539,7 @@
     return d;
   }
 
-  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, norm: norm, bubbleWord: bubbleWord, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, HINT_LABEL: HINT_LABEL, slips: slips, slipSet: slipSet, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
+  var api = { INTERVALS: INTERVALS, defaults: defaults, cleanCheck: cleanCheck, checkPack: checkPack, lintPack: lintPack, norm: norm, bubbleWord: bubbleWord, check: check, missedPo: missedPo, altOf: altOf, orderHint: orderHint, linkerHint: linkerHint, aspectHint: aspectHint, hintKind: hintKind, HINT_KINDS: HINT_KINDS, HINT_ABOUT: HINT_ABOUT, HINT_LABEL: HINT_LABEL, slips: slips, slipSet: slipSet, exampleFor: exampleFor, allPacks: allPacks, nextLesson: nextLesson,
     finishLesson: finishLesson, recordAnswer: recordAnswer, dueCards: dueCards, direction: direction, practiceSet: practiceSet, review: review, stats: stats, weakWords: weakWords,
     advice: advice, againMiss: againMiss, addWords: addWords, weeklySummary: weeklySummary, validate: validate, iso: iso, addDays: addDays };
   root.TagalogCore = api;

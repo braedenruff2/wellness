@@ -704,4 +704,14 @@ t('every bundled type/build exercise: its answer and each accept variant check r
   }
   assert.ok(n > 50, 'checked ' + n);
 });
+t('437: lintPack (new weeks only): a "How do you say ..." prompt whose answer is the question, and an elder answer without po; bundled weeks pass', () => {
+  for (const p of packs) assert.deepStrictEqual(T.lintPack(p), [], p.id);
+  const mk = (x) => ({ lessons: [{ exercises: [x] }] });
+  assert.strictEqual(T.lintPack(mk({ type: 'type', prompt: "How do you say 'bottle' in Tagalog? (to an elder)", answer: 'Paano po sabihin ang bottle sa Tagalog?' })).length, 1);
+  assert.deepStrictEqual(T.lintPack(mk({ type: 'type', prompt: "How do you say 'bottle'?", answer: 'bote' })), [], 'asking for the word itself is fine');
+  assert.deepStrictEqual(T.lintPack(mk({ type: 'type', prompt: "Ask an elder how to say 'bottle' in Tagalog.", answer: 'Paano po sabihin ang bottle sa Tagalog?' })), []);
+  assert.ok(/po\/ho/.test(T.lintPack(mk({ type: 'type', prompt: 'Thank you (to an elder)', answer: 'Salamat' }))[0]));
+  assert.deepStrictEqual(T.lintPack(null), []);
+  assert.deepStrictEqual(T.checkPack(packs[1]).length, 0, 'checkPack (what phones run) is unchanged');
+});
 console.log(n + ' tagalog unit tests passed');

@@ -500,7 +500,7 @@
     },
     {
      "type": "type",
-     "prompt": "How do you say 'bottle' in Tagalog? (to an elder)",
+     "prompt": "Ask an elder how to say 'bottle' in Tagalog.",
      "answer": "Paano po sabihin ang bottle sa Tagalog?",
      "accept": [
       "paano po sabihin ang bottle sa tagalog",

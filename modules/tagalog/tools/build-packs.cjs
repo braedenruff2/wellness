@@ -9,7 +9,7 @@ const OUT = path.join(__dirname, '..', '..', '..', 'app', 'www', 'modules', 'tag
 const V = require('../../../app/www/modules/tagalog/tagalog-core.js');
 const packs = fs.readdirSync(SRC).filter((f) => /^\d{4}-\d\d-\d\d\.json$/.test(f)).sort().map((f) => {
   const p = JSON.parse(fs.readFileSync(path.join(SRC, f), 'utf8'));
-  const errs = V.checkPack(p);
+  const errs = V.checkPack(p).concat(V.lintPack(p));
   if (errs.length) { console.error(f + ':\n  ' + errs.join('\n  ')); process.exit(1); }
   return p;
 });
